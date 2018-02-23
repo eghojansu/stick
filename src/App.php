@@ -33,11 +33,17 @@ class App implements \ArrayAccess
     /** @var array Vars hive */
     protected $hive;
 
-    /** @var array */
-    protected $services = [];
+    /** @var Request */
+    public $request;
 
-    /** @var array Service aliases */
-    protected $aliases = [];
+    /** @var Response */
+    public $response;
+
+    /** @var Helper */
+    public $helper;
+
+    /** @var Cache */
+    public $cache;
 
     /**
      * Class constructor
@@ -60,9 +66,11 @@ class App implements \ArrayAccess
             'DNSBL'      => '',
             'ERROR'      => null,
             'EXEMPT'     => null,
-            'EVENT'      => [],
             'HALT'       => true,
             'LOG_ERROR'  => true,
+            'ONERROR'    => null,
+            'ONREROUTE'  => null,
+            'ONUNLOAD'   => null,
             'PACKAGE'    => static::PACKAGE,
             'PARAMS'     => null,
             'PATTERN'    => null,
@@ -82,35 +90,16 @@ class App implements \ArrayAccess
                 'expose'      => false,
                 'ttl'         => 0,
             ],
-            'SERVICE' => [
-                'cache' => [
-                    'class'  => Cache\Cache::class,
-                    'params' => [
-                        'dsn'    => '%CACHE%',
-                        'prefix' => '%SEED%',
-                        'dir'    => '%TEMP%cache/',
-                        'helper' => '%helper%',
-                    ],
-                ],
-            ],
         ];
 
         // Save a copy of hive
         $this->init = $this->hive;
 
-        // Register core service
-        $this->services['request'] = $request;
-        $this->aliases[Request::class] = 'request';
-
-        $this->services['helper'] = $helper;
-        $this->aliases[Helper::class] = 'helper';
-
-        $this->services['response'] = $response;
-        $this->aliases[Response::class] = 'response';
-
-        $this->services['app'] = $this;
-        $this->aliases[static::class] = 'app';
-
+        // Set instance
+        $this->request  = $request;
+        $this->response = $response;
+        $this->helper   = $helper;
+        $this->cache    = new Cache\Cache($this->hive['CACHE'], $this->hive['SEED'], $this->hive['TEMP'] . 'cache/', $helper);
 
         // @codeCoverageIgnoreStart
         if ('cli-server' === PHP_SAPI && preg_match('/^' . preg_quote($request['BASE'], '/') . '$/', $request['URI'])) {
@@ -128,34 +117,14 @@ class App implements \ArrayAccess
     }
 
     /**
-     * Load ini file and merge to hive
-     *
-     * @param  string $file
-     *
-     * @return App
-     */
-    public function loadIni(string $file): App
-    {
-        $content = read($file);
-
-        if ($content) {
-            $this->sets(parse_ini_string($content, true));
-        }
-
-        return $this;
-    }
-
-    /**
      * Match routes against incoming URI
      *
      * @return App
      */
     public function run(): App
     {
-        $request = $this->service('request');
-
         // @codeCoverageIgnoreStart
-        if ($this->blacklisted($request['IP'])) {
+        if ($this->blacklisted($this->request['IP'])) {
             // Spammer detected
             $this->error(403);
 
@@ -172,7 +141,8 @@ class App implements \ArrayAccess
         ksort($this->hive['ROUTES']);
 
         // Convert to BASE-relative URL
-        $response  = $this->service('response')->clearOutput();
+        $request   = $this->request;
+        $response  = $this->response->clearOutput();
         $path      = $request['PATH'];
         $method    = $request['METHOD'];
         $headers   = $request['HEADERS'];
@@ -233,7 +203,7 @@ class App implements \ArrayAccess
                 $now = microtime(true);
                 if (in_array($method, ['GET','HEAD']) && $ttl) {
                     // Only GET and HEAD requests are cacheable
-                    $cache  = $this->service('cache');
+                    $cache  = $this->cache;
                     $hash   = hash($method . ' ' . $request['URI']) . '.url';
                     $cached = $cache->get($hash);
                     if ($cached) {
@@ -264,14 +234,14 @@ class App implements \ArrayAccess
                     $this->expire(0);
                 }
 
-                if (!$response->getBody()) {
+                if (!$response->hasBody()) {
                     if (!$this->hive['RAW'] && !$request['BODY']) {
                         $request['BODY'] = file_get_contents('php://input');
                     }
 
                     // Call route handler
                     try {
-                        $result = $this->call($handler, array_slice($args, 1));
+                        $result = $this->call($handler, [$this, $args]);
                     } catch (\BadMethodCallException $e) {
                         $this->error(404);
 
@@ -363,7 +333,7 @@ class App implements \ArrayAccess
             throw new \LogicException("Invalid mock pattern: {$pattern}");
         }
 
-        $request = $this->service('request');
+        $request = $this->request;
         $args    = (array) $args;
         $headers = (array) $headers;
         $method  = $match[1];
@@ -403,7 +373,7 @@ class App implements \ArrayAccess
     }
 
     /**
-     * Reroute to specified URI, or dispatch REROUTE event if listener exists
+     * Reroute to specified URI, or trigger ONREROUTE event if exists
      *
      * @param  string|array|null  $url
      * @param  boolean $permanent
@@ -413,7 +383,7 @@ class App implements \ArrayAccess
      */
     public function reroute($url = null, bool $permanent = false, bool $die = true): void
     {
-        $request = $this->service('request');
+        $request = $this->request;
 
         if (!$url) {
             $url = $request['REALM'];
@@ -423,8 +393,8 @@ class App implements \ArrayAccess
             $url = $this->build($url);
         }
 
-        if (isset($this->hive['EVENT']['REROUTE'])) {
-            $this->dispatch('REROUTE', [$url, $permanent]);
+        if ($this->hive['ONREROUTE']) {
+            $this->call($this->hive['ONREROUTE'], [$this, $url, $permanent]);
 
             return;
         }
@@ -438,7 +408,7 @@ class App implements \ArrayAccess
             $this->mock('GET ' . $url . ' cli');
         } else {
             $this
-                ->service('response')
+                ->response
                 ->status($permanent ? 301 : 302)
                 ->setHeader('Location', $url)
                 ->sendHeader()
@@ -516,8 +486,10 @@ class App implements \ArrayAccess
             session_commit();
         }
 
-        if (isset($this->hive['EVENT']['UNLOAD'])) {
-            $this->dispatch('UNLOAD', null, true);
+        $handler = $this->hive['ONUNLOAD'];
+        $this->hive['ONUNLOAD'] = null;
+        if ($handler) {
+            $this->call($handler, [$this, $cwd]);
         } elseif ($error && in_array($error['type'], [E_ERROR,E_PARSE,E_CORE_ERROR,E_COMPILE_ERROR])) {
             // Fatal error detected
             $this->error(500, "Fatal error: {$error[message]}", [$error]);
@@ -525,7 +497,7 @@ class App implements \ArrayAccess
     }
 
     /**
-     * Log error, dispatch ONERROR event if listener exists else
+     * Log error, trigger ONERROR event if exists else
      * display default error page (HTML for synchronous requests, JSON string
      * for AJAX requests)
      *
@@ -543,8 +515,8 @@ class App implements \ArrayAccess
             return;
         }
 
-        $request  = $this->service('request');
-        $response = $this->service('response');
+        $request  = $this->request;
+        $response = $this->response;
         $header   = $response->status($code)->getStatusText();
         $req      = $request['METHOD'].' '.$request['PATH'];
         $trace    = stringify($trace ?? debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS));
@@ -574,8 +546,10 @@ class App implements \ArrayAccess
 
         $this->expire(-1);
 
-        if (isset($this->hive['EVENT']['ONERROR'])) {
-            $this->dispatch('ONERROR', null, true);
+        $handler = $this->hive['ONERROR'];
+        $this->hive['ONERROR'] = null;
+        if ($handler) {
+            $this->call($handler, [$this, $this->hive['PARAMS']]);
 
             return;
         }
@@ -636,8 +610,8 @@ ERR
      */
     public function expire(int $secs = 0): App
     {
-        $request = $this->service('request');
-        $response = $this->service('response');
+        $request = $this->request;
+        $response = $this->response;
 
         $response
             ->setHeader('X-Powered-By', $this->hive['PACKAGE'])
@@ -923,30 +897,6 @@ ERR
     }
 
     /**
-     * Dispatch event
-     *
-     * @param  string $event
-     * @param  array  $args
-     * @param  bool  $once Remove handler before execute
-     *
-     * @return App
-     */
-    public function dispatch(string $event, array $args = null, bool $once = false): App
-    {
-        $handlers = (array) $this->get("EVENT.$event");
-
-        if ($once) {
-            $this->clear("EVENT.$event");
-        }
-
-        foreach ($handlers as $handler) {
-            $this->call($handler, $args);
-        }
-
-        return $this;
-    }
-
-    /**
      * Call callable, support (-> and ::) format
      * Example: Class->method , Class::method
      *
@@ -976,58 +926,7 @@ ERR
             }
         }
 
-        if (is_array($callback)) {
-            $ref = new \ReflectionMethod($callback[0], $callback[1]);
-        } else {
-            $ref = new \ReflectionFunction($callback);
-        }
-
-        $mArgs = $this->methodArgs($ref, [], (array) $args);
-
-        return call_user_func_array($callback, $mArgs);
-    }
-
-    /**
-     * Get service by id or class name
-     *
-     * @param  string $id
-     * @param  array  $args
-     *
-     * @return mixed
-     */
-    public function service(string $id, array $args = [])
-    {
-        if (isset($this->services[$id])) {
-            return $this->services[$id];
-        } elseif (isset($this->aliases[$id])) {
-            // real id
-            $id = $this->aliases[$id];
-
-            if (isset($this->services[$id])) {
-                return $this->services[$id];
-            }
-        }
-
-        $rule = $this->get("SERVICE.$id", []);
-        $class = $rule['class'] ?? $id;
-
-        if (method_exists($class, '__construct')) {
-            $cArgs = $this->methodArgs(
-                new \ReflectionMethod($class, '__construct'),
-                $rule['params'] ?? [],
-                $args
-            );
-
-            $service = new $class(...$cArgs);
-        } else {
-            $service = new $class;
-        }
-
-        if ($rule['keep'] ?? false) {
-            $this->services[$id] = $service;
-        }
-
-        return $service;
+        return call_user_func_array($callback, (array) $args);
     }
 
     /**
@@ -1108,35 +1007,18 @@ ERR
      */
     public function set(string $key, $val): App
     {
-        if (preg_match('/^SERVICE\.(.+)$/', $key, $match)) {
-            if (is_string($val)) {
-                // assume val is a class name
-                $val = ['class' => $val];
-            }
-
-            // defaults it's a service
-            $val += ['keep' => true];
-
-            if (isset($val['class']) && $val['class'] !== $match[1]) {
-                $this->aliases[$val['class']] = $match[1];
-            }
-
-            // remove existing service
-            $this->services[$match[1]] = null;
-        }
-
         $var =& $this->ref($key);
         $var = $val;
 
         switch ($key) {
             case 'CACHE':
-                $this->service('cache')->setDsn($val);
+                $this->cache->setDsn($val);
                 break;
             case 'SEED':
-                $this->service('cache')->setPrefix($val);
+                $this->cache->setPrefix($val);
                 break;
             case 'SERIALIZER':
-                $this->service('helper')->setOption('serializer', $val);
+                $this->helper->setOption('serializer', $val);
                 break;
             case 'TZ':
                 date_default_timezone_set($val);
@@ -1171,10 +1053,7 @@ ERR
     {
         if ('CACHE' === $key) {
             // Clear cache contents
-            $this->service('cache')->reset();
-        } elseif (preg_match('/^SERVICE\.(.+)$/', $key, $match) && !in_array($match[1], ['app','request','response','helper'])) {
-            // Remove instance too
-            $this->services[$match[1]] = null;
+            $this->cache->reset();
         }
 
         $parts = explode('.', $key);
@@ -1331,65 +1210,22 @@ ERR
     {
         if (preg_match('/^(.+)(::|\->)(\w+)$/', $callback, $match)) {
             $callback = [
-                '->' === $match[2] ? $this->service($match[1]) : $match[1],
+                $match[1],
                 $match[3]
             ];
-        }
 
-        return $callback;
-    }
+            if ('->' === $match[2]) {
+                $class = $callback[0];
 
-    /**
-     * Build method arguments
-     *
-     * @param  \ReflectionFunctionAbstract $ref
-     * @param  array                       $sArgs
-     * @param  array                       $lArgs
-     *
-     * @return array
-     */
-    protected function methodArgs(\ReflectionFunctionAbstract $ref, array $sArgs = [], array $lArgs = []): array
-    {
-        $args  = [];
-        $pArgs = array_filter($lArgs, 'is_numeric', ARRAY_FILTER_USE_KEY);
-
-        foreach ($ref->getParameters() as $param) {
-            $name = $param->name;
-
-            if (isset($sArgs[$name])) {
-                $val = $sArgs[$name];
-
-                if (is_string($val)) {
-                    // assume it is a class name
-                    if (class_exists($val)) {
-                        $val = $this->service($val);
-                    } elseif (preg_match('/(.+)?%(.+)%(.+)?/', $val, $match)) {
-                        // assume it does exist in hive
-                        $ref = $this->ref($match[2], false);
-                        if (isset($ref)) {
-                            $val = ($match[1] ?? '') . $ref . ($match[3] ?? '');
-                        } else {
-                            // it is a service alias
-                            $val = $this->service($match[2]);
-                        }
-                    }
+                if (method_exists($match[1], '__construct')) {
+                    $callback[0] = new $class($this);
+                } else {
+                    $callback[0] = new $class();
                 }
-
-                $args[] = $val;
-            } elseif (isset($lArgs[$name])) {
-                $args[] = $lArgs[$name];
-            } elseif ($param->isVariadic()) {
-                $args = array_merge($args, $pArgs);
-            } elseif ($refClass = $param->getClass()) {
-                $args[] = $this->service($refClass->name);
-            } elseif ($pArgs) {
-                $args[] = array_shift($pArgs);
-            } elseif ($param->isDefaultValueAvailable()) {
-                $args[] = $param->getDefaultValue();
             }
         }
 
-        return $args;
+        return $callback;
     }
 
     /**

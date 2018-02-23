@@ -55,8 +55,7 @@ class AppTest extends TestCase
 
     public function tearDown()
     {
-        $cache = $this->app->service('cache');
-        $cache->reset();
+        $this->app->cache->reset();
         if (file_exists($dir = TEMP . 'cache')) {
             rmdir($dir);
         }
@@ -65,16 +64,7 @@ class AppTest extends TestCase
             $GLOBALS[$key] = $value;
         }
         header_remove();
-        $this->app->service('response')->removeHeader();
-    }
-
-    public function testDispatch()
-    {
-        $this->app->set('EVENT.foo', function(App $app, $baz) {
-            $app->set('foo', 'bar'.$baz);
-        });
-        $this->app->dispatch('foo', ['baz'=>'qux']);
-        $this->assertEquals('barqux', $this->app->get('foo'));
+        $this->app->response->removeHeader();
     }
 
     public function testCall()
@@ -85,39 +75,6 @@ class AppTest extends TestCase
         $this->assertEquals('foobarbaz', $this->app->call(function(...$args) {
             return implode('', $args);
         }, ['foo','bar','baz']));
-    }
-
-    public function testService()
-    {
-        $this->assertEquals($this->app, $this->app->service('app'));
-        $this->assertEquals($this->app, $this->app->service(App::class));
-
-        $inda = $this->app->service(IndA::class);
-        $this->assertInstanceof(IndA::class, $inda);
-
-        // service
-        $this->app->set('SERVICE.foo', DepA::class);
-        $foo = $this->app->service('foo');
-        $this->assertInstanceof(DepA::class, $foo);
-
-        // service with placeholder parameter
-        $this->app->set('SERVICE.bar', [
-            'class' => DepDepAIndB::class,
-            'params' => [
-                'depa' => '%foo%',
-                'indb' => IndB::class,
-            ],
-        ]);
-        $bar = $this->app->service('bar');
-        $this->assertInstanceof(DepDepAIndB::class, $bar);
-        $this->assertEquals($foo, $bar->depa);
-
-        // Service with global class dependency
-        $depdt = $this->app->service(DepDateTime::class);
-        $this->assertInstanceof(DepDateTime::class, $depdt);
-
-        $dt = $this->app->service(DateTime::class);
-        $this->assertInstanceof(DateTime::class, $dt);
     }
 
     public function testHive()
@@ -158,10 +115,6 @@ class AppTest extends TestCase
 
         // update timezone
         $this->assertEquals('Asia/Jakarta', $this->app->set('TZ', 'Asia/Jakarta')->get('TZ'));
-
-        // service set
-        $this->app->set('SERVICE.foo', CommonClass::class);
-        $this->assertEquals(['class'=>CommonClass::class,'keep'=>true], $this->app->get('SERVICE.foo'));
     }
 
     public function testExists()
@@ -185,14 +138,6 @@ class AppTest extends TestCase
         $this->assertEquals('baz', $this->app->get('foo.bar'));
         $this->app->clear('foo.bar');
         $this->assertFalse($this->app->exists('foo.bar'));
-
-        // Remove service
-        $this->app->set('SERVICE.foo', CommonClass::class);
-        $foo = $this->app->service('foo');
-
-        $this->assertInstanceof(CommonClass::class, $foo);
-        $this->app->clear('SERVICE.foo');
-        $this->assertNull($this->app->get('SERVICE.foo'));
     }
 
     public function testSets()
@@ -249,7 +194,7 @@ class AppTest extends TestCase
     public function testAccessCache()
     {
         $this->app->set('CACHE', 'folder');
-        $cache = $this->app->service('cache');
+        $cache = $this->app->cache;
         $cache->set('foo', 'bar');
         $this->assertFileExists(TEMP.'cache/'.$this->app->SEED.'.foo');
 
@@ -370,7 +315,7 @@ class AppTest extends TestCase
     public function testRedirect()
     {
         $this->app->redirect('GET /foo', '/bar');
-        $this->app->set('EVENT.REROUTE', function(App $app, $url, $permanent) {
+        $this->app->set('ONREROUTE', function(App $app, $url, $permanent) {
             $app->set('reroute', [$url, $permanent]);
         });
 
@@ -480,7 +425,7 @@ class AppTest extends TestCase
 
         $this->assertEquals($this->app, $this->app->run());
         $this->assertEquals(['bar','cli'], $this->app->get('foo'));
-        $response = $this->app->service('response');
+        $response = $this->app->response;
         $this->assertEquals('', $response->getBody());
         $this->assertNull($response->getOutput());
     }
@@ -503,7 +448,7 @@ class AppTest extends TestCase
             $app->set('bar', 'baz');
         });
         $this->app->route('GET /arg/{arg}', function(App $app, $arg) {
-            $app->set('arg', $arg);
+            $app->set('arg', $arg['arg']);
         });
         $this->app->route('GET sync /sync sync', function(App $app) {
             $app->set('sync', 'sync');
@@ -514,7 +459,7 @@ class AppTest extends TestCase
         $this->app->route('GET invalidfunction /invalidfunction', 'invalidfunction');
         $this->app->route('GET emptycallback /emptycallback', null);
 
-        $request = $this->app->service('request');
+        $request = $this->app->request;
 
         // valid alias with fragment
         $this->app->mock('GET foo#fragmentbar', ['bar'=>'baz']);
@@ -597,7 +542,7 @@ class AppTest extends TestCase
 
     public function testMockCors()
     {
-        $response = $this->app->service('response');
+        $response = $this->app->response;
 
         $this->app->sets([
             'origin' => 'example.com',
@@ -637,12 +582,13 @@ class AppTest extends TestCase
             return $closure;
         });
 
-        $response = $this->app->service('response');
-        $request = $this->app->service('request');
+        $response = $this->app->response;
+        $request = $this->app->request;
 
         $this->app->mock('GET /outstring');
         $this->assertEquals('outstring', $response->getBody());
 
+        define('me','ok');
         $this->app->mock('GET /outarray');
         $this->assertEquals('{"out":"array"}', $response->getBody());
 
@@ -690,7 +636,7 @@ class AppTest extends TestCase
 
     public function testReroute()
     {
-        $request = $this->app->service('request');
+        $request = $this->app->request;
         $realm = $request['SCHEME'] . '://' . $request['HOST'];
 
         $this->app->route('GET cli /cli cli', function(App $app) {
@@ -703,12 +649,12 @@ class AppTest extends TestCase
         $this->app->route('GET foo /bar', function(App $app) {
             $app->set('foo', 'bar');
         });
-        $this->app->set('EVENT.REROUTE', function(App $app, $url, $permanent) {
+        $this->app->set('ONREROUTE', function(App $app, $url, $permanent) {
             $app->set('reroute', [$url, $permanent]);
         });
         $this->app->reroute('foo', false, false);
         $this->assertEquals(['/bar', false], $this->app->get('reroute'));
-        $this->app->clear('EVENT.REROUTE');
+        $this->app->clear('ONREROUTE');
 
         if (function_exists('xdebug_get_headers')) {
             $request['CLI'] = false;
@@ -764,8 +710,8 @@ class AppTest extends TestCase
 
     public function testExpire()
     {
-        $request = $this->app->service('request');
-        $response = $this->app->service('response');
+        $request = $this->app->request;
+        $response = $this->app->response;
         $request['CLI'] = false;
 
         $response->removeHeader();
@@ -784,7 +730,7 @@ class AppTest extends TestCase
 
     public function testError()
     {
-        $request = $this->app->service('request');
+        $request = $this->app->request;
         $request['QUERY'] = 'foo=bar';
         $req = $request['METHOD'] . ' ' . $request['PATH'] . '?foo=bar';
 
@@ -801,22 +747,11 @@ class AppTest extends TestCase
         $this->assertContains(404, $error);
 
         $this->app->clear('ERROR');
-        $this->app->set('EVENT.ONERROR', function(App $app) {
+        $this->app->set('ONERROR', function(App $app) {
             $app->set('foo_error.bar', 'baz');
         });
 
         $this->app->error(404);
         $this->assertEquals(['bar'=>'baz'], $this->app->get('foo_error'));
-    }
-
-    public function testLoadIni()
-    {
-        $this->app->loadIni(FIXTURE . 'config.ini');
-
-        $this->assertEquals('bar', $this->app->get('foo'));
-        $this->assertEquals(['baz1','baz2'], $this->app->get('baz'));
-        $this->assertEquals(['foo'=>'bar'], $this->app->get('section'));
-        $this->assertEquals(['foo'=>['bar'=>'baz']], $this->app->get('sec'));
-        $this->assertEquals(['one'=>1,'two'=>true,'three'=>false,'four'=>null], $this->app->get('qux'));
     }
 }
