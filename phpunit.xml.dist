@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit bootstrap="tests/bootstrap.php" colors="true" verbose="true" stderr="true">
+  <testsuite name="Unit">
+    <directory>tests/Unit</directory>
+  </testsuite>
+
+  <filter>
+    <whitelist processUncoveredFilesFromWhitelist="true">
+      <directory>src</directory>
+    </whitelist>
+  </filter>
+
+  <logging>
+    <log type="coverage-clover" target="coverage-clover.xml" />
+    <log type="coverage-html" target="coverage-html" />
+    <log type="coverage-text" target="php://stdout" showUncoveredFiles="true" />
+  </logging>
+</phpunit>

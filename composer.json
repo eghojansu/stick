@@ -1,0 +1,29 @@
+{
+    "name": "eghojansu/stick",
+    "description": "Stick~to~PHP Framework",
+    "license": "MIT",
+    "type": "library",
+    "author": [{
+        "name": "Eko Kurniawan",
+        "email": "ekokurniawanbs@gmail.com"
+    }],
+    "autoload": {
+        "psr-4": {
+            "Fal\\Stick\\": "src/"
+        },
+        "files": [
+            "src/functions.php"
+        ]
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Fal\\Stick\\Test\\": "tests/"
+        }
+    },
+    "require": {
+        "php": ">=7.1"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^7.0"
+    }
+}
