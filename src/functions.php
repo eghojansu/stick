@@ -158,6 +158,18 @@ function write(string $file, string $data, bool $append = false)
 }
 
 /**
+ * Delete file with check
+ *
+ * @param  string $file
+ *
+ * @return bool
+ */
+function delete(string $file): bool
+{
+    return file_exists($file) ? unlink($file) : false;
+}
+
+/**
  * Split comma, semi-colon, or pipe-separated string
  *
  * @param  string  $str

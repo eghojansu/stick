@@ -102,6 +102,16 @@ class FunctionsTest extends Testcase
         $this->assertEquals($expected, $result);
     }
 
+    public function testDelete()
+    {
+        $file = TEMP . 'todelete.txt';
+        $this->assertFalse(f\delete($file));
+        touch($file);
+        $this->assertFileExists($file);
+        $this->assertTrue(f\delete($file));
+        $this->assertFileNotExists($file);
+    }
+
     public function testSplit()
     {
         $expected = ['foo','bar'];
