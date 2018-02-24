@@ -116,7 +116,7 @@ class FunctionsTest extends Testcase
     {
         $expected = ['foo','bar'];
         $str = 'foo|bar||';
-        $noempty = true;
+        $noempty = TRUE;
         $result = f\split($str, $noempty);
         $this->assertEquals($expected, $result);
     }
@@ -158,14 +158,13 @@ class FunctionsTest extends Testcase
 
     public function testMkdir()
     {
-        $expected = true;
         $path = TEMP.'mktest';
         $result = f\mkdir($path);
-        $this->assertEquals($expected, $result);
-        $this->assertEquals($expected, is_dir($path));
+        $this->assertTrue($result);
+        $this->assertTrue(is_dir($path));
 
         $result = f\mkdir($path);
-        $this->assertEquals($expected, $result);
+        $this->assertTrue($result);
     }
 
     public function testReqarr()

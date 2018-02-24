@@ -178,7 +178,7 @@ final class App implements \ArrayAccess
             'path'     => $base ?: '/',
             'domain'   => $domain,
             'secure'   => $secure,
-            'httponly' => true
+            'httponly' => TRUE
         ];
 
         $_SERVER['REQUEST_URI']   = $uri['path'] . rtrim('?' . $uri['query'], '?') . rtrim('#' . $uri['fragment'], '#');
@@ -191,37 +191,37 @@ final class App implements \ArrayAccess
         $this->hive = [
             'AGENT'      => $this->agent(),
             'AJAX'       => $this->ajax(),
-            'ALIAS'      => null,
+            'ALIAS'      => NULL,
             'ALIASES'    => [],
             'BASE'       => $base,
             'BODY'       => '',
-            'CACHE'      => null,
-            'CASELESS'   => false,
+            'CACHE'      => NULL,
+            'CASELESS'   => FALSE,
             'CLI'        => $cli,
             'DEBUG'      => $debug,
             'DNSBL'      => '',
-            'ERROR'      => null,
-            'EXEMPT'     => null,
+            'ERROR'      => NULL,
+            'EXEMPT'     => NULL,
             'FRAGMENT'   => $uri['fragment'],
-            'HALT'       => true,
+            'HALT'       => TRUE,
             'HEADERS'    => $headers,
             'HOST'       => $_SERVER['SERVER_NAME'],
             'IP'         => $this->ip(),
             'JAR'        => $jar,
-            'LOG_ERROR'  => true,
+            'LOG_ERROR'  => TRUE,
             'METHOD'     => $_SERVER['REQUEST_METHOD'],
-            'ONERROR'    => null,
-            'ONREROUTE'  => null,
-            'ONUNLOAD'   => null,
+            'ONERROR'    => NULL,
+            'ONREROUTE'  => NULL,
+            'ONUNLOAD'   => NULL,
             'PACKAGE'    => self::PACKAGE,
             'PATH'       => urldecode($path),
-            'PARAMS'     => null,
-            'PATTERN'    => null,
+            'PARAMS'     => NULL,
+            'PATTERN'    => NULL,
             'PORT'       => $port,
             'PREMAP'     => '',
             'QUERY'      => $uri['query'],
-            'QUIET'      => false,
-            'RAW'        => false,
+            'QUIET'      => FALSE,
+            'RAW'        => FALSE,
             'RCOOKIES'   => [],
             'RESPONSE'   => '',
             'REALM'      => $scheme . '://' . $_SERVER['SERVER_NAME'] . ($port && !in_array($port, [80, 443])? (':' . $port):'') . $_SERVER['REQUEST_URI'],
@@ -241,9 +241,9 @@ final class App implements \ArrayAccess
             'XFRAME'     => 'SAMEORIGIN',
             'CORS'       => [
                 'headers'     => '',
-                'origin'      => false,
-                'credentials' => false,
-                'expose'      => false,
+                'origin'      => FALSE,
+                'credentials' => FALSE,
+                'expose'      => FALSE,
                 'ttl'         => 0,
             ],
         ];
@@ -411,7 +411,7 @@ final class App implements \ArrayAccess
      *
      * @return App
      */
-    public function removeHeader(string $name = null): App
+    public function removeHeader(string $name = NULL): App
     {
         if ($name) {
             foreach ($this->hive['RHEADERS'] as $key => $content) {
@@ -443,7 +443,7 @@ final class App implements \ArrayAccess
                 header($header);
             }
 
-            header($_SERVER['SERVER_PROTOCOL'] . ' ' . $this->hive['STATUS'] . ' ' . $this->hive['TEXT'], true);
+            header($_SERVER['SERVER_PROTOCOL'] . ' ' . $this->hive['STATUS'] . ' ' . $this->hive['TEXT'], TRUE);
         }
 
         return $this;
@@ -512,8 +512,8 @@ final class App implements \ArrayAccess
         $headers   = $this->hive['HEADERS'];
         $modifier  = $this->hive['CASELESS'] ? 'i' : '';
         $type      = $this->hive['CLI'] ? self::REQ_CLI : ((int) $this->hive['AJAX']) + 1;
-        $preflight = false;
-        $cors      = null;
+        $preflight = FALSE;
+        $cors      = NULL;
         $allowed   = [];
 
         if (isset($headers['Origin']) && $this->hive['CORS']['origin']) {
@@ -522,7 +522,7 @@ final class App implements \ArrayAccess
 
             $this
                 ->header('Access-Control-Allow-Origin', $cors['origin'])
-                ->header('Access-Control-Allow-Credentials', var_export($cors['credentials'], true))
+                ->header('Access-Control-Allow-Credentials', var_export($cors['credentials'], TRUE))
             ;
         }
 
@@ -564,7 +564,7 @@ final class App implements \ArrayAccess
                 }
 
                 // Process request
-                $now  = microtime(true);
+                $now  = microtime(TRUE);
                 $body = '';
                 if (in_array($method, ['GET','HEAD']) && $ttl) {
                     // Only GET and HEAD requests are cacheable
@@ -606,8 +606,8 @@ final class App implements \ArrayAccess
                     ob_start();
 
                     $code   = 200;
-                    $ex     = null;
-                    $result = null;
+                    $ex     = NULL;
+                    $result = NULL;
 
                     // Call route handler
                     try {
@@ -703,13 +703,13 @@ final class App implements \ArrayAccess
      * Mock HTTP Request
      *
      * @param  string      $pattern
-     * @param  array|null  $args
-     * @param  array|null  $headers
-     * @param  string|null $body
+     * @param  array|NULL  $args
+     * @param  array|NULL  $headers
+     * @param  string|NULL $body
      *
      * @return App
      */
-    public function mock(string $pattern, array $args = null, array $headers = null, string $body = null): App
+    public function mock(string $pattern, array $args = NULL, array $headers = NULL, string $body = NULL): App
     {
         preg_match('/^([\w]+)(?:\h+([^\h]+))(?:\h+(sync|ajax|cli))?$/', $pattern, $match);
 
@@ -763,13 +763,13 @@ final class App implements \ArrayAccess
     /**
      * Reroute to specified URI, or trigger ONREROUTE event if exists
      *
-     * @param  string|array|null  $url
+     * @param  string|array|NULL  $url
      * @param  boolean $permanent
      * @param  boolean $die
      *
      * @return void
      */
-    public function reroute($url = null, bool $permanent = false, bool $die = true): void
+    public function reroute($url = NULL, bool $permanent = FALSE, bool $die = TRUE): void
     {
         if (!$url) {
             $url = $this->hive['REALM'];
@@ -840,7 +840,7 @@ final class App implements \ArrayAccess
      *
      * @throws LogicException
      */
-    public function alias(string $route, $args = null): string
+    public function alias(string $route, $args = NULL): string
     {
         if (empty($this->hive['ALIASES'][$route])) {
             throw new \LogicException("Route was not exists: {$route}");
@@ -872,7 +872,7 @@ final class App implements \ArrayAccess
             session_commit();
         }
 
-        if ($this->trigger('ONUNLOAD', [$cwd], true)) {
+        if ($this->trigger('ONUNLOAD', [$cwd], TRUE)) {
             return;
         }
 
@@ -889,12 +889,12 @@ final class App implements \ArrayAccess
      *
      * @param  int        $code
      * @param  string     $text
-     * @param  array|null $trace
+     * @param  array|NULL $trace
      * @param  integer    $level
      *
      * @return void
      */
-    public function error(int $code, string $text = '', array $trace = null, int $level = 0): void
+    public function error(int $code, string $text = '', array $trace = NULL, int $level = 0): void
     {
         if ($this->hive['ERROR']) {
             // Prevent recursive call
@@ -932,11 +932,11 @@ final class App implements \ArrayAccess
 
         $this->expire(-1);
 
-        if ($this->trigger('ONERROR', null, true)) {
+        if ($this->trigger('ONERROR', NULL, TRUE)) {
             return;
         }
 
-        $output = null;
+        $output = NULL;
         if (!$this->hive['QUIET']) {
             if ($this->hive['AJAX']) {
                 $output = $this->json(array_diff_key($this->hive['ERROR'], $this->hive['DEBUG']? [] : ['trace' => 1]));
@@ -979,7 +979,7 @@ ERR
      *
      * @codeCoverageIgnore
      */
-    public function halt(bool $force = false): void
+    public function halt(bool $force = FALSE): void
     {
         if ($force || $this->hive['HALT']) {
             die(1);
@@ -1003,7 +1003,7 @@ ERR
         ;
 
         if ('GET' === $this->hive['METHOD'] && $secs) {
-            $time = microtime(true);
+            $time = microtime(TRUE);
             $this
                 ->removeHeader('Pragma')
                 ->header('Cache-Control', 'max-age=' . $secs)
@@ -1022,7 +1022,7 @@ ERR
     }
 
     /**
-     * Return true if IPv4 address exists in DNSBL
+     * Return TRUE if IPv4 address exists in DNSBL
      *
      * @param  string $ip
      *
@@ -1038,12 +1038,12 @@ ERR
             foreach (reqarr($this->hive['DNSBL']) as $server) {
                 // DNSBL lookup
                 if (checkdnsrr($rev . '.' . $server, 'A')) {
-                    return true;
+                    return TRUE;
                 }
             }
         }
 
-        return false;
+        return FALSE;
     }
 
     /**
@@ -1053,11 +1053,11 @@ ERR
      * @param  string|object      $class
      * @param  int|integer $ttl
      * @param  int|integer $kbps
-     * @param  array|null $map
+     * @param  array|NULL $map
      *
      * @return App
      */
-    public function resources(array $patterns, $class, int $ttl = 0, int $kbps = 0, array $map = null): App
+    public function resources(array $patterns, $class, int $ttl = 0, int $kbps = 0, array $map = NULL): App
     {
         foreach ($patterns as $pattern) {
             $this->resource($pattern, $class, $ttl, $kbps, $map);
@@ -1077,11 +1077,11 @@ ERR
      * @param  string|object      $class
      * @param  int|integer $ttl
      * @param  int|integer $kbps
-     * @param  array|null $map
+     * @param  array|NULL $map
      *
      * @return App
      */
-    public function resource(string $pattern, $class, int $ttl = 0, int $kbps = 0, array $map = null): App
+    public function resource(string $pattern, $class, int $ttl = 0, int $kbps = 0, array $map = NULL): App
     {
         $parts = array_filter(explode(' ', $pattern));
 
@@ -1141,11 +1141,11 @@ ERR
      * @param  string|object      $class
      * @param  int|integer $ttl
      * @param  int|integer $kbps
-     * @param  string|null $map Defaults to GET|HEAD|POST|PUT|PATCH|DELETE|CONNECT|OPTIONS
+     * @param  string|NULL $map Defaults to GET|HEAD|POST|PUT|PATCH|DELETE|CONNECT|OPTIONS
      *
      * @return App
      */
-    public function maps(array $patterns, $class, int $ttl = 0, int $kbps = 0, string $map = null): App
+    public function maps(array $patterns, $class, int $ttl = 0, int $kbps = 0, string $map = NULL): App
     {
         foreach ($patterns as $pattern) {
             $this->map($pattern, $class, $ttl, $kbps, $map);
@@ -1161,11 +1161,11 @@ ERR
      * @param  string|object      $class
      * @param  int|integer $ttl
      * @param  int|integer $kbps
-     * @param  string|null $map Defaults to self::VERBS
+     * @param  string|NULL $map Defaults to self::VERBS
      *
      * @return App
      */
-    public function map($pattern, $class, int $ttl = 0, int $kbps = 0, string $map = null): App
+    public function map($pattern, $class, int $ttl = 0, int $kbps = 0, string $map = NULL): App
     {
         $str    = is_string($class);
         $prefix = $this->hive['PREMAP'];
@@ -1191,7 +1191,7 @@ ERR
      *
      * @return App
      */
-    public function redirects(array $patterns, string $url, bool $permanent = true): App
+    public function redirects(array $patterns, string $url, bool $permanent = TRUE): App
     {
         foreach ($patterns as $pattern) {
             $this->redirect($pattern, $url, $permanent);
@@ -1209,7 +1209,7 @@ ERR
      *
      * @return App
      */
-    public function redirect(string $pattern, string $url, bool $permanent = true): App
+    public function redirect(string $pattern, string $url, bool $permanent = TRUE): App
     {
         return $this->route($pattern, function() use ($url, $permanent) {
             $this->reroute($url, $permanent);
@@ -1267,7 +1267,7 @@ ERR
             throw new \LogicException("Invalid route pattern: {$pattern}");
         }
 
-        $alias = $match[2] ?? null;
+        $alias = $match[2] ?? NULL;
 
         if ($alias) {
             $this->hive['ALIASES'][$alias] = $match[3];
@@ -1328,7 +1328,7 @@ ERR
      * @throws BadFunctionCallException
      * @throws LogicException
      */
-    public function call($callback, $args = null)
+    public function call($callback, $args = NULL)
     {
         if (is_string($callback)) {
             $callback = $this->grab($callback);
@@ -1393,7 +1393,7 @@ ERR
             $service = new $class;
         }
 
-        if ($rule['keep'] ?? false) {
+        if ($rule['keep'] ?? FALSE) {
             $this->services[$id] = $service;
         }
 
@@ -1418,9 +1418,9 @@ ERR
      *
      * @return mixed
      */
-    public function &ref(string $key, bool $add = true)
+    public function &ref(string $key, bool $add = TRUE)
     {
-        $null   = null;
+        $NULL   = NULL;
         $parts  = explode('.', $key);
 
         $this->startSession('SESSION' === $parts[0]);
@@ -1436,7 +1436,7 @@ ERR
                 if ($add || property_exists($var, $part)) {
                     $var =& $var->$part;
                 } else {
-                    $var =& $null;
+                    $var =& $NULL;
                     break;
                 }
             } else {
@@ -1446,7 +1446,7 @@ ERR
                 if ($add || array_key_exists($part, $var)) {
                     $var =& $var[$part];
                 } else {
-                    $var =& $null;
+                    $var =& $NULL;
                     break;
                 }
             }
@@ -1463,9 +1463,9 @@ ERR
      *
      * @return mixed
      */
-    public function get(string $key, $default = null)
+    public function get(string $key, $default = NULL)
     {
-        $var = $this->ref($key, false);
+        $var = $this->ref($key, FALSE);
 
         return $var ?? $default;
     }
@@ -1498,14 +1498,14 @@ ERR
             }
 
             // defaults it's a service
-            $val += ['keep' => true];
+            $val += ['keep' => TRUE];
 
             if (isset($val['class']) && $val['class'] !== $match[2]) {
                 $this->aliases[$val['class']] = $match[2];
             }
 
             // remove existing service
-            $this->services[$match[1]] = null;
+            $this->services[$match[1]] = NULL;
         }
 
         $var =& $this->ref($key);
@@ -1513,13 +1513,13 @@ ERR
 
         if (isset($match[3]) && $match[3]) {
             $jar = $this->unserialize($this->serialize($this->hive['JAR']));
-            $jar['expire'] -= microtime(true);
+            $jar['expire'] -= microtime(TRUE);
 
             call_user_func_array('session_set_cookie_params', $jar);
         } else {
             switch ($key) {
                 case 'CACHE':
-                    $this->cache = null;
+                    $this->cache = NULL;
                     break;
                 case 'TZ':
                     date_default_timezone_set($val);
@@ -1539,7 +1539,7 @@ ERR
      */
     public function exists(string $key): bool
     {
-        $var = $this->ref($key, false);
+        $var = $this->ref($key, FALSE);
 
         return isset($var);
     }
@@ -1570,7 +1570,7 @@ ERR
             $jar           = $this->hive['JAR'];
             $jar['expire'] = strtotime('-1 year');
 
-            call_user_func_array('setcookie', array_merge([$parts[0], null], $jar));
+            call_user_func_array('setcookie', array_merge([$parts[0], NULL], $jar));
             unset($_COOKIE[$parts[0]]);
         } elseif (isset($match[4]) && $match[4]) {
             $this->startSession();
@@ -1585,7 +1585,7 @@ ERR
             $this->sync('SESSION');
         } elseif (isset($match[5]) && $match[5]) {
             // Remove instance too
-            $this->services[$match[5]] = null;
+            $this->services[$match[5]] = NULL;
         }
 
         $parts = explode('.', $key);
@@ -1669,7 +1669,7 @@ ERR
     public function copy(string $src, string $dst): App
     {
         $ref =& $this->ref($dst);
-        $ref = $this->ref($src, false);
+        $ref = $this->ref($src, FALSE);
 
         return $this;
     }
@@ -1684,7 +1684,7 @@ ERR
      *
      * @return string|this
      */
-    public function concat(string $key, string $suffix, string $prefix = '', bool $keep = false)
+    public function concat(string $key, string $suffix, string $prefix = '', bool $keep = FALSE)
     {
         $ref =& $this->ref($key);
         $out = $prefix . $ref . $suffix;
@@ -1706,7 +1706,7 @@ ERR
      *
      * @return array|$this
      */
-    public function flip(string $key, bool $keep = false)
+    public function flip(string $key, bool $keep = FALSE)
     {
         $ref =& $this->ref($key);
         $out = array_flip($ref);
@@ -1790,7 +1790,7 @@ ERR
      *
      * @return array|$this
      */
-    public function merge(string $key, $src, bool $keep = false)
+    public function merge(string $key, $src, bool $keep = FALSE)
     {
         $ref =& $this->ref($key);
 
@@ -1818,7 +1818,7 @@ ERR
      *
      * @return array|$this
      */
-    public function extend(string $key, $src, bool $keep = false)
+    public function extend(string $key, $src, bool $keep = FALSE)
     {
         $ref =& $this->ref($key);
 
@@ -1866,7 +1866,7 @@ ERR
             case 'xcache':
                 return xcache_exists($ndx);
             default:
-                return false;
+                return FALSE;
         }
     }
 
@@ -1906,7 +1906,7 @@ ERR
                 $raw = xcache_get($ndx);
                 break;
             default:
-                $raw = null;
+                $raw = NULL;
                 break;
         }
 
@@ -1927,7 +1927,7 @@ ERR
         $this->cacheLoad();
 
         $ndx = $this->hive['SEED'] . '.' . $key;
-        $content = $this->cacheCompact($val, (int) microtime(true), $ttl);
+        $content = $this->cacheCompact($val, (int) microtime(TRUE), $ttl);
 
         switch ($this->cache) {
             case 'apc':
@@ -1985,7 +1985,7 @@ ERR
             case 'xcache':
                 return xcache_unset($ndx);
             default:
-                return false;
+                return FALSE;
         }
     }
 
@@ -2014,9 +2014,9 @@ ERR
                     }
                 }
 
-                return true;
+                return TRUE;
             case 'apcu':
-                $info = apcu_cache_info(false);
+                $info = apcu_cache_info(FALSE);
                 if ($info && isset($info['cache_list']) && $info['cache_list']) {
                     $key = array_key_exists('info', $info['cache_list'][0]) ? 'info' : 'key';
                     foreach ($info['cache_list'] as $item) {
@@ -2026,28 +2026,28 @@ ERR
                     }
                 }
 
-                return true;
+                return TRUE;
             case 'folder':
                 $files = glob($this->cacheRef . $this->hive['SEED'] . '*' . $suffix) ?: [];
                 foreach ($files as $file) {
                     unlink($file);
                 }
 
-                return true;
+                return TRUE;
             case 'memcached':
                 $keys = preg_grep($regex, $this->cacheRef->getallkeys());
                 foreach ($keys as $key) {
                     $this->cacheRef->delete($key);
                 }
 
-                return true;
+                return TRUE;
             case 'redis':
                 $keys = $this->cacheRef->keys($this->hive['SEED'] . '*' . $suffix);
                 foreach($keys as $key) {
                     $this->cacheRef->del($key);
                 }
 
-                return true;
+                return TRUE;
             case 'wincache':
                 $info = wincache_ucache_info();
                 $keys = preg_grep($regex, array_column($info['ucache_entries'], 'key_name'));
@@ -2055,14 +2055,14 @@ ERR
                     wincache_ucache_delete($key);
                 }
 
-                return true;
+                return TRUE;
             case 'xcache':
                 xcache_unset_by_prefix($this->hive['SEED'] . '.');
 
-                return true;
+                return TRUE;
             default:
 
-                return true;
+                return TRUE;
         }
     }
 
@@ -2182,12 +2182,12 @@ ERR
      */
     protected function grab(string $callback)
     {
-        if (false !== ($pos = strpos($callback, '->'))) {
+        if (FALSE !== ($pos = strpos($callback, '->'))) {
             $class  = substr($callback, 0, $pos);
             $method = substr($callback, $pos + 2);
 
             $callback = [$this->service($class), $method];
-        } elseif (false !== ($pos = strpos($callback, '::'))) {
+        } elseif (FALSE !== ($pos = strpos($callback, '::'))) {
             $class  = substr($callback, 0, $pos);
             $method = substr($callback, $pos + 2);
 
@@ -2222,7 +2222,7 @@ ERR
                         $val = $this->service($val);
                     } elseif (preg_match('/(.+)?%(.+)%(.+)?/', $val, $match)) {
                         // assume it does exist in hive
-                        $ref = $this->ref($match[2], false);
+                        $ref = $this->ref($match[2], FALSE);
                         if (isset($ref)) {
                             $val = ($match[1] ?? '') . $ref . ($match[3] ?? '');
                         } else {
@@ -2257,7 +2257,7 @@ ERR
      *
      * @return bool
      */
-    protected function routeMatch(string $pattern, string $path, string $modifier, array &$match = null): bool
+    protected function routeMatch(string $pattern, string $path, string $modifier, array &$match = NULL): bool
     {
         $wild = preg_replace_callback('/\{(\w+)(?:\:(?:(alnum|alpha|digit|lower|upper|word)|(\w+)))?\}/', function($m) {
             // defaults to alnum
@@ -2276,7 +2276,7 @@ ERR
      *
      * @return void
      */
-    protected function startSession(bool $start = true)
+    protected function startSession(bool $start = TRUE)
     {
         if ($start && !headers_sent() && session_status() !== PHP_SESSION_ACTIVE) {
             session_start();
@@ -2290,7 +2290,7 @@ ERR
      *
      * @param  string $key
      *
-     * @return array|null
+     * @return array|NULL
      */
     protected function sync(string $key): ?array
     {
@@ -2315,11 +2315,11 @@ ERR
         if (isset($_COOKIE[$name])) {
             $jar['expire'] = strtotime('-1 year');
 
-            call_user_func_array('setcookie', array_merge([$name, null], $jar));
+            call_user_func_array('setcookie', array_merge([$name, NULL], $jar));
         }
 
         if ($ttl) {
-            $jar['expire'] = microtime(true) + $ttl;
+            $jar['expire'] = microtime(TRUE) + $ttl;
         }
 
         call_user_func_array('setcookie', [$name, $value] + $jar);
@@ -2339,12 +2339,12 @@ ERR
      */
     protected function throttle(string $content, int $kbps = 0): void
     {
-        $now = microtime(true);
+        $now = microtime(TRUE);
         $ctr = 0;
         foreach (str_split($content, 1024) as $part) {
             // Throttle output
             $ctr++;
-            if ($ctr/$kbps > ($elapsed = microtime(true) - $now) && !connection_aborted()) {
+            if ($ctr/$kbps > ($elapsed = microtime(TRUE) - $now) && !connection_aborted()) {
                 usleep((int) (1e6 * ($ctr / $kbps - $elapsed)));
             }
 
@@ -2356,26 +2356,26 @@ ERR
      * Trigger event if exists
      *
      * @param  string     $event
-     * @param  array|null $args
+     * @param  array|NULL $args
      * @param  bool       $once
      *
      * @return bool
      */
-    protected function trigger(string $event, array $args = null, bool $once = false): bool
+    protected function trigger(string $event, array $args = NULL, bool $once = FALSE): bool
     {
         if (isset($this->hive[$event])) {
             $handler = $this->hive[$event];
 
             if ($once) {
-                $this->hive[$event] = null;
+                $this->hive[$event] = NULL;
             }
 
             $result  = $this->call($handler, $args);
 
-            return false !== $result;
+            return FALSE !== $result;
         }
 
-        return false;
+        return FALSE;
     }
 
     /**
@@ -2399,7 +2399,7 @@ ERR
         $folder   = $this->hive['TEMP'] . 'cache/';
 
         if ('redis' === $parts[0] && $parts[1] && extension_loaded('redis')) {
-            list($host, $port, $db) = explode(':', $parts[1]) + [1=>0, 2=>null];
+            list($host, $port, $db) = explode(':', $parts[1]) + [1=>0, 2=>NULL];
 
             $this->cache    = 'redis';
             $this->cacheRef = new \Redis();
@@ -2430,10 +2430,10 @@ ERR
             $this->cacheRef = $parts[1];
         } elseif (preg_match($auto, $dsn, $parts)) {
             $this->cache    = $parts[1];
-            $this->cacheRef = null;
+            $this->cacheRef = NULL;
         } elseif ('auto' === strtolower($dsn) && $grep = preg_grep($auto, array_map('strtolower', get_loaded_extensions()))) {
             $this->cache    = current($grep);
-            $this->cacheRef = null;
+            $this->cacheRef = NULL;
         } else {
             $this->cache    = $fallback;
             $this->cacheRef = $folder;
@@ -2471,7 +2471,7 @@ ERR
         if ($raw) {
             list($val, $time, $ttl) = (array) $this->unserialize($raw);
 
-            if (0 === $ttl || $time+$ttl > microtime(true)) {
+            if (0 === $ttl || $time+$ttl > microtime(TRUE)) {
                 return [$val, $time, $ttl];
             }
 

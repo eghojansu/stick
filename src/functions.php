@@ -21,11 +21,11 @@ namespace Fal\Stick;
  * Convert PHP expression/value to compressed exportable string
  *
  * @param  mixed     $arg
- * @param  array|null $stack
+ * @param  array|NULL $stack
  *
  * @return string
  */
-function stringify($arg, array $stack = null): string
+function stringify($arg, array $stack = NULL): string
 {
     if ($stack) {
         foreach ($stack as $node) {
@@ -41,7 +41,7 @@ function stringify($arg, array $stack = null): string
         case 'object':
             $str = '';
             foreach (get_object_vars($arg) as $key=>$val) {
-                $str .= ',' . var_export($key, true) . '=>' . stringify($val, array_merge($stack, [$arg]));
+                $str .= ',' . var_export($key, TRUE) . '=>' . stringify($val, array_merge($stack, [$arg]));
             }
             $str = ltrim($str, ',');
 
@@ -50,13 +50,13 @@ function stringify($arg, array $stack = null): string
             $str = '';
             $num = isset($arg[0]) && ctype_digit(implode('', array_keys($arg)));
             foreach ($arg as $key=>$val) {
-                $str .= ($num ? '' : (var_export($key, true) . '=>')) . stringify($val, array_merge($stack, [$arg]));
+                $str .= ($num ? '' : (var_export($key, TRUE) . '=>')) . stringify($val, array_merge($stack, [$arg]));
             }
             $str = ltrim($str, ',');
 
             return '['.$str.']';
         default:
-            return var_export($arg, true);
+            return var_export($arg, TRUE);
     }
 }
 
@@ -79,7 +79,7 @@ function contextToString(array $context): string
             '=> $1',
             'array()',
             '    '
-        ], str_replace('array (', 'array(', var_export($value, true)));
+        ], str_replace('array (', 'array(', var_export($value, TRUE)));
         $export .= PHP_EOL;
     }
 
@@ -137,7 +137,7 @@ function fixslashes(string $str): string
  * @param  boolean $lf   normalize linefeed?
  * @return string
  */
-function read(string $file, bool $lf = false): string
+function read(string $file, bool $lf = FALSE): string
 {
     $out = file_exists($file) ? file_get_contents($file) : '';
 
@@ -150,9 +150,9 @@ function read(string $file, bool $lf = false): string
  * @param  string  $file   filepath
  * @param  string  $data
  * @param  boolean $append
- * @return int|false
+ * @return int|FALSE
  */
-function write(string $file, string $data, bool $append = false)
+function write(string $file, string $data, bool $append = FALSE)
 {
     return file_put_contents($file, $data, LOCK_EX|($append ? FILE_APPEND : 0));
 }
@@ -166,7 +166,7 @@ function write(string $file, string $data, bool $append = false)
  */
 function delete(string $file): bool
 {
-    return file_exists($file) ? unlink($file) : false;
+    return file_exists($file) ? unlink($file) : FALSE;
 }
 
 /**
@@ -176,7 +176,7 @@ function delete(string $file): bool
  * @param  boolean $noempty
  * @return array
  */
-function split(string $str, bool $noempty = true): array
+function split(string $str, bool $noempty = TRUE): array
 {
     return array_map('trim', preg_split('/[,;|]/', $str, 0, $noempty ? PREG_SPLIT_NO_EMPTY : 0));
 }
@@ -244,9 +244,9 @@ function base64(string $data, string $mime): string
  * @param  bool|boolean $recursive
  * @return bool
  */
-function mkdir(string $path, int $mode = 0755, bool $recursive = true): bool
+function mkdir(string $path, int $mode = 0755, bool $recursive = TRUE): bool
 {
-    return file_exists($path) ? true : \mkdir($path, $mode, $recursive);
+    return file_exists($path) ? TRUE : \mkdir($path, $mode, $recursive);
 }
 
 /**
@@ -257,7 +257,7 @@ function mkdir(string $path, int $mode = 0755, bool $recursive = true): bool
  *
  * @return array
  */
-function reqarr($var, bool $noempty = true): array
+function reqarr($var, bool $noempty = TRUE): array
 {
     return is_array($var) ? $var : split($var, $noempty);
 }
@@ -283,7 +283,7 @@ function reqstr($var, string $glue = ','): string
  *
  * @return mixed
  */
-function constant(string $var, $default = null)
+function constant(string $var, $default = NULL)
 {
     return defined($var) ? \constant($var) : $default;
 }
