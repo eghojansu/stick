@@ -6,11 +6,6 @@ use Fal\Stick\App;
 
 class ControllerClass
 {
-    public function __construct()
-    {
-        # code...
-    }
-
     public function custom(App $app)
     {
         $app->set('custom', 'foo');

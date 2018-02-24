@@ -83,6 +83,12 @@ final class App implements \ArrayAccess
     /** @var array Vars hive */
     private $hive;
 
+    /** @var array */
+    protected $services = [];
+
+    /** @var array Service aliases */
+    protected $aliases = [];
+
     /** @var string Cache id */
     private $cache;
 
@@ -225,6 +231,7 @@ final class App implements \ArrayAccess
             'SCHEME'     => $scheme,
             'SEED'       => hash($_SERVER['SERVER_NAME'] . $base),
             'SERIALIZER' => extension_loaded('igbinary') ? 'igbinary' : 'php',
+            'SERVICE'    => [],
             'STATUS'     => 200,
             'TEMP'       => './var/',
             'TEXT'       => self::HTTP_200,
@@ -256,7 +263,7 @@ final class App implements \ArrayAccess
         }
 
         // @codeCoverageIgnoreStart
-        if ('cli-server' === PHP_SAPI && preg_match('/^' . preg_quote($base, '/') . '$/', $_SERVER['REQUEST_URI'])) {
+        if ('cli-server' === PHP_SAPI && $base === $_SERVER['REQUEST_URI']) {
             $this->reroute('/');
         }
 
@@ -604,7 +611,7 @@ final class App implements \ArrayAccess
 
                     // Call route handler
                     try {
-                        $result = $this->call($handler, [$this, $args]);
+                        $result = $this->call($handler, array_slice($args, 1));
                     } catch (\BadMethodCallException $e) {
                         $code = 404;
                         $ex   = $e;
@@ -772,7 +779,7 @@ final class App implements \ArrayAccess
             $url = $this->build($url);
         }
 
-        if ($this->trigger('ONREROUTE', [$this, $url, $permanent])) {
+        if ($this->trigger('ONREROUTE', [$url, $permanent])) {
             return;
         }
 
@@ -865,7 +872,7 @@ final class App implements \ArrayAccess
             session_commit();
         }
 
-        if ($this->trigger('ONUNLOAD', [$this, $cwd], true)) {
+        if ($this->trigger('ONUNLOAD', [$cwd], true)) {
             return;
         }
 
@@ -925,7 +932,7 @@ final class App implements \ArrayAccess
 
         $this->expire(-1);
 
-        if ($this->trigger('ONERROR', [$this, $this->hive['PARAMS']], true)) {
+        if ($this->trigger('ONERROR', null, true)) {
             return;
         }
 
@@ -1338,7 +1345,59 @@ ERR
             }
         }
 
-        return call_user_func_array($callback, (array) $args);
+        if (is_array($callback)) {
+            $ref = new \ReflectionMethod($callback[0], $callback[1]);
+        } else {
+            $ref = new \ReflectionFunction($callback);
+        }
+
+        $mArgs = $this->methodArgs($ref, (array) $args);
+
+        return call_user_func_array($callback, $mArgs);
+    }
+
+    /**
+     * Get service by id or class name
+     *
+     * @param  string $id
+     * @param  array  $args
+     *
+     * @return mixed
+     */
+    public function service(string $id, array $args = [])
+    {
+        if ('app' === $id || self::class === $id) {
+            return $this;
+        } elseif (isset($this->services[$id])) {
+            return $this->services[$id];
+        } elseif (isset($this->aliases[$id])) {
+            // real id
+            $id = $this->aliases[$id];
+
+            if (isset($this->services[$id])) {
+                return $this->services[$id];
+            }
+        }
+
+        $rule = $this->get("SERVICE.$id", []);
+        $class = $rule['class'] ?? $id;
+
+        if (method_exists($class, '__construct')) {
+            $cArgs = $this->methodArgs(
+                new \ReflectionMethod($class, '__construct'),
+                array_merge($rule['params'] ?? [], $args)
+            );
+
+            $service = new $class(...$cArgs);
+        } else {
+            $service = new $class;
+        }
+
+        if ($rule['keep'] ?? false) {
+            $this->services[$id] = $service;
+        }
+
+        return $service;
     }
 
     /**
@@ -1426,18 +1485,33 @@ ERR
             'METHOD' => 'REQUEST_METHOD',
         ];
 
-        preg_match('/^(?:(?:(?:GET|POST)\b(.+))|(JAR\b.+))$/', $key, $match);
+        preg_match('/^(?:(?:(?:GET|POST)\b(.+))|SERVICE\.(.+)|(JAR\b))$/', $key, $match);
 
         if (isset($match[1]) && $match[1]) {
             $this->set('REQUEST' . $match[1], $val);
         } elseif (isset($serverMap[$key])) {
             $_SERVER[$serverMap[$key]] = $val;
+        } elseif (isset($match[2]) && $match[2]) {
+            if (is_string($val)) {
+                // assume val is a class name
+                $val = ['class' => $val];
+            }
+
+            // defaults it's a service
+            $val += ['keep' => true];
+
+            if (isset($val['class']) && $val['class'] !== $match[2]) {
+                $this->aliases[$val['class']] = $match[2];
+            }
+
+            // remove existing service
+            $this->services[$match[1]] = null;
         }
 
         $var =& $this->ref($key);
         $var = $val;
 
-        if (isset($match[2]) && $match[2]) {
+        if (isset($match[3]) && $match[3]) {
             $jar = $this->unserialize($this->serialize($this->hive['JAR']));
             $jar['expire'] -= microtime(true);
 
@@ -1486,7 +1560,7 @@ ERR
             return $this;
         }
 
-        preg_match('/^(?:(?:(?:GET|POST)\b(.+))|(?:COOKIE\.(.+))|(SESSION(?:\.(.+))?))$/', $key, $match);
+        preg_match('/^(?:(?:(?:GET|POST)\b(.+))|(?:COOKIE\.(.+))|(SESSION(?:\.(.+))?)|(?:SERVICE\.(.+)))$/', $key, $match);
 
         if (isset($match[1]) && $match[1]) {
             $this->clear('REQUEST' . $match[1]);
@@ -1509,6 +1583,9 @@ ERR
             $this->clear('COOKIE.' . session_name());
 
             $this->sync('SESSION');
+        } elseif (isset($match[5]) && $match[5]) {
+            // Remove instance too
+            $this->services[$match[5]] = null;
         }
 
         $parts = explode('.', $key);
@@ -2109,13 +2186,7 @@ ERR
             $class  = substr($callback, 0, $pos);
             $method = substr($callback, $pos + 2);
 
-            if (method_exists($class, '__construct')) {
-                $instance = new $class($this);
-            } else {
-                $instance = new $class();
-            }
-
-            $callback = [$instance, $method];
+            $callback = [$this->service($class), $method];
         } elseif (false !== ($pos = strpos($callback, '::'))) {
             $class  = substr($callback, 0, $pos);
             $method = substr($callback, $pos + 2);
@@ -2124,6 +2195,56 @@ ERR
         }
 
         return $callback;
+    }
+
+    /**
+     * Build method arguments
+     *
+     * @param  \ReflectionFunctionAbstract $ref
+     * @param  array                       $args
+     *
+     * @return array
+     */
+    protected function methodArgs(\ReflectionFunctionAbstract $ref, array $args = []): array
+    {
+        $result  = [];
+        $pArgs = array_filter($args, 'is_numeric', ARRAY_FILTER_USE_KEY);
+
+        foreach ($ref->getParameters() as $param) {
+            $name = $param->name;
+
+            if (isset($args[$name])) {
+                $val = $args[$name];
+
+                if (is_string($val)) {
+                    // assume it is a class name
+                    if (class_exists($val)) {
+                        $val = $this->service($val);
+                    } elseif (preg_match('/(.+)?%(.+)%(.+)?/', $val, $match)) {
+                        // assume it does exist in hive
+                        $ref = $this->ref($match[2], false);
+                        if (isset($ref)) {
+                            $val = ($match[1] ?? '') . $ref . ($match[3] ?? '');
+                        } else {
+                            // it is a service alias
+                            $val = $this->service($match[2]);
+                        }
+                    }
+                }
+
+                $result[] = $val;
+            } elseif ($param->isVariadic()) {
+                $result = array_merge($result, $pArgs);
+            } elseif ($refClass = $param->getClass()) {
+                $result[] = $this->service($refClass->name);
+            } elseif ($pArgs) {
+                $result[] = array_shift($pArgs);
+            } elseif ($param->isDefaultValueAvailable()) {
+                $result[] = $param->getDefaultValue();
+            }
+        }
+
+        return $result;
     }
 
     /**
@@ -2242,14 +2363,14 @@ ERR
      */
     protected function trigger(string $event, array $args = null, bool $once = false): bool
     {
-        if (isset($this->hive[$event]) && is_callable($this->hive[$event])) {
+        if (isset($this->hive[$event])) {
             $handler = $this->hive[$event];
 
             if ($once) {
                 $this->hive[$event] = null;
             }
 
-            $result = $this->call($handler, $args);
+            $result  = $this->call($handler, $args);
 
             return false !== $result;
         }

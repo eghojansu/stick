@@ -15,6 +15,11 @@ use Fal\Stick as f;
 use Fal\Stick\App;
 use Fal\Stick\Test\fixture\CommonClass;
 use Fal\Stick\Test\fixture\ControllerClass;
+use Fal\Stick\Test\fixture\DepA;
+use Fal\Stick\Test\fixture\DepDateTime;
+use Fal\Stick\Test\fixture\DepDepAIndB;
+use Fal\Stick\Test\fixture\IndA;
+use Fal\Stick\Test\fixture\IndB;
 use Fal\Stick\Test\fixture\ResourceClass;
 use PHPUnit\Framework\TestCase;
 
@@ -61,11 +66,11 @@ class AppTest extends TestCase
             ->route('POST bar /bar', function() {
                 return 'bar';
             })
-            ->route('POST qux /qux/{quux}', function($app, $params) {
-                return 'qux' . $params['quux'];
+            ->route('POST qux /qux/{quux}', function($quux) {
+                return 'qux' . $quux;
             })
-            ->route('PUT quux /quux/{corge}/{grault}', function($app, $params) {
-                return 'quux' . $params['corge'] . $params['grault'];
+            ->route('PUT quux /quux/{corge}/{grault}', function($corge, $grault) {
+                return 'quux' . $corge . $grault;
             })
             ->route('GET /cli cli', function() {
                 return 'cli foo';
@@ -73,10 +78,10 @@ class AppTest extends TestCase
             ->route('GET /sync sync', function() {
                 return 'sync foo';
             })
-            ->route('GET /html', function($app) {
+            ->route('GET /html', function(App $app) {
                 return $app->html('html foo');
             })
-            ->route('GET /json', function($app) {
+            ->route('GET /json', function(App $app) {
                 return $app->json(['foo'=>'bar']);
             })
             ->route('GET custom /custom/{custom}', ControllerClass::class . '->{custom}')
@@ -96,7 +101,7 @@ class AppTest extends TestCase
             ->route('GET /throttle', function() {
                 return 'throttle';
             }, 0, 1)
-            ->route('GET /cookie', function($app) {
+            ->route('GET /cookie', function(App $app) {
                 $app->cookie('foo', 'bar');
 
                 return 'cookie';
@@ -826,6 +831,43 @@ class AppTest extends TestCase
         }, ['foo','bar','baz']));
     }
 
+    public function testService()
+    {
+        $this->assertEquals($this->app, $this->app->service('app'));
+        $this->assertEquals($this->app, $this->app->service(App::class));
+
+        $inda = $this->app->service(IndA::class);
+        $this->assertInstanceof(IndA::class, $inda);
+
+        // service
+        $this->app->set('SERVICE.foo', DepA::class);
+        $foo = $this->app->service('foo');
+        $this->assertInstanceof(DepA::class, $foo);
+        $this->assertEquals($foo, $this->app->service(DepA::class));
+
+        // service with placeholder parameter
+        $this->app->set('bar', 'baz');
+        $this->app->set('SERVICE.bar', [
+            'class' => DepDepAIndB::class,
+            'params' => [
+                'depa' => '%foo%',
+                'indb' => IndB::class,
+                'foo' => '%bar%'
+            ],
+        ]);
+        $bar = $this->app->service('bar');
+        $this->assertInstanceof(DepDepAIndB::class, $bar);
+        $this->assertEquals($foo, $bar->depa);
+        $this->assertEquals('baz', $bar->foo);
+
+        // Service with global class dependency
+        $depdt = $this->app->service(DepDateTime::class);
+        $this->assertInstanceof(DepDateTime::class, $depdt);
+
+        $dt = $this->app->service(\DateTime::class);
+        $this->assertInstanceof(\DateTime::class, $dt);
+    }
+
     public function testHive()
     {
         $this->app->set('foo', 'foo');
@@ -874,6 +916,7 @@ class AppTest extends TestCase
 
         // JAR
         $this->assertFalse($this->app->set('JAR.secure', false)->get('JAR.secure'));
+        $this->assertFalse($this->app->set('JAR', $this->app['JAR'])->get('JAR.secure'));
     }
 
     public function testExists()
@@ -922,6 +965,12 @@ class AppTest extends TestCase
         $this->assertEquals('bar', $this->app['SESSION.foo']);
         $this->app->clear('SESSION.foo');
         $this->assertNull($this->app['SESSION.foo']);
+
+        // SERVICE
+        $this->app->set('SERVICE.foo', CommonClass::class);
+        $this->assertEquals(['class'=>CommonClass::class, 'keep'=>true], $this->app->get('SERVICE.foo'));
+        $this->app->clear('SERVICE.foo');
+        $this->assertNull($this->app->get('SERVICE.foo'));
     }
 
     public function testSets()
