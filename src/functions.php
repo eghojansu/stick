@@ -66,7 +66,7 @@ function stringify($arg, array $stack = NULL): string
  * @param  array $context The Context
  * @return string
  */
-function contextToString(array $context): string
+function contexttostring(array $context): string
 {
     $export = '';
     foreach ($context as $key => $value) {
@@ -193,7 +193,7 @@ function extract(array $arr, string $prefix): array
     $out = [];
     $cut = strlen($prefix);
     foreach ($arr as $key => $value) {
-        if (is_string($key) && 0 === strpos($key, $prefix)) {
+        if (is_string($key) && $prefix === substr($key, 0, $cut)) {
             $out[substr($key, $cut)] = $value;
         }
     }
@@ -286,4 +286,171 @@ function reqstr($var, string $glue = ','): string
 function constant(string $var, $default = NULL)
 {
     return defined($var) ? \constant($var) : $default;
+}
+
+/**
+ * Quote array
+ *
+ * @param  array  $data
+ * @param  array  $quote
+ * @param  string $delim
+ *
+ * @return array
+ */
+function quoteall(array $keys, array $quote = [], string $delim = ','): array
+{
+    return explode($delim, $quote[0] . implode($quote[1] . $delim . $quote[0], $keys) . $quote[1]);
+}
+
+/**
+ * Quote array key
+ *
+ * @param  array  $data
+ * @param  array  $quote
+ * @param  string $delim
+ *
+ * @return array
+ */
+function quotekey(array $data, array $quote = [], string $delim = ','): array
+{
+    $quote += ['',''];
+
+    return array_combine(quoteall(array_keys($data), $quote, $delim), $data);
+}
+
+/**
+ * Check if string starts with prefix
+ *
+ * @param  string $prefix
+ * @param  string $str
+ *
+ * @return bool
+ */
+function startswith(string $prefix, string $str): bool
+{
+    return $prefix === substr($str, 0, strlen($prefix));
+}
+
+/**
+ * Check if string starts with prefix (case-insensitive)
+ *
+ * @param  string $prefix
+ * @param  string $str
+ *
+ * @return bool
+ */
+function istartswith(string $prefix, string $str): bool
+{
+    return strtolower($prefix) === substr(strtolower($str), 0, strlen($prefix));
+}
+
+/**
+ * Check if string ends with suffix
+ *
+ * @param  string $suffix
+ * @param  string $str
+ *
+ * @return bool
+ */
+function endswith(string $suffix, string $str): bool
+{
+    return $suffix === substr($str, -1 * strlen($suffix));
+}
+
+/**
+ * Check if string ends with suffix (case-insensitive)
+ *
+ * @param  string $suffix
+ * @param  string $str
+ *
+ * @return bool
+ */
+function iendswith(string $suffix, string $str): bool
+{
+    return strtolower($suffix) === substr(strtolower($str), -1 * strlen($suffix));
+}
+
+/**
+ * Cut after prefix
+ *
+ * @param  string $prefix
+ * @param  string $str
+ * @param  string $default
+ *
+ * @return string
+ */
+function cutafter(string $prefix, string $str, string $default = ''): string
+{
+    $cut = strlen($prefix);
+
+    return $prefix === substr($str, 0, $cut) ? substr($str, $cut) : $default;
+}
+
+/**
+ * Cut after prefix (case-insensitive)
+ *
+ * @param  string $prefix
+ * @param  string $str
+ * @param  string $default
+ *
+ * @return string
+ */
+function icutafter(string $prefix, string $str, string $default = ''): string
+{
+    $cut = strlen($prefix);
+
+    return strtolower($prefix) === substr(strtolower($str), 0, $cut) ? substr($str, $cut) : $default;
+}
+
+/**
+ * Cut before suffix
+ *
+ * @param  string $suffix
+ * @param  string $str
+ * @param  string $default
+ *
+ * @return string
+ */
+function cutbefore(string $suffix, string $str, string $default = ''): string
+{
+    $cut = strlen($suffix);
+
+    return $suffix === substr($str, -1 * $cut) ? substr($str, 0, $cut) : $default;
+}
+
+/**
+ * Cut before suffix (case-insensitive)
+ *
+ * @param  string $suffix
+ * @param  string $str
+ * @param  string $default
+ *
+ * @return string
+ */
+function icutbefore(string $suffix, string $str, string $default = ''): string
+{
+    $cut = strlen($suffix);
+
+    return strtolower($suffix) === substr(strtolower($str), -1 * $cut) ? substr($str, 0, $cut) : $default;
+}
+
+/**
+ * cast string variable to php type or constant
+ *
+ * @param  mixed $val
+ *
+ * @return mixed
+ */
+function cast($val)
+{
+    if (is_numeric($val)){
+        return $val+0;
+    }
+
+    $val = trim($val);
+    if (preg_match('/^\w+$/i', $val) && defined($val)) {
+        return \constant($val);
+    }
+
+    return $val;
 }

@@ -7,5 +7,5 @@ define('FIXTURE', __DIR__ . '/fixture/');
 define('TEMP', dirname(__DIR__) . '/var/');
 
 if (!is_dir(TEMP)) {
-    mkdir(TEMP, 0755, true);
+    mkdir(TEMP, 0755, TRUE);
 }

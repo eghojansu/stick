@@ -117,8 +117,8 @@ final class App implements \ArrayAccess
         foreach ($_SERVER as $key => $value) {
             if (in_array($key, ['CONTENT_TYPE', 'CONTENT_LENGTH'])) {
                 $headers[dashcase($key)] = $value;
-            } elseif (0 === strpos($key, 'HTTP_')) {
-                $headers[dashcase(substr($key, 5))] = $value;
+            } elseif ($header = cutafter('HTTP_', $key)) {
+                $headers[dashcase($header)] = $value;
             }
         }
 
@@ -394,11 +394,11 @@ final class App implements \ArrayAccess
      */
     public function getHeader(string $name): string
     {
-        $grep = preg_grep('/^' . $name . '\:/i', $this->hive['RHEADERS']);
+        $grep = preg_grep('/^' . $name . '\h*\:/i', $this->hive['RHEADERS']);
         $header = '';
 
         if ($grep) {
-            $header = trim(substr(current($grep), strlen($name) + 1));
+            $header = trim(icutafter("$name", current($grep)), ' :');
         }
 
         return $header;
@@ -415,7 +415,7 @@ final class App implements \ArrayAccess
     {
         if ($name) {
             foreach ($this->hive['RHEADERS'] as $key => $content) {
-                if (0 === strpos($content, "$name:")) {
+                if (startsWith("$name:", $content)) {
                     unset($this->hive['RHEADERS'][$key]);
                 }
             }
@@ -2079,101 +2079,6 @@ ERR
     }
 
     /**
-     * Convenient way get hive item
-     *
-     * @param  string $offset
-     *
-     * @return mixed
-     */
-    public function &offsetget($key)
-    {
-        $var =& $this->ref($key);
-
-        return $var;
-    }
-
-    /**
-     * Convenient way to set hive item
-     *
-     * @param  string $offset
-     * @param  scalar|array $value
-     *
-     * @return void
-     *
-     * @throws InvalidArgumentException
-     */
-    public function offsetset($key, $val)
-    {
-        $this->set($key, $val);
-    }
-
-    /**
-     * Convenient way to check hive item
-     *
-     * @param  string $offset
-     *
-     * @return bool
-     */
-    public function offsetexists($key)
-    {
-        return $this->exists($key);
-    }
-
-    /**
-     * Convenient way to remove hive item
-     *
-     * @param  string $offset
-     *
-     * @return void
-     */
-    public function offsetunset($key)
-    {
-        $this->clear($key);
-    }
-
-    /**
-     * offsetget alias
-     *
-     * @see offsetGet
-     */
-    public function &__get($key)
-    {
-        $var =& $this->offsetget($key);
-
-        return $var;
-    }
-
-    /**
-     * offsetset alias
-     *
-     * @see offsetGet
-     */
-    public function __set($key, $val)
-    {
-        $this->offsetset($key, $val);
-    }
-
-    /**
-     * offsetexists alias
-     *
-     * @see offsetGet
-     */
-    public function __isset($key)
-    {
-        return $this->offsetexists($key);
-    }
-
-    /**
-     * offsetunset alias
-     *
-     * @see offsetGet
-     */
-    public function __unset($key)
-    {
-        $this->offsetunset($key);
-    }
-
-    /**
      * Grab class name and method, create instance if needed
      *
      * @param  string $callback
@@ -2182,16 +2087,10 @@ ERR
      */
     protected function grab(string $callback)
     {
-        if (FALSE !== ($pos = strpos($callback, '->'))) {
-            $class  = substr($callback, 0, $pos);
-            $method = substr($callback, $pos + 2);
-
-            $callback = [$this->service($class), $method];
-        } elseif (FALSE !== ($pos = strpos($callback, '::'))) {
-            $class  = substr($callback, 0, $pos);
-            $method = substr($callback, $pos + 2);
-
-            $callback = [$class, $method];
+        if (2 === count($cut = explode('->', $callback))) {
+            $callback = [$this->service($cut[0]), $cut[1]];
+        } elseif (2 === count($cut = explode('::', $callback))) {
+            $callback = $cut;
         }
 
         return $callback;
@@ -2341,9 +2240,11 @@ ERR
     {
         $now = microtime(TRUE);
         $ctr = 0;
+
         foreach (str_split($content, 1024) as $part) {
             // Throttle output
             $ctr++;
+
             if ($ctr/$kbps > ($elapsed = microtime(TRUE) - $now) && !connection_aborted()) {
                 usleep((int) (1e6 * ($ctr / $kbps - $elapsed)));
             }
@@ -2479,5 +2380,100 @@ ERR
         }
 
         return [];
+    }
+
+    /**
+     * Convenient way get hive item
+     *
+     * @param  string $offset
+     *
+     * @return mixed
+     */
+    public function &offsetget($key)
+    {
+        $var =& $this->ref($key);
+
+        return $var;
+    }
+
+    /**
+     * Convenient way to set hive item
+     *
+     * @param  string $offset
+     * @param  scalar|array $value
+     *
+     * @return void
+     *
+     * @throws InvalidArgumentException
+     */
+    public function offsetset($key, $val)
+    {
+        $this->set($key, $val);
+    }
+
+    /**
+     * Convenient way to check hive item
+     *
+     * @param  string $offset
+     *
+     * @return bool
+     */
+    public function offsetexists($key)
+    {
+        return $this->exists($key);
+    }
+
+    /**
+     * Convenient way to remove hive item
+     *
+     * @param  string $offset
+     *
+     * @return void
+     */
+    public function offsetunset($key)
+    {
+        $this->clear($key);
+    }
+
+    /**
+     * offsetget alias
+     *
+     * @see offsetGet
+     */
+    public function &__get($key)
+    {
+        $var =& $this->offsetget($key);
+
+        return $var;
+    }
+
+    /**
+     * offsetset alias
+     *
+     * @see offsetGet
+     */
+    public function __set($key, $val)
+    {
+        $this->offsetset($key, $val);
+    }
+
+    /**
+     * offsetexists alias
+     *
+     * @see offsetGet
+     */
+    public function __isset($key)
+    {
+        return $this->offsetexists($key);
+    }
+
+    /**
+     * offsetunset alias
+     *
+     * @see offsetGet
+     */
+    public function __unset($key)
+    {
+        $this->offsetunset($key);
     }
 }
