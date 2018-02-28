@@ -477,8 +477,8 @@ class Database
      * Paginate records
      *
      * @param  string      $table
-     * @param  int|integer $page
-     * @param  int|integer $limit
+     * @param  int $page
+     * @param  int $limit
      * @param  string|filter      $filter
      * @param  array       $options
      *
