@@ -40,6 +40,7 @@ class AppTest extends TestCase
             'LOG_ERROR' => FALSE,
             'HALT'      => FALSE,
             'QUIET'     => TRUE,
+            'RAW'       => FALSE,
         ]);
     }
 
@@ -52,9 +53,7 @@ class AppTest extends TestCase
             rmdir($dir);
         }
 
-        foreach (explode('|', App::GLOBALS) as $global) {
-            $this->app->clear($global);
-        }
+        $this->app->clears(explode('|', App::GLOBALS));
     }
 
     protected function registerRoutes()
@@ -102,9 +101,18 @@ class AppTest extends TestCase
                 return 'throttle';
             }, 0, 1)
             ->route('GET /cookie', function(App $app) {
-                $app->cookie('foo', 'bar');
+                $app->set('COOKIE.foo', 'bar');
 
                 return 'cookie';
+            })
+            ->route('GET /callable', function() {
+                return function() { echo 'callable'; };
+            })
+            ->route('GET /returnnull', function() {
+                // return nothing
+            })
+            ->route('GET /invalidresponse', function() {
+                return new \stdclass;
             })
         ;
     }
@@ -165,41 +173,40 @@ class AppTest extends TestCase
         $this->assertEquals('Not Found', $this->app->status(404)->get('TEXT'));
     }
 
-    public function testCookie()
-    {
-        $this->app->cookie('foo', 'bar');
-
-        $this->assertEquals([['foo','bar',0]], $this->app['RCOOKIES']);
-    }
-
     public function testHeaders()
     {
-        $this->app->headers(['Location'=>'/foo','Content-Length: 0']);
-        $this->assertEquals('/foo', $this->app->getHeader('Location'));
-        $this->assertEquals('0', $this->app->getHeader('Content-Length'));
+        $this->app->headers(['Location'=>'/foo','Content-Length'=>'0']);
+        $this->assertEquals(['/foo'], $this->app->getHeader('Location'));
+        $this->assertEquals(['0'], $this->app->getHeader('Content-Length'));
     }
 
     public function testHeader()
     {
         $this->app->header('Location', '/foo');
-        $this->assertEquals('/foo', $this->app->getHeader('Location'));
+        $this->assertEquals(['/foo'], $this->app->getHeader('Location'));
+    }
+
+    public function testGetHeaders()
+    {
+        $this->app->header('Location', '/foo');
+        $this->assertEquals(['Location'=>['/foo']], $this->app->getHeaders());
     }
 
     public function testGetHeader()
     {
         $this->app->header('Location', '/foo');
-        $this->assertEquals('/foo', $this->app->getHeader('Location'));
+        $this->assertEquals(['/foo'], $this->app->getHeader('Location'));
     }
 
     public function testRemoveHeader()
     {
         $this->app->header('Location', '/foo');
-        $this->assertEquals('/foo', $this->app->getHeader('Location'));
+        $this->assertEquals(['/foo'], $this->app->getHeader('Location'));
         $this->app->removeHeader('Location');
         $this->assertEmpty($this->app['RHEADERS']);
 
         $this->app->header('Location', '/foo');
-        $this->assertEquals('/foo', $this->app->getHeader('location'));
+        $this->assertEquals(['/foo'], $this->app->getHeader('location'));
         $this->app->removeHeader();
         $this->assertEmpty($this->app['RHEADERS']);
     }
@@ -208,33 +215,97 @@ class AppTest extends TestCase
     {
         $this->app['CLI'] = FALSE;
         $this->app->header('Location', '/foo');
-        $this->app->cookie('foo', 'bar', 5);
-        $this->app->cookie('foo', 'baz');
+        $this->app->set('COOKIE.foo', 'bar', 5);
         $this->app->sendHeader();
 
-        $this->assertEquals('/foo', $this->app->getHeader('location'));
-        $this->assertContains(['foo','bar',5], $this->app['RCOOKIES']);
-        $this->assertContains(['foo','baz',0], $this->app['RCOOKIES']);
+        $this->assertEquals(['/foo'], $this->app->getHeader('location'));
 
         if (function_exists('xdebug_get_headers')) {
             $headers = xdebug_get_headers();
             $this->assertNotEmpty(preg_grep('~^Location: /foo~', $headers));
-            $this->assertNotEmpty(preg_grep('~^Set-Cookie: foo=baz~', $headers));
+            $this->assertNotEmpty(preg_grep('~^Set-Cookie: foo=bar~', $headers));
         }
+    }
+
+    public function testSendResponse()
+    {
+        $this->registerRoutes();
+        $this->expectOutputString('foo');
+
+        $this->app
+            ->set('QUIET', FALSE)
+            ->mock('GET /foo')
+            ->sendResponse();
+    }
+
+    public function testSendResponseQuiet()
+    {
+        $this->registerRoutes();
+        $this->expectOutputString('');
+
+        $this->app
+            ->mock('GET /foo')
+            ->sendResponse();
+    }
+
+    public function testSendResponseNull()
+    {
+        $this->registerRoutes();
+        $this->expectOutputString('');
+
+        $this->app
+            ->set('QUIET', FALSE)
+            ->mock('GET /returnnull')
+            ->sendResponse();
+    }
+
+    public function testSendResponseCallable()
+    {
+        $this->registerRoutes();
+        $this->expectOutputString('callable');
+
+        $this->app
+            ->set('QUIET', FALSE)
+            ->mock('GET /callable')
+            ->sendResponse();
+    }
+
+    /**
+     * @expectedException LogicException
+     * @expectedExceptionMessage Could not treat your response, given: object
+     */
+    public function testSendResponseException()
+    {
+        $this->registerRoutes();
+        $this->app
+            ->set('QUIET', FALSE)
+            ->mock('GET /invalidresponse')
+            ->sendResponse();
+    }
+
+    public function testSend()
+    {
+        $this->registerRoutes();
+        $this->expectOutputString('foo');
+
+        $this->app
+            ->set('QUIET', FALSE)
+            ->mock('GET /foo')
+            ->send();
     }
 
     public function testHtml()
     {
         $this->assertEquals('foo', $this->app->html('foo'));
-        $this->assertEquals('text/html;charset=' . ini_get('default_charset'), $this->app->getHeader('Content-Type'));
-        $this->assertEquals('3', $this->app->getHeader('Content-Length'));
+        $this->assertEquals(['text/html;charset=' . ini_get('default_charset')], $this->app->getHeader('Content-Type'));
+        $this->assertEquals(['3'], $this->app->getHeader('Content-Length'));
     }
 
     public function testJson()
     {
         $this->assertEquals('{"foo":"bar"}', $this->app->json(['foo'=>'bar']));
-        $this->assertEquals('application/json;charset=' . ini_get('default_charset'), $this->app->getHeader('Content-Type'));
-        $this->assertEquals('13', $this->app->getHeader('Content-Length'));
+        $this->assertEquals(['application/json;charset=' . ini_get('default_charset')], $this->app->getHeader('Content-Type'));
+        $this->assertEquals(['13'], $this->app->getHeader('Content-Length'));
     }
 
     public function testRun()
@@ -268,14 +339,14 @@ class AppTest extends TestCase
         // valid with html content
         $this->app->mock('GET /html');
         $this->assertEquals('html foo', $this->app['RESPONSE']);
-        $this->assertContains('text/html', $this->app->getHeader('Content-Type'));
-        $this->assertEquals('8', $this->app->getHeader('Content-Length'));
+        $this->assertContains('text/html', $this->app->getHeader('Content-Type')[0]);
+        $this->assertEquals('8', $this->app->getHeader('Content-Length')[0]);
 
         // valid with json content
         $this->app->mock('GET /json');
         $this->assertEquals('{"foo":"bar"}', $this->app['RESPONSE']);
-        $this->assertContains('application/json', $this->app->getHeader('Content-Type'));
-        $this->assertEquals('13', $this->app->getHeader('Content-Length'));
+        $this->assertContains('application/json', $this->app->getHeader('Content-Type')[0]);
+        $this->assertEquals('13', $this->app->getHeader('Content-Length')[0]);
 
         // valid alias with fragment
         $this->app->mock('GET foo#fragmentfoo', ['foo'=>'bar']);
@@ -334,7 +405,7 @@ class AppTest extends TestCase
         // with cookie send
         $this->app->mock('GET /cookie');
         $this->assertEquals('cookie', $this->app['RESPONSE']);
-        $this->assertEquals([['foo','bar',0]], $this->app['RCOOKIES']);
+        $this->assertTrue(isset($this->app['RHEADERS']['Set-Cookie']));
     }
 
     public function testRunOutput()
@@ -343,7 +414,7 @@ class AppTest extends TestCase
 
         $this->expectOutputString('foo');
 
-        $this->app->set('QUIET', FALSE)->mock('GET foo');
+        $this->app->set('QUIET', FALSE)->mock('GET foo')->send();
     }
 
     public function testRunOutputThrottle()
@@ -353,7 +424,7 @@ class AppTest extends TestCase
         $this->expectOutputString('throttle');
 
         $start = microtime(TRUE);
-        $this->app->set('QUIET', FALSE)->mock('GET /throttle');
+        $this->app->set('QUIET', FALSE)->mock('GET /throttle')->send();
         $end = microtime(TRUE) - $start;
 
         $this->assertGreaterThan(1, $end);
@@ -398,7 +469,7 @@ class AppTest extends TestCase
 
         $this->app->mock('GET /outarray');
         $this->assertEquals('{"out":"array"}', $this->app['RESPONSE']);
-        $this->assertContains('application/json', $this->app->getHeader('Content-Type'));
+        $this->assertContains('application/json', $this->app->getHeader('Content-Type')[0]);
 
         $this->app->mock('GET /cached');
         $this->assertEquals('cached', $this->app['RESPONSE']);
@@ -535,8 +606,8 @@ class AppTest extends TestCase
 
         $this->expectOutputRegex('/"status":"Not Found"/');
 
-        $this->app->error(404);
-        $this->assertContains('application/json', $this->app->getHeader('Content-Type'));
+        $this->app->error(404)->send();
+        $this->assertContains('application/json', $this->app->getHeader('Content-Type')[0]);
     }
 
     public function testErrorOutputHtml()
@@ -545,8 +616,8 @@ class AppTest extends TestCase
 
         $this->expectOutputRegex('~<title>404 Not Found</title>~');
 
-        $this->app->error(404);
-        $this->assertContains('text/html', $this->app->getHeader('Content-Type'));
+        $this->app->error(404)->send();
+        $this->assertContains('text/html', $this->app->getHeader('Content-Type')[0]);
     }
 
     public function testHalt()
@@ -562,17 +633,21 @@ class AppTest extends TestCase
         $this->assertEquals($this->app, $this->app->expire(0));
 
         $this->app->expire(-1);
-        $this->assertEquals('', $this->app->getHeader('Pragma'));
+        $this->assertEquals([], $this->app->getHeader('Pragma'));
 
         $this->app['METHOD'] = 'POST';
         $this->app->expire(-1);
-        $this->assertEquals('no-cache', $this->app->getHeader('Pragma'));
+        $this->assertEquals('no-cache', $this->app->getHeader('Pragma')[0]);
     }
 
     public function testBlacklisted()
     {
-        // skipped
         $this->assertFalse($this->app->blacklisted('0.0.0.0'));
+
+        // this domain is blacklisted on below host (require internet connection)
+        $blacklist = '202.67.46.23';
+        $this->app->set('DNSBL', ['dnsbl.justspam.org']);
+        $this->assertTrue($this->app->blacklisted($blacklist));
     }
 
     public function testResources()
@@ -915,8 +990,15 @@ class AppTest extends TestCase
         $this->assertEquals('auto', $this->app->set('CACHE', 'auto')->get('CACHE'));
 
         // JAR
-        $this->assertFalse($this->app->set('JAR.secure', FALSE)->get('JAR.secure'));
-        $this->assertFalse($this->app->set('JAR', $this->app['JAR'])->get('JAR.secure'));
+        $this->assertEquals('foo.com', $this->app->set('JAR.domain', 'foo.com')->get('JAR.domain'));
+        $this->assertEquals(TRUE, $this->app->set('JAR.secure', TRUE)->get('JAR.secure'));
+        $this->assertEquals('foo.com', $this->app->set('JAR', $this->app['JAR'])->get('JAR.domain'));
+
+        // SET COOKIE with domain
+        $this->app->set('COOKIE.domain', 'foo');
+        $this->assertEquals('foo', $_COOKIE['domain']);
+        $this->assertContains('Domain=foo.com', $this->app->getHeader('Set-Cookie')[1]);
+        $this->assertContains('Secure', $this->app->getHeader('Set-Cookie')[1]);
     }
 
     public function testExists()

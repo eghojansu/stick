@@ -173,19 +173,11 @@ final class App implements \ArrayAccess
         $scheme = $secure ? 'https' : 'http';
         $port   = $headers['X-Forwarded-Port'] ?? $_SERVER['SERVER_PORT'] ?? 80;
         $domain = is_int(strpos($_SERVER['SERVER_NAME'], '.')) && !filter_var($_SERVER['SERVER_NAME'], FILTER_VALIDATE_IP)? $_SERVER['SERVER_NAME'] : '';
-        $jar    = [
-            'expire'   => 0,
-            'path'     => $base ?: '/',
-            'domain'   => $domain,
-            'secure'   => $secure,
-            'httponly' => TRUE
-        ];
 
         $_SERVER['REQUEST_URI']   = $uri['path'] . rtrim('?' . $uri['query'], '?') . rtrim('#' . $uri['fragment'], '#');
         $_SERVER['DOCUMENT_ROOT'] = realpath($_SERVER['DOCUMENT_ROOT']);
 
         session_cache_limiter('');
-        call_user_func_array('session_set_cookie_params', $jar);
 
         $this->hive = ['HEADERS' => $headers];
         $this->hive = [
@@ -197,6 +189,13 @@ final class App implements \ArrayAccess
             'BODY'       => '',
             'CACHE'      => NULL,
             'CASELESS'   => FALSE,
+            'CORS'       => [
+                'headers'     => '',
+                'origin'      => FALSE,
+                'credentials' => FALSE,
+                'expose'      => FALSE,
+                'ttl'         => 0,
+            ],
             'CLI'        => $cli,
             'DEBUG'      => $debug,
             'DNSBL'      => '',
@@ -207,7 +206,14 @@ final class App implements \ArrayAccess
             'HEADERS'    => $headers,
             'HOST'       => $_SERVER['SERVER_NAME'],
             'IP'         => $this->ip(),
-            'JAR'        => $jar,
+            'JAR'        => [
+                'expire'   => 0,
+                'path'     => $base ?: '/',
+                'domain'   => $domain,
+                'secure'   => $secure,
+                'httponly' => TRUE
+            ],
+            'KBPS'       => 0,
             'LOG_ERROR'  => TRUE,
             'METHOD'     => $_SERVER['REQUEST_METHOD'],
             'ONERROR'    => NULL,
@@ -221,8 +227,7 @@ final class App implements \ArrayAccess
             'PREMAP'     => '',
             'QUERY'      => $uri['query'],
             'QUIET'      => FALSE,
-            'RAW'        => FALSE,
-            'RCOOKIES'   => [],
+            'RAW'        => TRUE,
             'RESPONSE'   => '',
             'REALM'      => $scheme . '://' . $_SERVER['SERVER_NAME'] . ($port && !in_array($port, [80, 443])? (':' . $port):'') . $_SERVER['REQUEST_URI'],
             'RHEADERS'   => [],
@@ -239,13 +244,6 @@ final class App implements \ArrayAccess
             'URI'        => $_SERVER['REQUEST_URI'],
             'VERSION'    => self::VERSION,
             'XFRAME'     => 'SAMEORIGIN',
-            'CORS'       => [
-                'headers'     => '',
-                'origin'      => FALSE,
-                'credentials' => FALSE,
-                'expose'      => FALSE,
-                'ttl'         => 0,
-            ],
         ];
 
         // Save a copy of hive
@@ -272,7 +270,10 @@ final class App implements \ArrayAccess
 
         if ($check && $error = error_get_last()) {
             // Error detected
-            $this->error(500, "Fatal error: {$error[message]}", [$error]);
+            $this
+                ->error(500, "Fatal error: {$error[message]}", [$error])
+                ->send()
+                ->halt(true);
         }
         // @codeCoverageIgnoreEnd
     }
@@ -333,22 +334,6 @@ final class App implements \ArrayAccess
     }
 
     /**
-     * Set cookie
-     *
-     * @param  string      $name
-     * @param  mixed      $value
-     * @param  int|integer $ttl
-     *
-     * @return App
-     */
-    public function cookie(string $name, $value, int $ttl = 0): App
-    {
-        $this->hive['RCOOKIES'][] = [$name, $value, $ttl];
-
-        return $this;
-    }
-
-    /**
      * Add headers
      *
      * @param  array       $headers
@@ -357,11 +342,9 @@ final class App implements \ArrayAccess
      */
     public function headers(array $headers): App
     {
-        foreach ($headers as $name => $content) {
-            if (is_numeric($name)) {
-                $this->hive['RHEADERS'][] = $content;
-            } else {
-                $this->hive['RHEADERS'][] = "$name: $content";
+        foreach ($headers as $name => $contents) {
+            foreach ((array) $contents as $content) {
+                $this->header($name, (string) $content);
             }
         }
 
@@ -378,47 +361,46 @@ final class App implements \ArrayAccess
      */
     public function header(string $name, string $content = ''): App
     {
-        if ($content) {
-            $this->hive['RHEADERS'][] = "$name: $content";
+        if ('' !== $content) {
+            $this->hive['RHEADERS'][$name][] = $content;
         }
 
         return $this;
     }
 
     /**
-     * Get header
+     * Get header by name
      *
-     * @param string $name
+     * @param  string $name
      *
      * @return array
      */
-    public function getHeader(string $name): string
+    public function getHeader(string $name): array
     {
-        $grep = preg_grep('/^' . $name . '\h*\:/i', $this->hive['RHEADERS']);
-        $header = '';
+        return $this->hive['RHEADERS'][$name] ?? $this->hive['RHEADERS'][ucfirst($name)] ?? $this->hive['RHEADERS'][strtolower($name)] ?? [];
+    }
 
-        if ($grep) {
-            $header = trim(icutafter("$name", current($grep)), ' :');
-        }
-
-        return $header;
+    /**
+     * Get all headers
+     *
+     * @return array
+     */
+    public function getHeaders(): array
+    {
+        return $this->hive['RHEADERS'];
     }
 
     /**
      * Remove header
      *
-     * @param string $name
+     * @param  string|null $name
      *
      * @return App
      */
     public function removeHeader(string $name = NULL): App
     {
         if ($name) {
-            foreach ($this->hive['RHEADERS'] as $key => $content) {
-                if (startsWith("$name:", $content)) {
-                    unset($this->hive['RHEADERS'][$key]);
-                }
-            }
+            unset($this->hive['RHEADERS'][$name]);
         } else {
             $this->hive['RHEADERS'] = [];
         }
@@ -434,17 +416,69 @@ final class App implements \ArrayAccess
     public function sendHeader(): App
     {
         if (!$this->hive['CLI'] && !headers_sent()) {
-            // send cookies
-            foreach ($this->hive['RCOOKIES'] as $value) {
-                $this->sendCookie($value[0], $value[1], $value[2]);
+            $headers = $this->hive['RHEADERS'];
+
+            if (isset($headers['Set-Cookie'])) {
+                foreach ($headers['Set-Cookie'] as $content) {
+                    header("Set-Cookie: $content");
+                }
+
+                unset($headers['Set-Cookie']);
             }
 
-            foreach ($this->hive['RHEADERS'] as $header) {
-                header($header);
+            foreach ($headers as $header => $contents) {
+                foreach ($contents as $content) {
+                    header("$header: $content");
+                }
             }
 
             header($_SERVER['SERVER_PROTOCOL'] . ' ' . $this->hive['STATUS'] . ' ' . $this->hive['TEXT'], TRUE);
         }
+
+        return $this;
+    }
+
+    /**
+     * Send RESPONSE
+     *
+     * @return void
+     *
+     * @throws LogicException If Response neither string or callable
+     */
+    public function sendResponse(): App
+    {
+        if ($this->hive['QUIET'] || NULL === $this->hive['RESPONSE']) {
+            return $this;
+        }
+
+        if (is_string($this->hive['RESPONSE'])) {
+            if ($this->hive['KBPS']) {
+                $this->throttle($this->hive['RESPONSE'], $this->hive['KBPS']);
+            } else {
+                echo $this->hive['RESPONSE'];
+            }
+        } elseif (is_callable($this->hive['RESPONSE'])) {
+            $this->call($this->hive['RESPONSE']);
+        } else {
+            $type = gettype($this->hive['RESPONSE']);
+
+            throw new \LogicException("Could not treat your response, given: $type");
+        }
+
+        return $this;
+    }
+
+    /**
+     * Send header and Response
+     *
+     * @return App
+     */
+    public function send(): App
+    {
+        $this
+            ->sendHeader()
+            ->sendResponse()
+        ;
 
         return $this;
     }
@@ -495,9 +529,7 @@ final class App implements \ArrayAccess
         // @codeCoverageIgnoreStart
         if ($this->blacklisted($this->hive['IP'])) {
             // Spammer detected
-            $this->error(403);
-
-            return $this;
+            return $this->error(403);
         }
         // @codeCoverageIgnoreEnd
 
@@ -545,6 +577,8 @@ final class App implements \ArrayAccess
                 // Save matching route
                 $this->hive['ALIAS']   = $alias;
                 $this->hive['PATTERN'] = $pattern;
+                // kbps
+                $this->hive['KBPS']    = $kbps;
 
                 // Expose if defined
                 if ($cors && $cors['expose']) {
@@ -557,28 +591,20 @@ final class App implements \ArrayAccess
                     $handler = str_replace($keys, array_values($args), $handler);
 
                     if (preg_match('/(.+)\h*(?:->|::)/', $handler, $match) && !class_exists($match[1])) {
-                        $this->error(404);
-
-                        return $this;
+                        return $this->error(404);
                     }
                 }
 
                 // Process request
-                $now  = microtime(TRUE);
-                $body = '';
-                if (in_array($method, ['GET','HEAD']) && $ttl) {
+                $now = microtime(TRUE);
+
+                if (in_array($method, ['GET', 'HEAD']) && $ttl) {
                     // Only GET and HEAD requests are cacheable
                     $hash = hash($method . ' ' . $this->hive['URI']) . '.url';
 
                     if ($this->cacheExists($hash)) {
                         if (isset($headers['If-Modified-Since']) && strtotime($headers['If-Modified-Since'])+$ttl > $now) {
-                            $this
-                                ->status(304)
-                                ->sendHeader()
-                                ->halt()
-                            ;
-
-                            return $this;
+                            return $this->status(304);
                         }
 
                         // Retrieve from cache backend
@@ -590,6 +616,8 @@ final class App implements \ArrayAccess
                             ->headers($headers)
                             ->expire((int) ($cached[1] + $ttl - $now))
                         ;
+
+                        $this->hive['RESPONSE'] = $body;
                     } else {
                         // Expire HTTP client-cached page
                         $this->expire($ttl);
@@ -598,67 +626,37 @@ final class App implements \ArrayAccess
                     $this->expire(0);
                 }
 
-                if (!$body) {
+                if (!$this->hive['RESPONSE']) {
                     if (!$this->hive['RAW'] && !$this->hive['BODY']) {
                         $this->hive['BODY'] = file_get_contents('php://input');
                     }
 
-                    ob_start();
-
-                    $code   = 200;
-                    $ex     = NULL;
-                    $result = NULL;
-
                     // Call route handler
                     try {
                         $result = $this->call($handler, array_slice($args, 1));
-                    } catch (\BadMethodCallException $e) {
-                        $code = 404;
-                        $ex   = $e;
-                    } catch (\BadFunctionCallException $e) {
-                        $code = 404;
-                        $ex   = $e;
-                    } catch (\Throwable $e) {
-                        $code = 500;
-                        $ex   = $e;
-                    }
 
-                    $body = ob_get_clean();
-
-                    if (200 !== $code) {
-                        $this->error($code, $ex->getMessage(), $ex->getTrace());
-
-                        return $this;
-                    }
-
-                    if (!$body) {
-                        if (is_string($result)) {
-                            $body = $result;
-                        } elseif (is_array($result)) {
-                            $body = $this->json($result);
+                        if (is_array($result)) {
+                            $result = $this->json($result);
                         }
-                    }
 
-                    if (isset($hash) && $body && !error_get_last()) {
-                        // Save to cache backend
-                        $this->cacheSet($hash, [
-                            preg_grep('/Set-Cookie\:/', $this->hive['RHEADERS'], PREG_GREP_INVERT),
-                            $body
-                        ], $ttl);
-                    }
-                }
+                        $this->hive['RESPONSE'] = $result;
 
-                // Send headers
-                $this->sendHeader();
+                        if (isset($hash) && $result && !error_get_last()) {
+                            $rheaders = $this->hive['RHEADERS'];
+                            unset($rheaders['Set-Cookie']);
 
-                // Assign response
-                $this->hive['RESPONSE'] = $body;
-
-                if (!$this->hive['QUIET']) {
-                    if ($kbps) {
-                        $this->throttle($body, $kbps);
-                    } else {
-                        echo $body;
+                            // Save to cache backend
+                            $this->cacheSet($hash, [
+                                $rheaders,
+                                $result
+                            ], $ttl);
+                        }
+                    } catch (\BadMethodCallException $e) {
+                        return $this->error(404, $e->getMessage(), $e->getTrace());
+                    } catch (\BadFunctionCallException $e) {
+                        return $this->error(404, $e->getMessage(), $e->getTrace());
+                    } catch (\Throwable $e) {
+                        return $this->error(500, $e->getMessage(), $e->getTrace());
                     }
                 }
 
@@ -732,10 +730,7 @@ final class App implements \ArrayAccess
         $this->hive['HEADERS']  = $headers;
 
         // reset
-        $this
-            ->clears(['BODY', 'RESPONSE', 'RCOOKIES', 'ERROR'])
-            ->removeHeader()
-        ;
+        $this->clears(['BODY', 'RESPONSE', 'RHEADERS', 'ERROR', 'KBPS', 'TEXT', 'STATUS']);
 
         parse_str($uri['query'], $GLOBALS['_GET']);
 
@@ -878,7 +873,11 @@ final class App implements \ArrayAccess
 
         if ($error && in_array($error['type'], [E_ERROR,E_PARSE,E_CORE_ERROR,E_COMPILE_ERROR])) {
             // Fatal error detected
-            $this->error(500, "Fatal error: {$error[message]}", [$error]);
+            $this
+                ->error(500, "Fatal error: {$error[message]}", [$error])
+                ->send()
+                ->halt()
+            ;
         }
     }
 
@@ -892,13 +891,13 @@ final class App implements \ArrayAccess
      * @param  array|NULL $trace
      * @param  integer    $level
      *
-     * @return void
+     * @return App
      */
-    public function error(int $code, string $text = '', array $trace = NULL, int $level = 0): void
+    public function error(int $code, string $text = '', array $trace = NULL, int $level = 0): App
     {
         if ($this->hive['ERROR']) {
             // Prevent recursive call
-            return;
+            return $this;
         }
 
         $this->status($code);
@@ -933,16 +932,14 @@ final class App implements \ArrayAccess
         $this->expire(-1);
 
         if ($this->trigger('ONERROR', NULL, TRUE)) {
-            return;
+            return $this;
         }
 
-        $output = NULL;
-        if (!$this->hive['QUIET']) {
-            if ($this->hive['AJAX']) {
-                $output = $this->json(array_diff_key($this->hive['ERROR'], $this->hive['DEBUG']? [] : ['trace' => 1]));
-            } else {
-                $trace  = $this->hive['DEBUG'] ? '<pre>' . $trace . '</pre>' : '';
-                $output = $this->html(<<<ERR
+        if ($this->hive['AJAX']) {
+            $this->hive['RESPONSE'] = $this->json(array_diff_key($this->hive['ERROR'], $this->hive['DEBUG']? [] : ['trace' => 1]));
+        } else {
+            $trace  = $this->hive['DEBUG'] ? '<pre>' . $trace . '</pre>' : '';
+            $this->hive['RESPONSE'] = $this->html(<<<ERR
 <!DOCTYPE html>
 <html>
 <head>
@@ -958,16 +955,9 @@ final class App implements \ArrayAccess
 </html>
 ERR
 );
-            }
         }
 
-        $this->sendHeader();
-
-        if ($output) {
-            echo $output;
-        }
-
-        $this->halt();
+        return $this;
     }
 
     /**
@@ -1027,12 +1017,10 @@ ERR
      * @param  string $ip
      *
      * @return bool
-     *
-     * @codeCoverageIgnore
      */
     public function blacklisted(string $ip): bool
     {
-        if ($this->hive['DNSBL'] && !in_array($ip, reqarr($this->hive['EXEMPT']))) {
+        if ($this->hive['DNSBL'] && !in_array($ip, reqarr($this->hive['EXEMPT'] ?? ''))) {
             // Reverse IPv4 dotted quad
             $rev = implode('.', array_reverse(explode('.', $ip)));
             foreach (reqarr($this->hive['DNSBL']) as $server) {
@@ -1475,23 +1463,28 @@ ERR
      *
      * @param string $key
      * @param mixed $val
+     * @param int $ttl For cookie set
      *
      * @return App
      */
-    public function set(string $key, $val): App
+    public function set(string $key, $val, int $ttl = NULL): App
     {
         static $serverMap = [
             'URI' => 'REQUEST_URI',
             'METHOD' => 'REQUEST_METHOD',
         ];
 
-        preg_match('/^(?:(?:(?:GET|POST)\b(.+))|SERVICE\.(.+)|(JAR\b))$/', $key, $match);
+        preg_match('/^(?:(?:(?:GET|POST)\b(.+))|COOKIE\.(.+)|SERVICE\.(.+)|(JAR\b))$/', $key, $match);
 
-        if (isset($match[1]) && $match[1]) {
-            $this->set('REQUEST' . $match[1], $val);
-        } elseif (isset($serverMap[$key])) {
+        if (isset($serverMap[$key])) {
             $_SERVER[$serverMap[$key]] = $val;
+        } elseif (isset($match[1]) && $match[1]) {
+            $this->set('REQUEST' . $match[1], $val);
         } elseif (isset($match[2]) && $match[2]) {
+            $this->set('REQUEST.' . $match[2], $val);
+
+            $this->setCookie($match[2], $val, $ttl);
+        } elseif (isset($match[3]) && $match[3]) {
             if (is_string($val)) {
                 // assume val is a class name
                 $val = ['class' => $val];
@@ -1500,8 +1493,8 @@ ERR
             // defaults it's a service
             $val += ['keep' => TRUE];
 
-            if (isset($val['class']) && $val['class'] !== $match[2]) {
-                $this->aliases[$val['class']] = $match[2];
+            if (isset($val['class']) && $val['class'] !== $match[3]) {
+                $this->aliases[$val['class']] = $match[3];
             }
 
             // remove existing service
@@ -1511,11 +1504,8 @@ ERR
         $var =& $this->ref($key);
         $var = $val;
 
-        if (isset($match[3]) && $match[3]) {
-            $jar = $this->unserialize($this->serialize($this->hive['JAR']));
-            $jar['expire'] -= microtime(TRUE);
-
-            call_user_func_array('session_set_cookie_params', $jar);
+        if (isset($match[4]) && $match[4]) {
+            $this->hive['JAR']['expire'] -= microtime(TRUE);
         } else {
             switch ($key) {
                 case 'CACHE':
@@ -1566,12 +1556,8 @@ ERR
             $this->clear('REQUEST' . $match[1]);
         } elseif (isset($match[2]) && $match[2]) {
             $this->clear('REQUEST.' . $match[2]);
-            $parts         = explode('.', $match[2]);
-            $jar           = $this->hive['JAR'];
-            $jar['expire'] = strtotime('-1 year');
 
-            call_user_func_array('setcookie', array_merge([$parts[0], NULL], $jar));
-            unset($_COOKIE[$parts[0]]);
+            $this->setCookie($match[2], NULL, strtotime('-1 year'));
         } elseif (isset($match[4]) && $match[4]) {
             $this->startSession();
         } elseif (isset($match[3]) && $match[3]) {
@@ -2199,33 +2185,54 @@ ERR
     }
 
     /**
-     * Send cookie
+     * Format to cookie header syntax
      *
-     * @param  string      $name
-     * @param  mixed      $value
-     * @param  int|integer $ttl
-     *
-     * @return App
+     * @param string   $name
+     * @param string   $value
+     * @param int|null $ttl
      */
-    protected function sendCookie(string $name, $value, int $ttl = 0): App
+    protected function setCookie(string $name, string $value = NULL, int $ttl = NULL): void
     {
-        $jar  = $this->unserialize($this->serialize($this->hive['JAR']));
+        $jar    = $this->hive['JAR'];
+        $cookie = $this->cookiefy($name) . '=' . urlencode($value ?? '');
+        $expire = $ttl ?? $jar['expire'];
 
-        if (isset($_COOKIE[$name])) {
-            $jar['expire'] = strtotime('-1 year');
-
-            call_user_func_array('setcookie', array_merge([$name, NULL], $jar));
+        if ($expire) {
+            $cookie .= '; Expires=' . gmdate('D, d M Y H:i:s') . ' GMT';
         }
 
-        if ($ttl) {
-            $jar['expire'] = microtime(TRUE) + $ttl;
+        if ($jar['domain']) {
+            $cookie .= '; Domain=' . $jar['domain'];
         }
 
-        call_user_func_array('setcookie', [$name, $value] + $jar);
+        if ($jar['path']) {
+            $cookie .= '; Path=' . $jar['path'];
+        }
 
-        $_COOKIE[$name] = $value;
+        if ($jar['secure']) {
+            $cookie = '__Secure-' . $cookie . '; Secure';
+        }
 
-        return $this;
+        if ($jar['httponly']) {
+            $cookie .= '; HttpOnly';
+        }
+
+        $this->header('Set-Cookie', $cookie);
+    }
+
+    /**
+     * Build valid cookie name from dot based name
+     *
+     * @param  string $name
+     *
+     * @return string
+     */
+    protected function cookiefy(string $name): string
+    {
+        $parts = explode('.', $name);
+        $cname = array_shift($parts);
+
+        return $cname . ($parts ? '[' . implode('][', $parts) . ']' : '');
     }
 
     /**
