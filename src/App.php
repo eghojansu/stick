@@ -228,6 +228,7 @@ final class App implements \ArrayAccess
             'QUIET'      => FALSE,
             'RAW'        => FALSE,
             'REALM'      => $scheme . '://' . $_SERVER['SERVER_NAME'] . ($port && !in_array($port, [80, 443])? (':' . $port):'') . $_SERVER['REQUEST_URI'],
+            'RESPONSE'   => NULL,
             'RHEADERS'   => [],
             'ROOT'       => $_SERVER['DOCUMENT_ROOT'],
             'ROUTES'     => [],
@@ -555,165 +556,53 @@ final class App implements \ArrayAccess
      * Send text/plain header and output content
      *
      * @param  string $content
-     * @param  int $kbps
      *
      * @return void
      */
-    public function text(string $content, int $kbps = 0): void
+    public function text(string $content): void
     {
         $this
             ->header('Content-Type', 'text/plain;charset=' . ini_get('default_charset'))
             ->header('Content-Length', (string) strlen($content))
-            ->sendHeader()
-            ->out($content, $kbps)
         ;
+
+        echo $content;
     }
 
     /**
      * Send html header and output content
      *
      * @param  string $content
-     * @param  int $kbps
      *
      * @return void
      */
-    public function html(string $content, int $kbps = 0): void
+    public function html(string $content): void
     {
         $this
             ->header('Content-Type', 'text/html;charset=' . ini_get('default_charset'))
             ->header('Content-Length', (string) strlen($content))
-            ->sendHeader()
-            ->out($content, $kbps)
         ;
+
+        echo $content;
     }
 
     /**
      * Set JSON header and encode data
      *
      * @param  array  $data
-     * @param  int $kbps
      *
      * @return void
      */
-    public function json(array $data, int $kbps = 0): void
+    public function json(array $data): void
     {
         $content = json_encode($data);
 
         $this
             ->header('Content-Type', 'application/json;charset=' . ini_get('default_charset'))
             ->header('Content-Length', (string) strlen($content))
-            ->sendHeader()
-            ->out($content, $kbps)
         ;
-    }
 
-    /**
-     * Cache page mechanism
-     *
-     * @param  Closure    $callback
-     * @param  int         $ttl
-     * @param  int $kbps
-     *
-     * @return void
-     */
-    public function cache(\Closure $callback, int $ttl, int $kbps = 0): void
-    {
-        $method  = $this->hive['METHOD'];
-        $content = '';
-
-        $this->removeHeader();
-
-        if (in_array($method, ['GET', 'HEAD']) && $ttl) {
-            // Only GET and HEAD requests are cacheable
-            $hash = hash($method . ' ' . $this->hive['URI']) . '.url';
-
-            if ($this->cacheExists($hash)) {
-                $now = microtime(TRUE);
-
-                if (isset($this->hive['HEADERS']['If-Modified-Since']) && strtotime($this->hive['HEADERS']['If-Modified-Since'])+$ttl > $now) {
-                    $this
-                        ->status(304)
-                        ->sendHeader()
-                        ->halt()
-                    ;
-
-                    return;
-                }
-
-                // Retrieve from cache backend
-                $cached = $this->cacheGet($hash);
-
-                list($headers, $content) = $cached[0];
-
-                $this
-                    ->headers($headers)
-                    ->expire((int) ($cached[1] + $ttl - $now))
-                    ->sendHeader()
-                ;
-
-                unset($cached, $headers);
-            } else {
-                // Expire HTTP client-cached page
-                $this->expire($ttl);
-            }
-        } else {
-            $this->expire(0);
-        }
-
-        if ('' === $content) {
-            ob_start();
-            $callback();
-            $content = ob_get_clean();
-
-            if (isset($hash) && !error_get_last()) {
-                $headers = $this->hive['RHEADERS'];
-                unset($headers['Set-Cookie']);
-
-                // Save to cache backend
-                $this->cacheSet($hash, [
-                    $headers,
-                    $content
-                ], $ttl);
-            }
-        }
-
-        $this->out($content, $kbps);
-    }
-
-    /**
-     * Throttle output
-     *
-     * @param  string      $content
-     * @param  int $kbps
-     * @param  bool $quiet
-     *
-     * @return void
-     */
-    public function out(string $content, int $kbps = 0, bool $quiet = NULL): void
-    {
-        $silent = $quiet ?? $this->hive['QUIET'];
-
-        if ($silent) {
-            return;
-        }
-
-        if ($kbps) {
-            $now = microtime(TRUE);
-            $ctr = 0;
-
-            foreach (str_split($content, 1024) as $part) {
-                // Throttle output
-                $ctr++;
-
-                if ($ctr/$kbps > ($elapsed = microtime(TRUE) - $now) && !connection_aborted()) {
-                    usleep((int) (1e6 * ($ctr / $kbps - $elapsed)));
-                }
-
-                echo $part;
-            }
-        } else {
-            echo $content;
-        }
+        echo $content;
     }
 
     /**
@@ -771,7 +660,7 @@ final class App implements \ArrayAccess
             }
 
             if (isset($route[$method]) && !$preflight) {
-                list($handler, $alias) = $route[$method];
+                list($handler, $ttl, $kbps, $alias) = $route[$method];
 
                 // Capture values of route pattern tokens
                 $this->hive['PARAMS']  = $args;
@@ -797,20 +686,83 @@ final class App implements \ArrayAccess
                 }
 
                 // Process request
-                if (!$this->hive['RAW'] && !$this->hive['BODY']) {
-                    $this->hive['BODY'] = file_get_contents('php://input');
+                $now  = microtime(TRUE);
+                $body = '';
+
+                if (in_array($method, ['GET', 'HEAD']) && $ttl) {
+                    // Only GET and HEAD requests are cacheable
+                    $hash = hash($method . ' ' . $this->hive['URI']) . '.url';
+
+                    if ($this->cacheExists($hash)) {
+                        if (isset($headers['If-Modified-Since']) && strtotime($headers['If-Modified-Since'])+$ttl > $now) {
+                            $this
+                                ->status(304)
+                                ->sendHeader()
+                            ;
+
+                            return;
+                        }
+
+                        // Retrieve from cache backend
+                        $cached = $this->cacheGet($hash);
+
+                        list($headers, $body) = $cached[0];
+
+                        $this
+                            ->headers($headers)
+                            ->expire((int) ($cached[1] + $ttl - $now))
+                            ->sendHeader()
+                        ;
+
+                        unset($cached, $headers);
+                    } else {
+                        // Expire HTTP client-cached page
+                        $this->expire($ttl);
+                    }
+                } else {
+                    $this->expire(0);
                 }
 
-                // Call route handler
-                try {
-                    $this->expire();
+                if ('' === $body) {
+                    if (!$this->hive['RAW'] && !$this->hive['BODY']) {
+                        $this->hive['BODY'] = file_get_contents('php://input');
+                    }
 
+                    if (is_string($handler)) {
+                        $handler = $this->grab($handler);
+                    }
+
+                    if (!is_callable($handler)) {
+                        if (is_array($handler)) {
+                            $this->error(405);
+                        } else {
+                            $info = stringify($handler);
+                            $this->error(500, "Invalid method: {$info}");
+                        }
+
+                        return;
+                    }
+
+                    ob_start();
                     $this->call($handler, array_slice($args, 1));
-                } catch (\BadMethodCallException|\BadFunctionCallException $e) {
-                    $this->error(404, $e->getMessage(), $e->getTrace());
-                } catch (\Throwable $e) {
-                    $this->error(500, $e->getMessage(), $e->getTrace());
+                    $body = ob_get_clean();
+
+                    if (isset($hash) && $body && !error_get_last()) {
+                        $headers = $this->hive['RHEADERS'];
+                        unset($headers['Set-Cookie']);
+
+                        // Save to cache backend
+                        $this->cacheSet($hash, [
+                            $headers,
+                            $body
+                        ], $ttl);
+                    }
                 }
+
+                $this->hive['RESPONSE'] = $body;
+
+                $this->sendHeader();
+                $this->throttle($body, $kbps);
 
                 if ('OPTIONS' !== $method) {
                     return;
@@ -880,7 +832,7 @@ final class App implements \ArrayAccess
         $this->hive['HEADERS']  = $headers;
 
         // reset
-        $this->clears(['BODY', 'RHEADERS', 'ERROR', 'TEXT', 'STATUS']);
+        $this->clears(['BODY', 'RHEADERS', 'RESPONSE', 'ERROR', 'TEXT', 'STATUS']);
 
         parse_str($uri['query'], $GLOBALS['_GET']);
 
@@ -910,11 +862,10 @@ final class App implements \ArrayAccess
      *
      * @param  string|array|NULL  $url
      * @param  boolean $permanent
-     * @param  boolean $die
      *
      * @return void
      */
-    public function reroute($url = NULL, bool $permanent = FALSE, bool $die = TRUE): void
+    public function reroute($url = NULL, bool $permanent = FALSE): void
     {
         if (!$url) {
             $url = $this->hive['REALM'];
@@ -940,7 +891,6 @@ final class App implements \ArrayAccess
                 ->status($permanent ? 301 : 302)
                 ->header('Location', $url)
                 ->sendHeader()
-                ->halt($die)
             ;
         }
     }
@@ -1109,8 +1059,6 @@ final class App implements \ArrayAccess
 ERR
 );
         }
-
-        $this->halt();
     }
 
     /**
@@ -1163,10 +1111,10 @@ ERR
      *
      * @return App
      */
-    public function resources(array $patterns, $class, array $map = NULL): App
+    public function resources(array $patterns, $class, int $ttl = 0, int $kbps = 0, array $map = NULL): App
     {
         foreach ($patterns as $pattern) {
-            $this->resource($pattern, $class, $map);
+            $this->resource($pattern, $class, $ttl, $kbps, $map);
         }
 
         return $this;
@@ -1181,11 +1129,13 @@ ERR
      *
      * @param  string      $pattern
      * @param  string|object      $class
+     * @param  int $ttl
+     * @param  int $kbps
      * @param  array|NULL $map
      *
      * @return App
      */
-    public function resource(string $pattern, $class, array $map = NULL): App
+    public function resource(string $pattern, $class, int $ttl = 0, int $kbps = 0, array $map = NULL): App
     {
         $parts = array_filter(explode(' ', $pattern));
 
@@ -1228,7 +1178,9 @@ ERR
 
                 $this->hive['ROUTES'][$path][$type][$verb] = [
                     $str ? "$class->$action" : [$class, $action],
-                    "{$route}_{$res}"
+                    $ttl,
+                    $kbps,
+                    "{$route}_{$res}",
                 ];
             }
         }
@@ -1241,14 +1193,16 @@ ERR
      *
      * @param  array      $pattern Route pattern without method
      * @param  string|object      $class
+     * @param  int $ttl
+     * @param  int $kbps
      * @param  string|NULL $map Defaults to self::VERBS
      *
      * @return App
      */
-    public function maps(array $patterns, $class, string $map = NULL): App
+    public function maps(array $patterns, $class, int $ttl = 0, int $kbps = 0, string $map = NULL): App
     {
         foreach ($patterns as $pattern) {
-            $this->map($pattern, $class, $map);
+            $this->map($pattern, $class, $ttl, $kbps, $map);
         }
 
         return $this;
@@ -1259,11 +1213,13 @@ ERR
      *
      * @param  string      $pattern Route pattern without method
      * @param  string|object      $class
+     * @param  int $ttl
+     * @param  int $kbps
      * @param  string|NULL $map Defaults to self::VERBS
      *
      * @return App
      */
-    public function map($pattern, $class, string $map = NULL): App
+    public function map($pattern, $class, int $ttl = 0, int $kbps = 0, string $map = NULL): App
     {
         $str    = is_string($class);
         $prefix = $this->hive['PREMAP'];
@@ -1271,7 +1227,9 @@ ERR
         foreach (split($map ?? self::VERBS) as $verb) {
             $this->route(
                 $verb . ' '. $pattern,
-                $str ? "$class->$prefix$verb" : [$class, "$prefix$verb"]
+                $str ? "$class->$prefix$verb" : [$class, "$prefix$verb"],
+                $ttl,
+                $kbps
             );
         }
 
@@ -1317,13 +1275,15 @@ ERR
      *
      * @param  array       $patterns
      * @param  string|callable      $callback
+     * @param  int $ttl
+     * @param  int $kbps
      *
      * @return App
      */
-    public function routes(array $patterns, $callback): App
+    public function routes(array $patterns, $callback, int $ttl = 0, int $kbps = 0): App
     {
         foreach ($patterns as $pattern) {
-            $this->route($pattern, $callback);
+            $this->route($pattern, $callback, $ttl, $kbps);
         }
 
         return $this;
@@ -1348,10 +1308,12 @@ ERR
      *
      * @param  string      $pattern
      * @param  string|callable      $callback
+     * @param  int $ttl
+     * @param  int $kbps
      *
      * @return App
      */
-    public function route(string $pattern, $callback): App
+    public function route(string $pattern, $callback, int $ttl = 0, int $kbps = 0): App
     {
         preg_match('/^([\|\w]+)(?:\h+(\w+))?(?:\h+([^\h]+))(?:\h+(sync|ajax|cli))?$/', $pattern, $match);
 
@@ -1369,7 +1331,7 @@ ERR
         $verbs = split(strtoupper($match[1]));
 
         foreach ($verbs as $verb) {
-            $this->hive['ROUTES'][$match[3]][$type][$verb] = [$callback, $alias];
+            $this->hive['ROUTES'][$match[3]][$type][$verb] = [$callback, $ttl, $kbps, $alias];
         }
 
         return $this;
@@ -1415,26 +1377,11 @@ ERR
      * @param  array|string $args
      *
      * @return mixed
-     *
-     * @throws BadMethodCallException
-     * @throws BadFunctionCallException
-     * @throws LogicException
      */
     public function call($callback, $args = NULL)
     {
         if (is_string($callback)) {
             $callback = $this->grab($callback);
-        }
-
-        if (!is_callable($callback)) {
-            if (is_array($callback)) {
-                $info = stringify($callback);
-                throw new \BadMethodCallException("Invalid method call: {$info}");
-            } elseif (is_string($callback)) {
-                throw new \BadFunctionCallException("Invalid function call: {$callback}");
-            } else {
-                throw new \LogicException("Invalid callback: (Unknown)");
-            }
         }
 
         if (is_array($callback)) {
@@ -1452,7 +1399,7 @@ ERR
      * Get service by id or class name
      *
      * @param  string $id
-     * @param  array  $args
+     * @param array  $args
      *
      * @return mixed
      */
@@ -2363,6 +2310,41 @@ ERR
         }
 
         return FALSE;
+    }
+
+    /**
+     * Throttle output
+     *
+     * @param  string      $content
+     * @param  int $kbps
+     *
+     * @return void
+     */
+    protected function throttle(string $content, int $kbps = 0): void
+    {
+        if ($this->hive['QUIET']) {
+            return;
+        }
+
+        if ($kbps) {
+            $now = microtime(TRUE);
+            $ctr = 0;
+
+            foreach (str_split($content, 1024) as $part) {
+                // Throttle output
+                $ctr++;
+
+                if ($ctr/$kbps > ($elapsed = microtime(TRUE) - $now) && !connection_aborted()) {
+                    usleep((int) (1e6 * ($ctr / $kbps - $elapsed)));
+                }
+
+                echo $part;
+            }
+
+            return;
+        }
+
+        echo $content;
     }
 
     /**

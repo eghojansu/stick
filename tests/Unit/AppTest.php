@@ -85,6 +85,12 @@ class AppTest extends TestCase
 
                 echo 'cookie';
             })
+            ->route('GET /throttled', function() {
+                echo 'throttled';
+            }, 0, 1)
+            ->route('GET /cached', function() {
+                echo 'cached'.microtime(TRUE);
+            }, 5)
         ;
     }
 
@@ -228,89 +234,6 @@ class AppTest extends TestCase
         $this->assertEquals(['13'], $this->app->getHeader('Content-Length'));
     }
 
-    public function testOut()
-    {
-        $this->expectOutputString('throttle');
-
-        $start = microtime(TRUE);
-        $this->app->out('throttle', 1);
-        $end = microtime(TRUE) - $start;
-
-        $this->assertGreaterThan(1, $end);
-    }
-
-    public function testOutSilent()
-    {
-        $this->expectOutputString('');
-
-        $this->app->set('QUIET', TRUE)->out('throttle', 0);
-    }
-
-    public function testCache()
-    {
-        $this->app->set('CACHE', 'folder=' . TEMP . 'cache/');
-
-        $this->expectOutputString('cache');
-
-        $this->app->cache(function() {
-            echo 'cache';
-        }, 5);
-
-        $cache = TEMP . 'cache/' . $this->app['SEED'] . '.' . f\hash($this->app['METHOD'] . ' ' . $this->app['URI']) . '.url';
-        $this->assertFileExists($cache);
-    }
-
-    public function testCachePageNotInVerb()
-    {
-        $this->app->set('CACHE', 'folder=' . TEMP . 'cache/');
-        $this->app['METHOD'] = 'POST';
-
-        $this->expectOutputString('executed');
-
-        $this->app->cache(function() {
-            echo 'executed';
-        }, 5);
-    }
-
-    public function testCachePageExists()
-    {
-        $this->app->set('CACHE', 'folder=' . TEMP . 'cache/');
-
-        $hash = f\hash($this->app['METHOD'] . ' ' . $this->app['URI']) . '.url';
-
-        $this->app->cacheSet($hash, [
-            [],
-            'cached'
-        ], 5);
-
-        $this->expectOutputString('cached');
-
-        $this->app->cache(function() {
-            echo 'not executed';
-        }, 5);
-    }
-
-    public function testCachePageExistsWithHeaderCheck()
-    {
-        $this->app->set('CACHE', 'folder=' . TEMP . 'cache/');
-        $this->app->set('HEADERS.If-Modified-Since', gmdate('r', strtotime('+1 minute')));
-
-        $hash = f\hash($this->app['METHOD'] . ' ' . $this->app['URI']) . '.url';
-
-        $this->app->cacheSet($hash, [
-            [],
-            'cached'
-        ], 5);
-
-        $this->expectOutputString('');
-
-        $this->app->cache(function() {
-            echo 'not executed';
-        }, 5);
-
-        $this->assertEquals('Not Modified', $this->app['TEXT']);
-    }
-
     public function runProvider()
     {
         return [
@@ -339,10 +262,10 @@ class AppTest extends TestCase
             ['GET invalidclass', 'regex/Not Found/', ['TEXT'=>'Not Found','PATH'=>'/invalidclass']],
 
             // invalid class method
-            ['GET invalidmethod', 'regex/Not Found/', ['TEXT'=>'Not Found','PATH'=>'/invalidmethod']],
+            ['GET invalidmethod', 'regex/Method Not Allowed/', ['TEXT'=>'Method Not Allowed','PATH'=>'/invalidmethod']],
 
             // invalid function
-            ['GET invalidfunction', 'regex/Not Found/', ['TEXT'=>'Not Found','PATH'=>'/invalidfunction']],
+            ['GET invalidfunction', 'regex/Internal Server Error/', ['TEXT'=>'Internal Server Error','PATH'=>'/invalidfunction']],
 
             // invalid callback
             ['GET emptycallback', 'regex/Internal Server Error/', ['TEXT'=>'Internal Server Error','PATH'=>'/emptycallback']],
@@ -382,6 +305,46 @@ class AppTest extends TestCase
     public function testRunException()
     {
         $this->app->run();
+    }
+
+    public function testRunCache()
+    {
+        $this->registerRoutes();
+        $this->app['QUIET'] = TRUE;
+        $this->app->set('CACHE', 'folder=' . TEMP . 'cache/');
+
+        $this->app->mock('GET /cached');
+
+        $cache = TEMP . 'cache/' . $this->app['SEED'] . '.' . f\hash($this->app['METHOD'] . ' ' . $this->app['URI']) . '.url';
+        $this->assertFileExists($cache);
+        $init = $this->app['RESPONSE'];
+        $this->assertContains('cached', $init);
+
+        $this->app->mock('GET /cached');
+        $this->assertEquals($init, $this->app['RESPONSE']);
+
+        $this->app->mock('GET /cached', NULL, ['If-Modified-Since'=>gmdate('r', strtotime('+1 minute'))]);
+        $this->assertEquals('Not Modified', $this->app['TEXT']);
+    }
+
+    public function testRunThrottled()
+    {
+        $this->registerRoutes();
+        $this->expectOutputString('throttled');
+
+        $start = microtime(TRUE);
+        $this->app->mock('GET /throttled');
+        $end = microtime(TRUE) - $start;
+
+        $this->assertGreaterThan(1, $end);
+    }
+
+    public function testRunQuiet()
+    {
+        $this->registerRoutes();
+        $this->app['QUIET'] = TRUE;
+        $this->app->mock('GET /foo');
+        $this->assertEquals('foo', $this->app['RESPONSE']);
     }
 
     public function testRunCors()
@@ -599,19 +562,19 @@ class AppTest extends TestCase
     public function testResources()
     {
         $class = ResourceClass::class;
-        $this->app->resources(['foo', 'bar'], $class, ['index','store']);
+        $this->app->resources(['foo', 'bar'], $class, 0, 0, ['index','store']);
 
         $expected = [
             '/foo' => [
                 0 => [
-                    'GET' => ["{$class}->index", 'foo_index'],
-                    'POST' => ["{$class}->store", 'foo_store'],
+                    'GET' => ["{$class}->index", 0, 0, 'foo_index'],
+                    'POST' => ["{$class}->store", 0, 0, 'foo_store'],
                 ],
             ],
             '/bar' => [
                 0 => [
-                    'GET' => ["{$class}->index", 'bar_index'],
-                    'POST' => ["{$class}->store", 'bar_store'],
+                    'GET' => ["{$class}->index", 0, 0, 'bar_index'],
+                    'POST' => ["{$class}->store", 0, 0, 'bar_store'],
                 ],
             ],
         ];
@@ -627,25 +590,25 @@ class AppTest extends TestCase
         $expected = [
             '/foo' => [
                 0 => [
-                    'GET' => ["{$class}->index", 'foo_index'],
-                    'POST' => ["{$class}->store", 'foo_store'],
+                    'GET' => ["{$class}->index", 0, 0, 'foo_index'],
+                    'POST' => ["{$class}->store", 0, 0, 'foo_store'],
                 ],
             ],
             '/foo/create' => [
                 0 => [
-                    'GET' => ["{$class}->create", 'foo_create'],
+                    'GET' => ["{$class}->create", 0, 0, 'foo_create'],
                 ],
             ],
             '/foo/{foo}' => [
                 0 => [
-                    'GET' => ["{$class}->show", 'foo_show'],
-                    'PUT' => ["{$class}->update", 'foo_update'],
-                    'DELETE' => ["{$class}->destroy", 'foo_destroy'],
+                    'GET' => ["{$class}->show", 0, 0, 'foo_show'],
+                    'PUT' => ["{$class}->update", 0, 0, 'foo_update'],
+                    'DELETE' => ["{$class}->destroy", 0, 0, 'foo_destroy'],
                 ],
             ],
             '/foo/{foo}/edit' => [
                 0 => [
-                    'GET' => ["{$class}->edit", 'foo_edit'],
+                    'GET' => ["{$class}->edit", 0, 0, 'foo_edit'],
                 ],
             ],
         ];
@@ -654,13 +617,13 @@ class AppTest extends TestCase
 
         $this->app->clear('ROUTES');
 
-        $this->app->resource('foo', $class, ['index','store']);
+        $this->app->resource('foo', $class, 0, 0, ['index','store']);
 
         $expected = [
             '/foo' => [
                 0 => [
-                    'GET' => ["{$class}->index", 'foo_index'],
-                    'POST' => ["{$class}->store", 'foo_store'],
+                    'GET' => ["{$class}->index", 0, 0, 'foo_index'],
+                    'POST' => ["{$class}->store", 0, 0, 'foo_store'],
                 ],
             ],
         ];
@@ -745,53 +708,53 @@ class AppTest extends TestCase
         $expected = [
             '/' => [
                 0 => [
-                    'GET' => [$handler, NULL],
+                    'GET' => [$handler, 0, 0, NULL],
                 ],
             ],
             '/home' => [
                 0 => [
-                    'GET' => [$handler, 'home'],
+                    'GET' => [$handler, 0, 0, 'home'],
                 ],
             ],
             '/user' => [
                 2 => [
-                    'GET' => [$handler, 'user'],
-                    'POST' => [$handler, 'user'],
+                    'GET' => [$handler, 0, 0, 'user'],
+                    'POST' => [$handler, 0, 0, 'user'],
                 ],
             ],
             '/profile' => [
                 1 => [
-                    'GET' => [$handler, NULL],
+                    'GET' => [$handler, 0, 0, NULL],
                 ],
             ],
             '/command' => [
                 4 => [
-                    'GET' => [$handler, NULL],
+                    'GET' => [$handler, 0, 0, NULL],
                 ],
             ],
             '/product/{keyword}' => [
                 0 => [
-                    'GET' => [$handler, NULL],
+                    'GET' => [$handler, 0, 0, NULL],
                 ],
             ],
             '/product/{id:digit}' => [
                 0 => [
-                    'GET' => [$handler, NULL],
+                    'GET' => [$handler, 0, 0, NULL],
                 ],
             ],
             '/category/{category:word}' => [
                 0 => [
-                    'GET' => [$handler, NULL],
+                    'GET' => [$handler, 0, 0, NULL],
                 ],
             ],
             '/post/{post:custom}' => [
                 0 => [
-                    'GET' => [$handler, NULL],
+                    'GET' => [$handler, 0, 0, NULL],
                 ],
             ],
             '/regex/(?<regex>[[:alpha:]])' => [
                 0 => [
-                    'GET' => [$handler, NULL],
+                    'GET' => [$handler, 0, 0, NULL],
                 ],
             ],
         ];
