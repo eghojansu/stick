@@ -1230,4 +1230,29 @@ class AppTest extends TestCase
         unset($this->app->foo);
         $this->assertFalse(isset($this->app->foo));
     }
+
+    public function testConfig()
+    {
+        $this->app->config(FIXTURE . 'config.ini');
+
+        $this->assertEquals('bar', $this->app['foo']);
+        $this->assertEquals(['baz1','baz2'], $this->app['baz']);
+        $this->assertEquals(['one'=>1,'two'=>TRUE,'three'=>FALSE,'four'=>NULL], $this->app['qux']);
+
+        $this->assertEquals('bar', $this->app['section.foo']);
+        $this->assertEquals('baz', $this->app['sec.foo.bar']);
+
+        $this->assertEquals('foo', $this->app['glob']);
+
+        $routes = $this->app['ROUTES'];
+
+        $this->assertTrue(isset($routes['/route']));
+        $this->assertTrue(isset($routes['/map']));
+        $this->assertTrue(isset($routes['/redirect']));
+        $this->assertTrue(isset($routes['/resource']));
+
+        // mock registered route
+        $this->app->mock('GET /route');
+        $this->assertEquals('foo', $this->app['custom']);
+    }
 }

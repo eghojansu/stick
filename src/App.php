@@ -314,6 +314,89 @@ final class App implements \ArrayAccess
     }
 
     /**
+     * Configure framework according to .ini-style file settings;
+     * If optional 2nd arg is provided, template strings are interpreted
+     *
+     * @param  string|array  $sources
+     *
+     * @return App
+     */
+    public function config($sources): App
+    {
+        foreach (reqarr($sources) as $file) {
+            preg_match_all(
+                '/(?<=^|\n)(?:'.
+                    '\[(?<section>.+?)\]|'.
+                    '(?<lval>[^\h\r\n;].*?)\h*=\h*'.
+                    '(?<rval>(?:\\\\\h*\r?\n|.+?)*)'.
+                ')(?=\r?\n|$)/',
+                read($file),
+                $matches,
+                PREG_SET_ORDER
+            );
+
+            if ($matches) {
+                $sec = 'globals';
+                $cmd = [];
+                foreach ($matches as $match) {
+                    if ($match['section']) {
+                        $sec = $match['section'];
+                        if (preg_match(
+                            '/^(?!(?:global|config|route|map|redirect|resource)s\b)'.
+                            '((?:\.?\w)+)/i', $sec, $msec) &&
+                            !$this->exists($msec[0])) {
+                            $this->set($msec[0], NULL);
+                        }
+
+                        preg_match('/^(config|route|map|redirect|resource)s\b/i', $sec, $cmd);
+
+                        continue;
+                    }
+
+                    if (!empty($cmd)) {
+                        call_user_func_array(
+                            [$this, $cmd[1]],
+                            array_merge([$match['lval']], str_getcsv(cast($match['rval'])))
+                        );
+                    } else {
+                        $rval = preg_replace('/\\\\\h*(\r?\n)/', '\1', $match['rval']);
+
+                        $args = array_map(
+                            function($val) {
+                                $val = cast($val);
+                                return is_string($val)
+                                    ? preg_replace('/\\\\"/','"',$val)
+                                    : $val;
+                            },
+                            // Mark quoted strings with 0x00 whitespace
+                            str_getcsv(preg_replace(
+                                '/(?<!\\\\)(")(.*?)\1/',
+                                "\\1\x00\\2\\1",trim($rval)))
+                        );
+
+                        preg_match('/^(?<section>[^:]+)/', $sec, $parts);
+
+                        $custom = 'globals' !== strtolower($parts['section']);
+
+                        call_user_func_array(
+                            [$this, 'set'],
+                            array_merge(
+                                [
+                                    ($custom?($parts['section'].'.'):'').
+                                    $match['lval']
+                                ],
+                                $args
+                            )
+                        );
+                    }
+                }
+            }
+        }
+
+        return $this;
+    }
+
+    /**
      * Set HTTP status header
      *
      * @param  int $code
@@ -1430,7 +1513,7 @@ ERR
     public function &ref(string $key, bool $add = TRUE)
     {
         $NULL   = NULL;
-        $parts  = explode('.', $key);
+        $parts  = $this->cut($key);
 
         $this->startSession('SESSION' === $parts[0]);
 
@@ -2383,6 +2466,18 @@ ERR
         }
 
         return [];
+    }
+
+    /**
+     * Return the parts of specified hive key
+     *
+     * @param  string $key
+     *
+     * @return array
+     */
+    protected function cut($key): array
+    {
+        return preg_split('/\[\h*[\'"]?(.+?)[\'"]?\h*\]|\./', $key, 0, PREG_SPLIT_NO_EMPTY|PREG_SPLIT_DELIM_CAPTURE);
     }
 
     /**
