@@ -357,7 +357,7 @@ final class App implements \ArrayAccess
                     if (!empty($cmd)) {
                         call_user_func_array(
                             [$this, $cmd[1]],
-                            array_merge([$match['lval']], str_getcsv(cast($match['rval'])))
+                            casts(array_merge([$match['lval']], str_getcsv(cast($match['rval']))))
                         );
                     } else {
                         $rval = preg_replace('/\\\\\h*(\r?\n)/', '\1', $match['rval']);

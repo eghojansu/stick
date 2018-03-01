@@ -454,3 +454,21 @@ function cast($val)
 
     return $val;
 }
+
+/**
+ * Cast every member of array
+ *
+ * @param  array  $args
+ *
+ * @return array
+ */
+function casts(array $args): array
+{
+    $casts = [];
+
+    foreach ($args as $key => $value) {
+        $casts[$key] = cast($value);
+    }
+
+    return $casts;
+}
