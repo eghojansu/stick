@@ -25,7 +25,7 @@ class Audit
     /** @var array */
     protected $rules = [];
 
-    // TODO: Symfony validation message
+    // TODO: validation message
     /** @var array Rule message */
     protected $messages = [];
 
@@ -39,7 +39,7 @@ class Audit
     protected $errors = [];
 
     /** @var bool */
-    protected $processed = FALSE;
+    protected $processed = false;
 
     /**
      * Class constructor
@@ -65,11 +65,11 @@ class Audit
      */
     public function required($val): bool
     {
-        return isset($val) && '' !== $val;
+        return isset($val) && $val !== '';
     }
 
     /**
-     * Return TRUE if string is a valid URL
+     * Return true if string is a valid URL
      *
      * @param  string $str
      *
@@ -81,7 +81,7 @@ class Audit
     }
 
     /**
-     * Return TRUE if string is a valid e-mail address;
+     * Return true if string is a valid e-mail address;
      * Check DNS MX records if specified
      *
      * @param  string  $str
@@ -89,15 +89,18 @@ class Audit
      *
      * @return bool
      */
-    public function email($str, $mx = TRUE): bool
+    public function email($str, $mx = true): bool
     {
         $hosts = [];
 
-        return is_string(filter_var($str, FILTER_VALIDATE_EMAIL)) && (!$mx || getmxrr(substr($str, strrpos($str, '@')+1), $hosts));
+        return (
+            is_string(filter_var($str, FILTER_VALIDATE_EMAIL))
+            && (!$mx || getmxrr(substr($str, strrpos($str, '@')+1), $hosts))
+        );
     }
 
     /**
-     * Return TRUE if string is a valid IPV4 address
+     * Return true if string is a valid IPV4 address
      *
      * @param  string $addr
      *
@@ -109,7 +112,7 @@ class Audit
     }
 
     /**
-     * Return TRUE if string is a valid IPV6 address
+     * Return true if string is a valid IPV6 address
      *
      * @param  string $addr
      *
@@ -121,7 +124,7 @@ class Audit
     }
 
     /**
-     * Return TRUE if IP address is within private range
+     * Return true if IP address is within private range
      *
      * @param  string $addr
      *
@@ -129,11 +132,14 @@ class Audit
      */
     public function isPrivate($addr): bool
     {
-        return !(bool) filter_var($addr, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4|FILTER_FLAG_IPV6|FILTER_FLAG_NO_PRIV_RANGE);
+        return !(bool) filter_var(
+            $addr,
+            FILTER_VALIDATE_IP, FILTER_FLAG_IPV4|FILTER_FLAG_IPV6|FILTER_FLAG_NO_PRIV_RANGE
+        );
     }
 
     /**
-     * Return TRUE if IP address is within reserved range
+     * Return true if IP address is within reserved range
      *
      * @param  string $addr
      *
@@ -141,11 +147,14 @@ class Audit
      */
     public function isReserved($addr): bool
     {
-        return !(bool) filter_var($addr, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4|FILTER_FLAG_IPV6|FILTER_FLAG_NO_RES_RANGE);
+        return !(bool) filter_var(
+            $addr,
+            FILTER_VALIDATE_IP, FILTER_FLAG_IPV4|FILTER_FLAG_IPV6|FILTER_FLAG_NO_RES_RANGE
+        );
     }
 
     /**
-     * Return TRUE if IP address is neither private nor reserved
+     * Return true if IP address is neither private nor reserved
      *
      * @param  string $addr
      *
@@ -153,11 +162,14 @@ class Audit
      */
     public function isPublic($addr): bool
     {
-        return (bool) filter_var($addr, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4|FILTER_FLAG_IPV6|FILTER_FLAG_NO_PRIV_RANGE|FILTER_FLAG_NO_RES_RANGE);
+        return (bool) filter_var(
+            $addr,
+            FILTER_VALIDATE_IP, FILTER_FLAG_IPV4|FILTER_FLAG_IPV6|FILTER_FLAG_NO_PRIV_RANGE|FILTER_FLAG_NO_RES_RANGE
+        );
     }
 
     /**
-     * Return TRUE if user agent is a desktop browser
+     * Return true if user agent is a desktop browser
      *
      * @param  string $agent
      *
@@ -165,11 +177,14 @@ class Audit
      */
     public function isDesktop($agent): bool
     {
-        return (bool) preg_match('/(' . self::UA_Desktop . ')/i', $agent) && !$this->ismobile($agent);
+        return (
+            (bool) preg_match('/(' . self::UA_Desktop . ')/i', $agent)
+            && !$this->ismobile($agent)
+        );
     }
 
     /**
-     * Return TRUE if user agent is a mobile device
+     * Return true if user agent is a mobile device
      *
      * @param  string $agent
      *
@@ -181,7 +196,7 @@ class Audit
     }
 
     /**
-     * Return TRUE if user agent is a Web bot
+     * Return true if user agent is a Web bot
      *
      * @param  string $agent
      *
@@ -193,7 +208,7 @@ class Audit
     }
 
     /**
-     * Return TRUE if specified ID has a valid (Luhn) Mod-10 check digit
+     * Return true if specified ID has a valid (Luhn) Mod-10 check digit
      *
      * @param  string $id
      *
@@ -202,7 +217,7 @@ class Audit
     public function mod10($id): bool
     {
         if (!ctype_digit($id)) {
-            return FALSE;
+            return false;
         }
 
         $id  = strrev($id);
@@ -219,7 +234,7 @@ class Audit
      *
      * @param  string $id
      *
-     * @return string|FALSE
+     * @return string|false
      */
     public function card($id)
     {
@@ -251,7 +266,7 @@ class Audit
             }
         }
 
-        return FALSE;
+        return false;
     }
 
     /**
@@ -425,40 +440,43 @@ class Audit
      *
      * @return Audit
      */
-    public function validate(array $data = NULL, array $rules = NULL): Audit
+    public function validate(array $data = null, array $rules = null): Audit
     {
-        $this->errors    = [];
-        $this->processed = FALSE;
+        $this->errors = [];
+        $this->processed = false;
 
-        $use    = $data ?? $this->data;
-        $result = [];
+        $use = $data ?? $this->data;
+        $useRules = $rules ?? $this->rules;
+        $validated = [];
 
-        foreach ($rules ?? $this->rules as $id => $def) {
-            foreach (explode('|', $def) as $rule) {
-                $a = [
-                    'id'        => $id,
-                    'original'  => $use,
+        foreach ($useRules as $id => $def) {
+            $xrules = explode('|', $def);
+
+            foreach ($xrules as $rule) {
+                $audit = [
+                    'id' => $id,
+                    'original' => $use,
                     'validated' => $result,
                 ];
-                $v = $result[$id] ?? $use[$id] ?? NULL;
-                $r = $this->execute($rule, $v, $a, $prule, $args);
+                $value = $validated[$id] ?? $use[$id] ?? null;
+                $result = $this->execute($rule, $value, $audit, $prule, $args);
 
-                if (FALSE === $r) {
+                if ($result === false) {
                     // validation fail
                     $this->addError($prule, $id, $args);
-                    unset($result[$id]);
+                    unset($validated[$id]);
 
                     break;
-                } elseif (TRUE === $r) {
-                    $result[$id] = $v;
+                } elseif ($result === true) {
+                    $validated[$id] = $value;
                 } else {
-                    $result[$id] = $r;
+                    $validated[$id] = $result;
                 }
             }
         }
 
-        $this->validated = $result;
-        $this->processed = TRUE;
+        $this->validated = $validated;
+        $this->processed = true;
 
         return $this;
     }
@@ -491,29 +509,34 @@ class Audit
      * @param  string     $rule
      * @param  mixed     $val
      * @param  array      $audit
-     * @param  array|NULL &$args
+     * @param  array|null &$args
      *
      * @return mixed
      */
-    protected function execute(string $rule, $val, array $audit, string &$prule = NULL, array &$args = NULL)
-    {
+    protected function execute(
+        string $rule,
+        $val,
+        array $audit,
+        string &$prule = null,
+        array &$args = null
+    ) {
         if (!preg_match('/^(\w+)(?:\[([^\]]+)\])?$/', $rule, $match)) {
             throw new \LogicException("Invalid rule declaration: {$rule}");
         }
 
         $prule = $match[1];
-        $args  = isset($match[2]) ? split($match[2]) : [];
-        $cust  = TRUE;
-        $func  = TRUE;
+        $args = isset($match[2]) ? split($match[2]) : [];
+        $cust = true;
+        $func = true;
 
         if (isset($this->customs[$prule])) {
             $ref = new \ReflectionFunction($this->customs[$prule]);
         } elseif (method_exists($this, $prule)) {
             $ref = new \ReflectionMethod($this, $prule);
-            $func = FALSE;
+            $func = false;
         } elseif (is_callable($prule)) {
             $ref = new \ReflectionFunction($prule);
-            $cust = FALSE;
+            $cust = false;
         } else {
             throw new \LogicException("Rule not found: {$prule}");
         }
@@ -530,18 +553,22 @@ class Audit
         $reqCount = max(1, $ref->getNumberOfRequiredParameters());
 
         if ($argCount < $reqCount) {
-            throw new \ArgumentCountError('Validator ' . $prule . ' expect at least ' . $reqCount . ' parameters, ' . $argCount . ' given');
+            $error = 'Validator ' . $prule . ' expect at least ' .
+                     $reqCount . ' parameters, ' . $argCount . ' given';
+            throw new \ArgumentCountError($error);
         }
 
         $audit_key = -1;
 
-        foreach ($cust ? $ref->getParameters() : [] as $key => $param) {
-            if ('_audit' === $param->name) {
-                // special parameter name
-                $args[$key] = $audit;
-                $audit_key = $key;
-            } elseif (!isset($args[$key]) && $param->isDefaultValueAvailable()) {
-                $args[$key] = $param->getDefaultValue();
+        if ($cust) {
+            foreach ($ref->getParameters() as $key => $param) {
+                if ($param->name === '_audit') {
+                    // special parameter name
+                    $args[$key] = $audit;
+                    $audit_key = $key;
+                } elseif (!isset($args[$key]) && $param->isDefaultValueAvailable()) {
+                    $args[$key] = $param->getDefaultValue();
+                }
             }
         }
 

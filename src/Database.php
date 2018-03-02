@@ -158,7 +158,14 @@ class Database
      */
     public function getMap(string $id): array
     {
-        return $this->maps[$id] ?? ['class'=>NULL,'transformer'=>NULL,'select'=>[],'safe'=>[]];
+        static $default = [
+            'class' => null,
+            'transformer' => null,
+            'select' => null,
+            'safe' => []
+        ];
+
+        return ($this->maps[$id] ?? []) + $default + ['table' => $id];
     }
 
     /**
@@ -171,26 +178,15 @@ class Database
      */
     public function setMap(string $id, array $rule): Database
     {
-        $rule += [
-            'class'       => NULL,
-            'transformer' => NULL,
-            'select'      => [],
-            'safe'        => [],
-        ];
-
-        if ($rule['class'] && !class_exists($rule['class'])) {
+        if (isset($rule['class']) && !class_exists($rule['class'])) {
             throw new \LogicException("Class does not exists: $rule[class]");
         }
 
-        if ($rule['transformer'] && !is_callable($rule['transformer'])) {
+        if (isset($rule['transformer']) && !is_callable($rule['transformer'])) {
             throw new \LogicException('Transformer is not callable');
         }
 
-        if (!is_array($rule['select'])) {
-            throw new \InvalidArgumentException('Select option is not array');
-        }
-
-        if (!is_array($rule['safe'])) {
+        if (isset($rule['safe']) && !is_array($rule['safe'])) {
             throw new \InvalidArgumentException('Safe option is not array');
         }
 
@@ -211,8 +207,8 @@ class Database
 
     /**
      * Set options, available options (and its default value):
-     *     debug: bool         = FALSE (enable debug mode)
-     *     log: bool           = FALSE (log query)
+     *     debug: bool         = false (enable debug mode)
+     *     log: bool           = false (log query)
      *     driver: string      = unknown (database driver name, eg: mysql, sqlite)
      *     dsn: string         = void (valid dsn)
      *     db_server: string   = void|127.0.0.1 (on mysql)
@@ -235,38 +231,46 @@ class Database
      */
     public function setOptions(array $options): Database
     {
-        $options += ['debug' => FALSE, 'log' => FALSE, 'driver' => 'unknown'];
+        $options += ['debug' => false, 'log' => false, 'driver' => 'unknown'];
 
         if (empty($options['dsn'])) {
             $driver = strtolower($options['driver']);
 
-            if ('mysql' === $driver) {
+            if ($driver === 'mysql') {
                 $options += [
-                    'db_server'   => '127.0.0.1',
-                    'db_port'     => 3306,
-                    'db_password' => NULL,
+                    'db_server' => '127.0.0.1',
+                    'db_port' => 3306,
+                    'db_password' => null,
                 ];
 
-                if (empty($options['db_server']) || empty($options['db_user']) || empty($options['db_name'])) {
+                if (
+                    empty($options['db_server'])
+                    || empty($options['db_user'])
+                    || empty($options['db_name'])
+                ) {
                     throw new \LogicException('Invalid mysql driver configuration');
                 }
 
-                $options['dsn'] = "mysql:host=$options[db_server];port=$options[db_port];dbname=$options[db_name]";
-            } elseif ('sqlite' === $driver) {
+                $options['dsn'] = 'mysql:host=' . $options['db_server'] .
+                                  ';port=' . $options['db_port'] .
+                                  ';dbname=' . $options['db_name'];
+            } elseif ($driver === 'sqlite') {
                 if (empty($options['location'])) {
                     throw new \LogicException('Invalid sqlite driver configuration');
                 }
 
                 // location can be full filepath or :memory:
-                $options['dsn'] = "sqlite:$options[location]";
+                $options['dsn'] = 'sqlite:' . $options['location'];
             } else {
-                throw new \LogicException("Currently, there is no logic for {$driver} DSN creation, please provide a valid one");
+                $error = 'Currently, there is no logic for ' . $driver .
+                         ' DSN creation, please provide a valid one';
+                throw new \LogicException($error);
             }
         }
 
         $this->options = $options;
-        $this->pdo     = NULL;
-        $this->info    = [];
+        $this->pdo = null;
+        $this->info = [];
         $this->resetQuery();
 
         return $this;
@@ -289,7 +293,11 @@ class Database
         $options = $this->options;
 
         try {
-            $pdo = new \PDO($options['dsn'], $options['db_user'] ?? NULL, $options['db_password'] ?? NULL);
+            $pdo = new \PDO(
+                $options['dsn'],
+                $options['db_user'] ?? null,
+                $options['db_password'] ?? null
+            );
 
             foreach ($options['attributes'] ?? [] as $attribute => $value) {
                 $pdo->setAttribute($attribute, $value);
@@ -369,7 +377,7 @@ class Database
             $raw  = is_string($value) && startswith('```', $value);
             $expr = $raw ? substr($value, 3) : $value;
             // clear column from comments format
-            $ccol = (FALSE === ($pos = strpos($key, '#'))) ? $key : substr($key, 0, $pos);
+            $ccol = (false === ($pos = strpos($key, '#'))) ? $key : substr($key, 0, $pos);
             $col  = trim($ccol, $mapkeys);
             $a1   = substr($ccol, 0, 1);
             $a2   = substr($ccol, 0, 2);
@@ -388,23 +396,24 @@ class Database
             if ($raw) {
                 $str .= ' ' . $expr;
             } else {
-                if ('!><' === $b3 || '><' === $b2) {
+                if ($b3 === '!><' || $b2 === '><') {
                     if (!is_array($expr)) {
-                        $type = gettype($expr);
+                        $error = 'BETWEEN operator needs array operand, ' .
+                                 gettype($expr) . ' given';
 
-                        throw new \LogicException("BETWEEN operator needs array operand, {$type} given");
+                        throw new \LogicException($error);
                     }
 
-                    $str               .= " :{$col}1 AND :{$col}2";
+                    $str .= " :{$col}1 AND :{$col}2";
                     $result[":{$col}1"] = array_shift($expr);
                     $result[":{$col}2"] = array_shift($expr);
-                } elseif ('![]' === $b3 || '[]' === $b2) {
+                } elseif ($b3 === '![]' || $b2 === '[]') {
                     $str .= ' (';
-                    $i    = 1;
+                    $i = 1;
 
                     foreach ((array) $expr as $val) {
-                        $k          = ":{$col}{$i}";
-                        $str       .= "$k, ";
+                        $k = ":{$col}{$i}";
+                        $str .= "$k, ";
                         $result[$k] = $val;
                         $i++;
                     }
@@ -414,12 +423,12 @@ class Database
                     $cfilter = $this->filter((array) $expr);
 
                     if ($cfilter) {
-                        $str   .= ' (' . array_shift($cfilter) . ')';
+                        $str .= ' (' . array_shift($cfilter) . ')';
                         $result = array_merge($result, $cfilter);
                     }
                 } elseif ($col) {
-                    $k          = ":{$col}";
-                    $str       .= " $k";
+                    $k = ":{$col}";
+                    $str .= " $k";
                     $result[$k] = $expr;
                 } else {
                     $str .= ' ' . $expr;
@@ -444,9 +453,9 @@ class Database
     public function tableExists(string $table): bool
     {
         try {
-            $this->findOne($table, NULL, ['column'=>'1']);
+            $this->findOne($table, null, ['column'=>'1']);
         } catch (\Throwable $e) {
-            return FALSE;
+            return false;
         }
 
         return $this->querySuccess();
@@ -464,7 +473,7 @@ class Database
      *
      * @throws Throwable If error in debug mode
      */
-    public function count(string $table, $filter = NULL, array $options = []): int
+    public function count(string $table, $filter = null, array $options = []): int
     {
         if ($this->find($table, $filter, ['column' => 'count(*) as `cc`'] + $options)->querySuccess()) {
             return (int) $this->fetchColumn();
@@ -486,14 +495,23 @@ class Database
      *
      * @throws Throwable If error in debug mode
      */
-    public function paginate(string $table, int $page = 1, int $limit = 10, $filter = NULL, array $options = []): array
-    {
-        $total  = $this->count($table, $filter, $options);
-        $pages  = (int) ceil($total / $limit);
-        $upage  = max(1, $page);
+    public function paginate(
+        string $table,
+        int $page = 1,
+        int $limit = 10,
+        $filter = null,
+        array $options = []
+    ): array {
+        $total = $this->count($table, $filter, $options);
+        $pages = (int) ceil($total / $limit);
+        $upage = max(1, $page);
         $offset = ($upage - 1) * $limit;
 
-        if ($page > 0 && $total > 0 && $this->find($table, $filter, compact('limit','offset') + $options)->querySuccess()) {
+        if (
+            $page > 0
+            && $total > 0
+            && $this->find($table, $filter, compact('limit','offset') + $options)->querySuccess()
+        ) {
             $subset = $this->fetchAll();
             $start  = $offset + 1;
             $end    = $offset + count($subset);
@@ -518,7 +536,7 @@ class Database
      *
      * @throws Throwable If error in debug mode
      */
-    public function findOne(string $table, $filter = NULL, array $options = []): Database
+    public function findOne(string $table, $filter = null, array $options = []): Database
     {
         return $this->find($table, $filter, ['limit' => 1] + $options);
     }
@@ -526,9 +544,9 @@ class Database
     /**
      * Run select query, available options (and its default value):
      *     column = '*'
-     *     group  = NULL
-     *     having = NULL
-     *     order  = NULL
+     *     group  = null
+     *     having = null
+     *     order  = null
      *     limit  = 0
      *     offset = 0
      *
@@ -540,25 +558,27 @@ class Database
      *
      * @throws Throwable If error in debug mode
      */
-    public function find(string $table, $filter = NULL, array $options = []): Database
+    public function find(string $table, $filter = null, array $options = []): Database
     {
         $options += [
             'column' => '*',
-            'group'  => NULL,
-            'having' => NULL,
-            'order'  => NULL,
+            'group'  => null,
+            'having' => null,
+            'order'  => null,
             'limit'  => 0,
             'offset' => 0,
         ];
 
-        $rule   = $this->getMap($table);
-        $qtable = $this->quotekey($table);
-        $column = $rule['select'] ? implode(',', array_map([$this, 'quotekey'], $rule['select'])) : $options['column'];
-        $sql    = "SELECT $column FROM $qtable";
+        $rule = $this->getMap($table);
+        $qtable = $this->quotekey($rule['table']);
+        $column = $rule['select'] ?? $options['column'];
+
+        $sql = "SELECT $column FROM $qtable";
         $params = [];
 
-        if ($f = $this->filter($filter, $sql)) {
-            $sql   .= ' WHERE ' . array_shift($f);
+        $f = $this->filter($filter, $sql);
+        if ($f) {
+            $sql .= ' WHERE ' . array_shift($f);
             $params = array_merge($params, $f);
         }
 
@@ -566,8 +586,9 @@ class Database
             $sql .= ' GROUP BY ' . $options['group'];
         }
 
-        if ($f = $this->filter($options['having'], $sql)) {
-            $sql   .= ' HAVING ' . array_shift($f);
+        $f = $this->filter($options['having'], $sql);
+        if ($f) {
+            $sql .= ' HAVING ' . array_shift($f);
             $params = array_merge($params, $f);
         }
 
@@ -604,10 +625,10 @@ class Database
             throw new \LogicException('No data provided to insert');
         }
 
-        $len     = -1;
+        $len = -1;
         $columns = '';
-        $rule    = $this->getMap($table);
-        $params  = [];
+        $rule = $this->getMap($table);
+        $params = [];
 
         foreach ($record as $key => $value) {
             if ($rule['safe'] && !in_array($key, $rule['safe'])) {
@@ -621,7 +642,7 @@ class Database
 
         $columns = rtrim($columns, ', ');
 
-        $sql = 'INSERT INTO '.$this->quotekey($table).
+        $sql = 'INSERT INTO '.$this->quotekey($rule['table']).
             ' (' . $columns . ')' .
             ' VALUES' .
             ' (' . str_repeat('?, ', $len) . '?)';
@@ -636,11 +657,11 @@ class Database
      *
      * @param  string       $table
      * @param  array        $records
-     * @param  bool|boolean $trans
+     * @param  bool $trans
      *
      * @return array of inserted ids
      */
-    public function insertBatch(string $table, array $records, bool $trans = TRUE): array
+    public function insertBatch(string $table, array $records, bool $trans = true): array
     {
         // first record as template
         $template = reset($records);
@@ -649,10 +670,10 @@ class Database
             throw new \LogicException('No data provided to insert (batch)');
         }
 
-        $len     = 0;
+        $len = 0;
         $columns = '';
-        $rule    = $this->getMap($table);
-        $safe    = array_flip($rule['safe']);
+        $rule = $this->getMap($table);
+        $safe = array_flip($rule['safe']);
 
         foreach ($template as $key => $value) {
             if (!$safe || isset($safe[$key])) {
@@ -663,7 +684,7 @@ class Database
 
         $columns = rtrim($columns, ', ');
 
-        $sql = 'INSERT INTO '.$this->quotekey($table).
+        $sql = 'INSERT INTO '.$this->quotekey($rule['table']).
             ' (' . $columns . ')' .
             ' VALUES' .
             ' (' . str_repeat('?, ', $len - 1) . '?)';
@@ -722,10 +743,10 @@ class Database
             throw new \LogicException('No data provided to update');
         }
 
-        $set    = '';
+        $set = '';
         $params = [];
-        $rule    = $this->getMap($table);
-        $safe    = array_flip($rule['safe']);
+        $rule = $this->getMap($table);
+        $safe = array_flip($rule['safe']);
 
         foreach ($record as $key => $value) {
             if (is_array($value)) {
@@ -736,16 +757,17 @@ class Database
                     continue;
                 }
 
-                $k    = ":u_{$key}";
+                $k = ":u_{$key}";
                 $set .= $this->quotekey($key) . " = $k, ";
                 $params[$k] = $value;
             }
         }
 
         $set = rtrim($set, ', ');
-        $sql = 'UPDATE ' . $this->quotekey($table) . ' SET ' . $set;
+        $sql = 'UPDATE ' . $this->quotekey($rule['table']) . ' SET ' . $set;
 
-        if ($f = $this->filter($filter)) {
+        $f = $this->filter($filter);
+        if ($f) {
             $sql   .= ' WHERE ' . array_shift($f);
             $params = array_merge($params, $f);
         }
@@ -761,15 +783,15 @@ class Database
      * @param  string       $table
      * @param  array        $template Array containing columns and filter key
      * @param  array        $records  Multidimensional array of records with set and filter key
-     * @param  bool|boolean $trans
+     * @param  bool $trans
      *
      * @return bool
      *
      * @throws Throwable If error in debug mode
      */
-    public function updateBatch(string $table, array $template, array $records, bool $trans = TRUE): bool
+    public function updateBatch(string $table, array $template, array $records, bool $trans = true): bool
     {
-        $template += ['set'=>[],'filter'=>NULL];
+        $template += ['set'=>[],'filter'=>null];
 
         if (!$template || !$template['set'] || !$records) {
             throw new \LogicException('Query template error or No data provided to update (batch)');
@@ -796,16 +818,17 @@ class Database
         }
 
         $set = rtrim($set, ', ');
-        $sql = 'UPDATE ' . $this->quotekey($table) . ' SET ' . $set;
+        $sql = 'UPDATE ' . $this->quotekey($rule['table']) . ' SET ' . $set;
 
-        if ($f = $this->filter($template['filter'])) {
-            $sql   .= ' WHERE ' . array_shift($f);
+        $f = $this->filter($template['filter']);
+        if ($f) {
+            $sql .= ' WHERE ' . array_shift($f);
             $params = $f;
-            $len   += count($f);
+            $len += count($f);
         }
 
         if (!$this->prepareQuery($sql, $records, $table)->query) {
-            return FALSE;
+            return false;
         }
 
         $pdo = $this->pdo();
@@ -818,7 +841,11 @@ class Database
             $rdata = isset($record['data']) ? (array) $record['data'] : [];
             $rfilt = isset($record['filter']) ? (array) $record['filter'] : [];
 
-            $data = array_merge($params, quotekey($safe ? array_intersect_key($rdata, $safe) : $rdata, [':u_']), quotekey($rfilt, [':']));
+            $data = array_merge(
+                $params,
+                quotekey($safe ? array_intersect_key($rdata, $safe) : $rdata, [':u_']),
+                quotekey($rfilt, [':'])
+            );
 
             if ($len !== count($data)) {
                 throw new \LogicException("Invalid record #{$key}");
@@ -853,11 +880,13 @@ class Database
      */
     public function delete(string $table, $filter): Database
     {
-        $sql    = 'DELETE FROM ' . $this->quotekey($table);
+        $rule = $this->getMap($table);
+        $sql = 'DELETE FROM ' . $this->quotekey($rule['table']);
         $params = [];
 
-        if ($f = $this->filter($filter)) {
-            $sql   .= ' WHERE ' . array_shift($f);
+        $f = $f = $this->filter($filter);
+        if ($f) {
+            $sql .= ' WHERE ' . array_shift($f);
             $params = array_merge($params, $f);
         }
 
@@ -869,7 +898,7 @@ class Database
     /**
      * Get last query
      *
-     * @return PDOStatement|NULL
+     * @return PDOStatement|null
      */
     public function getQuery(): ?\PDOStatement
     {
@@ -920,9 +949,9 @@ class Database
      * @throws RuntimeException
      * @throws LogicException
      */
-    public function lastInsertId(string $name = NULL): string
+    public function lastInsertId(string $name = null): string
     {
-        return $this->pdo()->lastInsertId(NULL);
+        return $this->pdo()->lastInsertId(null);
     }
 
     /**
@@ -930,15 +959,18 @@ class Database
      *
      * @throws LogicException If query was not executed yet
      */
-    public function fetch(int $fetch_style = NULL, int $cursor_orientation = NULL, int $cursor_offset = NULL)
-    {
+    public function fetch(
+        int $fetchStyle = null,
+        int $cursorOrientation = null,
+        int $cursorOffset = null
+    ) {
         $this->checkQuery();
 
         $defaults = $this->options['defaults'] ?? [];
-        $args     = [
-            $fetch_style        ?? $defaults['fetch_style']        ?? \PDO::FETCH_ASSOC,
-            $cursor_orientation ?? $defaults['cursor_orientation'] ?? \PDO::FETCH_ORI_NEXT,
-            $cursor_offset      ?? $defaults['cursor_offset']      ?? 0,
+        $args = [
+            $fetchStyle ?? $defaults['fetch_style'] ?? \PDO::FETCH_ASSOC,
+            $cursorOrientation ?? $defaults['cursor_orientation'] ?? \PDO::FETCH_ORI_NEXT,
+            $cursorOffset ?? $defaults['cursor_offset'] ?? 0,
         ];
 
         return $this->query->fetch(...$args);
@@ -949,24 +981,27 @@ class Database
      *
      * @throws LogicException If query was not executed yet
      */
-    public function fetchAll(int $fetch_style = NULL, $fetch_argument = NULL, array $ctor_args = NULL): array
-    {
+    public function fetchAll(
+        int $fetchStyle = null,
+        $fetchArgument = null,
+        array $ctorArgs = null
+    ): array {
         $this->checkQuery();
 
         $defaults = $this->options['defaults'] ?? [];
-        $args     = [
-            $fetch_style    ?? $defaults['fetch_style']    ?? \PDO::FETCH_ASSOC,
-            $fetch_argument ?? $defaults['fetch_argument'] ?? NULL,
+        $args = [
+            $fetchStyle ?? $defaults['fetch_style'] ?? \PDO::FETCH_ASSOC,
+            $fetchArgument ?? $defaults['fetch_argument'] ?? null,
         ];
 
-        if (NULL === $args[1] && $arg = $this->buildMapArg($args[0])) {
+        if ($args[1] === null && $arg = $this->buildMapArg($args[0])) {
             $args[1] = $arg;
         }
 
-        if (NULL === $args[1]) {
+        if ($args[1] === null) {
             unset($args[1]);
         } else {
-            $args[] = (array) $ctor_args;
+            $args[] = (array) $ctorArgs;
         }
 
         return $this->query->fetchAll(...$args);
@@ -988,7 +1023,7 @@ class Database
      * Execute callback in transaction
      *
      * @param  callable $callback Callable accept Database instance,
-     *                            returning FALSE will rollback trans
+     *                            returning false will rollback trans
      *
      * @return bool
      */
@@ -996,15 +1031,15 @@ class Database
     {
         $this->begin();
 
-        if (FALSE !== $callback($this)) {
+        if ($callback($this) !== false) {
             $this->commit();
 
-            return TRUE;
+            return true;
         }
 
         $this->rollBack();
 
-        return FALSE;
+        return false;
     }
 
     /**
@@ -1013,7 +1048,7 @@ class Database
     public function begin(): bool
     {
         $out = $this->pdo()->beginTransaction();
-        $this->info['trans'] = TRUE;
+        $this->info['trans'] = true;
 
         return $out;
     }
@@ -1024,7 +1059,7 @@ class Database
     public function commit(): bool
     {
         $out = $this->pdo()->commit();
-        $this->info['trans'] = FALSE;
+        $this->info['trans'] = false;
 
         return $out;
     }
@@ -1035,7 +1070,7 @@ class Database
     public function rollBack(): bool
     {
         $out = $this->pdo()->rollBack();
-        $this->info['trans'] = FALSE;
+        $this->info['trans'] = false;
 
         return $out;
     }
@@ -1047,7 +1082,7 @@ class Database
      */
     public function trans(): bool
     {
-        return $this->info['trans'] ?? FALSE;
+        return $this->info['trans'] ?? false;
     }
 
     /**
@@ -1059,7 +1094,7 @@ class Database
      *
      * @return string
      */
-    public function quotekey(string $key, bool $split = TRUE, string $custom = NULL): ?string
+    public function quotekey(string $key, bool $split = true, string $custom = null): ?string
     {
         static $quotes = [
             '``' => ['sqlite', 'mysql'],
@@ -1104,11 +1139,11 @@ class Database
      * Log query
      *
      * @param  string $sql
-     * @param  array|NULL  $params
+     * @param  array|null  $params
      *
      * @return void
      */
-    protected function log(string $sql, array $params = NULL): void
+    protected function log(string $sql, array $params = null): void
     {
         if ($this->options['log']) {
             $this->logs[] = [$sql, $params];
@@ -1140,13 +1175,13 @@ class Database
      */
     protected function runQuery(array $params = []): bool
     {
-        $result = FALSE;
+        $result = false;
 
         if ($this->query) {
             try {
                 $result = $this->query->execute($params);
             } catch (\Throwable $e) {
-                $result = FALSE;
+                $result = false;
                 $this->consumeException($e);
             }
         }
@@ -1198,7 +1233,7 @@ class Database
             throw $e;
         }
 
-        return TRUE;
+        return true;
     }
 
     /**
@@ -1208,10 +1243,10 @@ class Database
      */
     protected function resetQuery(): void
     {
-        $this->query         = NULL;
-        $this->queryResult   = FALSE;
-        $this->info['error'] = NULL;
-        $this->info['map']   = NULL;
+        $this->query = null;
+        $this->queryResult   = false;
+        $this->info['error'] = null;
+        $this->info['map']   = null;
     }
 
     /**
@@ -1240,7 +1275,7 @@ class Database
         } elseif ($fetch_style === \PDO::FETCH_FUNC) {
             return $rule['transformer'];
         } else {
-            return NULL;
+            return null;
         }
     }
 
@@ -1255,8 +1290,8 @@ class Database
      */
     protected function callFind(string $method, string $param, array $args): Database
     {
-        $x      = explode('By', $param);
-        $table  = snakecase(array_shift($x));
+        $x = explode('By', $param);
+        $table = snakecase(array_shift($x));
         $column = snakecase(implode('', $x));
 
         if ($column && $args) {
@@ -1295,11 +1330,11 @@ class Database
         static $map = [
             'insertBatch' => 11,
             'updateBatch' => 11,
-            'paginate'    => 8,
-            'insert'      => 6,
-            'update'      => 6,
-            'delete'      => 6,
-            'count'       => 5,
+            'paginate' => 8,
+            'insert' => 6,
+            'update' => 6,
+            'delete' => 6,
+            'count' => 5,
         ];
 
         foreach ($map as $m => $cut) {
@@ -1311,10 +1346,12 @@ class Database
             }
         }
 
-        if ($param = cutafter('findOne', $method)) {
-            return $this->callFind('findOne', $param, $args);
-        } elseif ($param = cutafter('find', $method)) {
-            return $this->callFind('find', $param, $args);
+        $findOne = cutafter('findOne', $method);
+        $find = cutafter('find', $method);
+        if ($findOne) {
+            return $this->callFind('findOne', $findOne, $args);
+        } elseif ($find) {
+            return $this->callFind('find', $find, $args);
         }
 
         throw new \BadMethodCallException('Invalid method ' . static::class . '::' . $method);

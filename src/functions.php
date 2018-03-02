@@ -12,20 +12,14 @@
 namespace Fal\Stick;
 
 /**
-*
-*   @return string
-*   @param $arg mixed
-*   @param $stack array
-**/
-/**
  * Convert PHP expression/value to compressed exportable string
  *
- * @param  mixed     $arg
- * @param  array|NULL $stack
+ * @param  mixed      $arg
+ * @param  array|null $stack
  *
  * @return string
  */
-function stringify($arg, array $stack = NULL): string
+function stringify($arg, array $stack = null): string
 {
     if ($stack) {
         foreach ($stack as $node) {
@@ -41,7 +35,8 @@ function stringify($arg, array $stack = NULL): string
         case 'object':
             $str = '';
             foreach (get_object_vars($arg) as $key=>$val) {
-                $str .= ',' . var_export($key, TRUE) . '=>' . stringify($val, array_merge($stack, [$arg]));
+                $str .= ',' . var_export($key, true) . '=>' .
+                        stringify($val, array_merge($stack, [$arg]));
             }
             $str = ltrim($str, ',');
 
@@ -50,36 +45,42 @@ function stringify($arg, array $stack = NULL): string
             $str = '';
             $num = isset($arg[0]) && ctype_digit(implode('', array_keys($arg)));
             foreach ($arg as $key=>$val) {
-                $str .= ($num ? '' : (var_export($key, TRUE) . '=>')) . stringify($val, array_merge($stack, [$arg]));
+                $str .= ($num ? '' : (var_export($key, true) . '=>')) .
+                        stringify($val, array_merge($stack, [$arg]));
             }
             $str = ltrim($str, ',');
 
             return '['.$str.']';
         default:
-            return var_export($arg, TRUE);
+            return var_export($arg, true);
     }
 }
 
 /**
  * Takes the given context and coverts it to a string.
  *
- * @param  array $context The Context
+ * @param  array  $context The Context
  * @return string
  */
 function contexttostring(array $context): string
 {
     $export = '';
+
     foreach ($context as $key => $value) {
         $export .= "{$key}: ";
-        $export .= preg_replace([
-            '/=>\s+([a-zA-Z])/im',
-            '/array\(\s+\)/im',
-            '/^  |\G  /m'
-        ], [
-            '=> $1',
-            'array()',
-            '    '
-        ], str_replace('array (', 'array(', var_export($value, TRUE)));
+        $export .= preg_replace(
+            [
+                '/=>\s+([a-zA-Z])/im',
+                '/array\(\s+\)/im',
+                '/^  |\G  /m'
+            ],
+            [
+                '=> $1',
+                'array()',
+                '    '
+            ],
+            str_replace('array (', 'array(', var_export($value, true))
+        );
         $export .= PHP_EOL;
     }
 
@@ -120,7 +121,7 @@ function dashcase(string $str): string
 }
 
 /**
- * Convert backslash(es) to slash(es)
+ * Convert backslashes to slashes
  *
  * @param  string $str
  * @return string
@@ -137,7 +138,7 @@ function fixslashes(string $str): string
  * @param  boolean $lf   normalize linefeed?
  * @return string
  */
-function read(string $file, bool $lf = FALSE): string
+function read(string $file, bool $lf = false): string
 {
     $out = file_exists($file) ? file_get_contents($file) : '';
 
@@ -147,12 +148,12 @@ function read(string $file, bool $lf = FALSE): string
 /**
  * Exclusive file write
  *
- * @param  string  $file   filepath
- * @param  string  $data
- * @param  boolean $append
- * @return int|FALSE
+ * @param  string  $file   Filepath
+ * @param  string  $data   Data to save
+ * @param  boolean $append Append mode
+ * @return int|false
  */
-function write(string $file, string $data, bool $append = FALSE)
+function write(string $file, string $data, bool $append = false)
 {
     return file_put_contents($file, $data, LOCK_EX|($append ? FILE_APPEND : 0));
 }
@@ -160,13 +161,13 @@ function write(string $file, string $data, bool $append = FALSE)
 /**
  * Delete file with check
  *
- * @param  string $file
+ * @param  string $file Filepath
  *
  * @return bool
  */
 function delete(string $file): bool
 {
-    return file_exists($file) ? unlink($file) : FALSE;
+    return file_exists($file) ? unlink($file) : false;
 }
 
 /**
@@ -176,7 +177,7 @@ function delete(string $file): bool
  * @param  boolean $noempty
  * @return array
  */
-function split(string $str, bool $noempty = TRUE): array
+function split(string $str, bool $noempty = true): array
 {
     return array_map('trim', preg_split('/[,;|]/', $str, 0, $noempty ? PREG_SPLIT_NO_EMPTY : 0));
 }
@@ -184,7 +185,7 @@ function split(string $str, bool $noempty = TRUE): array
 /**
  * Extract values of array whose keys start with the given prefix
  *
- * @param  array $arr
+ * @param  array  $arr
  * @param  string $prefix
  * @return array
  */
@@ -193,7 +194,7 @@ function extract(array $arr, string $prefix): array
     $out = [];
     $cut = strlen($prefix);
     foreach ($arr as $key => $value) {
-        if (is_string($key) && $prefix === substr($key, 0, $cut)) {
+        if (is_string($key) && substr($key, 0, $cut) === $prefix) {
             $out[substr($key, $cut)] = $value;
         }
     }
@@ -205,7 +206,7 @@ function extract(array $arr, string $prefix): array
  * Convert class constants to array
  *
  * @param  string|object $class
- * @param  string $prefix
+ * @param  string        $prefix
  * @return array
  */
 function constants($class, string $prefix = ''): array
@@ -241,23 +242,23 @@ function base64(string $data, string $mime): string
  *
  * @param  string       $path
  * @param  int          $mode
- * @param  bool|boolean $recursive
+ * @param  bool $recursive
  * @return bool
  */
-function mkdir(string $path, int $mode = 0755, bool $recursive = TRUE): bool
+function mkdir(string $path, int $mode = 0755, bool $recursive = true): bool
 {
-    return file_exists($path) ? TRUE : \mkdir($path, $mode, $recursive);
+    return file_exists($path) ? true : \mkdir($path, $mode, $recursive);
 }
 
 /**
  * Ensure var is array, or split if string
  *
- * @param  string|array       $var
- * @param  bool|boolean $noempty
+ * @param  string|array $var
+ * @param  bool $noempty
  *
  * @return array
  */
-function reqarr($var, bool $noempty = TRUE): array
+function reqarr($var, bool $noempty = true): array
 {
     return is_array($var) ? $var : split($var, $noempty);
 }
@@ -265,8 +266,8 @@ function reqarr($var, bool $noempty = TRUE): array
 /**
  * Ensure var is string, or join by glue
  *
- * @param  string|array       $var
- * @param  string $glue
+ * @param  string|array $var
+ * @param  string       $glue
  *
  * @return string
  */
@@ -279,11 +280,11 @@ function reqstr($var, string $glue = ','): string
  * Get constant with check
  *
  * @param  string $var
- * @param  mixed $default
+ * @param  mixed  $default
  *
  * @return mixed
  */
-function constant(string $var, $default = NULL)
+function constant(string $var, $default = null)
 {
     return defined($var) ? \constant($var) : $default;
 }
@@ -328,7 +329,7 @@ function quotekey(array $data, array $quote = [], string $delim = ','): array
  */
 function startswith(string $prefix, string $str): bool
 {
-    return $prefix === substr($str, 0, strlen($prefix));
+    return substr($str, 0, strlen($prefix)) === $prefix;
 }
 
 /**
@@ -341,7 +342,7 @@ function startswith(string $prefix, string $str): bool
  */
 function istartswith(string $prefix, string $str): bool
 {
-    return strtolower($prefix) === substr(strtolower($str), 0, strlen($prefix));
+    return substr(strtolower($str), 0, strlen($prefix)) === strtolower($prefix);
 }
 
 /**
@@ -354,7 +355,7 @@ function istartswith(string $prefix, string $str): bool
  */
 function endswith(string $suffix, string $str): bool
 {
-    return $suffix === substr($str, -1 * strlen($suffix));
+    return substr($str, -1 * strlen($suffix)) === $suffix;
 }
 
 /**
@@ -367,7 +368,7 @@ function endswith(string $suffix, string $str): bool
  */
 function iendswith(string $suffix, string $str): bool
 {
-    return strtolower($suffix) === substr(strtolower($str), -1 * strlen($suffix));
+    return substr(strtolower($str), -1 * strlen($suffix)) === strtolower($suffix);
 }
 
 /**
@@ -383,7 +384,7 @@ function cutafter(string $prefix, string $str, string $default = ''): string
 {
     $cut = strlen($prefix);
 
-    return $prefix === substr($str, 0, $cut) ? substr($str, $cut) : $default;
+    return substr($str, 0, $cut) === $prefix ? substr($str, $cut) : $default;
 }
 
 /**
@@ -399,7 +400,11 @@ function icutafter(string $prefix, string $str, string $default = ''): string
 {
     $cut = strlen($prefix);
 
-    return strtolower($prefix) === substr(strtolower($str), 0, $cut) ? substr($str, $cut) : $default;
+    if (substr(strtolower($str), 0, $cut) === strtolower($prefix)) {
+        return substr($str, $cut);
+    }
+
+    return $default;
 }
 
 /**
@@ -415,7 +420,7 @@ function cutbefore(string $suffix, string $str, string $default = ''): string
 {
     $cut = strlen($suffix);
 
-    return $suffix === substr($str, -1 * $cut) ? substr($str, 0, $cut) : $default;
+    return substr($str, -1 * $cut) === $suffix ? substr($str, 0, $cut) : $default;
 }
 
 /**
@@ -431,11 +436,15 @@ function icutbefore(string $suffix, string $str, string $default = ''): string
 {
     $cut = strlen($suffix);
 
-    return strtolower($suffix) === substr(strtolower($str), -1 * $cut) ? substr($str, 0, $cut) : $default;
+    if (substr(strtolower($str), -1 * $cut) === strtolower($suffix)) {
+        return substr($str, 0, $cut);
+    }
+
+    return $default;
 }
 
 /**
- * cast string variable to php type or constant
+ * Cast string variable to php type or constant
  *
  * @param  mixed $val
  *
@@ -458,7 +467,7 @@ function cast($val)
 /**
  * Cast every member of array
  *
- * @param  array  $args
+ * @param  array $args
  *
  * @return array
  */
@@ -471,4 +480,33 @@ function casts(array $args): array
     }
 
     return $casts;
+}
+
+/**
+ * Pick $keys from $source, stop on null item
+ *
+ * @param  array      $source
+ * @param  array|null $keys
+ *
+ * @return array
+ */
+function picktoargs(array $source, array $keys = null): array
+{
+    $picked = [];
+
+    if ($keys === null) {
+        $topick = array_keys($source);
+    } else {
+        $topick = array_intersect(array_keys($source), $keys);
+    }
+
+    foreach ($topick as $pos => $key) {
+        if ($source[$key] === null) {
+            return $picked;
+        }
+
+        $picked[] = $source[$key];
+    }
+
+    return $picked;
 }

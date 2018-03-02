@@ -116,7 +116,7 @@ class FunctionsTest extends Testcase
     {
         $expected = ['foo','bar'];
         $str = 'foo|bar||';
-        $noempty = TRUE;
+        $noempty = true;
         $result = f\split($str, $noempty);
         $this->assertEquals($expected, $result);
     }
@@ -263,10 +263,39 @@ class FunctionsTest extends Testcase
     public function testCast()
     {
         $this->assertEquals(0, f\cast('0'));
-        $this->assertEquals(TRUE, f\cast('TRUE'));
-        $this->assertEquals(FALSE, f\cast('FALSE'));
-        $this->assertEquals(NULL, f\cast('NULL'));
+        $this->assertEquals(true, f\cast('true'));
+        $this->assertEquals(false, f\cast('false'));
+        $this->assertEquals(null, f\cast('null'));
         $this->assertEquals(0.1, f\cast('0.1'));
         $this->assertEquals('foo', f\cast('foo'));
+    }
+
+    public function testCasts()
+    {
+        $casts = f\casts([
+            '0',
+            'true',
+            'false',
+            'null',
+            '0.1',
+            'foo',
+        ]);
+        $this->assertEquals(
+            [
+                0,
+                true,
+                false,
+                null,
+                0.1,
+                'foo'
+            ],
+            $casts
+        );
+    }
+
+    public function testPicktoargs()
+    {
+        $this->assertEquals([0,'foo',true,false], f\picktoargs([0,'foo',true,false,null,'bar']));
+        $this->assertEquals([0,'foo',true], f\picktoargs([0,'foo',true,false,null,'bar'], [2,1,0]));
     }
 }

@@ -36,7 +36,7 @@ class AuditTest extends TestCase
     public function testSetRule()
     {
         $this->audit->setRule('foo', function() {
-            return TRUE;
+            return true;
         });
         $this->audit->setMessage('foo', 'Foo {arg0}');
 
@@ -97,14 +97,14 @@ class AuditTest extends TestCase
 
     public function testValidate()
     {
-        $this->audit->setRule('foo', function($val, $foo, $_audit = NULL) {
-            return $val ? $_audit['id'] . $val . $foo : FALSE;
+        $this->audit->setRule('foo', function($val, $foo, $_audit = null) {
+            return $val ? $_audit['id'] . $val . $foo : false;
         });
         $this->audit->setMessage('foo', 'Foo {key} {arg1}');
 
         $this->audit->setRules([
             'foo'=>'trim|required|foo[baz]',
-            'email'=>'email[FALSE]',
+            'email'=>'email[false]',
         ]);
 
         // set via method
@@ -118,7 +118,7 @@ class AuditTest extends TestCase
         // expect error
         $this->audit->setRules([
             'foo'=>'foo[baz]',
-            'email'=>'email[FALSE]',
+            'email'=>'email[false]',
         ]);
         $this->audit->validate([]);
         $this->assertFalse($this->audit->success());
@@ -129,8 +129,8 @@ class AuditTest extends TestCase
     public function testValidateConstruct()
     {
         $audit = new Audit([
-            'foo' => function($val, $foo, $_audit = NULL) {
-                return $val ? $_audit['id'] . $val . $foo : FALSE;
+            'foo' => function($val, $foo, $_audit = null) {
+                return $val ? $_audit['id'] . $val . $foo : false;
             }
         ], [
             'foo' => 'Foo {key} {arg1}'
@@ -184,7 +184,7 @@ class AuditTest extends TestCase
 
     public function testRequired()
     {
-        $this->assertFalse($this->audit->required(NULL));
+        $this->assertFalse($this->audit->required(null));
         $this->assertFalse($this->audit->required(''));
 
         $this->assertTrue($this->audit->required('foo'));
@@ -201,23 +201,23 @@ class AuditTest extends TestCase
 
     public function testEmail()
     {
-        $this->assertFalse($this->audit->email('Abc.google.com', FALSE));
-        $this->assertFalse($this->audit->email('Abc.@google.com', FALSE));
-        $this->assertFalse($this->audit->email('Abc..123@google.com', FALSE));
-        $this->assertFalse($this->audit->email('A@b@c@google.com', FALSE));
-        $this->assertFalse($this->audit->email('a"b(c)d,e:f;g<h>i[j\k]l@google.com', FALSE));
-        $this->assertFalse($this->audit->email('just"not"right@google.com', FALSE));
-        $this->assertFalse($this->audit->email('this is"not\allowed@google.com', FALSE));
-        $this->assertFalse($this->audit->email('this\ still\"not\\allowed@google.com', FALSE));
+        $this->assertFalse($this->audit->email('Abc.google.com', false));
+        $this->assertFalse($this->audit->email('Abc.@google.com', false));
+        $this->assertFalse($this->audit->email('Abc..123@google.com', false));
+        $this->assertFalse($this->audit->email('A@b@c@google.com', false));
+        $this->assertFalse($this->audit->email('a"b(c)d,e:f;g<h>i[j\k]l@google.com', false));
+        $this->assertFalse($this->audit->email('just"not"right@google.com', false));
+        $this->assertFalse($this->audit->email('this is"not\allowed@google.com', false));
+        $this->assertFalse($this->audit->email('this\ still\"not\\allowed@google.com', false));
 
-        $this->assertTrue($this->audit->email('niceandsimple@google.com', FALSE));
-        $this->assertTrue($this->audit->email('very.common@google.com', FALSE));
-        $this->assertTrue($this->audit->email('a.little.lengthy.but.fine@google.com', FALSE));
-        $this->assertTrue($this->audit->email('disposable.email.with+symbol@google.com', FALSE));
-        $this->assertTrue($this->audit->email('user@[IPv6:2001:db8:1ff::a0b:dbd0]', FALSE));
-        $this->assertTrue($this->audit->email('"very.unusual.@.unusual.com"@google.com', FALSE));
-        $this->assertTrue($this->audit->email('!#$%&\'*+-/=?^_`{}|~@google.com', FALSE));
-        $this->assertTrue($this->audit->email('""@google.com', FALSE));
+        $this->assertTrue($this->audit->email('niceandsimple@google.com', false));
+        $this->assertTrue($this->audit->email('very.common@google.com', false));
+        $this->assertTrue($this->audit->email('a.little.lengthy.but.fine@google.com', false));
+        $this->assertTrue($this->audit->email('disposable.email.with+symbol@google.com', false));
+        $this->assertTrue($this->audit->email('user@[IPv6:2001:db8:1ff::a0b:dbd0]', false));
+        $this->assertTrue($this->audit->email('"very.unusual.@.unusual.com"@google.com', false));
+        $this->assertTrue($this->audit->email('!#$%&\'*+-/=?^_`{}|~@google.com', false));
+        $this->assertTrue($this->audit->email('""@google.com', false));
 
         // with domain verification (require internet connection)
         $this->assertFalse($this->audit->email('Abc.google.com'));
@@ -233,7 +233,7 @@ class AuditTest extends TestCase
         $this->assertTrue($this->audit->email('very.common@google.com'));
         $this->assertTrue($this->audit->email('a.little.lengthy.but.fine@google.com'));
         $this->assertTrue($this->audit->email('disposable.email.with+symbol@google.com'));
-        $this->assertTrue($this->audit->email('user@[IPv6:2001:db8:1ff::a0b:dbd0]', FALSE));
+        $this->assertTrue($this->audit->email('user@[IPv6:2001:db8:1ff::a0b:dbd0]', false));
         $this->assertTrue($this->audit->email('"very.unusual.@.unusual.com"@google.com'));
         $this->assertTrue($this->audit->email('!#$%&\'*+-/=?^_`{}|~@google.com'));
         $this->assertTrue($this->audit->email('""@google.com'));

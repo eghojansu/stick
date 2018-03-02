@@ -28,10 +28,10 @@ class DatabaseTest extends TestCase
             'commands' => [
                 <<<SQL1
 CREATE TABLE `user` (
-    `id` INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-    `first_name` TEXT NOT NULL,
-    `last_name` TEXT NULL DEFAULT NULL,
-    `active` INTEGER NOT NULL DEFAULT 1
+    `id` INTEGER NOT null PRIMARY KEY AUTOINCREMENT,
+    `first_name` TEXT NOT null,
+    `last_name` TEXT null DEFAULT null,
+    `active` INTEGER NOT null DEFAULT 1
 )
 SQL1
 ,
@@ -46,12 +46,12 @@ SQL1
 
     protected function enableDebug()
     {
-        $this->database->setOptions(['debug'=>TRUE] + $this->database->getOptions());
+        $this->database->setOptions(['debug'=>true] + $this->database->getOptions());
     }
 
     protected function enableLog()
     {
-        $this->database->setOptions(['log'=>TRUE] + $this->database->getOptions());
+        $this->database->setOptions(['log'=>true] + $this->database->getOptions());
     }
 
     public function testPconst()
@@ -168,7 +168,7 @@ SQL1
             'db_name' => 'test_stick',
             'db_user' => 'root',
             'db_pass' => 'pass',
-            'debug' => TRUE,
+            'debug' => true,
         ]);
 
         $this->database->pdo();
@@ -191,7 +191,7 @@ SQL1
     {
         $this->assertEquals('`foo`', $this->database->quotekey('foo'));
         $this->assertEquals('`foo`.`bar`', $this->database->quotekey('foo.bar'));
-        $this->assertEquals('foo.bar', $this->database->quotekey('foo.bar', TRUE, 'unknown'));
+        $this->assertEquals('foo.bar', $this->database->quotekey('foo.bar', true, 'unknown'));
     }
 
     public function filterProvider()
@@ -295,7 +295,7 @@ SQL1
         $this->database->insert('user', ['first_name'=>'foo']);
         $this->assertEquals(1, $this->database->count('user'));
 
-        // query FALSE
+        // query false
         $this->assertEquals(0, $this->database->count('muser'));
     }
 
@@ -327,7 +327,7 @@ SQL1
         $this->assertEquals(3, count($this->database->fetchAll()));
 
         // with group by
-        $this->database->find('user', NULL, ['group'=>'id','having'=>['id []'=>[1,2,3]],'order'=>'id desc','offset'=>1,'limit'=>2]);
+        $this->database->find('user', null, ['group'=>'id','having'=>['id []'=>[1,2,3]],'order'=>'id desc','offset'=>1,'limit'=>2]);
         $result = $this->database->fetchAll();
         $this->assertEquals(2, count($result));
     }
@@ -355,7 +355,7 @@ SQL1
                 ['first_name'=>'foobar'],
                 ['first_name'=>'barbaz'],
             ],
-            TRUE
+            true
         );
         $this->assertEquals([1,2], $result);
         $this->assertEquals(1, $this->database->count('user', ['first_name'=>'foobar']));
@@ -372,7 +372,7 @@ SQL1
                     ['first_name'=>'foobar'],
                     ['first_name'=>'barbaz'],
                 ],
-                TRUE
+                true
             )
         );
     }
@@ -387,7 +387,7 @@ SQL1
                     ['id'=>1,'first_name'=>'foobar'],
                     ['id'=>1,'first_name'=>'barbaz'],
                 ],
-                TRUE
+                true
             )
         );
     }
@@ -402,7 +402,7 @@ SQL1
         $this->database->insertBatch(
             'user',
             [],
-            TRUE
+            true
         );
     }
 
@@ -419,7 +419,7 @@ SQL1
                 ['first_name'=>'foobar'],
                 ['first_name'=>'barbaz'],
             ],
-            TRUE
+            true
         );
     }
 
@@ -436,7 +436,7 @@ SQL1
                 ['first_name'=>'foobar'],
                 ['first_name'=>'barbaz','last_name'=>'bar'],
             ],
-            FALSE
+            false
         );
     }
 
@@ -455,7 +455,7 @@ SQL1
      */
     public function testUpdateException()
     {
-        $this->database->update('user', [], NULL);
+        $this->database->update('user', [], null);
     }
 
     public function testUpdateBatch()
@@ -465,13 +465,13 @@ SQL1
         $this->assertTrue(
             $this->database->updateBatch(
                 'user',
-                ['set'=>['first_name',['last_name = first_name + " update"']], 'filter'=>['id'=>NULL]],
+                ['set'=>['first_name',['last_name = first_name + " update"']], 'filter'=>['id'=>null]],
                 [
                     ['data'=>['first_name'=>'foobar'],'filter'=>['id'=>1]],
                     ['data'=>['first_name'=>'barbaz'],'filter'=>['id'=>2]],
                     ['data'=>['first_name'=>'quxqux'],'filter'=>['id'=>3]],
                 ],
-                TRUE
+                true
             )
         );
         $this->assertEquals(1, $this->database->count('user', ['first_name'=>'foobar']));
@@ -481,16 +481,16 @@ SQL1
     public function testUpdateBatchCanceled()
     {
         $this->assertEquals(
-            FALSE,
+            false,
             $this->database->updateBatch(
                 'muser',
-                ['set'=>['first_name',['last_name = first_name + " update"']], 'filter'=>['id'=>NULL]],
+                ['set'=>['first_name',['last_name = first_name + " update"']], 'filter'=>['id'=>null]],
                 [
                     ['data'=>['first_name'=>'foobar'],'filter'=>['id'=>1]],
                     ['data'=>['first_name'=>'barbaz'],'filter'=>['id'=>2]],
                     ['data'=>['first_name'=>'quxqux'],'filter'=>['id'=>3]],
                 ],
-                TRUE
+                true
             )
         );
     }
@@ -500,14 +500,14 @@ SQL1
         $this->filldb();
         $result = $this->database->updateBatch(
             'user',
-            ['set'=>['id','first_name',['last_name = first_name + " update"']], 'filter'=>['id'=>NULL]],
+            ['set'=>['id','first_name',['last_name = first_name + " update"']], 'filter'=>['id'=>null]],
             [
                 ['data'=>['id'=>1,'first_name'=>'foobar'],'filter'=>['id'=>1]],
                 ['data'=>['id'=>1,'first_name'=>'barbaz'],'filter'=>['id'=>2]],
             ],
-            TRUE
+            true
         );
-        $this->assertEquals(FALSE, $result);
+        $this->assertEquals(false, $result);
     }
 
     /**
@@ -522,7 +522,7 @@ SQL1
             'user',
             [],
             [],
-            TRUE
+            true
         );
     }
 
@@ -536,12 +536,12 @@ SQL1
         $this->filldb();
         $this->database->updateBatch(
             'muser',
-            ['set'=>['first_name',['last_name = first_name + " update"']], 'filter'=>['id'=>NULL]],
+            ['set'=>['first_name',['last_name = first_name + " update"']], 'filter'=>['id'=>null]],
             [
                 ['data'=>['first_name'=>'foobar'],'filter'=>['id'=>1]],
                 ['data'=>['first_name'=>'barbaz'],'filter'=>['id'=>2]],
             ],
-            TRUE
+            true
         );
     }
 
@@ -555,12 +555,12 @@ SQL1
         $this->filldb();
         $this->database->updateBatch(
             'user',
-            ['set'=>['first_name',['last_name = first_name + " update"']], 'filter'=>['id'=>NULL]],
+            ['set'=>['first_name',['last_name = first_name + " update"']], 'filter'=>['id'=>null]],
             [
                 ['data'=>['first_name'=>'foobar'],'filter'=>['id'=>1]],
                 ['data'=>['first_name'=>'barbaz','last_name'=>'baz'],'filter'=>['id'=>2]],
             ],
-            FALSE
+            false
         );
     }
 
@@ -568,7 +568,7 @@ SQL1
     {
         $this->filldb();
 
-        $this->assertTrue($this->database->delete('user', NULL)->querySuccess());
+        $this->assertTrue($this->database->delete('user', null)->querySuccess());
         $this->assertEquals(0, $this->database->count('user'));
 
         $this->filldb();
@@ -597,7 +597,7 @@ SQL1
     {
         $this->assertEquals('', $this->database->getMessage());
 
-        // query FALSE
+        // query false
         $this->assertEquals('Invalid query', $this->database->find('muser')->getMessage());
     }
 
@@ -666,7 +666,7 @@ SQL1
         }));
 
         $this->assertEquals(2, $this->database->count('user'));
-        $this->database->delete('user', NULL);
+        $this->database->delete('user', null);
 
         $this->assertFalse($this->database->execute(function($db) {
             $db->insert('user', ['first_name'=>'foo']);
@@ -711,7 +711,7 @@ SQL1
             $total++;
         }
 
-        $result = $this->database->paginate('user', 1, 2, NULL, ['column'=>'first_name']);
+        $result = $this->database->paginate('user', 1, 2, null, ['column'=>'first_name']);
         $expected = [
             'subset' => [
                 ['first_name'=>'foo'],
@@ -725,7 +725,7 @@ SQL1
         ];
         $this->assertEquals($expected, $result);
 
-        $result = $this->database->paginate('user', 2, 2, NULL, ['column'=>'first_name']);
+        $result = $this->database->paginate('user', 2, 2, null, ['column'=>'first_name']);
         $expected = [
             'subset' => [
                 ['first_name'=>'baz'],
@@ -739,7 +739,7 @@ SQL1
         ];
         $this->assertEquals($expected, $result);
 
-        $result = $this->database->paginate('user', 1, 3, NULL, ['column'=>'first_name']);
+        $result = $this->database->paginate('user', 1, 3, null, ['column'=>'first_name']);
         $expected = [
             'subset' => [
                 ['first_name'=>'foo'],
@@ -755,7 +755,7 @@ SQL1
         $this->assertEquals($expected, $result);
 
         // last page
-        $result = $this->database->paginate('user', 5, 3, NULL, ['column'=>'first_name']);
+        $result = $this->database->paginate('user', 5, 3, null, ['column'=>'first_name']);
         $expected = [
             'subset' => [
                 ['first_name'=>'thud'],
@@ -769,7 +769,7 @@ SQL1
         $this->assertEquals($expected, $result);
 
         // invalid page
-        $result = $this->database->paginate('user', 0, 2, NULL, ['column'=>'first_name']);
+        $result = $this->database->paginate('user', 0, 2, null, ['column'=>'first_name']);
         $expected = [
             'subset' => [],
             'total' => $total,
@@ -781,8 +781,8 @@ SQL1
         $this->assertEquals($expected, $result);
 
         // no data
-        $this->database->delete('user', NULL);
-        $result = $this->database->paginate('user', 0, 2, NULL, ['column'=>'first_name']);
+        $this->database->delete('user', null);
+        $result = $this->database->paginate('user', 0, 2, null, ['column'=>'first_name']);
         $expected = [
             'subset' => [],
             'total' => 0,
@@ -827,7 +827,7 @@ SQL1
 
         $this->assertTrue(
             $this->database->updateBatchUser(
-                ['set'=>['first_name',['last_name = first_name + " update"']], 'filter'=>['id'=>NULL]],
+                ['set'=>['first_name',['last_name = first_name + " update"']], 'filter'=>['id'=>null]],
                 [
                     ['data'=>['first_name'=>'foobar'],'filter'=>['id'=>1]],
                     ['data'=>['first_name'=>'barbaz'],'filter'=>['id'=>2]],
@@ -847,7 +847,7 @@ SQL1
             $total++;
         }
 
-        $result = $this->database->paginateUser(1, 2, NULL, ['column'=>'first_name']);
+        $result = $this->database->paginateUser(1, 2, null, ['column'=>'first_name']);
         $expected = [
             'subset' => [
                 ['first_name'=>'foo'],
@@ -886,19 +886,19 @@ SQL1
     {
         $this->assertEquals([], $this->database->getMaps());
         $this->database->setMaps(['user'=>['class'=>PureUserEntity::class]]);
-        $this->assertEquals(['user'=>['class'=>PureUserEntity::class,'transformer'=>NULL,'select'=>[],'safe'=>[]]], $this->database->getMaps());
+        $this->assertEquals(['user'=>['class'=>PureUserEntity::class]], $this->database->getMaps());
     }
 
     public function testSetMaps()
     {
         $this->database->setMaps(['user'=>['class'=>PureUserEntity::class]]);
-        $this->assertEquals(['class'=>PureUserEntity::class,'transformer'=>NULL,'select'=>[],'safe'=>[]], $this->database->getMap('user'));
+        $this->assertEquals(['class'=>PureUserEntity::class,'transformer'=>null,'select'=>null,'safe'=>[],'table'=>'user'], $this->database->getMap('user'));
     }
 
     public function testGetMap()
     {
         $this->database->setMaps(['user'=>['class'=>PureUserEntity::class]]);
-        $this->assertEquals(['class'=>PureUserEntity::class,'transformer'=>NULL,'select'=>[],'safe'=>[]], $this->database->getMap('user'));
+        $this->assertEquals(['class'=>PureUserEntity::class,'transformer'=>null,'select'=>null,'safe'=>[],'table'=>'user'], $this->database->getMap('user'));
     }
 
     public function testSetMap()
@@ -906,7 +906,7 @@ SQL1
         $this->filldb();
 
         $this->database->setMap('user', ['class'=>PureUserEntity::class]);
-        $this->assertEquals(['class'=>PureUserEntity::class,'transformer'=>NULL,'select'=>[],'safe'=>[]], $this->database->getMap('user'));
+        $this->assertEquals(['class'=>PureUserEntity::class,'transformer'=>null,'select'=>null,'safe'=>[],'table'=>'user'], $this->database->getMap('user'));
 
         $result = $this->database->findUser()->fetchAll(Database::pconst('fetch_class'));
 
@@ -937,6 +937,11 @@ SQL1
         $this->database->updateUser(['first_name'=>'foofoo','unsafe'=>'value'], 'first_name = "xfoo"');
         $this->assertTrue($this->database->querySuccess());
         $this->assertContains('foofoo', $this->database->findOneUserByFirstName('foofoo')->fetch());
+
+        // rule for select column
+        $this->database->setMap('user', ['select'=>'id']);
+        $result = $this->database->findOneUser()->fetch();
+        $this->assertEquals(['id'=>1], $result);
     }
 
     public function testSetMapInsertBatch()
@@ -948,7 +953,7 @@ SQL1
                 ['first_name'=>'foobar','unsafe'=>'value'],
                 ['first_name'=>'barbaz','unsafe'=>'value'],
             ],
-            TRUE
+            true
         );
         $this->assertEquals([1,2], $result);
         $this->assertEquals(1, $this->database->count('user', ['first_name'=>'foobar']));
@@ -963,13 +968,13 @@ SQL1
         $this->assertTrue(
             $this->database->updateBatch(
                 'user',
-                ['set'=>['first_name',['last_name = first_name + " update"'],'unsafe'], 'filter'=>['id'=>NULL]],
+                ['set'=>['first_name',['last_name = first_name + " update"'],'unsafe'], 'filter'=>['id'=>null]],
                 [
                     ['data'=>['first_name'=>'foobar','unsafe'=>1],'filter'=>['id'=>1]],
                     ['data'=>['first_name'=>'barbaz','unsafe'=>1],'filter'=>['id'=>2]],
                     ['data'=>['first_name'=>'quxqux','unsafe'=>1],'filter'=>['id'=>3]],
                 ],
-                TRUE
+                true
             )
         );
         $this->assertEquals(1, $this->database->count('user', ['first_name'=>'foobar']));
@@ -996,18 +1001,9 @@ SQL1
 
     /**
      * @expectedException InvalidArgumentException
-     * @expectedExceptionMessage Select option is not array
-     */
-    public function testSetMapException3()
-    {
-        $this->database->setMap('user', ['select'=>'str']);
-    }
-
-    /**
-     * @expectedException InvalidArgumentException
      * @expectedExceptionMessage Safe option is not array
      */
-    public function testSetMapException4()
+    public function testSetMapException3()
     {
         $this->database->setMap('user', ['safe'=>'str']);
     }

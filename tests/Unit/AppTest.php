@@ -29,16 +29,16 @@ class AppTest extends TestCase
 
     public function setUp()
     {
-        $_SERVER['argc']           = 1;
-        $_SERVER['argv']           = [$_SERVER['argv'][0]];
+        $_SERVER['argc'] = 1;
+        $_SERVER['argv'] = [$_SERVER['argv'][0]];
         $_SERVER['CONTENT_LENGTH'] = 0;
-        $_SERVER['CONTENT_TYPE']   = 'text/html';
+        $_SERVER['CONTENT_TYPE'] = 'text/html';
+        $_SERVER['HTTP_FOO'] = 'bar';
 
         $this->app = new App();
         $this->app->sets([
-            'TEMP'      => TEMP,
-            'LOG_ERROR' => FALSE,
-            'HALT'      => FALSE,
+            'TEMP' => TEMP,
+            'HALT' => false,
         ]);
     }
 
@@ -47,8 +47,14 @@ class AppTest extends TestCase
         header_remove();
         $this->app->cacheReset();
 
-        if (file_exists($dir = TEMP . 'cache')) {
-            rmdir($dir);
+        $cache = TEMP . 'cache';
+        if (file_exists($cache)) {
+            rmdir($cache);
+        }
+
+        $log = TEMP . 'error.log';
+        if (file_exists($log)) {
+            unlink($log);
         }
 
         $this->app->clears(explode('|', App::GLOBALS));
@@ -79,7 +85,7 @@ class AppTest extends TestCase
             ->route('GET invalidclass /invalidclass', 'InvalidClass->invalid')
             ->route('GET invalidmethod /invalidmethod', ControllerClass::class .'->invalid')
             ->route('GET invalidfunction /invalidfunction', 'invalidfunction')
-            ->route('GET emptycallback /emptycallback', NULL)
+            ->route('GET emptycallback /emptycallback', null)
             ->route('GET /cookie', function(App $app) {
                 $app->set('COOKIE.foo', 'bar');
 
@@ -89,9 +95,14 @@ class AppTest extends TestCase
                 echo 'throttled';
             }, 0, 1)
             ->route('GET /cached', function() {
-                echo 'cached'.microtime(TRUE);
+                echo 'cached'.microtime(true);
             }, 5)
         ;
+    }
+
+    public function testConstruct()
+    {
+        $this->assertEquals('bar', $this->app['HEADERS.Foo']);
     }
 
     public function testConstructInCliMode()
@@ -190,7 +201,7 @@ class AppTest extends TestCase
 
     public function testSendHeader()
     {
-        $this->app['CLI'] = FALSE;
+        $this->app['CLI'] = false;
         $this->app->header('Location', '/foo');
         $this->app->set('COOKIE.foo', 'bar', 5);
         $this->app->sendHeader();
@@ -279,7 +290,7 @@ class AppTest extends TestCase
     }
 
     /** @dataProvider runProvider */
-    public function testRun($args, $output, array $hive = NULL)
+    public function testRun($args, $output, array $hive = null)
     {
         $args = (array) $args;
 
@@ -310,7 +321,7 @@ class AppTest extends TestCase
     public function testRunCache()
     {
         $this->registerRoutes();
-        $this->app['QUIET'] = TRUE;
+        $this->app['QUIET'] = true;
         $this->app->set('CACHE', 'folder=' . TEMP . 'cache/');
 
         $this->app->mock('GET /cached');
@@ -323,7 +334,7 @@ class AppTest extends TestCase
         $this->app->mock('GET /cached');
         $this->assertEquals($init, $this->app['RESPONSE']);
 
-        $this->app->mock('GET /cached', NULL, ['If-Modified-Since'=>gmdate('r', strtotime('+1 minute'))]);
+        $this->app->mock('GET /cached', null, ['If-Modified-Since'=>gmdate('r', strtotime('+1 minute'))]);
         $this->assertEquals('Not Modified', $this->app['TEXT']);
     }
 
@@ -332,9 +343,9 @@ class AppTest extends TestCase
         $this->registerRoutes();
         $this->expectOutputString('throttled');
 
-        $start = microtime(TRUE);
+        $start = microtime(true);
         $this->app->mock('GET /throttled');
-        $end = microtime(TRUE) - $start;
+        $end = microtime(true) - $start;
 
         $this->assertGreaterThan(1, $end);
     }
@@ -342,7 +353,7 @@ class AppTest extends TestCase
     public function testRunQuiet()
     {
         $this->registerRoutes();
-        $this->app['QUIET'] = TRUE;
+        $this->app['QUIET'] = true;
         $this->app->mock('GET /foo');
         $this->assertEquals('foo', $this->app['RESPONSE']);
     }
@@ -356,11 +367,11 @@ class AppTest extends TestCase
             'expose' => 'example.com',
             'headers' => 'example.com',
             'ttl' => 10,
-        ], TRUE);
+        ], true);
 
         $this->expectOutputString('foo');
 
-        $this->app->mock('GET /foo', NULL, ['Origin'=>'example.com']);
+        $this->app->mock('GET /foo', null, ['Origin'=>'example.com']);
     }
 
     public function testRunCors403()
@@ -372,20 +383,31 @@ class AppTest extends TestCase
             'expose' => 'example.com',
             'headers' => 'example.com',
             'ttl' => 10,
-        ], TRUE);
+        ], true);
 
         $this->expectOutputRegex('/Method Not Allowed/');
 
         // 403
-        $this->app->mock('POST /foo', NULL, ['Origin'=>'example.com']);
+        $this->app->mock('POST /foo', null, ['Origin'=>'example.com']);
 
         $this->assertEquals('Method Not Allowed', $this->app['TEXT']);
+    }
+
+    public function testRunBlacklisted()
+    {
+        $this->app['QUIET'] = true;
+        $this->app['DNSBL'] = ['dnsbl.justspam.org'];
+        $this->app['IP'] = '202.67.46.23';
+        $this->registerRoutes();
+
+        $this->app->mock('GET /foo');
+        $this->assertEquals('Forbidden', $this->app['TEXT']);
     }
 
     public function testMock()
     {
         // Covered in testRun
-        $this->assertTrue(TRUE);
+        $this->assertTrue(true);
     }
 
     /**
@@ -404,7 +426,7 @@ class AppTest extends TestCase
 
         $this->expectOutputString('cli foo');
 
-        $this->app->reroute('/cli', FALSE, FALSE);
+        $this->app->reroute('/cli', false, false);
 
         $this->assertEquals('/cli', $this->app['PATH']);
     }
@@ -419,9 +441,9 @@ class AppTest extends TestCase
 
         $this->expectOutputString('');
 
-        $this->app->reroute('foo', FALSE, FALSE);
+        $this->app->reroute('foo', false, false);
 
-        $this->assertEquals(['/foo', FALSE], $this->app->get('reroute'));
+        $this->assertEquals(['/foo', false], $this->app->get('reroute'));
     }
 
     public function testRerouteWithHeader()
@@ -429,22 +451,22 @@ class AppTest extends TestCase
         $this->registerRoutes();
 
         // only if xdebug extension enabled
-        $this->assertTrue(TRUE);
+        $this->assertTrue(true);
 
         if (function_exists('xdebug_get_headers')) {
-            $this->app['CLI'] = FALSE;
+            $this->app['CLI'] = false;
 
             $realm = $this->app['SCHEME'] . '://' . $this->app['HOST'];
 
             ob_start();
 
-            $this->app->reroute(NULL, FALSE, FALSE);
+            $this->app->reroute(null, false, false);
             $this->assertContains("Location: $realm/", xdebug_get_headers());
 
-            $this->app->reroute(['qux', ['quux'=>'corge']], FALSE, FALSE);
+            $this->app->reroute(['qux', ['quux'=>'corge']], false, false);
             $this->assertContains("Location: $realm/qux/corge", xdebug_get_headers());
 
-            $this->app->reroute('quux(corge=grault,grault=garply)', FALSE, FALSE);
+            $this->app->reroute('quux(corge=grault,grault=garply)', false, false);
             $this->assertContains("Location: $realm/quux/grault/garply", xdebug_get_headers());
 
             ob_end_clean();
@@ -480,12 +502,12 @@ class AppTest extends TestCase
     public function testUnload()
     {
         // skipped
-        $this->assertTrue(TRUE);
+        $this->assertTrue(true);
     }
 
     public function testError()
     {
-        $this->app['QUIET'] = TRUE;
+        $this->app['QUIET'] = true;
         $this->app['QUERY'] = 'foo=bar';
 
         $req = $this->app['METHOD'] . ' ' . $this->app['PATH'] . '?foo=bar';
@@ -513,7 +535,7 @@ class AppTest extends TestCase
 
     public function testErrorOutputAjax()
     {
-        $this->app['AJAX'] = TRUE;
+        $this->app['AJAX'] = true;
 
         $this->expectOutputRegex('/"status":"Not Found"/');
 
@@ -529,15 +551,29 @@ class AppTest extends TestCase
         $this->assertContains('text/html', $this->app->getHeader('Content-Type')[0]);
     }
 
+    public function testErrorLog()
+    {
+        $this->app->set('LOG_ERROR', [
+            'enabled' => true,
+            'type' => 3,
+            'destination' => TEMP . 'error.log',
+        ]);
+        $this->app['QUIET'] = true;
+
+        $this->app->error(404);
+
+        $this->assertFileExists($this->app['LOG_ERROR.destination']);
+    }
+
     public function testHalt()
     {
         // skipped
-        $this->assertTrue(TRUE);
+        $this->assertTrue(true);
     }
 
     public function testExpire()
     {
-        $this->app['CLI'] = FALSE;
+        $this->app['CLI'] = false;
 
         $this->assertEquals($this->app, $this->app->expire(0));
 
@@ -679,7 +715,7 @@ class AppTest extends TestCase
         $this->assertEquals(1, count($routes));
 
         $this->app->mock('GET /foo');
-        $this->assertEquals(['/bar', TRUE], $this->app->get('reroute'));
+        $this->assertEquals(['/bar', true], $this->app->get('reroute'));
     }
 
     public function testRoutes()
@@ -708,7 +744,7 @@ class AppTest extends TestCase
         $expected = [
             '/' => [
                 0 => [
-                    'GET' => [$handler, 0, 0, NULL],
+                    'GET' => [$handler, 0, 0, null],
                 ],
             ],
             '/home' => [
@@ -724,37 +760,37 @@ class AppTest extends TestCase
             ],
             '/profile' => [
                 1 => [
-                    'GET' => [$handler, 0, 0, NULL],
+                    'GET' => [$handler, 0, 0, null],
                 ],
             ],
             '/command' => [
                 4 => [
-                    'GET' => [$handler, 0, 0, NULL],
+                    'GET' => [$handler, 0, 0, null],
                 ],
             ],
             '/product/{keyword}' => [
                 0 => [
-                    'GET' => [$handler, 0, 0, NULL],
+                    'GET' => [$handler, 0, 0, null],
                 ],
             ],
             '/product/{id:digit}' => [
                 0 => [
-                    'GET' => [$handler, 0, 0, NULL],
+                    'GET' => [$handler, 0, 0, null],
                 ],
             ],
             '/category/{category:word}' => [
                 0 => [
-                    'GET' => [$handler, 0, 0, NULL],
+                    'GET' => [$handler, 0, 0, null],
                 ],
             ],
             '/post/{post:custom}' => [
                 0 => [
-                    'GET' => [$handler, 0, 0, NULL],
+                    'GET' => [$handler, 0, 0, null],
                 ],
             ],
             '/regex/(?<regex>[[:alpha:]])' => [
                 0 => [
-                    'GET' => [$handler, 0, 0, NULL],
+                    'GET' => [$handler, 0, 0, null],
                 ],
             ],
         ];
@@ -900,7 +936,7 @@ class AppTest extends TestCase
 
         // JAR
         $this->assertEquals('foo.com', $this->app->set('JAR.domain', 'foo.com')->get('JAR.domain'));
-        $this->assertEquals(TRUE, $this->app->set('JAR.secure', TRUE)->get('JAR.secure'));
+        $this->assertEquals(true, $this->app->set('JAR.secure', true)->get('JAR.secure'));
         $this->assertEquals('foo.com', $this->app->set('JAR', $this->app['JAR'])->get('JAR.domain'));
 
         // SET COOKIE with domain
@@ -959,7 +995,7 @@ class AppTest extends TestCase
 
         // SERVICE
         $this->app->set('SERVICE.foo', CommonClass::class);
-        $this->assertEquals(['class'=>CommonClass::class, 'keep'=>TRUE], $this->app->get('SERVICE.foo'));
+        $this->assertEquals(['class'=>CommonClass::class, 'keep'=>true], $this->app->get('SERVICE.foo'));
         $this->app->clear('SERVICE.foo');
         $this->assertNull($this->app->get('SERVICE.foo'));
 
@@ -994,13 +1030,13 @@ class AppTest extends TestCase
     public function testConcat()
     {
         $this->assertEquals('barbaz', $this->app->set('foo', 'bar')->concat('foo', 'baz'));
-        $this->assertEquals('barbaz', $this->app->concat('foo', 'baz', '', TRUE)->get('foo'));
+        $this->assertEquals('barbaz', $this->app->concat('foo', 'baz', '', true)->get('foo'));
     }
 
     public function testFlip()
     {
         $this->assertEquals(['baz'=>'bar'], $this->app->set('foo', ['bar'=>'baz'])->flip('foo'));
-        $this->assertEquals(['baz'=>'bar'], $this->app->flip('foo', TRUE)->get('foo'));
+        $this->assertEquals(['baz'=>'bar'], $this->app->flip('foo', true)->get('foo'));
     }
 
     public function testPush()
@@ -1026,14 +1062,14 @@ class AppTest extends TestCase
     public function testMerge()
     {
         $this->assertEquals(['foo','bar'], $this->app->set('foo', ['foo'])->merge('foo', ['bar']));
-        $this->assertEquals(['foo','bar'], $this->app->merge('foo', ['bar'], TRUE)->get('foo'));
-        $this->assertEquals(['bar'], $this->app->merge('bar', ['bar'], TRUE)->get('bar'));
+        $this->assertEquals(['foo','bar'], $this->app->merge('foo', ['bar'], true)->get('foo'));
+        $this->assertEquals(['bar'], $this->app->merge('bar', ['bar'], true)->get('bar'));
     }
 
     public function testExtend()
     {
         $this->assertEquals(['foo'=>'bar'], $this->app->set('foo', [])->extend('foo', ['foo'=>'bar']));
-        $this->assertEquals(['foo'=>'bar'], $this->app->extend('foo', ['foo'=>'bar'], TRUE)->get('foo'));
+        $this->assertEquals(['foo'=>'bar'], $this->app->extend('foo', ['foo'=>'bar'], true)->get('foo'));
     }
 
     public function cacheProvider()
@@ -1138,7 +1174,7 @@ class AppTest extends TestCase
     public function testCacheDef()
     {
         define('me','bar');
-        $this->assertEquals([NULL, NULL], $this->app->cacheDef());
+        $this->assertEquals([null, null], $this->app->cacheDef());
     }
 
     public function testCacheRedis()
@@ -1200,12 +1236,14 @@ class AppTest extends TestCase
 
         $this->assertEquals('bar', $this->app['foo']);
         $this->assertEquals(['baz1','baz2'], $this->app['baz']);
-        $this->assertEquals(['one'=>1,'two'=>TRUE,'three'=>FALSE,'four'=>NULL], $this->app['qux']);
+        $this->assertEquals(['one'=>1,'two'=>true,'three'=>false,'four'=>null], $this->app['qux']);
 
         $this->assertEquals('bar', $this->app['section.foo']);
         $this->assertEquals('baz', $this->app['sec.foo.bar']);
 
         $this->assertEquals('foo', $this->app['glob']);
+
+        $this->assertEquals([1,2,3], $this->app['numbers']);
 
         $routes = $this->app['ROUTES'];
 
@@ -1217,5 +1255,12 @@ class AppTest extends TestCase
         // mock registered route
         $this->app->mock('GET /route');
         $this->assertEquals('foo', $this->app['custom']);
+    }
+
+    public function testConfigEmpty()
+    {
+        $this->app->config(FIXTURE . 'config_empty.ini');
+
+        $this->assertNull($this->app['foo']);
     }
 }
