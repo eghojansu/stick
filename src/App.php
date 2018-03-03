@@ -295,7 +295,7 @@ final class App implements \ArrayAccess
         $error = error_get_last();
         if ($check && $error) {
             // Error detected
-            $this->error(500, "Fatal error: {$error[message]}", [$error]);
+            $this->error(500, 'Fatal error: ' . $error['message'], [$error]);
         }
         // @codeCoverageIgnoreEnd
     }
@@ -786,7 +786,7 @@ final class App implements \ArrayAccess
                             $this->error(405);
                         } else {
                             $info = stringify($handler);
-                            $this->error(500, "Invalid method: {$info}");
+                            $this->error(500, 'Invalid method: ' . $info);
                         }
 
                         return;
@@ -867,7 +867,7 @@ final class App implements \ArrayAccess
         preg_match('/^([\w]+)(?:\h+([^\h]+))(?:\h+(sync|ajax|cli))?$/i', $pattern, $match);
 
         if (empty($match[2])) {
-            throw new \LogicException("Invalid mock pattern: {$pattern}");
+            throw new \LogicException('Invalid mock pattern: ' . $pattern);
         }
 
         $args = (array) $args;
@@ -993,7 +993,7 @@ final class App implements \ArrayAccess
     public function alias(string $route, $args = null): string
     {
         if (empty($this->hive['ALIASES'][$route])) {
-            throw new \LogicException("Route was not exists: {$route}");
+            throw new \LogicException('Route was not exists: ' . $route);
         }
 
         $args = (array) $args;
@@ -1029,7 +1029,7 @@ final class App implements \ArrayAccess
 
         if ($error && in_array($error['type'], [E_ERROR,E_PARSE,E_CORE_ERROR,E_COMPILE_ERROR])) {
             // Fatal error detected
-            $this->error(500, "Fatal error: {$error[message]}", [$error]);
+            $this->error(500, 'Fatal error: ' . $error['message'], [$error]);
         }
     }
 
@@ -1210,7 +1210,7 @@ ERR
         $parts = array_filter(explode(' ', $pattern));
 
         if (empty($parts)) {
-            throw new \LogicException("Invalid resource pattern: {$pattern}");
+            throw new \LogicException('Invalid resource pattern: ' . $pattern);
         }
 
         static $defMap = [
@@ -1403,7 +1403,7 @@ ERR
         );
 
         if (empty($match[3])) {
-            throw new \LogicException("Invalid route pattern: {$pattern}");
+            throw new \LogicException('Invalid route pattern: ' . $pattern);
         }
 
         $alias = $match[2] ?? null;
@@ -1505,7 +1505,9 @@ ERR
         $rule = $this->get("SERVICE.$id", []);
         $class = $rule['class'] ?? $id;
 
-        if (method_exists($class, '__construct')) {
+        if (isset($rule['constructor'])) {
+            $service = $this->call($rule['constructor']);
+        } elseif (method_exists($class, '__construct')) {
             $cArgs = $this->methodArgs(
                 new \ReflectionMethod($class, '__construct'),
                 array_merge($rule['params'] ?? [], $args)
@@ -1627,6 +1629,8 @@ ERR
             if (is_string($val)) {
                 // assume val is a class name
                 $val = ['class' => $val];
+            } elseif (is_callable($val)) {
+                $val = ['constructor' => $val];
             }
 
             // defaults it's a service

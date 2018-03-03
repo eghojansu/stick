@@ -886,6 +886,13 @@ class AppTest extends TestCase
 
         $dt = $this->app->service(\DateTime::class);
         $this->assertInstanceof(\DateTime::class, $dt);
+
+        // service with closure constructor
+        $this->app->set('SERVICE.closure', function(App $app) {
+            return new \DateTime();
+        });
+        $closure = $this->app->service('closure');
+        $this->assertInstanceof(\DateTime::class, $closure);
     }
 
     public function testHive()
