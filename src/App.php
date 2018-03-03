@@ -1507,6 +1507,11 @@ ERR
 
         if (isset($rule['constructor'])) {
             $service = $this->call($rule['constructor']);
+            $class = $rule['class'] ?? get_class($service);
+
+            if (!isset($this->aliases[$class])) {
+                $this->aliases[$class] = $id;
+            }
         } elseif (method_exists($class, '__construct')) {
             $cArgs = $this->methodArgs(
                 new \ReflectionMethod($class, '__construct'),
