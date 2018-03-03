@@ -206,6 +206,7 @@ final class App implements \ArrayAccess
             'BODY' => '',
             'CACHE' => null,
             'CASELESS' => false,
+            'CONFIG' => './',
             'CORS' => [
                 'headers' => '',
                 'origin' => false,
@@ -348,10 +349,11 @@ final class App implements \ArrayAccess
      * Configure framework according to .ini-style file settings
      *
      * @param  string|array  $source
+     * @param  bool          $absolute
      *
      * @return App
      */
-    public function config($source): App
+    public function config($source, bool $absolute = true): App
     {
         $sources = reqarr($source);
         $pattern = '/(?<=^|\n)(?:' .
@@ -363,7 +365,9 @@ final class App implements \ArrayAccess
                        '((?:\.?\w)+)/i';
 
         foreach ($sources as $file) {
-            if (!preg_match_all($pattern, read($file), $matches, PREG_SET_ORDER)) {
+            $dir = $absolute ? '' : $this->hive['CONFIG'];
+
+            if (!preg_match_all($pattern, read($dir . $file), $matches, PREG_SET_ORDER)) {
                 continue;
             }
 
@@ -386,7 +390,7 @@ final class App implements \ArrayAccess
 
                 if ($cmd) {
                     $call = $cmd[1];
-                    $args = casts(str_getcsv(cast($match['rval'])));
+                    $args = casts(str_getcsv($match['rval']));
                     array_unshift($args, $match['lval']);
 
                     $this->$call(...$args);

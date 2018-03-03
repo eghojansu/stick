@@ -1263,4 +1263,13 @@ class AppTest extends TestCase
 
         $this->assertNull($this->app['foo']);
     }
+
+    public function testConfigConfig()
+    {
+        $this->app['CONFIG'] = FIXTURE;
+        $this->app->config(FIXTURE . 'configs.ini');
+
+        $this->assertEquals('bar', $this->app['foo']);
+        $this->assertEquals(1, count($this->app['ROUTES']));
+    }
 }
