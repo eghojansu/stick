@@ -45,12 +45,6 @@ class AppTest extends TestCase
     public function tearDown()
     {
         header_remove();
-        $this->app->cacheReset();
-
-        $cache = TEMP . 'cache';
-        if (file_exists($cache)) {
-            rmdir($cache);
-        }
 
         $log = TEMP . 'error.log';
         if (file_exists($log)) {
@@ -273,7 +267,7 @@ class AppTest extends TestCase
             ['GET invalidclass', 'regex/Not Found/', ['TEXT'=>'Not Found','PATH'=>'/invalidclass']],
 
             // invalid class method
-            ['GET invalidmethod', 'regex/Method Not Allowed/', ['TEXT'=>'Method Not Allowed','PATH'=>'/invalidmethod']],
+            ['GET invalidmethod', 'regex/Not Found/', ['TEXT'=>'Not Found','PATH'=>'/invalidmethod']],
 
             // invalid function
             ['GET invalidfunction', 'regex/Internal Server Error/', ['TEXT'=>'Internal Server Error','PATH'=>'/invalidfunction']],
@@ -316,6 +310,32 @@ class AppTest extends TestCase
     public function testRunException()
     {
         $this->app->run();
+    }
+
+    public function testRunEventBeforeRoute()
+    {
+        $this->registerRoutes();
+        $this->app->set('ONBEFOREROUTE', function(App $app) {
+            $app->set('RESPONSE', 'beforeroute');
+
+            return false;
+        });
+        $this->app->set('QUIET', true);
+        $this->app->mock('GET /foo');
+        $this->assertEquals('beforeroute', $this->app['RESPONSE']);
+    }
+
+    public function testRunEventAfterRoute()
+    {
+        $this->registerRoutes();
+        $this->app->set('ONAFTERROUTE', function(App $app) {
+            $app->set('RESPONSE', 'afterroute');
+
+            return false;
+        });
+        $this->app->set('QUIET', true);
+        $this->app->mock('GET /foo');
+        $this->assertEquals('afterroute', $this->app['RESPONSE']);
     }
 
     public function testRunCache()
@@ -798,6 +818,24 @@ class AppTest extends TestCase
         $this->assertEquals($expected, $this->app->get('ROUTES'));
     }
 
+    public function testRouteAlias()
+    {
+        $this->app->route('GET foo /foo', 'handler');
+        $this->app->route('POST foo', 'handler');
+
+        $routes = $this->app['ROUTES'];
+        $expected = [
+            '/foo' => [
+                0 => [
+                    'GET' => ['handler', 0, 0, 'foo'],
+                    'POST' => ['handler', 0, 0, 'foo'],
+                ],
+            ],
+        ];
+
+        $this->assertEquals($expected, $routes);
+    }
+
     /**
      * @expectedException LogicException
      * @expectedExceptionMessage Invalid route pattern: GET
@@ -805,40 +843,6 @@ class AppTest extends TestCase
     public function testRouteInvalid()
     {
         $this->app->route('GET', function() {});
-    }
-
-    public function testSerialize()
-    {
-        $this->app['SERIALIZER'] = 'php';
-        $arg = ['foo'=>'bar'];
-        $expected = serialize($arg);
-        $result = $this->app->serialize($arg);
-        $this->assertEquals($expected, $result);
-
-        if (extension_loaded('igbinary')) {
-            $expected = igbinary_serialize($arg);
-            $this->app['SERIALIZER'] = 'igbinary';
-            $result = $this->app->serialize($arg);
-
-            $this->assertEquals($expected, $result);
-        }
-    }
-
-    public function testUnserialize()
-    {
-        $this->app['SERIALIZER'] = 'php';
-        $expected = ['foo'=>'bar'];
-        $arg = serialize($expected);
-        $result = $this->app->unserialize($arg);
-        $this->assertEquals($expected, $result);
-
-        if (extension_loaded('igbinary')) {
-            $arg = igbinary_serialize($expected);
-            $this->app['SERIALIZER'] = 'igbinary';
-            $result = $this->app->unserialize($arg);
-
-            $this->assertEquals($expected, $result);
-        }
     }
 
     public function testCall()
@@ -933,6 +937,19 @@ class AppTest extends TestCase
         // update timezone
         $this->app->set('TZ', 'Asia/Jakarta');
         $this->assertEquals('Asia/Jakarta', date_default_timezone_get());
+
+        // set cache
+        $this->app->set('CACHE', '');
+        $this->app->set('SEED', 'test');
+        $this->assertEquals('', $this->app->service('cache')->getDsn());
+        $this->assertEquals('test', $this->app->service('cache')->getPrefix());
+
+        // serializer
+        $this->app->set('SERIALIZER', 'php');
+        $raw = ['foo'=>'bar'];
+        $serialized = serialize($raw);
+        $this->assertEquals($serialized, f\serialize($raw));
+        $this->assertEquals($raw, f\unserialize($serialized));
 
         // URI
         $this->app->set('URI', '/foo');
@@ -1029,6 +1046,12 @@ class AppTest extends TestCase
         $this->assertFalse($this->app->exists('bar'));
     }
 
+    public function testFlash()
+    {
+        $this->assertEquals('bar', $this->app->set('foo','bar')->flash('foo'));
+        $this->assertNull($this->app->get('foo'));
+    }
+
     public function testCopy()
     {
         $this->assertEquals('bar', $this->app->set('foo', 'bar')->copy('foo', 'bar')->get('bar'));
@@ -1077,118 +1100,6 @@ class AppTest extends TestCase
     {
         $this->assertEquals(['foo'=>'bar'], $this->app->set('foo', [])->extend('foo', ['foo'=>'bar']));
         $this->assertEquals(['foo'=>'bar'], $this->app->extend('foo', ['foo'=>'bar'], true)->get('foo'));
-    }
-
-    public function cacheProvider()
-    {
-        $provider = [
-            [''],
-            ['folder='.TEMP.'file_cache/'],
-            ['fallback'],
-        ];
-
-        if (extension_loaded('apc')) {
-            $provider[] = ['apc'];
-            $provider[] = ['apcu'];
-            $provider[] = ['auto'];
-        }
-
-        if (extension_loaded('memcached')) {
-            $provider[] = ['memcached=127.0.0.1'];
-        }
-
-        if (extension_loaded('redis')) {
-            $provider[] = ['redis=127.0.0.1'];
-        }
-
-        if (extension_loaded('wincache')) {
-            $provider[] = ['wincache'];
-        }
-
-        if (extension_loaded('xcache')) {
-            $provider[] = ['xcache'];
-        }
-
-        return $provider;
-    }
-
-    /** @dataProvider cacheProvider */
-    public function testCacheExists($dsn)
-    {
-        $this->app->set('CACHE', $dsn);
-        $key = 'foo';
-        $this->assertFalse($this->app->cacheExists($key));
-
-        if ($dsn) {
-            $this->assertTrue($this->app->cacheSet($key, $key)->cacheExists($key));
-        }
-    }
-
-    /** @dataProvider cacheProvider */
-    public function testCacheGet($dsn)
-    {
-        $this->app->set('CACHE', $dsn);
-        $key = 'foo';
-        $this->assertEquals([], $this->app->cacheGet($key));
-
-        if ($dsn) {
-            $this->assertContains($key, $this->app->cacheSet($key, $key)->cacheGet($key));
-
-            $this->app->clear($key);
-            $this->app->cacheSet($key, $key, 1);
-            // onesecond
-            usleep(1000000);
-            $this->assertEquals([], $this->app->cacheGet($key));
-        }
-    }
-
-    /** @dataProvider cacheProvider */
-    public function testCacheSet($dsn)
-    {
-        $this->app->set('CACHE', $dsn);
-        $key = 'foo';
-        $value = 'bar';
-        $this->assertEquals($this->app, $this->app->cacheSet($key, $value));
-
-        if ($dsn) {
-            $this->assertContains($value, $this->app->cacheGet($key));
-
-            $this->assertContains($key, $this->app->cacheSet($key, $key)->cacheGet($key));
-        }
-    }
-
-    /** @dataProvider cacheProvider */
-    public function testCacheClear($dsn)
-    {
-        $this->app->set('CACHE', $dsn);
-        $key = 'foo';
-        $this->assertFalse($this->app->cacheClear($key));
-
-        if ($dsn) {
-            $this->assertTrue($this->app->cacheSet($key, $key)->cacheClear($key));
-        }
-    }
-
-    /** @dataProvider cacheProvider */
-    public function testCacheReset($dsn)
-    {
-        $this->app->set('CACHE', $dsn);
-        $key = 'foo';
-        $this->assertTrue($this->app->cacheReset());
-        $this->assertTrue($this->app->cacheSet($key, $key)->cacheReset());
-    }
-
-    public function testCacheDef()
-    {
-        define('me','bar');
-        $this->assertEquals([null, null], $this->app->cacheDef());
-    }
-
-    public function testCacheRedis()
-    {
-        $this->app->set('CACHE', 'redis=invalid-host');
-        // fallback to folder
-        $this->assertEquals(['folder', TEMP . 'cache/'], $this->app->cacheDef());
     }
 
     public function testOffsetget()

@@ -25,9 +25,19 @@ class Audit
     /** @var array */
     protected $rules = [];
 
-    // TODO: validation message
     /** @var array Rule message */
-    protected $messages = [];
+    protected $messages = [
+        'required' => 'This value should not be blank.',
+        'lenmin' => 'This value is too short. It should have {{ arg1 }} characters or more.',
+        'lenmax' => 'This value is too long. It should have {{ arg1 }} characters or less.',
+        'email' => 'This value is not a valid email address.',
+        'url' => 'This value is not a valid url.',
+        'ipv4' => 'This value is not a valid ipv4 address.',
+        'ipv6' => 'This value is not a valid ipv6 address.',
+        'isprivate' => 'This value is not a private ip address.',
+        'isreserved' => 'This value is not a reserved ip address.',
+        'ispublic' => 'This value is not a public ip address.',
+    ];
 
     /** @var array */
     protected $data = [];
@@ -66,6 +76,32 @@ class Audit
     public function required($val): bool
     {
         return isset($val) && $val !== '';
+    }
+
+    /**
+     * Min length
+     *
+     * @param  string $val
+     * @param  int    $min
+     *
+     * @return string
+     */
+    public function lenMin(string $val, int $min)
+    {
+        return strlen($val) >= $min;
+    }
+
+    /**
+     * Max length
+     *
+     * @param  string $val
+     * @param  int    $max
+     *
+     * @return string
+     */
+    public function lenMax(string $val, int $max)
+    {
+        return strlen($val) <= $max;
     }
 
     /**
@@ -295,7 +331,7 @@ class Audit
      */
     public function setMessage(string $rule, string $message): Audit
     {
-        $this->messages[$rule] = $message;
+        $this->messages[strtolower($rule)] = $message;
 
         return $this;
     }
@@ -464,7 +500,6 @@ class Audit
                 if ($result === false) {
                     // validation fail
                     $this->addError($prule, $id, $args);
-                    unset($validated[$id]);
 
                     break;
                 } elseif ($result === true) {
@@ -490,17 +525,19 @@ class Audit
      */
     protected function addError(string $rule, string $id, array $args): void
     {
-        if (isset($this->messages[$rule])) {
+        $message = $this->messages[strtolower($rule)] ?? null;
+
+        if ($message) {
             $keys = quoteall(array_keys($args), ['{arg','}']);
             $keys[] = '{key}';
             $args[] = $id;
 
-            $msg  = str_replace($keys, $args, $this->messages[$rule]);
+            $message  = str_replace($keys, $args, $message);
         } else {
-            $msg = 'Invalid data';
+            $message = 'Invalid data';
         }
 
-        $this->errors[$id][] = $msg;
+        $this->errors[$id][] = $message;
     }
 
     /**
@@ -525,7 +562,7 @@ class Audit
         }
 
         $prule = $match[1];
-        $args = isset($match[2]) ? split($match[2]) : [];
+        $args = isset($match[2]) ? casts(split($match[2])) : [];
         $cust = true;
         $func = true;
 
@@ -539,11 +576,6 @@ class Audit
             $cust = false;
         } else {
             throw new \LogicException("Rule not found: {$prule}");
-        }
-
-        // cast
-        foreach ($args as $key => $value) {
-            $args[$key] = cast($value);
         }
 
         // First parameter is value

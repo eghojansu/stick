@@ -12,8 +12,10 @@
 namespace Fal\Stick\Test\Unit;
 
 use Fal\Stick as f;
+use Fal\Stick\Cache;
 use Fal\Stick\Database;
 use Fal\Stick\Test\fixture\PureUserEntity;
+use Fal\Stick\Test\fixture\UserEntity;
 use PHPUnit\Framework\TestCase;
 
 class DatabaseTest extends TestCase
@@ -22,7 +24,8 @@ class DatabaseTest extends TestCase
 
     public function setUp()
     {
-        $this->database = new Database([
+        $cache = new Cache('', 'test', TEMP . 'cache/');
+        $this->database = new Database($cache, [
             'driver' => 'sqlite',
             'location' => ':memory:',
             'commands' => [
@@ -54,13 +57,6 @@ SQL1
         $this->database->setOptions(['log'=>true] + $this->database->getOptions());
     }
 
-    public function testPconst()
-    {
-        $this->assertEquals(\PDO::FETCH_ASSOC, Database::pconst('fetch_assoc'));
-        $this->assertEquals(\PDO::FETCH_ASSOC|\PDO::FETCH_COLUMN, Database::pconst('ASSOC|column', 'fetch_'));
-        $this->assertEquals(\PDO::ATTR_DRIVER_NAME, Database::pconst('attr_driver_name'));
-    }
-
     public function testGetDriver()
     {
         $this->assertEquals('sqlite', $this->database->getDriver());
@@ -82,9 +78,9 @@ SQL1
     {
         $options = $this->database->setOptions([
             'driver' => 'mysql',
-            'db_name' => 'test_stick',
-            'db_user' => 'root',
-            'db_pass' => 'pass',
+            'dbname' => 'test_stick',
+            'username' => 'root',
+            'password' => 'pass',
         ])->getOptions();
 
         $this->assertContains('mysql', $options);
@@ -133,7 +129,7 @@ SQL1
             'driver' => 'sqlite',
             'location' => ':memory:',
             'attributes' => [
-                Database::pconst('ATTR_ERRMODE') => Database::pconst('ERRMODE_SILENT'),
+                \PDO::ATTR_ERRMODE => \PDO::ERRMODE_SILENT
             ],
         ]);
 
@@ -150,9 +146,9 @@ SQL1
     {
         $this->database->setOptions([
             'driver' => 'mysql',
-            'db_name' => 'test_stick',
-            'db_user' => 'root',
-            'db_pass' => 'pass',
+            'dbname' => 'test_stick',
+            'username' => 'root',
+            'password' => 'pass',
         ]);
 
         $this->database->pdo();
@@ -165,9 +161,9 @@ SQL1
     {
         $this->database->setOptions([
             'driver' => 'mysql',
-            'db_name' => 'test_stick',
-            'db_user' => 'root',
-            'db_pass' => 'pass',
+            'dbname' => 'test_stick',
+            'username' => 'root',
+            'password' => 'pass',
             'debug' => true,
         ]);
 
@@ -305,6 +301,16 @@ SQL1
         $this->assertFalse($this->database->tableExists('foo'));
     }
 
+    public function testTableExistsCache()
+    {
+        $cache = new Cache('auto', 'test', TEMP . 'cache/');
+        $db = new Database($cache, $this->database->getOptions());
+
+        // with cache
+        $this->assertTrue($db->tableExists('user', 5));
+        $this->assertTrue($db->tableExists('user', 5));
+    }
+
     public function testTableExistsException()
     {
         $this->enableDebug();
@@ -314,27 +320,41 @@ SQL1
     public function testFindOne()
     {
         $this->filldb();
-        $this->database->findOne('user', 'id = 1');
+        $result = $this->database->findOne('user', 'id = 1');
 
-        $this->assertContains('foo', $this->database->fetch());
+        $this->assertContains('foo', $result);
     }
 
     public function testFind()
     {
         $this->filldb();
-        $this->database->find('user');
+        $result = $this->database->find('user');
 
-        $this->assertEquals(3, count($this->database->fetchAll()));
+        $this->assertEquals(3, count($result));
 
         // with group by
-        $this->database->find('user', null, ['group'=>'id','having'=>['id []'=>[1,2,3]],'order'=>'id desc','offset'=>1,'limit'=>2]);
-        $result = $this->database->fetchAll();
+        $result = $this->database->find('user', null, ['group'=>'id','having'=>['id []'=>[1,2,3]],'order'=>'id desc','offset'=>1,'limit'=>2]);
         $this->assertEquals(2, count($result));
+    }
+
+    public function testFindCache()
+    {
+        $cache = new Cache('auto', 'test', TEMP . 'cache/');
+        $db = new Database($cache, $this->database->getOptions());
+
+        $db->insert('user', ['first_name'=>'foo']);
+
+        // with cache
+        $result = $db->find('user', null, null, 5);
+        $this->assertContains('foo', $result[0]);
+
+        $result = $db->find('user', null, null, 5);
+        $this->assertContains('foo', $result[0]);
     }
 
     public function testInsert()
     {
-        $this->assertTrue($this->database->insert('user', ['first_name'=>'user'])->querySuccess());
+        $this->assertEquals(1, $this->database->insert('user', ['first_name'=>'user']));
         $this->assertEquals(1, $this->database->count('user'));
     }
 
@@ -444,7 +464,7 @@ SQL1
     {
         $this->filldb();
 
-        $this->assertTrue($this->database->update('user', ['first_name'=>'foobar', ['last_name = first_name || " baz"']], ['first_name'=>'foo'])->querySuccess());
+        $this->assertTrue($this->database->update('user', ['first_name'=>'foobar', ['last_name = first_name || " baz"']], ['first_name'=>'foo']));
         $this->assertEquals(3, $this->database->count('user'));
         $this->assertEquals(1, $this->database->count('user', ['first_name'=>'foobar']));
     }
@@ -568,29 +588,34 @@ SQL1
     {
         $this->filldb();
 
-        $this->assertTrue($this->database->delete('user', null)->querySuccess());
+        $this->assertTrue($this->database->delete('user', null));
         $this->assertEquals(0, $this->database->count('user'));
 
         $this->filldb();
-        $this->assertTrue($this->database->delete('user', ['first_name'=>'foo'])->querySuccess());
+        $this->assertTrue($this->database->delete('user', ['first_name'=>'foo']));
         $this->assertEquals(2, $this->database->count('user'));
     }
 
     public function testGetQuery()
     {
-        $this->assertInstanceOf(\PDOStatement::class, $this->database->find('user')->getQuery());
+        $this->database->find('user');
+        $this->assertInstanceOf(\PDOStatement::class, $this->database->getQuery());
     }
 
-    public function testQuerySuccess()
+    public function testIsQuerySuccess()
     {
-        $this->assertTrue($this->database->find('user')->querySuccess());
-        $this->assertFalse($this->database->find('muser')->querySuccess());
+        $this->database->find('user');
+        $this->assertTrue($this->database->isQuerySuccess());
+        $this->database->find('muser');
+        $this->assertFalse($this->database->isQuerySuccess());
     }
 
-    public function testQueryFailed()
+    public function testIsQueryFailed()
     {
-        $this->assertFalse($this->database->find('user')->queryFailed());
-        $this->assertTrue($this->database->find('muser')->queryFailed());
+        $this->database->find('user');
+        $this->assertFalse($this->database->isQueryFailed());
+        $this->database->find('muser');
+        $this->assertTrue($this->database->isQueryFailed());
     }
 
     public function testGetMessage()
@@ -598,7 +623,8 @@ SQL1
         $this->assertEquals('', $this->database->getMessage());
 
         // query false
-        $this->assertEquals('Invalid query', $this->database->find('muser')->getMessage());
+        $this->database->find('muser');
+        $this->assertEquals('Invalid query', $this->database->getMessage());
     }
 
     public function testLastInsertId()
@@ -618,46 +644,6 @@ SQL1
         $this->database->findOne('muser');
     }
 
-    public function testFetch()
-    {
-        $this->filldb();
-        $this->database->find('user');
-        $this->assertContains('foo', $this->database->fetch());
-    }
-
-    /**
-     * @expectedException LogicException
-     * @expectedExceptionMessage You need to run a query first before call this method
-     */
-    public function testFetchException()
-    {
-        $this->assertContains('foo', $this->database->fetch());
-    }
-
-    public function testFetchAll()
-    {
-        $this->filldb();
-        $this->database->find('user');
-        $result = $this->database->fetchAll();
-        $this->assertEquals(3, count($result));
-
-        $result = $this->database->find('user')->fetchAll(Database::pconst('fetch_class'), \stdclass::class);
-        $this->assertEquals(3, count($result));
-        $this->assertInstanceOf(\stdclass::class, $result[0]);
-        $this->assertEquals('foo', $result[0]->first_name);
-
-        $result = $this->database->find('user')->fetchAll(Database::pconst('fetch_class'), PureUserEntity::class);
-        $this->assertInstanceOf(PureUserEntity::class, $result[0]);
-        $this->assertEquals('foo', $result[0]->getName());
-    }
-
-    public function testFetchColumn()
-    {
-        $this->filldb();
-        $this->database->find('user');
-        $this->assertEquals('foo', $this->database->fetchColumn(1));
-    }
-
     public function testExecute()
     {
         $this->assertTrue($this->database->execute(function($db) {
@@ -672,7 +658,7 @@ SQL1
             $db->insert('user', ['first_name'=>'foo']);
             $db->insert('muser', ['first_name'=>'bar']);
 
-            return $db->querySuccess();
+            return $db->isQuerySuccess();
         }));
 
         $this->assertEquals(0, $this->database->count('user'));
@@ -799,13 +785,13 @@ SQL1
         $this->filldb();
 
         $this->assertEquals(3, $this->database->countUser());
-        $this->assertContains('foo', $this->database->findOneUser()->fetch());
-        $this->assertContains('bar', $this->database->findOneUserByFirstName('bar')->fetch());
-        $this->assertNotEmpty($this->database->findUser()->fetchAll());
-        $this->assertTrue($this->database->insertUser(['first_name'=>'test'])->querySuccess());
-        $this->assertTrue($this->database->updateUser(['first_name'=>'test update'], 'first_name = "test"')->querySuccess());
-        $this->assertTrue($this->database->deleteUser('first_name = "test"')->querySuccess());
-        $this->assertEmpty($this->database->findOneUser('first_name = "test"')->fetch());
+        $this->assertContains('foo', $this->database->findOneUser());
+        $this->assertContains('bar', $this->database->findOneUserByFirstName('bar'));
+        $this->assertEquals(3, count($this->database->findUser()));
+        $this->assertEquals(4, $this->database->insertUser(['first_name'=>'test']));
+        $this->assertTrue($this->database->updateUser(['first_name'=>'test update'], 'first_name = "test"'));
+        $this->assertTrue($this->database->deleteUser('first_name = "test"'));
+        $this->assertEmpty($this->database->findOneUser('first_name = "test"'));
     }
 
     public function testMagicMethodInsertBatch()
@@ -871,17 +857,6 @@ SQL1
         $this->database->invalidMethodCall();
     }
 
-    public function testGetCurrentMap()
-    {
-        $this->assertEquals('', $this->database->getCurrentMap());
-        $this->assertEquals('user', $this->database->findUser()->getCurrentMap());
-    }
-
-    public function testSetCurrentMap()
-    {
-        $this->assertEquals('foo', $this->database->setCurrentMap('foo')->getCurrentMap());
-    }
-
     public function testGetMaps()
     {
         $this->assertEquals([], $this->database->getMaps());
@@ -892,7 +867,7 @@ SQL1
     public function testSetMaps()
     {
         $this->database->setMaps(['user'=>['class'=>PureUserEntity::class]]);
-        $this->assertEquals(['class'=>PureUserEntity::class,'transformer'=>null,'select'=>null,'safe'=>[],'table'=>'user'], $this->database->getMap('user'));
+        $this->assertContains(PureUserEntity::class, $this->database->getMap('user'));
     }
 
     public function testGetMap()
@@ -903,45 +878,67 @@ SQL1
 
     public function testSetMap()
     {
+        $this->database->setMap('user', ['class'=>PureUserEntity::class]);
+        $this->assertContains(PureUserEntity::class, $this->database->getMap('user'));
+    }
+
+    public function testSetMapSelect()
+    {
         $this->filldb();
 
-        $this->database->setMap('user', ['class'=>PureUserEntity::class]);
-        $this->assertEquals(['class'=>PureUserEntity::class,'transformer'=>null,'select'=>null,'safe'=>[],'table'=>'user'], $this->database->getMap('user'));
+        // rule for select column
+        $this->database->setMap('user', ['select'=>'id']);
+        $result = $this->database->findOneUser();
+        $this->assertEquals(['id'=>1], $result);
+    }
 
-        $result = $this->database->findUser()->fetchAll(Database::pconst('fetch_class'));
-
-        $this->assertInstanceOf(PureUserEntity::class, $result[0]);
-        $this->assertEquals('foo', $result[0]->getName());
+    public function testSetMapFetchFunc()
+    {
+        $this->filldb();
 
         $transformer = function($id) {
             return [$id];
         };
         $this->database->setMap('user', ['transformer'=>$transformer]);
 
-        $result = $this->database->findUser()->fetchAll(Database::pconst('fetch_func'));
+        $result = $this->database->findUser();
         $this->assertEquals([1], $result[0]);
 
-        // clear map
-        $result = $this->database->findUser()->fetchAll(Database::pconst('fetch_obj'));
-        $this->assertInstanceOf(\stdclass::class, $result[0]);
-        $this->assertEquals('foo', $result[0]->first_name);
+        $result = $this->database->findOneUser();
+        $this->assertEquals([1], $result);
+    }
 
+    public function testSetMapFetchClass()
+    {
+        $this->filldb();
+
+        $this->database->setMap('user', ['class'=>UserEntity::class]);
+
+        $result = $this->database->findUser();
+        $this->assertInstanceOf(UserEntity::class, $result[0]);
+        $this->assertEquals(1, $result[0]->getId());
+    }
+
+    public function testSetMapInsert()
+    {
         // rule for safe column
         $this->database->setMap('user', ['safe'=>['first_name']]);
         $this->database->insertUser(['first_name'=>'xfoo','unsafe'=>'value']);
 
-        $this->assertTrue($this->database->querySuccess());
-        $this->assertContains('xfoo', $this->database->findOneUserByFirstName('xfoo')->fetch());
+        $this->assertTrue($this->database->isQuerySuccess());
+        $this->assertContains('xfoo', $this->database->findOneUserByFirstName('xfoo'));
+    }
+
+    public function testSetMapUpdate()
+    {
+        $this->filldb();
 
         // update
-        $this->database->updateUser(['first_name'=>'foofoo','unsafe'=>'value'], 'first_name = "xfoo"');
-        $this->assertTrue($this->database->querySuccess());
-        $this->assertContains('foofoo', $this->database->findOneUserByFirstName('foofoo')->fetch());
+        $this->database->setMap('user', ['safe'=>['first_name']]);
+        $this->database->updateUser(['first_name'=>'foofoo','unsafe'=>'value'], 'first_name = "foo"');
 
-        // rule for select column
-        $this->database->setMap('user', ['select'=>'id']);
-        $result = $this->database->findOneUser()->fetch();
-        $this->assertEquals(['id'=>1], $result);
+        $this->assertTrue($this->database->isQuerySuccess());
+        $this->assertContains('foofoo', $this->database->findOneUserByFirstName('foofoo'));
     }
 
     public function testSetMapInsertBatch()

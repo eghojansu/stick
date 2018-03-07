@@ -510,3 +510,59 @@ function picktoargs(array $source, array $keys = null): array
 
     return $picked;
 }
+
+/**
+ * Return string representation of PHP value
+ *
+ * @param mixed $arg
+ * @param string $serializer
+ *
+ * @return string
+ */
+function serialize($arg, string $serializer = null): string
+{
+    static $use;
+
+    if ($serializer) {
+        $use = $serializer;
+    }
+
+    if ($arg === null) {
+        return '';
+    }
+
+    switch ($use) {
+        case 'igbinary':
+            return igbinary_serialize($arg);
+        default:
+            return \serialize($arg);
+    }
+}
+
+/**
+ * Return PHP value derived from string
+ *
+ * @param mixed $arg
+ * @param string $serializer
+ *
+ * @return mixed
+ */
+function unserialize($arg, string $serializer = null)
+{
+    static $use;
+
+    if ($serializer) {
+        $use = $serializer;
+    }
+
+    if ($arg === null) {
+        return;
+    }
+
+    switch ($use) {
+        case 'igbinary':
+            return igbinary_unserialize($arg);
+        default:
+            return \unserialize($arg);
+    }
+}

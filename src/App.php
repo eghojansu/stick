@@ -89,18 +89,10 @@ final class App implements \ArrayAccess
     /** @var array Service aliases */
     protected $aliases = [];
 
-    /** @var string Cache id */
-    private $cache;
-
-    /** @var Redis|Memcached|string */
-    private $cacheRef;
-
     /**
      * Class constructor
-     *
-     * @param int $debug
      */
-    public function __construct(int $debug = 0)
+    public function __construct()
     {
         $cli = PHP_SAPI === 'cli';
         $check = error_reporting((E_ALL|E_STRICT)&~(E_NOTICE|E_USER_NOTICE));
@@ -204,7 +196,7 @@ final class App implements \ArrayAccess
             'ALIASES' => [],
             'BASE' => $base,
             'BODY' => '',
-            'CACHE' => null,
+            'CACHE' => '',
             'CASELESS' => false,
             'CONFIG' => './',
             'CORS' => [
@@ -215,12 +207,13 @@ final class App implements \ArrayAccess
                 'ttl' => 0,
             ],
             'CLI' => $cli,
-            'DEBUG' => $debug,
+            'DEBUG' => 0,
             'DNSBL' => '',
             'ERROR' => null,
+            'EXCEPTION' => null,
             'EXEMPT' => null,
             'FRAGMENT' => $uri['fragment'],
-            'HALT' => true,
+            'HANDLER' => null,
             'HEADERS' => $headers,
             'HOST' => $_SERVER['SERVER_NAME'],
             'IP' => $this->ip(),
@@ -238,6 +231,9 @@ final class App implements \ArrayAccess
                 'headers' => null,
             ],
             'METHOD' => $_SERVER['REQUEST_METHOD'],
+            'MODE' => 0,
+            'ONAFTERROUTE' => null,
+            'ONBEFOREROUTE' => null,
             'ONERROR' => null,
             'ONREROUTE' => null,
             'ONUNLOAD' => null,
@@ -260,7 +256,17 @@ final class App implements \ArrayAccess
             'SCHEME' => $scheme,
             'SEED' => hash($_SERVER['SERVER_NAME'] . $base),
             'SERIALIZER' => extension_loaded('igbinary') ? 'igbinary' : 'php',
-            'SERVICE' => [],
+            'SERVICE' => [
+                'cache' => [
+                    'class' => Cache::class,
+                    'keep' => true,
+                    'params' => [
+                        'dsn' => '%CACHE%',
+                        'prefix' => '%SEED%',
+                        'temp' => '%TEMP%cache/',
+                    ],
+                ],
+            ],
             'STATUS' => 200,
             'TEMP' => './var/',
             'TEXT' => self::HTTP_200,
@@ -284,6 +290,13 @@ final class App implements \ArrayAccess
             $this->init[$global] = in_array($global, ['ENV', 'SERVER']) ? $sync : [];
         }
 
+        // set serializer
+        serialize(null, $this->hive['SERIALIZER']);
+        unserialize(null, $this->hive['SERIALIZER']);
+
+        // Alias core service
+        $this->aliases[Cache::class] = 'cache';
+
         // @codeCoverageIgnoreStart
         if (PHP_SAPI === 'cli-server' && $base === $_SERVER['REQUEST_URI']) {
             $this->reroute('/');
@@ -298,6 +311,33 @@ final class App implements \ArrayAccess
             $this->error(500, 'Fatal error: ' . $error['message'], [$error]);
         }
         // @codeCoverageIgnoreEnd
+    }
+
+    /**
+     * Register error handler
+     *
+     * @return App
+     *
+     * @codeCoverageIgnore
+     */
+    public function registerErrorHandler(): App
+    {
+        set_exception_handler(function($e) {
+            $this->hive['EXCEPTION'] = $e;
+            $this->error(
+                500,
+                $e->getmessage() . ' ' . '[' . $e->getFile() . ':' . $e->getLine() . ']',
+                $e->gettrace()
+            );
+        });
+
+        set_error_handler(function($level, $text, $file, $line) {
+            if ($level & error_reporting()) {
+                $this->error(500, $text, NULL, $level);
+            }
+        });
+
+        return $this;
     }
 
     /**
@@ -713,6 +753,7 @@ final class App implements \ArrayAccess
                 // Save matching route
                 $this->hive['ALIAS'] = $alias;
                 $this->hive['PATTERN'] = $pattern;
+                $this->hive['HANDLER'] = $handler;
 
                 // Expose if defined
                 if ($cors && $cors['expose']) {
@@ -739,8 +780,9 @@ final class App implements \ArrayAccess
                 if ($ttl && in_array($method, ['GET', 'HEAD'])) {
                     // Only GET and HEAD requests are cacheable
                     $hash = hash($method . ' ' . $this->hive['URI']) . '.url';
+                    $cache = $this->service('cache');
 
-                    if ($this->cacheExists($hash)) {
+                    if ($cache->exists($hash)) {
                         if (
                             isset($headers['If-Modified-Since'])
                             && strtotime($headers['If-Modified-Since'])+$ttl > $now
@@ -754,7 +796,7 @@ final class App implements \ArrayAccess
                         }
 
                         // Retrieve from cache backend
-                        $cached = $this->cacheGet($hash);
+                        $cached = $cache->get($hash);
                         list($headers, $body) = $cached[0];
 
                         $this
@@ -783,7 +825,7 @@ final class App implements \ArrayAccess
 
                     if (!is_callable($handler)) {
                         if (is_array($handler)) {
-                            $this->error(405);
+                            $this->error(404);
                         } else {
                             $info = stringify($handler);
                             $this->error(500, 'Invalid method: ' . $info);
@@ -792,8 +834,14 @@ final class App implements \ArrayAccess
                         return;
                     }
 
+                    $routeArgs = array_slice($args, 1);
+
+                    if ($this->trigger('ONBEFOREROUTE', $routeArgs) === false) {
+                        return;
+                    }
+
                     ob_start();
-                    $this->call($handler, array_slice($args, 1));
+                    $this->call($handler, $routeArgs);
                     $body = ob_get_clean();
 
                     if (isset($hash) && $body && !error_get_last()) {
@@ -801,10 +849,14 @@ final class App implements \ArrayAccess
                         unset($headers['Set-Cookie']);
 
                         // Save to cache backend
-                        $this->cacheSet($hash, [
+                        $cache->set($hash, [
                             $headers,
                             $body
                         ], $ttl);
+                    }
+
+                    if ($this->trigger('ONAFTERROUTE', $routeArgs) === false) {
+                        return;
                     }
                 }
 
@@ -886,7 +938,15 @@ final class App implements \ArrayAccess
         $this->hive['HEADERS'] = $headers;
 
         // reset
-        $this->clears(['BODY', 'RHEADERS', 'RESPONSE', 'ERROR', 'TEXT', 'STATUS']);
+        $this->clears([
+            'ALIAS',
+            'BODY',
+            'ERROR',
+            'RHEADERS',
+            'RESPONSE',
+            'STATUS',
+            'TEXT',
+        ]);
 
         parse_str($uri['query'], $GLOBALS['_GET']);
 
@@ -917,9 +977,9 @@ final class App implements \ArrayAccess
      * @param  string|array|null  $url
      * @param  boolean $permanent
      *
-     * @return void
+     * @return bool
      */
-    public function reroute($url = null, bool $permanent = false): void
+    public function reroute($url = null, bool $permanent = false): bool
     {
         if (!$url) {
             $url = $this->hive['REALM'];
@@ -929,8 +989,8 @@ final class App implements \ArrayAccess
             $url = $this->build($url);
         }
 
-        if ($this->trigger('ONREROUTE', [$url, $permanent])) {
-            return;
+        if ($this->trigger('ONREROUTE', [$url, $permanent]) === true) {
+            return false;
         }
 
         if ($url[0] === '/' && (empty($url[1]) || $url[1] !== '/')) {
@@ -949,6 +1009,8 @@ final class App implements \ArrayAccess
                 ->sendHeader()
             ;
         }
+
+        return false;
     }
 
     /**
@@ -1023,7 +1085,7 @@ final class App implements \ArrayAccess
             session_commit();
         }
 
-        if ($this->trigger('ONUNLOAD', [$cwd], true)) {
+        if ($this->trigger('ONUNLOAD', [$cwd], true) === true) {
             return;
         }
 
@@ -1087,7 +1149,7 @@ final class App implements \ArrayAccess
 
         $this->expire(-1);
 
-        if ($this->trigger('ONERROR', null, true) || $this->hive['QUIET']) {
+        if ($this->trigger('ONERROR', null, true) === true || $this->hive['QUIET']) {
             return;
         }
 
@@ -1115,22 +1177,6 @@ final class App implements \ArrayAccess
 </html>
 ERR
 );
-        }
-    }
-
-    /**
-     * Do halt conditionally
-     *
-     * @param bool $force
-     *
-     * @return void
-     *
-     * @codeCoverageIgnore
-     */
-    public function halt(bool $force = false): void
-    {
-        if ($force || $this->hive['HALT']) {
-            die(1);
         }
     }
 
@@ -1225,7 +1271,10 @@ ERR
 
         list($route, $prefix) = $parts + [1=>''];
 
-        $type = constant(self::class . '::REQ_' . strtoupper($parts[2] ?? ''), 0);
+        $type = constant(
+            self::class . '::REQ_' . strtoupper($parts[2] ?? ''),
+            $this->hive['MODE']
+        );
         $str = is_string($class);
         $resources = $map ?? array_keys($defMap);
 
@@ -1402,16 +1451,25 @@ ERR
             $match
         );
 
+        $alias = $match[2] ?? null;
+
+        if (!$alias && isset($match[3]) && isset($this->hive['ALIASES'][$match[3]])) {
+            $alias = $match[3];
+            $match[3] = $this->hive['ALIASES'][$alias];
+        }
+
         if (empty($match[3])) {
             throw new \LogicException('Invalid route pattern: ' . $pattern);
         }
 
-        $alias = $match[2] ?? null;
         if ($alias) {
             $this->hive['ALIASES'][$alias] = $match[3];
         }
 
-        $type  = constant(self::class . '::REQ_' . strtoupper($match[4] ?? ''), 0);
+        $type  = constant(
+            self::class . '::REQ_' . strtoupper($match[4] ?? ''),
+            $this->hive['MODE']
+        );
         $verbs = split(strtoupper($match[1]));
 
         foreach ($verbs as $verb) {
@@ -1419,38 +1477,6 @@ ERR
         }
 
         return $this;
-    }
-
-    /**
-     * Return string representation of PHP value
-     *
-     * @param mixed $arg
-     * @return string
-     */
-    public function serialize($arg): string
-    {
-        switch ($this->hive['SERIALIZER']) {
-            case 'igbinary':
-                return igbinary_serialize($arg);
-            default:
-                return serialize($arg);
-        }
-    }
-
-     /**
-     * Return PHP value derived from string
-     *
-     * @param mixed $arg
-     * @return mixed
-     */
-    public function unserialize($arg)
-    {
-        switch ($this->hive['SERIALIZER']) {
-            case 'igbinary':
-                return igbinary_unserialize($arg);
-            default:
-                return unserialize($arg);
-        }
     }
 
     /**
@@ -1509,7 +1535,7 @@ ERR
             $service = $this->call($rule['constructor']);
             $class = $rule['class'] ?? get_class($service);
 
-            if (!isset($this->aliases[$class])) {
+            if (!isset($this->aliases[$class]) && $class !== $id) {
                 $this->aliases[$class] = $id;
             }
         } elseif (method_exists($class, '__construct')) {
@@ -1657,10 +1683,17 @@ ERR
         } else {
             switch ($key) {
                 case 'CACHE':
-                    $this->cache = null;
+                    $this->service('cache')->setDsn($val);
+                    break;
+                case 'SEED':
+                    $this->service('cache')->setPrefix($val);
                     break;
                 case 'TZ':
                     date_default_timezone_set($val);
+                    break;
+                case 'SERIALIZER':
+                    serialize(null, $val);
+                    unserialize(null, $val);
                     break;
             }
         }
@@ -1693,7 +1726,7 @@ ERR
     {
         if ('CACHE' === $key) {
             // Clear cache contents
-            $this->cacheReset();
+            $this->service('cache')->reset();
 
             return $this;
         }
@@ -1794,6 +1827,21 @@ ERR
         }
 
         return $this;
+    }
+
+    /**
+     * Get and clear
+     *
+     * @param  string $key
+     *
+     * @return mixed
+     */
+    public function flash(string $key)
+    {
+        $val = $this->get($key);
+        $this->clear($key);
+
+        return $val;
     }
 
     /**
@@ -1976,247 +2024,6 @@ ERR
     }
 
     /**
-     * Check cache item by key
-     *
-     * @param  string $key
-     *
-     * @return bool
-     */
-    public function cacheExists(string $key): bool
-    {
-        $this->cacheLoad();
-
-        $ndx = $this->hive['SEED'] . '.' . $key;
-
-        switch ($this->cache) {
-            case 'apc':
-                return apc_exists($ndx);
-            case 'apcu':
-                return apcu_exists($ndx);
-            case 'folder':
-                return (bool) $this->cacheParse($key, read($this->cacheRef . $ndx));
-            case 'memcached':
-                return (bool) $this->cacheRef->get($ndx);
-            case 'redis':
-                return $this->cacheRef->exists($ndx);
-            case 'wincache':
-                return wincache_ucache_exists($ndx);
-            case 'xcache':
-                return xcache_exists($ndx);
-            default:
-                return false;
-        }
-    }
-
-    /**
-     * Get cache item content
-     *
-     * @param  string $key
-     *
-     * @return array
-     */
-    public function cacheGet(string $key): array
-    {
-        $this->cacheLoad();
-
-        $ndx = $this->hive['SEED'] . '.' . $key;
-
-        switch ($this->cache) {
-            case 'apc':
-                $raw = apc_fetch($ndx);
-                break;
-            case 'apcu':
-                $raw = apcu_fetch($ndx);
-                break;
-            case 'folder':
-                $raw = read($this->cacheRef . $ndx);
-                break;
-            case 'memcached':
-                $raw = $this->cacheRef->get($ndx);
-                break;
-            case 'redis':
-                $raw = $this->cacheRef->get($ndx);
-                break;
-            case 'wincache':
-                $raw = wincache_ucache_get($ndx);
-                break;
-            case 'xcache':
-                $raw = xcache_get($ndx);
-                break;
-            default:
-                $raw = null;
-                break;
-        }
-
-        return $this->cacheParse($key, (string) $raw);
-    }
-
-    /**
-     * Set cache item content
-     *
-     * @param  string $key
-     * @param  mixed $val
-     * @param  int $ttl
-     *
-     * @return App
-     */
-    public function cacheSet(string $key, $val, int $ttl = 0): App
-    {
-        $this->cacheLoad();
-
-        $ndx = $this->hive['SEED'] . '.' . $key;
-        $content = $this->cacheCompact($val, (int) microtime(true), $ttl);
-
-        switch ($this->cache) {
-            case 'apc':
-                apc_store($ndx, $content, $ttl);
-                break;
-            case 'apcu':
-                apcu_store($ndx, $content, $ttl);
-                break;
-            case 'folder':
-                write($this->cacheRef . str_replace(['/', '\\'], '', $ndx), $content);
-                break;
-            case 'memcached':
-                $this->cacheRef->set($ndx, $content);
-                break;
-            case 'redis':
-                $this->cacheRef->set($ndx, $content, array_filter(['ex'=>$ttl]));
-                break;
-            case 'wincache':
-                wincache_ucache_set($ndx, $content, $ttl);
-                break;
-            case 'xcache':
-                xcache_set($ndx, $content, $ttl);
-                break;
-        }
-
-        return $this;
-    }
-
-    /**
-     * Remove cache item
-     *
-     * @param  string $key
-     *
-     * @return bool
-     */
-    public function cacheClear(string $key): bool
-    {
-        $this->cacheLoad();
-
-        $ndx = $this->hive['SEED'] . '.' . $key;
-
-        switch ($this->cache) {
-            case 'apc':
-                return apc_delete($ndx);
-            case 'apcu':
-                return apcu_delete($ndx);
-            case 'folder':
-                return delete($this->cacheRef . $ndx);
-            case 'memcached':
-                return $this->cacheRef->delete($ndx);
-            case 'redis':
-                return (bool) $this->cacheRef->del($ndx);
-            case 'wincache':
-                return wincache_ucache_delete($ndx);
-            case 'xcache':
-                return xcache_unset($ndx);
-            default:
-                return false;
-        }
-    }
-
-    /**
-     * Reset cache
-     *
-     * @param  string $suffix
-     *
-     * @return bool
-     */
-    public function cacheReset(string $suffix = ''): bool
-    {
-        $this->cacheLoad();
-
-        $regex = '/' . preg_quote($this->hive['SEED'], '/') . '\..+' . preg_quote($suffix, '/') . '/';
-
-        switch ($this->cache) {
-            case 'apc':
-                $info = apc_cache_info('user');
-                if ($info && isset($info['cache_list']) && $info['cache_list']) {
-                    $key = array_key_exists('info', $info['cache_list'][0]) ? 'info' : 'key';
-                    foreach ($info['cache_list'] as $item) {
-                        if (preg_match($regex, $item[$key])) {
-                            apc_delete($item[$key]);
-                        }
-                    }
-                }
-
-                return true;
-            case 'apcu':
-                $info = apcu_cache_info(false);
-                if ($info && isset($info['cache_list']) && $info['cache_list']) {
-                    $key = array_key_exists('info', $info['cache_list'][0]) ? 'info' : 'key';
-                    foreach ($info['cache_list'] as $item) {
-                        if (preg_match($regex, $item[$key])) {
-                            apcu_delete($item[$key]);
-                        }
-                    }
-                }
-
-                return true;
-            case 'folder':
-                $files = glob($this->cacheRef . $this->hive['SEED'] . '*' . $suffix) ?: [];
-                foreach ($files as $file) {
-                    unlink($file);
-                }
-
-                return true;
-            case 'memcached':
-                $keys = preg_grep($regex, $this->cacheRef->getallkeys());
-                foreach ($keys as $key) {
-                    $this->cacheRef->delete($key);
-                }
-
-                return true;
-            case 'redis':
-                $keys = $this->cacheRef->keys($this->hive['SEED'] . '*' . $suffix);
-                foreach($keys as $key) {
-                    $this->cacheRef->del($key);
-                }
-
-                return true;
-            case 'wincache':
-                $info = wincache_ucache_info();
-                $keys = preg_grep($regex, array_column($info['ucache_entries'], 'key_name'));
-                foreach ($keys as $key) {
-                    wincache_ucache_delete($key);
-                }
-
-                return true;
-            case 'xcache':
-                xcache_unset_by_prefix($this->hive['SEED'] . '.');
-
-                return true;
-            default:
-
-                return true;
-        }
-    }
-
-    /**
-     * Get used cache
-     *
-     * @return array
-     */
-    public function cacheDef(): array
-    {
-        $this->cacheLoad();
-
-        return [$this->cache, $this->cacheRef];
-    }
-
-    /**
      * Grab class name and method, create instance if needed
      *
      * @param  string $callback
@@ -2248,6 +2055,10 @@ ERR
      */
     protected function methodArgs(\ReflectionFunctionAbstract $ref, array $args = []): array
     {
+        if ($ref->getNumberOfParameters() === 0) {
+            return [];
+        }
+
         $result  = [];
         $pArgs = array_filter($args, 'is_numeric', ARRAY_FILTER_USE_KEY);
 
@@ -2405,9 +2216,9 @@ ERR
      * @param  array|null $args
      * @param  bool       $once
      *
-     * @return bool
+     * @return bool|null
      */
-    protected function trigger(string $event, array $args = null, bool $once = false): bool
+    protected function trigger(string $event, array $args = null, bool $once = false): ?bool
     {
         if (isset($this->hive[$event])) {
             $handler = $this->hive[$event];
@@ -2421,7 +2232,7 @@ ERR
             return $result !== false;
         }
 
-        return false;
+        return null;
     }
 
     /**
@@ -2457,110 +2268,6 @@ ERR
         }
 
         echo $content;
-    }
-
-    /**
-     * Load cache by dsn
-     *
-     * @return void
-     */
-    protected function cacheLoad(): void
-    {
-        $dsn = $this->hive['CACHE'];
-
-        if ($this->cache || !$dsn) {
-            return;
-        }
-
-        $parts = array_map('trim', explode('=', $dsn) + [1 => '']);
-        $auto = '/^(apc|apcu|wincache|xcache)/';
-        $grep = preg_grep($auto, array_map('strtolower', get_loaded_extensions()));
-
-        // Fallback to filesystem cache
-        $fallback = 'folder';
-        $folder = $this->hive['TEMP'] . 'cache/';
-
-        if ($parts[0] === 'redis' && $parts[1] && extension_loaded('redis')) {
-            list($host, $port, $db) = explode(':', $parts[1]) + [1=>0, 2=>null];
-
-            $this->cache = 'redis';
-            $this->cacheRef = new \Redis();
-
-            try {
-                $this->cacheRef->connect($host, $port ?: 6379, 2);
-
-                if ($db) {
-                    $this->cacheRef->select($db);
-                }
-            } catch(\Throwable $e) {
-                $this->cache = $fallback;
-                $this->cacheRef = $folder;
-            }
-        } elseif ($parts[0] === 'memcached' && $parts[1] && extension_loaded('memcached')) {
-            $servers = explode(';', $parts[1]);
-
-            $this->cache = 'memcached';
-            $this->cacheRef = new \Memcached();
-
-            foreach ($servers as $server) {
-                list($host, $port) = explode(':', $server) + [1=>11211];
-
-                $this->cacheRef->addServer($host, $port);
-            }
-        } elseif ($parts[0] === 'folder' && $parts[1]) {
-            $this->cache = 'folder';
-            $this->cacheRef = $parts[1];
-        } elseif (preg_match($auto, $dsn, $parts)) {
-            $this->cache = $parts[1];
-            $this->cacheRef = null;
-        } elseif (strtolower($dsn) === 'auto' && $grep) {
-            $this->cache = current($grep);
-            $this->cacheRef = null;
-        } else {
-            $this->cache = $fallback;
-            $this->cacheRef = $folder;
-        }
-
-        if ($fallback === $this->cache) {
-            mkdir($this->cacheRef);
-        }
-    }
-
-    /**
-     * Compact cache content and time
-     *
-     * @param  mixed $content
-     * @param  int    $time
-     * @param  int    $ttl
-     *
-     * @return string
-     */
-    protected function cacheCompact($content, int $time, int $ttl): string
-    {
-        return $this->serialize([$content, $time, $ttl]);
-    }
-
-    /**
-     * Parse raw cache data
-     *
-     * @param  string $key
-     * @param  string $raw
-     *
-     * @return void
-     */
-    protected function cacheParse(string $key, string $raw): array
-    {
-        if ($raw) {
-            list($val, $time, $ttl) = (array) $this->unserialize($raw);
-
-            if (0 === $ttl || $time+$ttl > microtime(true)) {
-                return [$val, $time, $ttl];
-            }
-
-            $this->cacheClear($key);
-        }
-
-        return [];
     }
 
     /**

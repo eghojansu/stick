@@ -298,4 +298,42 @@ class FunctionsTest extends Testcase
         $this->assertEquals([0,'foo',true,false], f\picktoargs([0,'foo',true,false,null,'bar']));
         $this->assertEquals([0,'foo',true], f\picktoargs([0,'foo',true,false,null,'bar'], [2,1,0]));
     }
+
+    public function testSerialize()
+    {
+        $arg = ['foo'=>'bar'];
+        $expected = serialize($arg);
+        $result = f\serialize($arg, 'php');
+        $this->assertEquals($expected, $result);
+
+        if (extension_loaded('igbinary')) {
+            $expected = igbinary_serialize($arg);
+            $result = f\serialize($arg, 'igbinary');
+
+            $this->assertEquals($expected, $result);
+
+            // second call without serializer declaration
+            $result = f\serialize($arg);
+            $this->assertEquals($expected, $result);
+        }
+    }
+
+    public function testUnserialize()
+    {
+        $expected = ['foo'=>'bar'];
+        $arg = serialize($expected);
+        $result = f\unserialize($arg, 'php');
+        $this->assertEquals($expected, $result);
+
+        if (extension_loaded('igbinary')) {
+            $arg = igbinary_serialize($expected);
+            $result = f\unserialize($arg, 'igbinary');
+
+            $this->assertEquals($expected, $result);
+
+            // second call without serializer declaration
+            $result = f\unserialize($arg);
+            $this->assertEquals($expected, $result);
+        }
+    }
 }

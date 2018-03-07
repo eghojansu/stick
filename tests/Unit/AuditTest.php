@@ -123,7 +123,7 @@ class AuditTest extends TestCase
         $this->audit->validate([]);
         $this->assertFalse($this->audit->success());
         $this->assertEquals([], $this->audit->getValidated());
-        $this->assertEquals(['foo'=>['Foo foo baz'],'email'=>['Invalid data']], $this->audit->getErrors());
+        $this->assertEquals(['foo'=>['Foo foo baz'],'email'=>['This value is not a valid email address.']], $this->audit->getErrors());
     }
 
     public function testValidateConstruct()
@@ -190,6 +190,18 @@ class AuditTest extends TestCase
         $this->assertTrue($this->audit->required('foo'));
         $this->assertTrue($this->audit->required(1));
         $this->assertTrue($this->audit->required(0));
+    }
+
+    public function testLenMin()
+    {
+        $this->assertTrue($this->audit->lenMin('foo', 3));
+        $this->assertFalse($this->audit->lenMin('fo', 3));
+    }
+
+    public function testLenMax()
+    {
+        $this->assertTrue($this->audit->lenMax('foo', 3));
+        $this->assertFalse($this->audit->lenMax('foobar', 3));
     }
 
     public function testUrl()
