@@ -53,27 +53,27 @@ class Mapper
         $use = $this->source ?? $table ?? rtrim(cutbefore('mapper', snakecase(classname($this))), '_');
 
         $this->db = $db;
-        $this->setTable($use, $fields, $ttl);
+        $this->setSource($use, $fields, $ttl);
     }
 
     /**
-     * Set table
+     * Set source (table)
      *
-     * @param string       $table
+     * @param string       $source
      * @param string|array $fields
      * @param int          $ttl
      *
      * @return Mapper
      */
-    public function setTable(string $table, $fields = null, int $ttl = 60): Mapper
+    public function setSource(string $source, $fields = null, int $ttl = 60): Mapper
     {
-        if (!$table) {
+        if (!$source) {
             return $this;
         }
 
-        $this->source = $table;
-        $this->table = $this->db->quotekey($table);
-        $this->fields = $this->db->schema($table, $fields, $ttl);
+        $this->source = $source;
+        $this->table = $this->db->quotekey($source);
+        $this->fields = $this->db->schema($source, $fields, $ttl);
 
         foreach ($this->fields as $key => $value) {
             if ($value['pkey']) {
@@ -85,11 +85,11 @@ class Mapper
     }
 
     /**
-     * Get table
+     * Get source (table)
      *
      * @return string
      */
-    public function getTable(): string
+    public function getSource(): string
     {
         return $this->source;
     }

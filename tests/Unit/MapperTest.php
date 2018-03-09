@@ -65,14 +65,14 @@ SQL1
         $ref->setValue($this->mapper, $table);
     }
 
-    public function testSetTable()
+    public function testSetSource()
     {
-        $this->assertEquals('user', $this->mapper->setTable('')->getTable());
+        $this->assertEquals('user', $this->mapper->setSource('')->getSource());
     }
 
-    public function testGetTable()
+    public function testGetSource()
     {
-        $this->assertEquals('user', $this->mapper->getTable());
+        $this->assertEquals('user', $this->mapper->getSource());
     }
 
     public function testGetDb()
