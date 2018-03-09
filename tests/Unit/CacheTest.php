@@ -70,6 +70,31 @@ class CacheTest extends TestCase
     }
 
     /** @dataProvider cacheProvider */
+    public function testIsCached($dsn)
+    {
+        $this->cache->setDsn($dsn);
+        $val = 'foo';
+
+        $this->assertFalse($this->cache->isCached($hash, $data, 'foo', $val));
+
+        if ($dsn) {
+            $this->cache->set($hash, $val);
+
+            $this->assertTrue($this->cache->isCached($hash, $data));
+            $this->assertEquals($val, $data[0]);
+        }
+    }
+
+    /**
+     * @expectedException LogicException
+     * @expectedExceptionMessage Please provide a valid hash
+     */
+    public function testIsCachedException()
+    {
+        $this->cache->isCached($hash, $data);
+    }
+
+    /** @dataProvider cacheProvider */
     public function testExists($dsn)
     {
         $this->cache->setDsn($dsn);

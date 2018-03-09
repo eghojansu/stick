@@ -19,20 +19,11 @@ class Database
     /** @var array */
     protected $options;
 
-    /** @var array Map rule */
-    protected $maps = [];
-
     /** @var PDO */
     protected $pdo;
 
     /** @var Cache */
     protected $cache;
-
-    /** @var PDOStatement Last query */
-    protected $query;
-
-    /** @var bool Last query result */
-    protected $querySuccess;
 
     /** @var array */
     protected $logs = [];
@@ -45,13 +36,11 @@ class Database
      *
      * @param Cache $cache
      * @param array $options
-     * @param array $maps
      */
-    public function __construct(Cache $cache, array $options, array $maps = [])
+    public function __construct(Cache $cache, array $options)
     {
         $this->cache = $cache;
         $this->setOptions($options);
-        $this->setMaps($maps);
     }
 
     /**
@@ -83,199 +72,163 @@ class Database
     }
 
     /**
-     * Get maps
+     * Get latest error
+     *
+     * @return string
+     */
+    public function getError(): string
+    {
+        return $this->info['error'] ?? '';
+    }
+
+    /**
+     * Get info
      *
      * @return array
      */
-    public function getMaps(): array
+    public function getInfo(): array
     {
-        return $this->maps;
+        return $this->info;
     }
 
     /**
-     * Set maps
+     * Get cache
      *
-     * @param array $maps
-     *
-     * @return Database
+     * @return Cache
      */
-    public function setMaps(array $maps): Database
+    public function getCache(): Cache
     {
-        foreach ($maps as $id => $rule) {
-            $this->setMap($id, $rule);
-        }
-
-        return $this;
+        return $this->cache;
     }
 
     /**
-     * Get rule
+     * Retrieve schema of SQL table
      *
-     * @param  string $id
+     * @param  string       $table
+     * @param  string|array $fields
+     * @param  int          $ttl
      *
      * @return array
      */
-    public function getMap(string $id): array
+    public function schema(string $table, $fields = NULL, int $ttl = 0): array
     {
-        static $default = [
-            'class' => null,
-            'transformer' => null,
-            'select' => null,
-            'safe' => []
-        ];
-
-        return ($this->maps[$id] ?? []) + $default + ['table' => $id];
-    }
-
-    /**
-     * Set rule
-     *
-     * @param string $id
-     * @param array  $rule
-     *
-     * @return Database
-     */
-    public function setMap(string $id, array $rule): Database
-    {
-        if (isset($rule['class']) && !class_exists($rule['class'])) {
-            throw new \LogicException("Class does not exists: $rule[class]");
+        if ($ttl && $this->cache->isCached($hash, $data, 'schema', $this->options['dsn'], $table)) {
+            return $data[0];
         }
 
-        if (isset($rule['transformer']) && !is_callable($rule['transformer'])) {
-            throw new \LogicException('Transformer is not callable');
+        if (strpos($table,'.')) {
+            list($schemaName, $table) = explode('.', $table);
         }
 
-        if (isset($rule['safe']) && !is_array($rule['safe'])) {
-            throw new \InvalidArgumentException('Safe option is not array');
+        // Supported engines
+        static $cmdPattern = <<<PTRN
+/^(?:
+    (sqlite2?)|
+    (mysql)|
+    (mssql|sqlsrv|sybase|dblib|pgsql|odbc)|
+    (oci)
+)$/x
+PTRN;
+        static $cmds;
+
+        if (!$cmds) {
+            $dbname = $schemaName ?? $this->options['dbname'] ?? '';
+            $cmds = [
+                1 => [
+                    'PRAGMA table_info(`' . $table . '`)',
+                    'name', 'type', 'dflt_value', 'notnull', 0, 'pk', TRUE,
+                ],
+                2 => [
+                    'SHOW columns FROM `' . $dbname . '`.`' . $table . '`',
+                    'Field', 'Type', 'Default', 'Null', 'YES', 'Key', 'PRI',
+                ],
+                3 => [
+                    'SELECT '.
+                        'C.COLUMN_NAME AS field,' .
+                        'C.DATA_TYPE AS type,' .
+                        'C.COLUMN_DEFAULT AS defval,' .
+                        'C.IS_NULLABLE AS nullable,' .
+                        'T.CONSTRAINT_TYPE AS pkey ' .
+                    'FROM INFORMATION_SCHEMA.COLUMNS AS C ' .
+                    'LEFT OUTER JOIN ' .
+                        'INFORMATION_SCHEMA.KEY_COLUMN_USAGE AS K ' .
+                        'ON ' .
+                            'C.TABLE_NAME=K.TABLE_NAME AND ' .
+                            'C.COLUMN_NAME=K.COLUMN_NAME AND ' .
+                            'C.TABLE_SCHEMA=K.TABLE_SCHEMA ' .
+                            ($dbname?
+                                ('AND C.TABLE_CATALOG=K.TABLE_CATALOG '):'') .
+                    'LEFT OUTER JOIN ' .
+                        'INFORMATION_SCHEMA.TABLE_CONSTRAINTS AS T ON ' .
+                            'K.TABLE_NAME=T.TABLE_NAME AND ' .
+                            'K.CONSTRAINT_NAME=T.CONSTRAINT_NAME AND ' .
+                            'K.TABLE_SCHEMA=T.TABLE_SCHEMA ' .
+                            ($dbname?
+                                ('AND K.TABLE_CATALOG=T.TABLE_CATALOG '):'') .
+                    'WHERE ' .
+                        'C.TABLE_NAME=' . $this->quote($table) .
+                        ($dbname?
+                            (' AND C.TABLE_CATALOG=' . $this->quote($dbname)):''),
+                    'field', 'type', 'defval', 'nullable', 'YES', 'pkey', 'PRIMARY KEY',
+                ],
+                4 => [
+                    'SELECT c.column_name AS field, ' .
+                        'c.data_type AS type, ' .
+                        'c.data_default AS defval, ' .
+                        'c.nullable AS nullable, ' .
+                        '(SELECT t.constraint_type ' .
+                            'FROM all_cons_columns acc ' .
+                            'LEFT OUTER JOIN all_constraints t ' .
+                            'ON acc.constraint_name=t.constraint_name ' .
+                            'WHERE acc.table_name=' . $this->quote($table) . ' ' .
+                            'AND acc.column_name=c.column_name ' .
+                            'AND constraint_type=' . $this->quote('P') . ') AS pkey '.
+                    'FROM all_tab_cols c ' .
+                    'WHERE c.table_name=' . $this->quote($table),
+                    'FIELD', 'TYPE', 'DEFVAL', 'NULLABLE', 'Y', 'PKEY', 'P',
+                ],
+            ];
         }
 
-        $this->maps[$id] = $rule;
+        $driver = $this->getDriver();
+        if (!preg_match($cmdPattern, $driver, $match)) {
+            throw new \LogicException('Driver ' . $driver . ' is not supported');
+        }
 
-        return $this;
-    }
-
-    /**
-     * Get options
-     *
-     * @return array
-     */
-    public function getOptions(): array
-    {
-        return $this->options;
-    }
-
-    /**
-     * Set options, available options (and its default value):
-     *     debug: bool       = false (enable debug mode)
-     *     log: bool         = false (log query)
-     *     driver: string    = unknown (database driver name, eg: mysql, sqlite)
-     *     dsn: string       = void (valid dsn)
-     *     server: string    = void|127.0.0.1 (on mysql)
-     *     port: int         = void|3306 (on mysql)
-     *     password: string  = void (on mysql)
-     *     username: string  = void
-     *     dbname: string    = void
-     *     location: string  = void (for sqlite driver)
-     *     attributes: array = void (map array attribute and its value)
-     *     commands: array   = void (commands after pdo creation)
-     *     defaults          = array
-     *         fetch_style   = \PDO::FETCH_ASSOC,
-     *
-     * @param array $options
-     * @return Database
-     *
-     * @throws LogicException
-     */
-    public function setOptions(array $options): Database
-    {
-        $options += ['debug' => false, 'log' => false, 'driver' => 'unknown'];
-
-        if (empty($options['dsn'])) {
-            $driver = strtolower($options['driver']);
-
-            if ($driver === 'mysql') {
-                $options += [
-                    'server' => '127.0.0.1',
-                    'port' => 3306,
-                    'password' => null,
-                ];
-
-                if (
-                    empty($options['server'])
-                    || empty($options['username'])
-                    || empty($options['dbname'])
-                ) {
-                    throw new \LogicException('Invalid mysql driver configuration');
-                }
-
-                $options['dsn'] = 'mysql:host=' . $options['server'] .
-                                  ';port=' . $options['port'] .
-                                  ';dbname=' . $options['dbname'];
-            } elseif ($driver === 'sqlite') {
-                if (empty($options['location'])) {
-                    throw new \LogicException('Invalid sqlite driver configuration');
-                }
-
-                // location can be full filepath or :memory:
-                $options['dsn'] = 'sqlite:' . $options['location'];
-            } else {
-                $error = 'Currently, there is no logic for ' . $driver .
-                         ' DSN creation, please provide a valid one';
-                throw new \LogicException($error);
+        for ($i = 0; $i < 5;) {
+            $i++;
+            if (!empty($match[$i])) {
+                $cmd = $cmds[$i];
+                $i = 5;
             }
         }
 
-        $this->options = $options;
-        $this->pdo = null;
-        $this->info = [];
-        $this->resetQuery();
+        if ($fields) {
+            $fields = reqarr($fields);
+        }
+        $query = $this->pdo()->query($cmd[0]);
+        $schema = $query->fetchAll(\PDO::FETCH_ASSOC);
+        $rows = [];
 
-        return $this;
-    }
+        foreach ($schema as $row) {
+            if ($fields && !in_array($row[$cmd[1]], $fields)) {
+                continue;
+            }
 
-    /**
-     * Get pdo
-     *
-     * @return PDO
-     *
-     * @throws LogicException If construct failed and not in debug mode
-     * @throws Throwable   If construct failed and in debug mode
-     */
-    public function pdo(): \PDO
-    {
-        if ($this->pdo) {
-            return $this->pdo;
+            $rows[$row[$cmd[1]]] = [
+                'type' => $row[$cmd[2]],
+                'default' => $row[$cmd[3]],
+                'nullable' => $row[$cmd[4]] == $cmd[5],
+                'pkey' => $row[$cmd[6]] == $cmd[7],
+            ];
         }
 
-        $options = $this->options;
-
-        try {
-            $pdo = new \PDO(
-                $options['dsn'],
-                $options['username'] ?? null,
-                $options['password'] ?? null
-            );
-
-            foreach ($options['attributes'] ?? [] as $attribute => $value) {
-                $pdo->setAttribute($attribute, $value);
-            }
-
-            $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
-
-            foreach ($options['commands'] ?? [] as $command) {
-                $pdo->exec($command);
-            }
-
-            $this->pdo = $pdo;
-        } catch (\Throwable $e) {
-            if ($options['debug']) {
-                throw $e;
-            }
-
-            throw new \LogicException('Invalid database configuration');
+        if ($ttl) {
+            // Save to cache backend
+            $this->cache->set($hash, $rows, $ttl);
         }
 
-        return $this->pdo;
+        return $rows;
     }
 
     /**
@@ -401,6 +354,132 @@ class Database
     }
 
     /**
+     * Get options
+     *
+     * @return array
+     */
+    public function getOptions(): array
+    {
+        return $this->options;
+    }
+
+    /**
+     * Set options, available options (and its default value):
+     *     debug: bool       = false (enable debug mode)
+     *     log: bool         = false (log query)
+     *     driver: string    = unknown (database driver name, eg: mysql, sqlite)
+     *     dsn: string       = void (valid dsn)
+     *     server: string    = void|127.0.0.1 (on mysql)
+     *     port: int         = void|3306 (on mysql)
+     *     password: string  = void (on mysql)
+     *     username: string  = void
+     *     dbname: string    = void
+     *     location: string  = void (for sqlite driver)
+     *     attributes: array = void (map array attribute and its value)
+     *     commands: array   = void (commands after pdo creation)
+     *
+     * @param array $options
+     * @return Database
+     *
+     * @throws LogicException
+     */
+    public function setOptions(array $options): Database
+    {
+        $options += ['debug' => false, 'log' => false, 'driver' => 'unknown'];
+
+        if (empty($options['dsn'])) {
+            $driver = strtolower($options['driver']);
+
+            if ($driver === 'mysql') {
+                $options += [
+                    'server' => '127.0.0.1',
+                    'port' => 3306,
+                    'password' => null,
+                ];
+
+                if (
+                    empty($options['server'])
+                    || empty($options['username'])
+                    || empty($options['dbname'])
+                ) {
+                    throw new \LogicException('Invalid mysql driver configuration');
+                }
+
+                $options['dsn'] = 'mysql:host=' . $options['server'] .
+                                  ';port=' . $options['port'] .
+                                  ';dbname=' . $options['dbname'];
+            } elseif ($driver === 'sqlite') {
+                if (empty($options['location'])) {
+                    throw new \LogicException('Invalid sqlite driver configuration');
+                }
+
+                // location can be full filepath or :memory:
+                $options['dsn'] = 'sqlite:' . $options['location'];
+            } else {
+                $error = 'Currently, there is no logic for ' . $driver .
+                         ' DSN creation, please provide a valid one';
+                throw new \LogicException($error);
+            }
+        } elseif (
+            empty($options['dbname'])
+            && preg_match('/^.+?(?:dbname|database)=(.+?)(?=;|$)/is', $options['dsn'], $parts)
+        ) {
+            $options['dbname'] = $parts[1];
+        }
+
+        $this->options = $options;
+        $this->pdo = null;
+        $this->info = [];
+
+        return $this;
+    }
+
+    /**
+     * Get pdo
+     *
+     * @return PDO
+     *
+     * @throws LogicException If construct failed and not in debug mode
+     * @throws Throwable   If construct failed and in debug mode
+     */
+    public function pdo(): \PDO
+    {
+        if ($this->pdo) {
+            return $this->pdo;
+        }
+
+        $options = $this->options;
+
+        try {
+            $pdo = new \PDO(
+                $options['dsn'],
+                $options['username'] ?? null,
+                $options['password'] ?? null
+            );
+
+            foreach ($options['attributes'] ?? [] as $attribute => $value) {
+                $pdo->setAttribute($attribute, $value);
+            }
+
+            $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+
+            foreach ($options['commands'] ?? [] as $command) {
+                $pdo->exec($command);
+            }
+
+            $this->pdo = $pdo;
+        } catch (\Throwable $e) {
+            if ($options['debug']) {
+                throw $e;
+            }
+
+            throw new \LogicException('Invalid database configuration');
+        }
+
+        return $this->pdo;
+    }
+
+    /**
      * Check if table exists
      *
      * @param  string $table
@@ -410,17 +489,18 @@ class Database
      */
     public function tableExists(string $table, int $ttl = 0): bool
     {
-        $rule = $this->getMap($table);
-        $sql = 'SELECT 1 FROM ' . $this->quotekey($rule['table']);
+        $sql = 'SELECT 1 FROM ' . $this->quotekey($table);
 
-        if ($ttl && $this->isCached($sql, [], $hash, $result)) {
-            return $result;
+        if ($ttl && $this->cache->isCached($hash, $result, 'sql', $sql)) {
+            return $result[0];
         }
 
         try {
-            $result = $this->prepareQuery($sql)->runQuery();
+            $query = $this->pdo()->prepare($sql);
+            $result = $query->execute();
         } catch (\Exception $e) {
             $result = false;
+            $this->consumeException($e);
         }
 
         if ($ttl) {
@@ -428,556 +508,6 @@ class Database
         }
 
         return $result !== false;
-    }
-
-    /**
-     * Run select query, with count
-     * @see  Database::find
-     *
-     * @param  string $table
-     * @param  string|array $filter  @see Database::filter
-     * @param  array  $options
-     * @param  int    $ttl
-     *
-     * @return int
-     *
-     * @throws Throwable If error in debug mode
-     */
-    public function count(
-        string $table,
-        $filter = null,
-        array $options = null,
-        int $ttl = null
-    ): int {
-        $res = $this->find(
-            $table,
-            $filter,
-            ['column' => 'count(*) as `cc`', 'raw'=>true] + (array) $options,
-            $ttl
-        );
-
-        return $res ? (int) $res[0]['cc'] : 0;
-    }
-
-    /**
-     * Paginate records
-     *
-     * @param  string      $table
-     * @param  int $page
-     * @param  int $limit
-     * @param  string|filter      $filter
-     * @param  array       $options
-     * @param  int    $ttl
-     *
-     * @return array
-     *
-     * @throws Throwable If error in debug mode
-     */
-    public function paginate(
-        string $table,
-        int $page = 1,
-        int $limit = 10,
-        $filter = null,
-        array $options = null,
-        int $ttl = null
-    ): array {
-        $total = $this->count($table, $filter, $options, $ttl);
-        $pages = (int) ceil($total / $limit);
-        $subset = [];
-        $start = 0;
-        $end = 0;
-
-        if ($page > 0) {
-            $offset = ($page - 1) * $limit;
-            $subset = $this->find($table, $filter, compact('limit','offset') + (array) $options, $ttl);
-            $start = $offset + 1;
-            $end = $offset + count($subset);
-        }
-
-        return compact('subset', 'total', 'pages', 'page', 'start', 'end');
-    }
-
-    /**
-     * Run select query, set limit to 1 (one)
-     * @see  Database::find
-     *
-     * @param  string $table
-     * @param  string|array $filter  @see Database::filter
-     * @param  array  $options
-     * @param  int    $ttl
-     *
-     * @return mixed
-     *
-     * @throws Throwable If error in debug mode
-     */
-    public function findOne(
-        string $table,
-        $filter = null,
-        array $options = null,
-        int $ttl = null
-    ) {
-        $result = $this->find($table, $filter, ['limit' => 1] + (array) $options, $ttl);
-
-        return $result ? $result[0] : null;
-    }
-
-    /**
-     * Run select query, available options (and its default value):
-     *     column = null, fallback to '*'
-     *     group  = null
-     *     having = null
-     *     order  = null
-     *     limit  = 0
-     *     offset = 0
-     *     ttl    = null
-     *     raw    = false
-     *
-     * @param  string $table
-     * @param  string|array $filter  @see Database::filter
-     * @param  array  $options
-     * @param  int    $ttl
-     *
-     * @return array
-     *
-     * @throws Throwable If error in debug mode
-     */
-    public function find(string $table, $filter = null, array $options = null, int $ttl = null): array
-    {
-        $options = (array) $options;
-        $options += [
-            'column' => null,
-            'group' => null,
-            'having' => null,
-            'order' => null,
-            'limit' => 0,
-            'offset' => 0,
-            'raw' => false,
-        ];
-
-        $rule = $this->getMap($table);
-        $qtable = $this->quotekey($rule['table']);
-        $columnRule = ($options['raw'] || !isset($rule['select'])) ? null : $rule['select'];
-        $column = $options['column'] ?? $columnRule ?? '*';
-        $uttl = $ttl ?? $rule['ttl'] ?? 0;
-
-        $sql = "SELECT $column FROM $qtable";
-        $params = [];
-
-        $f = $this->filter($filter, $sql);
-        if ($f) {
-            $sql .= ' WHERE ' . array_shift($f);
-            $params = array_merge($params, $f);
-        }
-
-        if ($options['group']) {
-            $sql .= ' GROUP BY ' . $options['group'];
-        }
-
-        $f = $this->filter($options['having'], $sql);
-        if ($f) {
-            $sql .= ' HAVING ' . array_shift($f);
-            $params = array_merge($params, $f);
-        }
-
-        if ($options['order']) {
-            $sql .= ' ORDER BY ' . $options['order'];
-        }
-
-        if ($options['limit']) {
-            $sql .= ' LIMIT ' . max(0, $options['limit']);
-
-            if ($options['offset']) {
-                $sql .= ' OFFSET ' . max(0, $options['offset']);
-            }
-        }
-
-        if ($uttl && $this->isCached($sql, $params, $hash, $result)) {
-            return $result;
-        }
-
-        $success = $this->prepareQuery($sql, $params)->runQuery($params);
-
-        if (!$success) {
-            return [];
-        }
-
-        $args = $options['raw'] ? [\PDO::FETCH_ASSOC] : $this->fetchArgs($rule);
-        $result = $this->query->fetchAll(...$args) ?? [];
-
-        if ($uttl) {
-            $this->cache->set($hash, $result, $uttl);
-        }
-
-        return $result;
-    }
-
-    /**
-     * Insert record into table
-     *
-     * @param  string $table
-     * @param  array  $record
-     *
-     * @return int Last inserted id or 0
-     *
-     * @throws Throwable If error in debug mode or no record provided
-     */
-    public function insert(string $table, array $record): int
-    {
-        if (!$record) {
-            throw new \LogicException('No data provided to insert');
-        }
-
-        $len = -1;
-        $columns = '';
-        $rule = $this->getMap($table);
-        $params = [];
-
-        foreach ($record as $key => $value) {
-            if ($rule['safe'] && !in_array($key, $rule['safe'])) {
-                continue;
-            }
-
-            $columns .= $this->quotekey($key) . ', ';
-            $params[] = $value;
-            $len++;
-        }
-
-        $columns = rtrim($columns, ', ');
-
-        $sql = 'INSERT INTO '.$this->quotekey($rule['table']).
-            ' (' . $columns . ')' .
-            ' VALUES' .
-            ' (' . str_repeat('?, ', $len) . '?)';
-
-        $success = $this->prepareQuery($sql, $params)->runQuery($params);
-
-        return $success ? (int) $this->lastInsertId() : 0;
-    }
-
-    /**
-     * Run prepared query multiple times for inserting records
-     *
-     * @param  string       $table
-     * @param  array        $records
-     * @param  bool $trans
-     *
-     * @return array of inserted ids
-     */
-    public function insertBatch(string $table, array $records, bool $trans = true): array
-    {
-        // first record as template
-        $template = reset($records);
-
-        if (!$template) {
-            throw new \LogicException('No data provided to insert (batch)');
-        }
-
-        $len = 0;
-        $columns = '';
-        $rule = $this->getMap($table);
-        $safe = array_flip($rule['safe']);
-
-        foreach ($template as $key => $value) {
-            if (!$safe || isset($safe[$key])) {
-                $columns .= $this->quotekey($key) . ', ';
-                $len++;
-            }
-        }
-
-        $columns = rtrim($columns, ', ');
-
-        $sql = 'INSERT INTO '.$this->quotekey($rule['table']).
-            ' (' . $columns . ')' .
-            ' VALUES' .
-            ' (' . str_repeat('?, ', $len - 1) . '?)';
-
-        if (!$this->prepareQuery($sql, $records)->query) {
-            return [];
-        }
-
-        if ($trans) {
-            $this->begin();
-        }
-
-        $result = [];
-
-        foreach ($records as $key => $record) {
-            $params = $safe ? array_intersect_key($record, $safe) : $record;
-
-            if ($len !== count($params)) {
-                throw new \LogicException("Invalid record #{$key}");
-            }
-
-            if (!$this->runQuery(array_values($params))) {
-                // no more insert
-                break;
-            }
-
-            $result[] = $this->lastInsertId();
-        }
-
-        if ($trans) {
-            if ($this->querySuccess) {
-                $this->commit();
-            } else {
-                $this->rollBack();
-            }
-        }
-
-        return $result;
-    }
-
-    /**
-     * Update record in table
-     *
-     * @param  string $table
-     * @param  array  $record
-     * @param  string|array $filter
-     *
-     * @return bool
-     *
-     * @throws Throwable If error in debug mode
-     */
-    public function update(string $table, array $record, $filter): bool
-    {
-        if (!$record) {
-            throw new \LogicException('No data provided to update');
-        }
-
-        $set = '';
-        $params = [];
-        $rule = $this->getMap($table);
-        $safe = array_flip($rule['safe']);
-
-        foreach ($record as $key => $value) {
-            if (is_array($value)) {
-                // raw
-                $set .= array_shift($value) . ', ';
-            } else {
-                if ($safe && !isset($safe[$key])) {
-                    continue;
-                }
-
-                $k = ":u_{$key}";
-                $set .= $this->quotekey($key) . " = $k, ";
-                $params[$k] = $value;
-            }
-        }
-
-        $set = rtrim($set, ', ');
-        $sql = 'UPDATE ' . $this->quotekey($rule['table']) . ' SET ' . $set;
-
-        $f = $this->filter($filter);
-        if ($f) {
-            $sql   .= ' WHERE ' . array_shift($f);
-            $params = array_merge($params, $f);
-        }
-
-        $success = $this->prepareQuery($sql, $params)->runQuery($params);
-
-        return $success;
-    }
-
-    /**
-     * Run prepared query multiple times for updating records
-     *
-     * @param  string       $table
-     * @param  array        $template Array containing columns and filter key
-     * @param  array        $records  Multidimensional array of records with set and filter key
-     * @param  bool $trans
-     *
-     * @return bool
-     *
-     * @throws Throwable If error in debug mode
-     */
-    public function updateBatch(
-        string $table,
-        array $template,
-        array $records,
-        bool $trans = true
-    ): bool {
-        $template += ['set'=>[],'filter'=>null];
-
-        if (!$template || !$template['set'] || !$records) {
-            throw new \LogicException('Query template error or No data provided to update (batch)');
-        }
-
-        $len = 0;
-        $set = '';
-        $params = [];
-        $rule = $this->getMap($table);
-        $safe = array_flip($rule['safe']);
-
-        foreach ($template['set'] as $column) {
-            if (is_array($column)) {
-                // raw
-                $set .= array_shift($column) . ', ';
-            } else {
-                if ($safe && !isset($safe[$column])) {
-                    continue;
-                }
-
-                $set .= $this->quotekey($column) . " = :u_{$column}, ";
-                $len++;
-            }
-        }
-
-        $set = rtrim($set, ', ');
-        $sql = 'UPDATE ' . $this->quotekey($rule['table']) . ' SET ' . $set;
-
-        $f = $this->filter($template['filter']);
-        if ($f) {
-            $sql .= ' WHERE ' . array_shift($f);
-            $params = $f;
-            $len += count($f);
-        }
-
-        if (!$this->prepareQuery($sql, $records)->query) {
-            return false;
-        }
-
-        if ($trans) {
-            $this->begin();
-        }
-
-        foreach ($records as $key => $record) {
-            $rdata = isset($record['data']) ? (array) $record['data'] : [];
-            $rfilt = isset($record['filter']) ? (array) $record['filter'] : [];
-
-            $data = array_merge(
-                $params,
-                quotekey($safe ? array_intersect_key($rdata, $safe) : $rdata, [':u_']),
-                quotekey($rfilt, [':'])
-            );
-
-            if ($len !== count($data)) {
-                throw new \LogicException("Invalid record #{$key}");
-            }
-
-            if (!$this->runQuery($data)) {
-                // no more update
-                break;
-            }
-        }
-
-        if ($trans) {
-            if ($this->querySuccess) {
-                $this->commit();
-            } else {
-                $this->rollBack();
-            }
-        }
-
-        return  $this->querySuccess;
-    }
-
-    /**
-     * Delete from table
-     *
-     * @param  string $table
-     * @param  string|array $filter
-     *
-     * @return bool
-     *
-     * @throws Throwable If error in debug mode
-     */
-    public function delete(string $table, $filter): bool
-    {
-        $rule = $this->getMap($table);
-        $sql = 'DELETE FROM ' . $this->quotekey($rule['table']);
-        $params = [];
-
-        $f = $f = $this->filter($filter);
-        if ($f) {
-            $sql .= ' WHERE ' . array_shift($f);
-            $params = array_merge($params, $f);
-        }
-
-        $success = $this->prepareQuery($sql, $params)->runQuery($params);
-
-        return $success;
-    }
-
-    /**
-     * Get last query result
-     *
-     * @return bool
-     */
-    public function isQuerySuccess(): bool
-    {
-        return $this->querySuccess;
-    }
-
-    /**
-     * isQuerySuccess complement
-     *
-     * @return bool
-     */
-    public function isQueryFailed(): bool
-    {
-        return !$this->isQuerySuccess();
-    }
-
-    /**
-     * Get last query
-     *
-     * @return PDOStatement|null
-     */
-    public function getQuery(): ?\PDOStatement
-    {
-        return $this->query;
-    }
-
-    /**
-     * Get last error message
-     *
-     * @return string
-     */
-    public function getMessage(): string
-    {
-        if (isset($this->info['error'])) {
-            return $this->info['error'];
-        }
-
-        $error = $this->query ? $this->query->errorInfo() : [];
-
-        return ($error && '00000' !== $error[0]) ? "[{$error[1]}] $error[2]" : '';
-    }
-
-    /**
-     * Proxy to PDO::lastInsertId
-     *
-     * @see  PDO::lastInsertID
-     *
-     * @throws RuntimeException
-     * @throws LogicException
-     */
-    public function lastInsertId(string $name = null): string
-    {
-        return $this->pdo()->lastInsertId($name);
-    }
-
-    /**
-     * Execute callback in transaction
-     *
-     * @param  callable $callback Callable accept Database instance,
-     *                            returning false will rollback trans
-     *
-     * @return bool
-     */
-    public function execute(callable $callback): bool
-    {
-        $this->begin();
-
-        if ($callback($this) !== false) {
-            $this->commit();
-
-            return true;
-        }
-
-        $this->rollBack();
-
-        return false;
     }
 
     /**
@@ -1024,15 +554,43 @@ class Database
     }
 
     /**
+     * Quote string
+     *
+     * @param  mixed $val
+     * @param  int $type
+     *
+     * @return mixed
+     */
+    public function quote($val, $type = \PDO::PARAM_STR)
+    {
+        if ($this->getDriver() === 'odbc') {
+            return is_string($val) ? stringify(str_replace('\'', '\'\'', $val)) : $val;
+        }
+
+        return $this->pdo()->quote($val, $type);
+    }
+
+    /**
      * Return quoted identifier name
      *
      * @param  string  $key
      * @param  boolean $split
-     * @param  string  $custom Custom driver
      *
      * @return string
      */
-    public function quotekey(string $key, bool $split = true, string $custom = null): ?string
+    public function quotekey(string $key, bool $split = true): ?string
+    {
+        $use = $this->quotes();
+
+        return $use[0] . ($split ? implode($use[1] . '.' . $use[0], explode('.', $key)) : $key) . $use[1];
+    }
+
+    /**
+     * Get quotes
+     *
+     * @return array
+     */
+    public function quotes(): array
     {
         static $quotes = [
             '``' => ['sqlite', 'mysql'],
@@ -1040,15 +598,15 @@ class Database
             '[]' => ['mssql','sqlsrv','odbc','sybase','dblib'],
         ];
 
-        $driver = $custom ??  $this->getDriver();
+        $driver = $this->getDriver();
 
         foreach ($quotes as $use => $drivers) {
             if (in_array($driver, $drivers)) {
-                return $use[0] . ($split ? implode($use[1] . '.' . $use[0], explode('.', $key)) : $key) . $use[1];
+                return str_split($use);
             }
         }
 
-        return $key;
+        return ['',''];
     }
 
     /**
@@ -1074,60 +632,49 @@ class Database
     }
 
     /**
-     * Check sql cache and get data
+     * Run query
      *
-     * @param  string      $sql
-     * @param  array       $params
-     * @param  string|null &$hash
-     * @param  mixed      &$data
+     * @param  PDOStatement  $query
+     * @param  array  $params
      *
      * @return bool
+     *
+     * @throws Throwable If error in debug mode
      */
-    protected function isCached(
-        string $sql,
-        array $params,
-        string &$hash = null,
-        &$data = null
-    ): bool {
-        $hash = hash($sql . ':params:' . stringify($params)) . '.sql';
-        $exists = $this->cache->exists($hash);
+    public function run(\PDOStatement $query, array $params = []): bool
+    {
+        $result = false;
 
-        if ($exists) {
-            $cached = $this->cache->get($hash);
-            $data = $cached[0];
+        try {
+            $result = $query->execute($params);
+        } catch (\Throwable $e) {
+            $result = false;
+            $this->consumeException($e);
         }
 
-        return $exists;
+        return $result;
     }
 
     /**
-     * Get fetch args
+     * Prepare and log sql query
      *
-     * @param  array  $rule
+     * @param  string $sql
+     * @param  array  $params
      *
-     * @return array
+     * @return PDOStatement
      */
-    protected function fetchArgs(array $rule): array
+    public function prepare(string $sql, array $params = null): ?\PDOStatement
     {
-        if ($rule['class']) {
-            $class = $rule['class'];
-            $args = [
-                \PDO::FETCH_FUNC,
-                function(...$props) use ($class) {
-                    return new $class(...$props);
-                }
-            ];
-        } elseif ($rule['transformer']) {
-            $args = [
-                \PDO::FETCH_FUNC,
-                $rule['transformer']
-            ];
-        } else {
-            $defaults = $this->options['defaults'] ?? [];
-            $args = [$fetchStyle ?? $defaults['fetch_style'] ?? \PDO::FETCH_ASSOC];
+        $this->log($sql, $params);
+
+        try {
+            $query = $this->pdo()->prepare($sql);
+        } catch (\Throwable $e) {
+            $this->consumeException($e);
+            $query = null;
         }
 
-        return $args;
+        return $query;
     }
 
     /**
@@ -1143,55 +690,6 @@ class Database
         if ($this->options['log']) {
             $this->logs[] = [$sql, $params];
         }
-    }
-
-    /**
-     * Run query
-     *
-     * @param  array  $params
-     *
-     * @return bool
-     *
-     * @throws Throwable If error in debug mode
-     */
-    protected function runQuery(array $params = []): bool
-    {
-        $result = false;
-
-        if ($this->query) {
-            try {
-                $result = $this->query->execute($params);
-            } catch (\Throwable $e) {
-                $result = false;
-                $this->consumeException($e);
-            }
-        }
-
-        $this->querySuccess = $result;
-
-        return $result;
-    }
-
-    /**
-     * Prepare and log sql query
-     *
-     * @param  string $sql
-     * @param  array  $params
-     *
-     * @return Database
-     */
-    protected function prepareQuery(string $sql, array $params = []): Database
-    {
-        $this->resetQuery();
-        $this->log($sql, $params);
-
-        try {
-            $this->query = $this->pdo()->prepare($sql);
-        } catch (\Throwable $e) {
-            $this->consumeException($e);
-        }
-
-        return $this;
     }
 
     /**
@@ -1216,44 +714,6 @@ class Database
     }
 
     /**
-     * Reset query state
-     *
-     * @return void
-     */
-    protected function resetQuery(): void
-    {
-        $this->query = null;
-        $this->querySuccess   = false;
-        $this->info['error'] = null;
-        $this->info['map']   = null;
-    }
-
-    /**
-     * Call find/findOne magically
-     *
-     * @param  string $method
-     * @param  string $param
-     * @param  array  $args
-     *
-     * @return mixed
-     */
-    protected function callFind(string $method, string $param, array $args)
-    {
-        $x = explode('By', $param);
-        $table = snakecase(array_shift($x));
-        $column = snakecase(implode('', $x));
-
-        if ($column && $args) {
-            $first = array_shift($args);
-            array_unshift($args, [$column => $first]);
-        }
-
-        array_unshift($args, $table);
-
-        return call_user_func_array([$this, $method], $args);
-    }
-
-    /**
      * Prohibit cloning
      *
      * @return void
@@ -1262,48 +722,5 @@ class Database
      */
     private function __clone()
     {
-    }
-
-    /**
-     * Proxy to mapped method
-     * Example:
-     *     findOneUser = findOne('user')
-     *
-     * @param  string $method
-     * @param  array  $args
-     *
-     * @return mixed
-     */
-    public function __call($method, array $args)
-    {
-        $findOne = cutafter('findOne', $method);
-        $find = cutafter('find', $method);
-
-        if ($findOne) {
-            return $this->callFind('findOne', $findOne, $args);
-        } elseif ($find) {
-            return $this->callFind('find', $find, $args);
-        }
-
-        static $map = [
-            'insertBatch' => 11,
-            'updateBatch' => 11,
-            'paginate' => 8,
-            'insert' => 6,
-            'update' => 6,
-            'delete' => 6,
-            'count' => 5,
-        ];
-
-        foreach ($map as $m => $cut) {
-            if ($m === substr($method, 0, $cut)) {
-                $table = snakecase(substr($method, $cut));
-                array_unshift($args, $table);
-
-                return call_user_func_array([$this, $m], $args);
-            }
-        }
-
-        throw new \BadMethodCallException('Invalid method ' . static::class . '::' . $method);
     }
 }

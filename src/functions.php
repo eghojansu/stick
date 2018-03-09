@@ -418,9 +418,9 @@ function icutafter(string $prefix, string $str, string $default = ''): string
  */
 function cutbefore(string $suffix, string $str, string $default = ''): string
 {
-    $cut = strlen($suffix);
+    $cut = strlen($suffix) * -1;
 
-    return substr($str, -1 * $cut) === $suffix ? substr($str, 0, $cut) : $default;
+    return substr($str, $cut) === $suffix ? substr($str, 0, $cut) : $default;
 }
 
 /**
@@ -434,9 +434,9 @@ function cutbefore(string $suffix, string $str, string $default = ''): string
  */
 function icutbefore(string $suffix, string $str, string $default = ''): string
 {
-    $cut = strlen($suffix);
+    $cut = strlen($suffix) * -1;
 
-    if (substr(strtolower($str), -1 * $cut) === strtolower($suffix)) {
+    if (substr(strtolower($str), $cut) === strtolower($suffix)) {
         return substr($str, 0, $cut);
     }
 
@@ -565,4 +565,19 @@ function unserialize($arg, string $serializer = null)
         default:
             return \unserialize($arg);
     }
+}
+
+/**
+ * Get class name (without namespace)
+ *
+ * @param  string|obj $class
+ *
+ * @return string
+ */
+function classname($class): string
+{
+    $ns = is_object($class) ? get_class($class) : $class;
+    $pos = strrpos($ns, '\\');
+
+    return $pos === false ? $ns : substr($ns, $pos + 1);
 }

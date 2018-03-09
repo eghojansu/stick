@@ -237,6 +237,8 @@ class FunctionsTest extends Testcase
         $this->assertEquals('bar', f\cutafter('foo', 'foobar'));
         $this->assertEquals('', f\cutafter('bar', 'foobar'));
         $this->assertEquals('', f\cutafter('FOO', 'foobar'));
+
+        $this->assertEquals('mapper', f\cutafter('user_', 'user_mapper'));
     }
 
     public function testIcutafter()
@@ -251,6 +253,8 @@ class FunctionsTest extends Testcase
         $this->assertEquals('foo', f\cutbefore('bar', 'foobar'));
         $this->assertEquals('', f\cutbefore('foo', 'foobar'));
         $this->assertEquals('', f\cutbefore('BAR', 'foobar'));
+
+        $this->assertEquals('user', f\cutbefore('_mapper', 'user_mapper'));
     }
 
     public function testICutbefore()
@@ -335,5 +339,11 @@ class FunctionsTest extends Testcase
             $result = f\unserialize($arg);
             $this->assertEquals($expected, $result);
         }
+    }
+
+    public function testClassname()
+    {
+        $this->assertEquals('FunctionsTest', f\classname($this));
+        $this->assertEquals('FunctionsTest', f\classname(self::class));
     }
 }

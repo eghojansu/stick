@@ -43,6 +43,43 @@ class Cache
     }
 
     /**
+     * Check and get cache with hash creation
+     *
+     * @param  string|null &$hash
+     * @param  mixed       &$cached
+     * @param  string      $suffix
+     * @param  mixed       ...$args
+     *
+     * @return bool
+     */
+    public function isCached(
+        string &$hash = null,
+        &$cached = null,
+        string $suffix = 'cache',
+        ...$args
+    ): bool {
+        if ($hash === null) {
+            if (!$args) {
+                throw new \LogicException('Please provide a valid hash.');
+            }
+
+            $str = '';
+            foreach ($args as $arg) {
+                $str .= (is_string($arg) ? $arg : stringify($arg)) . '.';
+            }
+
+            $hash = hash(rtrim($str, '.')) . '.' . $suffix;
+        }
+
+        $exists = $this->exists($hash);
+        if ($exists) {
+            $cached = $this->get($hash);
+        }
+
+        return $exists;
+    }
+
+    /**
      * Check cache item by key
      *
      * @param  string $key

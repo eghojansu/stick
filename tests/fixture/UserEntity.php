@@ -8,30 +8,72 @@ class UserEntity
     private $firstName;
     private $lastName;
 
-    public function __construct($id, $firstName, $lastName)
-    {
-        $this->id = $id;
-        $this->firstName = $firstName;
-        $this->lastName = $lastName;
-    }
-
-    public function getName()
-    {
-        return trim($this->firstName . ' ' . $this->lastName);
-    }
-
+    /**
+     * Get id
+     *
+     * @return mixed
+     */
     public function getId()
     {
         return $this->id;
     }
 
+    /**
+     * Set id
+     *
+     * @param mixed $id
+     * @return UserEntity
+     */
+    public function setId($id): UserEntity
+    {
+        $this->id = $id;
+
+        return $this;
+    }
+
+    /**
+     * Get firstName
+     *
+     * @return mixed
+     */
     public function getFirstName()
     {
         return $this->firstName;
     }
 
+    /**
+     * Set firstName
+     *
+     * @param mixed $firstName
+     * @return UserEntity
+     */
+    public function setFirstName($firstName): UserEntity
+    {
+        $this->firstName = $firstName;
+
+        return $this;
+    }
+
+    /**
+     * Get lastName
+     *
+     * @return mixed
+     */
     public function getLastName()
     {
         return $this->lastName;
+    }
+
+    /**
+     * Set lastName
+     *
+     * @param mixed $lastName
+     * @return UserEntity
+     */
+    public function setLastName($lastName): UserEntity
+    {
+        $this->lastName = $lastName;
+
+        return $this;
     }
 }
