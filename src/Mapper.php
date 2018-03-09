@@ -50,18 +50,38 @@ class Mapper
         $fields = null,
         int $ttl = 60
     ) {
-        $use = $this->source ?? $table ?? cutbefore('_mapper', snakecase(classname($this)));
+        $use = $this->source ?? $table ?? rtrim(cutbefore('mapper', snakecase(classname($this))), '_');
 
         $this->db = $db;
-        $this->source = $use;
-        $this->table = $db->quotekey($use);
-        $this->fields = $db->schema($use, $fields, $ttl);
+        $this->setTable($use, $fields, $ttl);
+    }
+
+    /**
+     * Set table
+     *
+     * @param string       $table
+     * @param string|array $fields
+     * @param int          $ttl
+     *
+     * @return Mapper
+     */
+    public function setTable(string $table, $fields = null, int $ttl = 60): Mapper
+    {
+        if (!$table) {
+            return $this;
+        }
+
+        $this->source = $table;
+        $this->table = $this->db->quotekey($table);
+        $this->fields = $this->db->schema($table, $fields, $ttl);
 
         foreach ($this->fields as $key => $value) {
             if ($value['pkey']) {
                 $this->pkeys[] = $key;
             }
         }
+
+        return $this;
     }
 
     /**
