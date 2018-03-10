@@ -1285,6 +1285,7 @@ ERR
 
             if (isset($defMap[$res])) {
                 list($verb, $format) = $defMap[$res];
+                $alias = $route . '_' . $res;
 
                 $path = str_replace(
                     [
@@ -1300,11 +1301,12 @@ ERR
                     $format
                 );
 
+                $this->hive['ALIASES'][$alias] = $path;
                 $this->hive['ROUTES'][$path][$type][$verb] = [
-                    $str ? "$class->$action" : [$class, $action],
+                    $str ? $class . '->' . $action : [$class, $action],
                     $ttl,
                     $kbps,
-                    "{$route}_{$res}",
+                    $alias,
                 ];
             }
         }

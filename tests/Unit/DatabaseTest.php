@@ -40,6 +40,10 @@ CREATE TABLE `user` (
     `first_name` TEXT NOT null,
     `last_name` TEXT null DEFAULT null,
     `active` INTEGER NOT null DEFAULT 1
+);
+CREATE TABLE `user2` (
+    `id` INTEGER NOT null PRIMARY KEY AUTOINCREMENT,
+    `name` TEXT NOT null
 )
 SQL1
 ,
@@ -287,7 +291,11 @@ SQL1
     public function testSchema()
     {
         $schema = $this->database->schema('user');
-        $this->assertEquals(4, count($schema));
+        $this->assertEquals(['id','first_name','last_name','active'], array_keys($schema));
+
+        // second schema
+        $schema = $this->database->schema('user2');
+        $this->assertEquals(['id','name'], array_keys($schema));
     }
 
     public function testSchemaWithFields()

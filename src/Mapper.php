@@ -74,6 +74,7 @@ class Mapper
         $this->source = $source;
         $this->table = $this->db->quotekey($source);
         $this->fields = $this->db->schema($source, $fields, $ttl);
+        $this->pkeys = [];
 
         foreach ($this->fields as $key => $value) {
             if ($value['pkey']) {
@@ -91,7 +92,7 @@ class Mapper
      */
     public function getSource(): string
     {
-        return $this->source;
+        return $this->source ?? '';
     }
 
     /**

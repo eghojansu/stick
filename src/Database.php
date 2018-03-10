@@ -112,11 +112,11 @@ class Database
      */
     public function schema(string $table, $fields = NULL, int $ttl = 0): array
     {
-        if ($ttl && $this->cache->isCached($hash, $data, 'schema', $this->options['dsn'], $table)) {
+        if ($ttl && $this->cache->isCached($hash, $data, 'schema', $this->options['dsn'], $table, $fields)) {
             return $data[0];
         }
 
-        if (strpos($table,'.')) {
+        if (strpos($table, '.')) {
             list($schemaName, $table) = explode('.', $table);
         }
 
@@ -129,86 +129,90 @@ class Database
     (oci)
 )$/x
 PTRN;
-        static $cmds;
-
-        if (!$cmds) {
-            $dbname = $schemaName ?? $this->options['dbname'] ?? '';
-            $cmds = [
-                1 => [
-                    'PRAGMA table_info(`' . $table . '`)',
-                    'name', 'type', 'dflt_value', 'notnull', 0, 'pk', TRUE,
-                ],
-                2 => [
-                    'SHOW columns FROM `' . $dbname . '`.`' . $table . '`',
-                    'Field', 'Type', 'Default', 'Null', 'YES', 'Key', 'PRI',
-                ],
-                3 => [
-                    'SELECT '.
-                        'C.COLUMN_NAME AS field,' .
-                        'C.DATA_TYPE AS type,' .
-                        'C.COLUMN_DEFAULT AS defval,' .
-                        'C.IS_NULLABLE AS nullable,' .
-                        'T.CONSTRAINT_TYPE AS pkey ' .
-                    'FROM INFORMATION_SCHEMA.COLUMNS AS C ' .
-                    'LEFT OUTER JOIN ' .
-                        'INFORMATION_SCHEMA.KEY_COLUMN_USAGE AS K ' .
-                        'ON ' .
-                            'C.TABLE_NAME=K.TABLE_NAME AND ' .
-                            'C.COLUMN_NAME=K.COLUMN_NAME AND ' .
-                            'C.TABLE_SCHEMA=K.TABLE_SCHEMA ' .
-                            ($dbname?
-                                ('AND C.TABLE_CATALOG=K.TABLE_CATALOG '):'') .
-                    'LEFT OUTER JOIN ' .
-                        'INFORMATION_SCHEMA.TABLE_CONSTRAINTS AS T ON ' .
-                            'K.TABLE_NAME=T.TABLE_NAME AND ' .
-                            'K.CONSTRAINT_NAME=T.CONSTRAINT_NAME AND ' .
-                            'K.TABLE_SCHEMA=T.TABLE_SCHEMA ' .
-                            ($dbname?
-                                ('AND K.TABLE_CATALOG=T.TABLE_CATALOG '):'') .
-                    'WHERE ' .
-                        'C.TABLE_NAME=' . $this->quote($table) .
-                        ($dbname?
-                            (' AND C.TABLE_CATALOG=' . $this->quote($dbname)):''),
-                    'field', 'type', 'defval', 'nullable', 'YES', 'pkey', 'PRIMARY KEY',
-                ],
-                4 => [
-                    'SELECT c.column_name AS field, ' .
-                        'c.data_type AS type, ' .
-                        'c.data_default AS defval, ' .
-                        'c.nullable AS nullable, ' .
-                        '(SELECT t.constraint_type ' .
-                            'FROM all_cons_columns acc ' .
-                            'LEFT OUTER JOIN all_constraints t ' .
-                            'ON acc.constraint_name=t.constraint_name ' .
-                            'WHERE acc.table_name=' . $this->quote($table) . ' ' .
-                            'AND acc.column_name=c.column_name ' .
-                            'AND constraint_type=' . $this->quote('P') . ') AS pkey '.
-                    'FROM all_tab_cols c ' .
-                    'WHERE c.table_name=' . $this->quote($table),
-                    'FIELD', 'TYPE', 'DEFVAL', 'NULLABLE', 'Y', 'PKEY', 'P',
-                ],
-            ];
-        }
+        static $cmds = [
+            1 => [
+                'PRAGMA table_info({table})',
+                'name', 'type', 'dflt_value', 'notnull', 0, 'pk', TRUE,
+            ],
+            2 => [
+                'SHOW columns FROM {dbname}.{table}',
+                'Field', 'Type', 'Default', 'Null', 'YES', 'Key', 'PRI',
+            ],
+            3 => [
+                'SELECT '.
+                    'C.COLUMN_NAME AS field,' .
+                    'C.DATA_TYPE AS type,' .
+                    'C.COLUMN_DEFAULT AS defval,' .
+                    'C.IS_NULLABLE AS nullable,' .
+                    'T.CONSTRAINT_TYPE AS pkey ' .
+                'FROM INFORMATION_SCHEMA.COLUMNS AS C ' .
+                'LEFT OUTER JOIN ' .
+                    'INFORMATION_SCHEMA.KEY_COLUMN_USAGE AS K ' .
+                    'ON ' .
+                        'C.TABLE_NAME=K.TABLE_NAME AND ' .
+                        'C.COLUMN_NAME=K.COLUMN_NAME AND ' .
+                        'C.TABLE_SCHEMA=K.TABLE_SCHEMA ' .
+                        '{catalog1}' .
+                'LEFT OUTER JOIN ' .
+                    'INFORMATION_SCHEMA.TABLE_CONSTRAINTS AS T ON ' .
+                        'K.TABLE_NAME=T.TABLE_NAME AND ' .
+                        'K.CONSTRAINT_NAME=T.CONSTRAINT_NAME AND ' .
+                        'K.TABLE_SCHEMA=T.TABLE_SCHEMA ' .
+                        '{catalog2}' .
+                'WHERE ' .
+                    'C.TABLE_NAME={table}' .
+                    '{catalog3}',
+                'field', 'type', 'defval', 'nullable', 'YES', 'pkey', 'PRIMARY KEY',
+            ],
+            4 => [
+                'SELECT c.column_name AS field, ' .
+                    'c.data_type AS type, ' .
+                    'c.data_default AS defval, ' .
+                    'c.nullable AS nullable, ' .
+                    '(SELECT t.constraint_type ' .
+                        'FROM all_cons_columns acc ' .
+                        'LEFT OUTER JOIN all_constraints t ' .
+                        'ON acc.constraint_name=t.constraint_name ' .
+                        'WHERE acc.table_name={table} ' .
+                        'AND acc.column_name=c.column_name ' .
+                        'AND constraint_type={p}) AS pkey '.
+                'FROM all_tab_cols c ' .
+                'WHERE c.table_name={table}',
+                'FIELD', 'TYPE', 'DEFVAL', 'NULLABLE', 'Y', 'PKEY', 'P',
+            ],
+        ];
 
         $driver = $this->getDriver();
         if (!preg_match($cmdPattern, $driver, $match)) {
             throw new \LogicException('Driver ' . $driver . ' is not supported');
         }
 
-        for ($i = 0; $i < 5;) {
-            $i++;
-            if (!empty($match[$i])) {
-                $cmd = $cmds[$i];
-                $i = 5;
+        foreach ($match as $use => $value) {
+            if ($use > 0 && !empty($value)) {
+                $cmd = $cmds[$use];
+                break;
             }
         }
+
+        $dbname = $schemaName ?? $this->options['dbname'] ?? '';
+        $sql = strtr(
+            $cmd[0],
+            [
+                '{table}' => $this->quotekey($table),
+                '{dbname}' => $dbname ? $this->quotekey($dbname) : $dbname,
+                '{catalog1}' => $dbname ? 'AND C.TABLE_CATALOG=K.TABLE_CATALOG ' : '',
+                '{catalog2}' => $dbname ? 'AND K.TABLE_CATALOG=T.TABLE_CATALOG ' : '',
+                '{catalog3}' => $dbname ? ' AND C.TABLE_CATALOG={table}' : '',
+                '{p}' => $this->quote('P'),
+            ]
+        );
+        $query = $this->pdo()->query($sql);
+        $schema = $query->fetchAll(\PDO::FETCH_ASSOC);
+        $rows = [];
 
         if ($fields) {
             $fields = reqarr($fields);
         }
-        $query = $this->pdo()->query($cmd[0]);
-        $schema = $query->fetchAll(\PDO::FETCH_ASSOC);
-        $rows = [];
 
         foreach ($schema as $row) {
             if ($fields && !in_array($row[$cmd[1]], $fields)) {

@@ -1164,11 +1164,13 @@ class AppTest extends TestCase
         $this->assertEquals([1,2,3], $this->app['numbers']);
 
         $routes = $this->app['ROUTES'];
+        $aliases = $this->app['ALIASES'];
 
         $this->assertTrue(isset($routes['/route']));
         $this->assertTrue(isset($routes['/map']));
         $this->assertTrue(isset($routes['/redirect']));
         $this->assertTrue(isset($routes['/resource']));
+        $this->assertTrue(isset($aliases['resource_index']));
 
         // mock registered route
         $this->app->mock('GET /route');
