@@ -1119,9 +1119,13 @@ final class App implements \ArrayAccess
             ->status($code)
         ;
 
+        if ($trace === null) {
+            $trace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);
+        }
+
         $header = $this->hive['TEXT'];
         $req = $this->hive['METHOD'].' '.$this->hive['PATH'];
-        $trace = stringify($trace ?? debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS));
+        $traceStr = stringify($trace);
 
         if ($this->hive['QUERY']) {
             $req .= '?' . $this->hive['QUERY'];
@@ -1136,7 +1140,7 @@ final class App implements \ArrayAccess
             $eol = $logs[0] === 3 ? "\n" : '';
 
             error_log($text . $eol, ...$logs);
-            error_log($trace . $eol, ...$logs);
+            error_log($traceStr . $eol, ...$logs);
         }
 
         $this->hive['ERROR'] = [
@@ -1159,7 +1163,7 @@ final class App implements \ArrayAccess
                 $this->hive['DEBUG']? [] : ['trace' => 1]
             ));
         } else {
-            $trace = $this->hive['DEBUG'] ? '<pre>' . $trace . '</pre>' : '';
+            $tracePre = $this->hive['DEBUG'] ? '<pre>' . $traceStr . '</pre>' : '';
 
             $this->html(<<<ERR
 <!DOCTYPE html>
@@ -1172,7 +1176,7 @@ final class App implements \ArrayAccess
 <body>
   <h1>{$header}</h1>
   <p>$text</p>
-  $trace
+  $tracePre
 </body>
 </html>
 ERR
