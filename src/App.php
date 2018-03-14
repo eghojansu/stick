@@ -1210,7 +1210,7 @@ final class App implements \ArrayAccess
             'status' => $header,
             'code' => $code,
             'text' => $text,
-            'trace' => $trace,
+            'trace' => $traceStr,
             'level' => $level
         ];
 
