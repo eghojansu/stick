@@ -60,29 +60,29 @@ class AuditTest extends TestCase
         $this->assertEquals(['foo'=>'bar'], $this->audit->setData(['foo'=>'bar'])->getData());
     }
 
-    public function testSuccess()
+    public function testIsSuccess()
     {
         $this->audit->validate();
-        $this->assertTrue($this->audit->success());
+        $this->assertTrue($this->audit->isSuccess());
     }
 
     /**
      * @expectedException LogicException
      * @expectedExceptionMessage Run validate method first
      */
-    public function testSuccessException()
+    public function testIsSuccessException()
     {
-        $this->audit->success();
+        $this->audit->isSuccess();
     }
 
-    public function testFail()
+    public function testIsFailed()
     {
         $this->audit->validate([
             'foo'=>'bar'
         ], [
             'foo'=>'is_int'
         ]);
-        $this->assertTrue($this->audit->fail());
+        $this->assertTrue($this->audit->isFailed());
     }
 
     public function testGetErrors()
@@ -112,7 +112,7 @@ class AuditTest extends TestCase
             'foo'=>'  bar  ',
             'email'=>'foo@bar.com'
         ]);
-        $this->assertTrue($this->audit->success());
+        $this->assertTrue($this->audit->isSuccess());
         $this->assertEquals(['foo'=>'foobarbaz','email'=>'foo@bar.com'], $this->audit->getValidated());
 
         // expect error
@@ -121,7 +121,7 @@ class AuditTest extends TestCase
             'email'=>'email[false]',
         ]);
         $this->audit->validate([]);
-        $this->assertFalse($this->audit->success());
+        $this->assertFalse($this->audit->isSuccess());
         $this->assertEquals([], $this->audit->getValidated());
         $this->assertEquals(['foo'=>['Foo foo baz'],'email'=>['This value is not a valid email address.']], $this->audit->getErrors());
     }
@@ -142,7 +142,7 @@ class AuditTest extends TestCase
             'foo'=>'trim|required|foo[baz]',
         ]);
 
-        $this->assertTrue($audit->success());
+        $this->assertTrue($audit->isSuccess());
         $this->assertEquals(['foo'=>'foobarbaz'], $audit->getValidated());
     }
 

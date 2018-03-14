@@ -427,25 +427,25 @@ class Audit
      *
      * @throws LogicException
      */
-    public function success(): bool
+    public function isSuccess(): bool
     {
         if (!$this->processed) {
             throw new \LogicException('Run validate method first');
         }
 
-        return 0 === count($this->errors);
+        return count($this->errors) === 0;
     }
 
     /**
-     * success complement
+     * isSuccess complement
      *
      * @return bool
      *
      * @throws LogicException
      */
-    public function fail(): bool
+    public function isFailed(): bool
     {
-        return !$this->success();
+        return !$this->isSuccess();
     }
 
     /**
