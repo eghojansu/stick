@@ -1140,6 +1140,8 @@ final class App implements \ArrayAccess
 
         $out = '';
         $eol = "\n";
+        $root = $_SERVER['DOCUMENT_ROOT'];
+        $nroot = is_dir($root) ? $root : dirname($root);
 
         // Analyze stack trace
         foreach ($trace as $frame) {
@@ -1155,7 +1157,7 @@ final class App implements \ArrayAccess
                          ')';
             }
 
-            $src = fixslashes(str_replace($_SERVER['DOCUMENT_ROOT'] . '/', '', $frame['file']));
+            $src = fixslashes(str_replace($nroot . '/', '', $frame['file']));
             $out .= '[' . $src . ':' . $frame['line'] . '] ' . $line . $eol;
         }
 
