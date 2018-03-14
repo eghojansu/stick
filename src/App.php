@@ -270,6 +270,9 @@ final class App implements \ArrayAccess
             'STATUS' => 200,
             'TEMP' => './var/',
             'TEXT' => self::HTTP_200,
+            'TRACE_ROOT' => is_dir($_SERVER['DOCUMENT_ROOT']) ?
+                                $_SERVER['DOCUMENT_ROOT'] :
+                                dirname($_SERVER['DOCUMENT_ROOT']),
             'TZ' => date_default_timezone_get(),
             'URI' => $_SERVER['REQUEST_URI'],
             'VERSION' => self::VERSION,
@@ -1140,8 +1143,7 @@ final class App implements \ArrayAccess
 
         $out = '';
         $eol = "\n";
-        $root = $_SERVER['DOCUMENT_ROOT'];
-        $nroot = is_dir($root) ? $root : dirname($root);
+        $root = $this->hive['TRACE_ROOT'] . '/';
 
         // Analyze stack trace
         foreach ($trace as $frame) {
@@ -1157,7 +1159,7 @@ final class App implements \ArrayAccess
                          ')';
             }
 
-            $src = fixslashes(str_replace($nroot . '/', '', $frame['file']));
+            $src = fixslashes(str_replace($root, '', $frame['file']));
             $out .= '[' . $src . ':' . $frame['line'] . '] ' . $line . $eol;
         }
 
