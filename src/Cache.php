@@ -74,6 +74,7 @@ class Cache
         $exists = $this->exists($hash);
         if ($exists) {
             $cached = $this->get($hash);
+            $exists = $cached !== [];
         }
 
         return $exists;
