@@ -1192,4 +1192,18 @@ class AppTest extends TestCase
         $this->assertEquals('bar', $this->app['foo']);
         $this->assertEquals(1, count($this->app['ROUTES']));
     }
+
+    public function testTrace()
+    {
+        $eol = "\n";
+        $traceStr = $this->app->trace();
+        $expected = '[tests/Unit/' . basename(__FILE__) . ':' . (__LINE__ - 1) .
+                    '] '. App::class . '->trace()';
+        $this->assertContains($expected, $traceStr);
+
+        $traceStr2 = $this->app->trace($trace, false);
+        $expected2 = __FILE__;
+        $this->assertEquals('', $traceStr2);
+        $this->assertContains($expected2, $trace[0]);
+    }
 }

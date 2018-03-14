@@ -57,6 +57,18 @@ function stringify($arg, array $stack = null): string
 }
 
 /**
+ * Flatten array values and return as CSV string
+ *
+ * @param  array  $args
+ *
+ * @return string
+ */
+function csv(array $args): string
+{
+    return implode(',', array_map('stripcslashes', array_map(__NAMESPACE__ . '\\stringify', $args)));
+}
+
+/**
  * Takes the given context and coverts it to a string.
  *
  * @param  array  $context The Context

@@ -1096,6 +1096,73 @@ final class App implements \ArrayAccess
     }
 
     /**
+     * Return filtered stack trace as a formatted string
+     *
+     * @param  array|null &$trace
+     * @param  bool       $format
+     *
+     * @return string
+     */
+    public function trace(array &$trace = null, bool $format = true): string
+    {
+        if (!$trace) {
+            $trace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);
+
+            if (isset($trace[0]['file']) && $trace[0]['file'] === __FILE__) {
+                array_shift($trace);
+            }
+        }
+
+        $debug = $this->hive['DEBUG'];
+        $trace = array_filter(
+            $trace,
+            function($frame) use ($debug) {
+                return (
+                    isset($frame['file'])
+                    &&
+                    (
+                        $debug > 1
+                        || ($frame['file'] !== __FILE__ || $debug)
+                        && (empty($frame['function'])
+                            || !preg_match(
+                                '/^(?:(?:trigger|user)_error|__call|call_user_func)/',
+                                $frame['function']
+                                )
+                        )
+                    )
+                );
+            }
+        );
+
+        if (!$format) {
+            return '';
+        }
+
+        $out = '';
+        $eol = "\n";
+
+        // Analyze stack trace
+        foreach ($trace as $frame) {
+            $line = '';
+
+            if (isset($frame['class'])) {
+                $line .= $frame['class'] . $frame['type'];
+            }
+
+            if (isset($frame['function'])) {
+                $line .= $frame['function'] . '(' .
+                         ($debug > 2 && isset($frame['args']) ? csv($frame['args']): '') .
+                         ')';
+            }
+
+            $src = fixslashes(str_replace($_SERVER['DOCUMENT_ROOT'] . '/', '', $frame['file']));
+            $out .= '[' . $src . ':' . $frame['line'] . '] ' . $line . $eol;
+        }
+
+        return $out;
+    }
+
+    /**
      * Log error, trigger ONERROR event if exists else
      * display default error page (HTML for synchronous requests, JSON string
      * for AJAX requests)
@@ -1119,13 +1186,9 @@ final class App implements \ArrayAccess
             ->status($code)
         ;
 
-        if ($trace === null) {
-            $trace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);
-        }
-
         $header = $this->hive['TEXT'];
         $req = $this->hive['METHOD'].' '.$this->hive['PATH'];
-        $traceStr = stringify($trace);
+        $traceStr = $this->trace($trace);
 
         if ($this->hive['QUERY']) {
             $req .= '?' . $this->hive['QUERY'];
@@ -1140,7 +1203,7 @@ final class App implements \ArrayAccess
             $eol = $logs[0] === 3 ? "\n" : '';
 
             error_log($text . $eol, ...$logs);
-            error_log($traceStr . $eol, ...$logs);
+            error_log($traceStr, ...$logs);
         }
 
         $this->hive['ERROR'] = [

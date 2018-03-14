@@ -346,4 +346,9 @@ class FunctionsTest extends Testcase
         $this->assertEquals('FunctionsTest', f\classname($this));
         $this->assertEquals('FunctionsTest', f\classname(self::class));
     }
+
+    public function testCsv()
+    {
+        $this->assertEquals("1,2,'3'", f\csv([1,2,'3']));
+    }
 }
