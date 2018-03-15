@@ -20,6 +20,12 @@ class Audit
         UA_Bot     = 'bot|crawl|slurp|spider';
 
     /** @var array */
+    public static $specialMap = [
+        ',' => ':ccomma:',
+        '|' => ':cvbar:',
+    ];
+
+    /** @var array */
     protected $customs = [];
 
     /** @var array */
@@ -28,8 +34,26 @@ class Audit
     /** @var array Rule message */
     protected $messages = [
         'required' => 'This value should not be blank.',
-        'lenmin' => 'This value is too short. It should have {{ arg1 }} characters or more.',
-        'lenmax' => 'This value is too long. It should have {{ arg1 }} characters or less.',
+        'type' => 'This value should be of type {1}.',
+        'min' => 'This value should be {1} or more.',
+        'max' => 'This value should be {1} or less.',
+        'lt' => 'This value should be less than {1}.',
+        'gt' => 'This value should be greater than {1}.',
+        'lte' => 'This value should be less than or equal to {1}.',
+        'gte' => 'This value should be greater than or equal to {1}.',
+        'equal' => 'This value should be equal to {1}.',
+        'notequal' => 'This value should not be equal to {1}.',
+        'identical' => 'This value should be identical to {2} {1}.',
+        'notidentical' => 'This value should not be identical to {2} {1}.',
+        'lenmin' => 'This value is too short. It should have {1} characters or more.',
+        'lenmax' => 'This value is too long. It should have {1} characters or less.',
+        'countmin' => 'This collection should contain {1} elements or more.',
+        'countmax' => 'This collection should contain {1} elements or less.',
+        'regex' => null,
+        'choice' => 'The value you selected is not a valid choice.',
+        'choices' => 'One or more of the given values is invalid.',
+        'date' => 'This value is not a valid date.',
+        'datetime' => 'This value is not a valid datetime.',
         'email' => 'This value is not a valid email address.',
         'url' => 'This value is not a valid url.',
         'ipv4' => 'This value is not a valid ipv4 address.',
@@ -79,14 +103,159 @@ class Audit
     }
 
     /**
+     * Check variabel type
+     *
+     * @param  mixed $val
+     * @param  string $type
+     *
+     * @return bool
+     */
+    public function type($val, string $type): bool
+    {
+        return gettype($val) === $type;
+    }
+
+    /**
+     * Equal to
+     *
+     * @param  mixed $val
+     * @param  mixed $compared
+     *
+     * @return bool
+     */
+    public function equal($val, $compared): bool
+    {
+        return $val == $compared;
+    }
+
+    /**
+     * Not equal to
+     *
+     * @param  mixed $val
+     * @param  mixed $compared
+     *
+     * @return bool
+     */
+    public function notEqual($val, $compared): bool
+    {
+        return $val != $compared;
+    }
+
+    /**
+     * Identical to
+     *
+     * @param  mixed  $val
+     * @param  mixed  $compared
+     * @param  string $type
+     *
+     * @return bool
+     */
+    public function identical($val, $compared, string $type = 'string'): bool
+    {
+        return $val === $compared;
+    }
+
+    /**
+     * Not identical to
+     *
+     * @param  mixed  $val
+     * @param  mixed  $compared
+     * @param  string $type
+     *
+     * @return bool
+     */
+    public function notIdentical($val, $compared, string $type = 'string'): bool
+    {
+        return $val !== $compared;
+    }
+
+    /**
+     * Less than
+     *
+     * @param  mixed $val
+     * @param  mixed $min
+     *
+     * @return bool
+     */
+    public function lt($val, $min): bool
+    {
+        return $val < $min;
+    }
+
+    /**
+     * Greater than
+     *
+     * @param  mixed $val
+     * @param  mixed $max
+     *
+     * @return bool
+     */
+    public function gt($val, $max): bool
+    {
+        return $val > $max;
+    }
+
+    /**
+     * Less than or equal
+     *
+     * @param  mixed $val
+     * @param  mixed $min
+     *
+     * @return bool
+     */
+    public function lte($val, $min): bool
+    {
+        return $val <= $min;
+    }
+
+    /**
+     * Greater than or equal
+     *
+     * @param  mixed $val
+     * @param  mixed $max
+     *
+     * @return bool
+     */
+    public function gte($val, $max): bool
+    {
+        return $val >= $max;
+    }
+
+    /**
+     * Number min
+     *
+     * @param  mixed $val
+     * @param  mixed $min
+     *
+     * @return bool
+     */
+    public function min($val, $min): bool
+    {
+        return $val >= $min;
+    }
+
+    /**
+     * Number max
+     *
+     * @param  mixed $val
+     * @param  mixed $max
+     *
+     * @return bool
+     */
+    public function max($val, $max): bool
+    {
+        return $val <= $max;
+    }
+
+    /**
      * Min length
      *
      * @param  string $val
      * @param  int    $min
      *
-     * @return string
+     * @return bool
      */
-    public function lenMin(string $val, int $min)
+    public function lenMin(string $val, int $min): bool
     {
         return strlen($val) >= $min;
     }
@@ -97,11 +266,122 @@ class Audit
      * @param  string $val
      * @param  int    $max
      *
-     * @return string
+     * @return bool
      */
-    public function lenMax(string $val, int $max)
+    public function lenMax(string $val, int $max): bool
     {
         return strlen($val) <= $max;
+    }
+
+    /**
+     * Count min
+     *
+     * @param  array $val
+     * @param  int   $min
+     *
+     * @return bool
+     */
+    public function countMin(array $val, int $min): bool
+    {
+        return count($val) >= $min;
+    }
+
+    /**
+     * Count max
+     *
+     * @param  array $val
+     * @param  int   $max
+     *
+     * @return bool
+     */
+    public function countMax(array $val, int $max): bool
+    {
+        return count($val) <= $max;
+    }
+
+    /**
+     * Try to convert date to format
+     *
+     * @param  mixed  $val
+     * @param  string $format
+     *
+     * @return string
+     */
+    public function cdate($val, string $format = 'Y-m-d'): string
+    {
+        try {
+            $date = (new \DateTime($val))->format($format);
+        } catch (\Exception $e) {
+            $date = (string) $val;
+        }
+
+        return $date;
+    }
+
+    /**
+     * Check date in format YYYY-MM-DD
+     *
+     * @param  mixed $val
+     *
+     * @return bool
+     */
+    public function date($val): bool
+    {
+        return (bool) preg_match('/^\d{4}-\d{2}-\d{2}$/', $val);
+    }
+
+    /**
+     * Check date in format YYYY-MM-DD HH:MM:SS
+     *
+     * @param  mixed $val
+     *
+     * @return bool
+     */
+    public function datetime($val): bool
+    {
+        return (bool) preg_match('/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/', $val);
+    }
+
+    /**
+     * Perform regex
+     *
+     * @param  mixed $val
+     * @param  string $pattern
+     *
+     * @return bool
+     */
+    public function regex($val, string $pattern): bool
+    {
+        return (bool) preg_match($pattern, $val);
+    }
+
+    /**
+     * Check if val in choices
+     *
+     * @param  mixed $val
+     * @param  array $choices
+     *
+     * @return bool
+     */
+    public function choice($val, array $choices): bool
+    {
+        return in_array($val, $choices);
+    }
+
+    /**
+     * Check if multiple val in choices
+     *
+     * @param  mixed $val
+     * @param  array $choices
+     *
+     * @return bool
+     */
+    public function choices($val, array $choices): bool
+    {
+        $vals = (array) $val;
+        $intersection = array_intersect($vals, $choices);
+
+        return count($intersection) === count($vals);
     }
 
     /**
@@ -270,9 +550,9 @@ class Audit
      *
      * @param  string $id
      *
-     * @return string|false
+     * @return string
      */
-    public function card($id)
+    public function card($id): string
     {
         $id = preg_replace('/[^\d]/', '', $id);
 
@@ -302,7 +582,7 @@ class Audit
             }
         }
 
-        return false;
+        return '';
     }
 
     /**
@@ -469,6 +749,42 @@ class Audit
     }
 
     /**
+     * Compact array values to string
+     *
+     * @param  array  $values
+     *
+     * @return string
+     */
+    public function compact(array $values): string
+    {
+        return implode(self::$specialMap[','], $values);
+    }
+
+    /**
+     * Convert to special map
+     *
+     * @param  string $val
+     *
+     * @return string
+     */
+    public function encode(string $val): string
+    {
+        return strtr($val, self::$specialMap);
+    }
+
+    /**
+     * Inverse special map
+     *
+     * @param  string $val
+     *
+     * @return string
+     */
+    public function decode(string $val): string
+    {
+        return strtr($val, array_flip(self::$specialMap));
+    }
+
+    /**
      * Do validate
      *
      * @param  array  $data
@@ -478,6 +794,8 @@ class Audit
      */
     public function validate(array $data = null, array $rules = null): Audit
     {
+        static $fieldRule = ['_'=>' ','.'=>' - '];
+
         $this->errors = [];
         $this->processed = false;
 
@@ -486,22 +804,22 @@ class Audit
         $validated = [];
 
         foreach ($useRules as $id => $def) {
+            $xid = explode('|', $id);
             $xrules = explode('|', $def);
+            $id = $xid[0];
 
             foreach ($xrules as $rule) {
                 $audit = [
-                    'id' => $id,
-                    'original' => $use,
-                    'validated' => $result,
+                    'field' => $xid[1] ?? ucwords(strtr(snakecase($id), $fieldRule)),
+                    'args' => [],
+                    'rule' => null,
                 ];
-                $value = $validated[$id] ?? $use[$id] ?? null;
-                $result = $this->execute($rule, $value, $audit, $prule, $args);
+                $value = $validated[$id] ?? $this->ref($id, $use);
+                $result = $this->execute($rule, $value, $audit);
 
                 if ($result === false) {
                     // validation fail
-                    $this->addError($prule, $id, $args);
-
-                    break;
+                    $this->addError($audit);
                 } elseif ($result === true) {
                     $validated[$id] = $value;
                 } else {
@@ -519,52 +837,53 @@ class Audit
     /**
      * Add error message
      *
-     * @param string $rule
-     * @param string $id
-     * @param array  $args
+     * @param array $audit From validate
      */
-    protected function addError(string $rule, string $id, array $args): void
+    protected function addError(array $audit): void
     {
-        $message = $this->messages[strtolower($rule)] ?? null;
+        $message = $this->messages[strtolower($audit['rule'])] ?? 'This value is not valid.';
+        $field = $audit['field'];
 
-        if ($message) {
-            $keys = quoteall(array_keys($args), ['{arg','}']);
-            $keys[] = '{key}';
-            $args[] = $id;
+        if (strpos($message, '{') !== false) {
+            $keys = ['{key}'];
+            $vals = [$field];
 
-            $message  = str_replace($keys, $args, $message);
-        } else {
-            $message = 'Invalid data';
+            foreach ($audit['args'] as $key => $value) {
+                $keys[] = '{' . $key . '}';
+                $vals[] = is_array($value) ? stringify($value) : $value;
+            }
+
+            $message  = str_replace($keys, $vals, $message);
         }
 
-        $this->errors[$id][] = $message;
+        $this->errors[$field][] = $message;
     }
 
     /**
      * Execute rule
      *
-     * @param  string     $rule
-     * @param  mixed     $val
-     * @param  array      $audit
-     * @param  array|null &$args
+     * @param  string $rule
+     * @param  mixed  $val
+     * @param  array  &$audit
      *
      * @return mixed
      */
-    protected function execute(
-        string $rule,
-        $val,
-        array $audit,
-        string &$prule = null,
-        array &$args = null
-    ) {
+    protected function execute(string $rule, $val, array &$audit)
+    {
         if (!preg_match('/^(\w+)(?:\[([^\]]+)\])?$/', $rule, $match)) {
             throw new \LogicException("Invalid rule declaration: {$rule}");
         }
 
         $prule = $match[1];
-        $args = isset($match[2]) ? casts(split($match[2])) : [];
-        $cust = true;
+        $args = [];
         $func = true;
+
+        if (isset($match[2]) && $match[2]) {
+            foreach (explode(',', $match[2]) as $key => $value) {
+                $dvalue = $this->decode($value);
+                $args[] = strpos($dvalue, ',') === false ? cast($dvalue) : casts(explode(',', $dvalue));
+            }
+        }
 
         if (isset($this->customs[$prule])) {
             $ref = new \ReflectionFunction($this->customs[$prule]);
@@ -573,7 +892,6 @@ class Audit
             $func = false;
         } elseif (is_callable($prule)) {
             $ref = new \ReflectionFunction($prule);
-            $cust = false;
         } else {
             throw new \LogicException("Rule not found: {$prule}");
         }
@@ -590,26 +908,43 @@ class Audit
             throw new \ArgumentCountError($error);
         }
 
-        $audit_key = -1;
-
-        if ($cust) {
-            foreach ($ref->getParameters() as $key => $param) {
-                if ($param->name === '_audit') {
-                    // special parameter name
-                    $args[$key] = $audit;
-                    $audit_key = $key;
-                } elseif (!isset($args[$key]) && $param->isDefaultValueAvailable()) {
-                    $args[$key] = $param->getDefaultValue();
-                }
+        foreach ($ref->getParameters() as $key => $param) {
+            if (!isset($args[$key]) && $param->isDefaultValueAvailable()) {
+                $args[$key] = $param->getDefaultValue();
             }
         }
 
-        $out = $func ? $ref->invoke(...$args) : $ref->invoke($this, ...$args);
+        $audit['rule'] = $prule;
+        $audit['args'] = $args;
 
-        if ($audit_key > -1) {
-            unset($args[$audit_key]);
+        return $func ? $ref->invoke(...$args) : $ref->invoke($this, ...$args);
+    }
+
+    /**
+     * Get hive ref
+     *
+     * @param  string $key
+     * @param  array  $var
+     *
+     * @return mixed
+     */
+    protected function ref(string $key, array $var)
+    {
+        $null = null;
+        $parts = explode('.', $key);
+
+        foreach ($parts as $part) {
+            if (!is_array($var)) {
+                $var = [];
+            }
+            if (array_key_exists($part, $var)) {
+                $var =& $var[$part];
+            } else {
+                $var =& $null;
+                break;
+            }
         }
 
-        return $out;
+        return $var;
     }
 }

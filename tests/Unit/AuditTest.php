@@ -95,12 +95,27 @@ class AuditTest extends TestCase
         $this->assertEquals([], $this->audit->getValidated());
     }
 
+    public function testCompact()
+    {
+        $this->assertEquals('foo:ccomma:bar', $this->audit->compact(['foo','bar']));
+    }
+
+    public function testEncode()
+    {
+        $this->assertEquals(':ccomma:foo:cvbar:', $this->audit->encode(',foo|'));
+    }
+
+    public function testDecode()
+    {
+        $this->assertEquals(',foo|', $this->audit->decode(':ccomma:foo:cvbar:'));
+    }
+
     public function testValidate()
     {
-        $this->audit->setRule('foo', function($val, $foo, $_audit = null) {
-            return $val ? $_audit['id'] . $val . $foo : false;
+        $this->audit->setRule('foo', function($val, $foo) {
+            return $val ? $val . $foo : false;
         });
-        $this->audit->setMessage('foo', 'Foo {key} {arg1}');
+        $this->audit->setMessage('foo', 'Foo {key} {1}');
 
         $this->audit->setRules([
             'foo'=>'trim|required|foo[baz]',
@@ -113,7 +128,7 @@ class AuditTest extends TestCase
             'email'=>'foo@bar.com'
         ]);
         $this->assertTrue($this->audit->isSuccess());
-        $this->assertEquals(['foo'=>'foobarbaz','email'=>'foo@bar.com'], $this->audit->getValidated());
+        $this->assertEquals(['foo'=>'barbaz','email'=>'foo@bar.com'], $this->audit->getValidated());
 
         // expect error
         $this->audit->setRules([
@@ -123,14 +138,160 @@ class AuditTest extends TestCase
         $this->audit->validate([]);
         $this->assertFalse($this->audit->isSuccess());
         $this->assertEquals([], $this->audit->getValidated());
-        $this->assertEquals(['foo'=>['Foo foo baz'],'email'=>['This value is not a valid email address.']], $this->audit->getErrors());
+        $this->assertEquals(['Foo'=>['Foo Foo baz'],'Email'=>['This value is not a valid email address.']], $this->audit->getErrors());
+    }
+
+    public function testValidateMessage()
+    {
+        $rules = [
+            'foo'=>'required|lenmin[5]|email|url|ipv4|ipv6',
+            'bar'=>'lenmax[1]',
+            'baz'=>'isprivate',
+            'qux'=>'ispublic',
+            'quux'=>'isreserved',
+            'corge'=>'min[2]',
+            'grault'=>'max[2]',
+            'equal'=>'equal[foo]',
+            'notequal'=>'notequal[foo]',
+            'identical'=>'identical[foo]',
+            'notidentical'=>'notidentical[1,integer]',
+            'lt'=>'lt[2]',
+            'gt'=>'gt[2]',
+            'lte'=>'lte[2]',
+            'gte'=>'gte[2]',
+            'type'=>'type[string]',
+            'countmin'=>'countmin[1]',
+            'countmax'=>'countmax[1]',
+            'date'=>'date',
+            'datetime'=>'datetime',
+            'regex'=>'regex[/foo/]',
+            'choice'=>'choice[' . $this->audit->compact([1,2]) . ']',
+            'choices'=>'choices[' . $this->audit->compact([1,2]) . ']',
+        ];
+        $data = [
+            'foo' => '',
+            'bar' => 'baz',
+            'baz' => '0.1.2.3',
+            'qux' => '10.10.10.10',
+            'quux' => '193.194.195.196',
+            'corge' => 1,
+            'grault' => 5,
+            'equal' => 'bar',
+            'notequal' => 'foo',
+            'identical' => 'bar',
+            'notidentical' => 1,
+            'lt' => 2,
+            'gt' => 2,
+            'lte' => 3,
+            'gte' => 1,
+            'type' => 1,
+            'countmin'=>[],
+            'countmax'=>[1,2],
+            'date'=>'x',
+            'datetime'=>'x',
+            'regex'=>'x',
+            'choice'=>3,
+            'choices'=>3,
+        ];
+        $this->audit->validate($data, $rules);
+        $error = $this->audit->getErrors();
+
+        $this->assertTrue($this->audit->isFailed());
+        $this->assertContains('This value should not be blank.', $error['Foo']);
+        $this->assertContains('This value is too short. It should have 5 characters or more.', $error['Foo']);
+        $this->assertContains('This value is not a valid email address.', $error['Foo']);
+        $this->assertContains('This value is not a valid url.', $error['Foo']);
+        $this->assertContains('This value is not a valid ipv4 address.', $error['Foo']);
+        $this->assertContains('This value is not a valid ipv6 address.', $error['Foo']);
+        $this->assertContains('This value is too long. It should have 1 characters or less.', $error['Bar']);
+        $this->assertContains('This value is not a private ip address.', $error['Baz']);
+        $this->assertContains('This value is not a public ip address.', $error['Qux']);
+        $this->assertContains('This value is not a reserved ip address.', $error['Quux']);
+        $this->assertContains('This value should be 2 or more.', $error['Corge']);
+        $this->assertContains('This value should be 2 or less.', $error['Grault']);
+        $this->assertContains('This value should be equal to foo.', $error['Equal']);
+        $this->assertContains('This value should not be equal to foo.', $error['Notequal']);
+        $this->assertContains('This value should be identical to string foo.', $error['Identical']);
+        $this->assertContains('This value should not be identical to integer 1.', $error['Notidentical']);
+        $this->assertContains('This value should be less than 2.', $error['Lt']);
+        $this->assertContains('This value should be greater than 2.', $error['Gt']);
+        $this->assertContains('This value should be less than or equal to 2.', $error['Lte']);
+        $this->assertContains('This value should be greater than or equal to 2.', $error['Gte']);
+        $this->assertContains('This value should be of type string.', $error['Type']);
+        $this->assertContains('This collection should contain 1 elements or more.', $error['Countmin']);
+        $this->assertContains('This collection should contain 1 elements or less.', $error['Countmax']);
+        $this->assertContains('This value is not a valid date.', $error['Date']);
+        $this->assertContains('This value is not a valid datetime.', $error['Datetime']);
+        $this->assertContains('This value is not valid.', $error['Regex']);
+        $this->assertContains('The value you selected is not a valid choice.', $error['Choice']);
+        $this->assertContains('One or more of the given values is invalid.', $error['Choices']);
+    }
+
+    public function testValidateSpecialChar()
+    {
+        $rules = [
+            'foo' => 'regex[/foo:cvbar:bar/]',
+            'bar' => 'regex[/foo:cvbar:bar/]',
+            'choice' => 'choice[' . $this->audit->compact(['foo','bar']) . ']',
+        ];
+        $data = [
+            'foo' => 'foo',
+            'bar' => 'bar',
+            'choice' => 'foo',
+        ];
+        $this->audit->validate($data, $rules);
+        $this->assertTrue($this->audit->isSuccess());
+    }
+
+    public function testValidateDotAndCustomField()
+    {
+        $rules = [
+            'foo.bar' => 'required',
+            'foo.baz.qux|Custom Field' => 'required',
+        ];
+        $data = [
+            'foo' => [
+                'bar' => '',
+                // baz is not supplied
+            ],
+        ];
+        $this->audit->validate($data, $rules);
+        $error = $this->audit->getErrors();
+
+        $this->assertFalse($this->audit->isSuccess());
+        $this->assertContains('This value should not be blank.', $error['Foo - Bar']);
+        $this->assertContains('This value should not be blank.', $error['Custom Field']);
+
+        // invalid
+        $data2 = [
+            'foo' => [
+                'bar' => '',
+                // not an array
+                'baz' => 'foo',
+            ],
+        ];
+        $this->audit->validate($data2, $rules);
+        $this->assertFalse($this->audit->isSuccess());
+
+        // valid
+        $data3 = [
+            'foo' => [
+                'bar' => 'foo',
+                'baz' => [
+                    'qux' => 'foo',
+                ],
+            ],
+        ];
+        $this->audit->validate($data3, $rules);
+
+        $this->assertTrue($this->audit->isSuccess());
     }
 
     public function testValidateConstruct()
     {
         $audit = new Audit([
-            'foo' => function($val, $foo, $_audit = null) {
-                return $val ? $_audit['id'] . $val . $foo : false;
+            'foo' => function($val, $foo) {
+                return $val ? $val . $foo : false;
             }
         ], [
             'foo' => 'Foo {key} {arg1}'
@@ -143,7 +304,7 @@ class AuditTest extends TestCase
         ]);
 
         $this->assertTrue($audit->isSuccess());
-        $this->assertEquals(['foo'=>'foobarbaz'], $audit->getValidated());
+        $this->assertEquals(['foo'=>'barbaz'], $audit->getValidated());
     }
 
     /**
@@ -192,6 +353,79 @@ class AuditTest extends TestCase
         $this->assertTrue($this->audit->required(0));
     }
 
+    public function testType()
+    {
+        $this->assertTrue($this->audit->type('foo', 'string'));
+        $this->assertTrue($this->audit->type(1, 'integer'));
+        $this->assertTrue($this->audit->type([], 'array'));
+    }
+
+    public function testEqual()
+    {
+        $this->assertTrue($this->audit->equal('foo', 'foo'));
+        $this->assertTrue($this->audit->equal(1, 1));
+    }
+
+    public function testNotEqual()
+    {
+        $this->assertTrue($this->audit->notequal('bar', 'foo'));
+        $this->assertTrue($this->audit->notequal(2, 1));
+    }
+
+    public function testIdentical()
+    {
+        $this->assertTrue($this->audit->identical('foo', 'foo'));
+        $this->assertTrue($this->audit->identical(1, 1));
+
+        $this->assertFalse($this->audit->identical(1, '1'));
+    }
+
+    public function testNotIdentical()
+    {
+        $this->assertTrue($this->audit->notIdentical('foo', 1));
+        $this->assertTrue($this->audit->notIdentical(1, '1'));
+    }
+
+    public function testLt()
+    {
+        $this->assertTrue($this->audit->lt(1, 2));
+        $this->assertTrue($this->audit->lt(4.9, 5));
+    }
+
+    public function testGt()
+    {
+        $this->assertTrue($this->audit->gt(3, 2));
+        $this->assertTrue($this->audit->gt(5, 4.9));
+    }
+
+    public function testLte()
+    {
+        $this->assertTrue($this->audit->lte(1, 2));
+        $this->assertTrue($this->audit->lte(2, 2));
+        $this->assertTrue($this->audit->lte(4.9, 5));
+        $this->assertTrue($this->audit->lte(5, 5));
+    }
+
+    public function testGte()
+    {
+        $this->assertTrue($this->audit->gte(3, 2));
+        $this->assertTrue($this->audit->gte(2, 2));
+        $this->assertTrue($this->audit->gte(5, 4.9));
+        $this->assertTrue($this->audit->gte(4.9, 4.9));
+    }
+
+    public function testMin()
+    {
+        $this->assertTrue($this->audit->min(3, 2));
+        $this->assertTrue($this->audit->min(5.1, 5));
+    }
+
+    public function testMax()
+    {
+        $this->assertTrue($this->audit->max(1, 2));
+        $this->assertTrue($this->audit->max(4.9, 4.9));
+    }
+
     public function testLenMin()
     {
         $this->assertTrue($this->audit->lenMin('foo', 3));
@@ -202,6 +436,53 @@ class AuditTest extends TestCase
     {
         $this->assertTrue($this->audit->lenMax('foo', 3));
         $this->assertFalse($this->audit->lenMax('foobar', 3));
+    }
+
+    public function testCountMin()
+    {
+        $this->assertTrue($this->audit->countMin([1], 1));
+        $this->assertFalse($this->audit->countMin([], 1));
+    }
+
+    public function testCountMax()
+    {
+        $this->assertTrue($this->audit->countMax([1], 1));
+        $this->assertFalse($this->audit->countMax([1,2], 1));
+    }
+
+    public function testCdate()
+    {
+        $this->assertEquals('2010-10-10', $this->audit->cdate('Oct 10, 2010'));
+        $this->assertEquals('Octt 10 2010', $this->audit->cdate('Octt 10 2010'));
+    }
+
+    public function testDate()
+    {
+        $this->assertTrue($this->audit->date('2010-10-10'));
+    }
+
+    public function testDatetime()
+    {
+        $this->assertTrue($this->audit->datetime('2010-10-10 00:00:00'));
+    }
+
+    public function testRegex()
+    {
+        $this->assertTrue($this->audit->regex('foo', '/foo/'));
+    }
+
+    public function testChoice()
+    {
+        $this->assertTrue($this->audit->choice(1, [1,2]));
+    }
+
+    public function testChoices()
+    {
+        $this->assertTrue($this->audit->choices('foo', ['foo','bar','baz']));
+        $this->assertTrue($this->audit->choices(['foo','bar'], ['foo','bar','baz']));
+
+        $this->assertFalse($this->audit->choices('qux', ['foo','bar','baz']));
+        $this->assertFalse($this->audit->choices(['foo','qux'], ['foo','bar','baz']));
     }
 
     public function testUrl()
@@ -374,6 +655,6 @@ class AuditTest extends TestCase
         $this->assertEquals($type, $this->audit->card('4111111111111111'));
         $this->assertEquals($type, $this->audit->card('4012888888881881'));
 
-        $this->assertFalse($this->audit->card('1234567890'));
+        $this->assertEquals('', $this->audit->card('1234567890'));
     }
 }
