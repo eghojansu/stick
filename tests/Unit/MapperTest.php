@@ -249,7 +249,7 @@ SQL1
 
     /**
      * @expectedException ArgumentCountError
-     * @expectedExceptionMessage Too few argument passed, 2 passed and exactly 1 expected
+     * @expectedExceptionRegex /expect exactly 1 parameters, given only 2 parameters$/
      */
     public function testMagicMethodException2()
     {
@@ -419,7 +419,7 @@ SQL1
 
     /**
      * @expectedException LogicException
-     * @expectedExceptionMessage Invalid record #1
+     * @expectedExceptionMessage Invalid record: #1
      */
     public function testInsertBatchException2()
     {
@@ -522,7 +522,7 @@ SQL1
 
     /**
      * @expectedException LogicException
-     * @expectedExceptionMessage Invalid record #1
+     * @expectedExceptionMessage Invalid record: #1
      */
     public function testUpdateBatchException2()
     {

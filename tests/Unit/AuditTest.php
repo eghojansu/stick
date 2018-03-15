@@ -68,7 +68,7 @@ class AuditTest extends TestCase
 
     /**
      * @expectedException LogicException
-     * @expectedExceptionMessage Run validate method first
+     * @expectedExceptionMessage No validation has been processed, run validate method first
      */
     public function testIsSuccessException()
     {
@@ -309,7 +309,7 @@ class AuditTest extends TestCase
 
     /**
      * @expectedException LogicException
-     * @expectedExceptionMessage Invalid rule declaration: invalid-rule
+     * @expectedExceptionMessage Rule declaration is invalid, given "invalid-rule"
      */
     public function testValidateException1()
     {
@@ -320,7 +320,7 @@ class AuditTest extends TestCase
 
     /**
      * @expectedException LogicException
-     * @expectedExceptionMessage Rule not found: foo
+     * @expectedExceptionMessage Rule "foo" does not exists
      */
     public function testValidateException2()
     {

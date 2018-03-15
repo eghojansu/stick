@@ -912,6 +912,8 @@ final class App implements \ArrayAccess
      * @param  string|null $body
      *
      * @return void
+     *
+     * @throws LogicException
      */
     public function mock(
         string $pattern,
@@ -922,7 +924,10 @@ final class App implements \ArrayAccess
         preg_match('/^([\w]+)(?:\h+([^\h]+))(?:\h+(sync|ajax|cli))?$/i', $pattern, $match);
 
         if (empty($match[2])) {
-            throw new \LogicException('Invalid mock pattern: ' . $pattern);
+            throw new \LogicException(
+                'Mock pattern should contain at least request method and path, given "' .
+                $pattern . '"'
+            );
         }
 
         $args = (array) $args;
@@ -1048,23 +1053,23 @@ final class App implements \ArrayAccess
     /**
      * Build url from named route
      *
-     * @param  string $route
+     * @param  string $alias
      * @param  array|string $args
      *
      * @return string
      *
-     * @throws LogicException
+     * @throws OutOfBoundsException
      */
-    public function alias(string $route, $args = null): string
+    public function alias(string $alias, $args = null): string
     {
-        if (empty($this->hive['ALIASES'][$route])) {
-            throw new \LogicException('Route was not exists: ' . $route);
+        if (empty($this->hive['ALIASES'][$alias])) {
+            throw new \OutOfBoundsException('Alias "' . $alias . '" does not exists');
         }
 
         $args = (array) $args;
         $url = preg_replace_callback('/\{(\w+)(?:\:\w+)?\}/', function($m) use ($args) {
             return $args[$m[1]] ?? $m[0];
-        }, $this->hive['ALIASES'][$route]);
+        }, $this->hive['ALIASES'][$alias]);
 
         return $url;
     }
@@ -1327,7 +1332,10 @@ ERR
         $parts = array_filter(explode(' ', $pattern));
 
         if (empty($parts)) {
-            throw new \LogicException('Invalid resource pattern: ' . $pattern);
+            throw new \LogicException(
+                'Resource pattern should contain at least route name, given "' .
+                $pattern . '"'
+            );
         }
 
         static $defMap = [
@@ -1532,7 +1540,10 @@ ERR
         }
 
         if (empty($match[3])) {
-            throw new \LogicException('Invalid route pattern: ' . $pattern);
+            throw new \LogicException(
+                'Route pattern should contain at least request method and path, given "' .
+                $pattern . '"'
+            );
         }
 
         if ($alias) {

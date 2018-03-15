@@ -710,7 +710,9 @@ class Audit
     public function isSuccess(): bool
     {
         if (!$this->processed) {
-            throw new \LogicException('Run validate method first');
+            throw new \LogicException(
+                'No validation has been processed, run validate method first'
+            );
         }
 
         return count($this->errors) === 0;
@@ -867,11 +869,17 @@ class Audit
      * @param  array  &$audit
      *
      * @return mixed
+     *
+     * @throws LogicException
+     * @throws DomainException
+     * @throws ArgumentCountError
      */
     protected function execute(string $rule, $val, array &$audit)
     {
         if (!preg_match('/^(\w+)(?:\[([^\]]+)\])?$/', $rule, $match)) {
-            throw new \LogicException("Invalid rule declaration: {$rule}");
+            throw new \LogicException(
+                'Rule declaration is invalid, given "' . $rule . '"'
+            );
         }
 
         $prule = $match[1];
@@ -881,7 +889,8 @@ class Audit
         if (isset($match[2]) && $match[2]) {
             foreach (explode(',', $match[2]) as $key => $value) {
                 $dvalue = $this->decode($value);
-                $args[] = strpos($dvalue, ',') === false ? cast($dvalue) : casts(explode(',', $dvalue));
+                $args[] = strpos($dvalue, ',') === false ?
+                          cast($dvalue) : casts(explode(',', $dvalue));
             }
         }
 
@@ -893,7 +902,9 @@ class Audit
         } elseif (is_callable($prule)) {
             $ref = new \ReflectionFunction($prule);
         } else {
-            throw new \LogicException("Rule not found: {$prule}");
+            throw new \DomainException(
+                'Rule "' . $prule . '" does not exists'
+            );
         }
 
         // First parameter is value
@@ -903,9 +914,10 @@ class Audit
         $reqCount = max(1, $ref->getNumberOfRequiredParameters());
 
         if ($argCount < $reqCount) {
-            $error = 'Validator ' . $prule . ' expect at least ' .
-                     $reqCount . ' parameters, ' . $argCount . ' given';
-            throw new \ArgumentCountError($error);
+            throw new \ArgumentCountError(
+                'Validator ' . $prule . ' expect at least ' . $reqCount . ' parameters, ' .
+                $argCount . ' given'
+            );
         }
 
         foreach ($ref->getParameters() as $key => $param) {

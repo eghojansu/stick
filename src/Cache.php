@@ -60,7 +60,9 @@ class Cache
     ): bool {
         if ($hash === null) {
             if (!$args) {
-                throw new \LogicException('Please provide a valid hash.');
+                throw new \LogicException(
+                    static::class . '::isCached expect at least a hash parameter, none given'
+                );
             }
 
             $str = '';

@@ -452,7 +452,7 @@ SQL1
 
     /**
      * @expectedException LogicException
-     * @expectedExceptionMessage BETWEEN operator needs array operand, string given
+     * @expectedExceptionMessage BETWEEN operator needs an array operand, string given
      */
     public function testFilterException1()
     {

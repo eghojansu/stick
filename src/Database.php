@@ -109,6 +109,8 @@ class Database
      * @param  int          $ttl
      *
      * @return array
+     *
+     * @throws DomainException
      */
     public function schema(string $table, $fields = NULL, int $ttl = 0): array
     {
@@ -184,7 +186,9 @@ PTRN;
 
         $driver = $this->getDriver();
         if (!preg_match($cmdPattern, $driver, $match)) {
-            throw new \LogicException('Driver ' . $driver . ' is not supported');
+            throw new \DomainException(
+                'Driver ' . $driver . ' is not supported'
+            );
         }
 
         foreach ($match as $use => $value) {
@@ -312,10 +316,10 @@ PTRN;
             } else {
                 if ($b3 === '!><' || $b2 === '><') {
                     if (!is_array($expr)) {
-                        $error = 'BETWEEN operator needs array operand, ' .
-                                 gettype($expr) . ' given';
-
-                        throw new \LogicException($error);
+                        throw new \LogicException(
+                            'BETWEEN operator needs an array operand, ' .
+                            gettype($expr) . ' given'
+                        );
                     }
 
                     $str .= " :{$col}1 AND :{$col}2";
@@ -420,9 +424,10 @@ PTRN;
                 // location can be full filepath or :memory:
                 $options['dsn'] = 'sqlite:' . $options['location'];
             } else {
-                $error = 'Currently, there is no logic for ' . $driver .
-                         ' DSN creation, please provide a valid one';
-                throw new \LogicException($error);
+                throw new \LogicException(
+                    'Currently, there is no logic for ' . $driver .
+                    ' DSN creation, please provide a valid one'
+                );
             }
         } elseif (
             empty($options['dbname'])

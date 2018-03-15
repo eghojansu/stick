@@ -432,7 +432,7 @@ class AppTest extends TestCase
 
     /**
      * @expectedException LogicException
-     * @expectedExceptionMessage Invalid mock pattern: GET
+     * @expectedExceptionMessage Mock pattern should contain at least request method and path, given "GET"
      */
     public function testMockException()
     {
@@ -511,8 +511,8 @@ class AppTest extends TestCase
     }
 
     /**
-     * @expectedException LogicException
-     * @expectedExceptionMessage Route was not exists: foo
+     * @expectedException OutOfBoundsException
+     * @expectedExceptionMessage Alias "foo" does not exists
      */
     public function testAliasException()
     {
@@ -689,7 +689,7 @@ class AppTest extends TestCase
 
     /**
      * @expectedException LogicException
-     * @expectedExceptionMessage Invalid resource pattern:
+     * @expectedExceptionMessage Resource pattern should contain at least route name, given ""
      */
     public function testResourceException()
     {
@@ -838,7 +838,7 @@ class AppTest extends TestCase
 
     /**
      * @expectedException LogicException
-     * @expectedExceptionMessage Invalid route pattern: GET
+     * @expectedExceptionMessage Route pattern should contain at least request method and path, given "GET"
      */
     public function testRouteInvalid()
     {

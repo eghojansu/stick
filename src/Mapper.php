@@ -375,7 +375,7 @@ class Mapper
             $params = array_intersect_key($this->cast($record), $this->fields);
 
             if ($len !== count($params)) {
-                throw new \LogicException("Invalid record #{$key}");
+                throw new \LogicException('Invalid record: #' . $key);
             }
 
             $success = $this->db->run($query, array_values($params));
@@ -534,7 +534,7 @@ class Mapper
             }
 
             if ($len !== count($data)) {
-                throw new \LogicException("Invalid record #{$key}");
+                throw new \LogicException('Invalid record: #' . $key);
             }
 
             $success = $this->db->run($query, $data);
@@ -704,14 +704,16 @@ class Mapper
 
             if ($vcount !== $pcount) {
                 throw new \ArgumentCountError(
-                    'Too few argument passed, ' . $vcount . ' passed and exactly ' .
-                    $pcount . ' expected'
+                    static::class . '::' . $method . ' expect exactly ' . $pcount .
+                    ' parameters, given only ' . $vcount . ' parameters'
                 );
             }
 
             return $this->findOneBy(array_combine($this->pkeys, $pvals));
         }
 
-        throw new \BadMethodCallException('Invalid method ' . static::class . '::' . $method);
+        throw new \BadMethodCallException(
+            'Call to undefined method ' . static::class . '::' . $method
+        );
     }
 }

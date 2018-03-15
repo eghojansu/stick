@@ -87,7 +87,7 @@ class CacheTest extends TestCase
 
     /**
      * @expectedException LogicException
-     * @expectedExceptionMessage Please provide a valid hash
+     * @expectedExceptionRegex /expect at least a hash parameter, none given$/
      */
     public function testIsCachedException()
     {
