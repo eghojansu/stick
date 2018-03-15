@@ -50,7 +50,8 @@ class Mapper
         $fields = null,
         int $ttl = 60
     ) {
-        $use = $this->source ?? $table ?? rtrim(cutbefore('mapper', snakecase(classname($this))), '_');
+        $use = $this->source ?? $table ??
+               rtrim(cutbefore('mapper', snakecase(classname($this))), '_');
 
         $this->db = $db;
         $this->setSource($use, $fields, $ttl);
@@ -67,18 +68,16 @@ class Mapper
      */
     public function setSource(string $source, $fields = null, int $ttl = 60): Mapper
     {
-        if (!$source) {
-            return $this;
-        }
+        if ($source) {
+            $this->source = $source;
+            $this->table = $this->db->quotekey($source);
+            $this->fields = $this->db->schema($source, $fields, $ttl);
+            $this->pkeys = [];
 
-        $this->source = $source;
-        $this->table = $this->db->quotekey($source);
-        $this->fields = $this->db->schema($source, $fields, $ttl);
-        $this->pkeys = [];
-
-        foreach ($this->fields as $key => $value) {
-            if ($value['pkey']) {
-                $this->pkeys[] = $key;
+            foreach ($this->fields as $key => $value) {
+                if ($value['pkey']) {
+                    $this->pkeys[] = $key;
+                }
             }
         }
 
@@ -156,7 +155,11 @@ class Mapper
 
         if ($page > 0) {
             $offset = ($page - 1) * $limit;
-            $subset = $this->findBy($filter, compact('limit','offset') + (array) $options, $ttl);
+            $subset = $this->findBy(
+                $filter,
+                compact('limit','offset') + (array) $options,
+                $ttl
+            );
             $start = $offset + 1;
             $end = $offset + count($subset);
         }

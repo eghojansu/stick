@@ -21,8 +21,8 @@ class Audit
 
     /** @var array */
     public static $specialMap = [
-        ',' => ':ccomma:',
-        '|' => ':cvbar:',
+        ',' => ':comma:',
+        '|' => ':vbar:',
     ];
 
     /** @var array */
@@ -796,8 +796,6 @@ class Audit
      */
     public function validate(array $data = null, array $rules = null): Audit
     {
-        static $fieldRule = ['_'=>' ','.'=>' - '];
-
         $this->errors = [];
         $this->processed = false;
 
@@ -812,7 +810,7 @@ class Audit
 
             foreach ($xrules as $rule) {
                 $audit = [
-                    'field' => $xid[1] ?? ucwords(strtr(snakecase($id), $fieldRule)),
+                    'field' => $xid[1] ?? ucwords(strtr(snakecase($id), ['_'=>' ','.'=>' - '])),
                     'args' => [],
                     'rule' => null,
                 ];

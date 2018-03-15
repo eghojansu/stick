@@ -19,16 +19,12 @@ namespace Fal\Stick;
  *
  * @return string
  */
-function stringify($arg, array $stack = null): string
+function stringify($arg, array $stack = []): string
 {
-    if ($stack) {
-        foreach ($stack as $node) {
-            if ($arg === $node) {
-                return '*RECURSION*';
-            }
+    foreach ($stack as $node) {
+        if ($arg === $node) {
+            return '*RECURSION*';
         }
-    } else {
-        $stack = [];
     }
 
     switch (gettype($arg)) {
@@ -205,6 +201,7 @@ function extract(array $arr, string $prefix): array
 {
     $out = [];
     $cut = strlen($prefix);
+
     foreach ($arr as $key => $value) {
         if (is_string($key) && substr($key, 0, $cut) === $prefix) {
             $out[substr($key, $cut)] = $value;
@@ -465,10 +462,11 @@ function icutbefore(string $suffix, string $str, string $default = ''): string
 function cast($val)
 {
     if (is_numeric($val)){
-        return $val+0;
+        return $val + 0;
     }
 
     $val = trim($val);
+
     if (preg_match('/^\w+$/i', $val) && defined($val)) {
         return \constant($val);
     }

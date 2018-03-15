@@ -1338,17 +1338,19 @@ ERR
             );
         }
 
-        static $defMap = [
-            'index'   => ['GET',    '%prefix%/%route%'],
-            'create'  => ['GET',    '%prefix%/%route%/create'],
-            'store'   => ['POST',   '%prefix%/%route%'],
-            'show'    => ['GET',    '%prefix%/%route%/{%id%}'],
-            'edit'    => ['GET',    '%prefix%/%route%/{%id%}/edit'],
-            'update'  => ['PUT',    '%prefix%/%route%/{%id%}'],
-            'destroy' => ['DELETE', '%prefix%/%route%/{%id%}'],
-        ];
-
         list($route, $prefix) = $parts + [1=>''];
+
+        $proute = $prefix . '/' . str_replace('_', '-', $route);
+        $prouter = $proute . '/{' . $route . '}';
+        $defMap = [
+            'index'   => ['GET',    $proute],
+            'create'  => ['GET',    $proute . '/create'],
+            'store'   => ['POST',   $proute],
+            'show'    => ['GET',    $prouter],
+            'edit'    => ['GET',    $prouter . '/edit'],
+            'update'  => ['PUT',    $prouter],
+            'destroy' => ['DELETE', $prouter],
+        ];
 
         $type = constant(
             self::class . '::REQ_' . strtoupper($parts[2] ?? ''),
@@ -1363,22 +1365,8 @@ ERR
             }
 
             if (isset($defMap[$res])) {
-                list($verb, $format) = $defMap[$res];
+                list($verb, $path) = $defMap[$res];
                 $alias = $route . '_' . $res;
-
-                $path = str_replace(
-                    [
-                        '%prefix%',
-                        '%route%',
-                        '%id%',
-                    ],
-                    [
-                        $prefix,
-                        str_replace('_', '-', $route),
-                        $route,
-                    ],
-                    $format
-                );
 
                 $this->hive['ALIASES'][$alias] = $path;
                 $this->hive['ROUTES'][$path][$type][$verb] = [

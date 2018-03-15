@@ -97,17 +97,17 @@ class AuditTest extends TestCase
 
     public function testCompact()
     {
-        $this->assertEquals('foo:ccomma:bar', $this->audit->compact(['foo','bar']));
+        $this->assertEquals('foo:comma:bar', $this->audit->compact(['foo','bar']));
     }
 
     public function testEncode()
     {
-        $this->assertEquals(':ccomma:foo:cvbar:', $this->audit->encode(',foo|'));
+        $this->assertEquals(':comma:foo:vbar:', $this->audit->encode(',foo|'));
     }
 
     public function testDecode()
     {
-        $this->assertEquals(',foo|', $this->audit->decode(':ccomma:foo:cvbar:'));
+        $this->assertEquals(',foo|', $this->audit->decode(':comma:foo:vbar:'));
     }
 
     public function testValidate()
@@ -230,8 +230,8 @@ class AuditTest extends TestCase
     public function testValidateSpecialChar()
     {
         $rules = [
-            'foo' => 'regex[/foo:cvbar:bar/]',
-            'bar' => 'regex[/foo:cvbar:bar/]',
+            'foo' => 'regex[/foo:vbar:bar/]',
+            'bar' => 'regex[/foo:vbar:bar/]',
             'choice' => 'choice[' . $this->audit->compact(['foo','bar']) . ']',
         ];
         $data = [

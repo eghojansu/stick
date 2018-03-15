@@ -123,7 +123,7 @@ class Database
         }
 
         // Supported engines
-        static $cmdPattern = <<<PTRN
+        $cmdPattern = <<<PTRN
 /^(?:
     (sqlite2?)|
     (mysql)|
@@ -131,16 +131,28 @@ class Database
     (oci)
 )$/x
 PTRN;
-        static $cmds = [
-            1 => [
-                'PRAGMA table_info({table})',
+        $driver = $this->getDriver();
+        $qtable = $this->quotekey($table);
+        $dbname = $schemaName ?? $this->options['dbname'] ?? '';
+
+        if ($dbname) {
+            $dbname = $this->quotekey($dbname);
+        }
+
+        preg_match($cmdPattern, $driver, $match);
+
+        if (isset($match[1]) && $match[1]) {
+            $cmd = [
+                'PRAGMA table_info(' . $qtable. ')',
                 'name', 'type', 'dflt_value', 'notnull', 0, 'pk', TRUE,
-            ],
-            2 => [
-                'SHOW columns FROM {dbname}.{table}',
+            ];
+        } elseif (isset($match[2]) && $match[2]) {
+            $cmd = [
+                'SHOW columns FROM ' . $dbname . '.' . $qtable,
                 'Field', 'Type', 'Default', 'Null', 'YES', 'Key', 'PRI',
-            ],
-            3 => [
+            ];
+        } elseif (isset($match[3]) && $match[3]) {
+            $cmd = [
                 'SELECT '.
                     'C.COLUMN_NAME AS field,' .
                     'C.DATA_TYPE AS type,' .
@@ -154,63 +166,42 @@ PTRN;
                         'C.TABLE_NAME=K.TABLE_NAME AND ' .
                         'C.COLUMN_NAME=K.COLUMN_NAME AND ' .
                         'C.TABLE_SCHEMA=K.TABLE_SCHEMA ' .
-                        '{catalog1}' .
+                        ($dbname ? 'AND C.TABLE_CATALOG=K.TABLE_CATALOG ' : '').
                 'LEFT OUTER JOIN ' .
                     'INFORMATION_SCHEMA.TABLE_CONSTRAINTS AS T ON ' .
                         'K.TABLE_NAME=T.TABLE_NAME AND ' .
                         'K.CONSTRAINT_NAME=T.CONSTRAINT_NAME AND ' .
                         'K.TABLE_SCHEMA=T.TABLE_SCHEMA ' .
-                        '{catalog2}' .
+                        ($dbname ? 'AND K.TABLE_CATALOG=T.TABLE_CATALOG ' : '') .
                 'WHERE ' .
-                    'C.TABLE_NAME={table}' .
-                    '{catalog3}',
+                    'C.TABLE_NAME=' . $qtable .
+                    ($dbname ? ' AND C.TABLE_CATALOG=' . $qtable : ''),
                 'field', 'type', 'defval', 'nullable', 'YES', 'pkey', 'PRIMARY KEY',
-            ],
-            4 => [
+            ];
+        } elseif (isset($match[4]) && $match[4]) {
+            $cmd = [
                 'SELECT c.column_name AS field, ' .
                     'c.data_type AS type, ' .
                     'c.data_default AS defval, ' .
                     'c.nullable AS nullable, ' .
                     '(SELECT t.constraint_type ' .
-                        'FROM all_cons_columns acc ' .
-                        'LEFT OUTER JOIN all_constraints t ' .
-                        'ON acc.constraint_name=t.constraint_name ' .
-                        'WHERE acc.table_name={table} ' .
-                        'AND acc.column_name=c.column_name ' .
-                        'AND constraint_type={p}) AS pkey '.
+                        'FROM all_cons_columns acc' .
+                        ' LEFT OUTER JOIN all_constraints t' .
+                        ' ON acc.constraint_name=t.constraint_name' .
+                        ' WHERE acc.table_name=' . $qtable .
+                        ' AND acc.column_name=c.column_name' .
+                        ' AND constraint_type=' . $this->quote('P') . ') AS pkey '.
                 'FROM all_tab_cols c ' .
-                'WHERE c.table_name={table}',
+                'WHERE c.table_name=' . $qtable,
                 'FIELD', 'TYPE', 'DEFVAL', 'NULLABLE', 'Y', 'PKEY', 'P',
-            ],
-        ];
-
-        $driver = $this->getDriver();
-        if (!preg_match($cmdPattern, $driver, $match)) {
+            ];
+        } else {
             throw new \DomainException(
                 'Driver ' . $driver . ' is not supported'
             );
         }
 
-        foreach ($match as $use => $value) {
-            if ($use > 0 && !empty($value)) {
-                $cmd = $cmds[$use];
-                break;
-            }
-        }
-
-        $dbname = $schemaName ?? $this->options['dbname'] ?? '';
-        $sql = strtr(
-            $cmd[0],
-            [
-                '{table}' => $this->quotekey($table),
-                '{dbname}' => $dbname ? $this->quotekey($dbname) : $dbname,
-                '{catalog1}' => $dbname ? 'AND C.TABLE_CATALOG=K.TABLE_CATALOG ' : '',
-                '{catalog2}' => $dbname ? 'AND K.TABLE_CATALOG=T.TABLE_CATALOG ' : '',
-                '{catalog3}' => $dbname ? ' AND C.TABLE_CATALOG={table}' : '',
-                '{p}' => $this->quote('P'),
-            ]
-        );
-        $query = $this->pdo()->query($sql);
+        $query = $this->pdo()->query($cmd[0]);
         $schema = $query->fetchAll(\PDO::FETCH_ASSOC);
         $rows = [];
 
@@ -253,7 +244,7 @@ PTRN;
         }
 
         // operator map
-        static $map = [
+        $map = [
             '='   => '=',
             '>'   => '>',
             '<'   => '<',
@@ -273,7 +264,7 @@ PTRN;
             '><'  => 'BETWEEN',
             '!><' => 'NOT BETWEEN',
         ];
-        static $mapkeys = '=<>&|^!~@[] ';
+        $mapkeys = '=<>&|^!~@[] ';
 
         $ctr    = 0;
         $str    = '';
@@ -601,21 +592,24 @@ PTRN;
      */
     public function quotes(): array
     {
-        static $quotes = [
-            '``' => ['sqlite', 'mysql'],
-            '""' => ['pgsql', 'oci'],
-            '[]' => ['mssql','sqlsrv','odbc','sybase','dblib'],
-        ];
+        $pattern = <<<PTRN
+/^(?:
+    (sqlite2?|mysql)|
+    (pgsql|oci)|
+    (mssql|sqlsrv|odbc|sybase|dblib)
+)$/x
+PTRN;
+        preg_match($pattern, $this->getDriver(), $match);
 
-        $driver = $this->getDriver();
-
-        foreach ($quotes as $use => $drivers) {
-            if (in_array($driver, $drivers)) {
-                return str_split($use);
-            }
+        if (isset($match[1]) && $match[1]) {
+            return ['`','`'];
+        } elseif (isset($match[2]) && $match[2]) {
+            return ['"','"'];
+        } elseif (isset($match[3]) && $match[3]) {
+            return ['[',']'];
+        } else {
+            return ['',''];
         }
-
-        return ['',''];
     }
 
     /**

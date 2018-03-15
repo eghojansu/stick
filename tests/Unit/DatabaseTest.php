@@ -156,6 +156,11 @@ SQL1
         ]);
     }
 
+    public function testGetCache()
+    {
+        $this->assertInstanceOf(Cache::class, $this->database->getCache());
+    }
+
     public function testPdo()
     {
         $this->database->setOptions([
@@ -226,6 +231,9 @@ SQL1
 
         $this->changeDriver('pgsql');
         $this->assertEquals(['"','"'], $this->database->quotes());
+
+        $this->changeDriver('mssql');
+        $this->assertEquals(['[',']'], $this->database->quotes());
     }
 
     public function testQuote()
@@ -448,6 +456,11 @@ SQL1
     public function testFilter($expected, $filter)
     {
         $this->assertEquals($expected, $this->database->filter($filter));
+    }
+
+    public function testFilterEmpty()
+    {
+        $this->assertEquals([], $this->database->filter(null));
     }
 
     /**
