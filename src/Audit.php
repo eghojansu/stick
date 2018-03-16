@@ -41,6 +41,8 @@ class Audit
         'gt' => 'This value should be greater than {1}.',
         'lte' => 'This value should be less than or equal to {1}.',
         'gte' => 'This value should be greater than or equal to {1}.',
+        'equalfield' => 'This value should be equal to value of {1}.',
+        'notequalfield' => 'This value should not be equal to value of {1}.',
         'equal' => 'This value should be equal to {1}.',
         'notequal' => 'This value should not be equal to {1}.',
         'identical' => 'This value should be identical to {2} {1}.',
@@ -105,7 +107,7 @@ class Audit
     /**
      * Check variabel type
      *
-     * @param  mixed $val
+     * @param  mixed  $val
      * @param  string $type
      *
      * @return bool
@@ -113,6 +115,34 @@ class Audit
     public function type($val, string $type): bool
     {
         return gettype($val) === $type;
+    }
+
+    /**
+     * Equal to other field
+     *
+     * @param  mixed $val
+     * @param  mixed $compared
+     * @param  array $_audit
+     *
+     * @return bool
+     */
+    public function equalField($val, $compared, array $_audit = []): bool
+    {
+        return $val === ($_audit['validated'][$compared] ?? $val . '-');
+    }
+
+    /**
+     * Not equal to other field
+     *
+     * @param  mixed $val
+     * @param  mixed $compared
+     * @param  array $_audit
+     *
+     * @return bool
+     */
+    public function notEqualField($val, $compared, array $_audit = []): bool
+    {
+        return $val !== ($_audit['validated'][$compared] ?? $val);
     }
 
     /**
@@ -255,7 +285,7 @@ class Audit
      *
      * @return bool
      */
-    public function lenMin(string $val, int $min): bool
+    public function lenMin($val, int $min): bool
     {
         return strlen($val) >= $min;
     }
@@ -268,7 +298,7 @@ class Audit
      *
      * @return bool
      */
-    public function lenMax(string $val, int $max): bool
+    public function lenMax($val, int $max): bool
     {
         return strlen($val) <= $max;
     }
@@ -405,7 +435,7 @@ class Audit
      *
      * @return bool
      */
-    public function email($str, $mx = true): bool
+    public function email($str, $mx = false): bool
     {
         $hosts = [];
 
@@ -807,19 +837,29 @@ class Audit
             $xid = explode('|', $id);
             $xrules = explode('|', $def);
             $id = $xid[0];
+            $required = false;
 
             foreach ($xrules as $rule) {
                 $audit = [
                     'field' => $xid[1] ?? ucwords(strtr(snakecase($id), ['_'=>' ','.'=>' - '])),
                     'args' => [],
                     'rule' => null,
+                    'validated' => $validated,
                 ];
                 $value = $validated[$id] ?? $this->ref($id, $use);
                 $result = $this->execute($rule, $value, $audit);
 
+                if (!$required) {
+                    $required = strtolower($audit['rule']) === 'required';
+                }
+
                 if ($result === false) {
                     // validation fail
                     $this->addError($audit);
+
+                    if ($required) {
+                        break;
+                    }
                 } elseif ($result === true) {
                     $validated[$id] = $value;
                 } else {
@@ -918,14 +958,19 @@ class Audit
             );
         }
 
+        $audit_key = -1;
         foreach ($ref->getParameters() as $key => $param) {
-            if (!isset($args[$key]) && $param->isDefaultValueAvailable()) {
+            if ($param->name === '_audit') {
+                $args[$key] = $audit;
+                $audit_key = $key;
+            } elseif (!isset($args[$key]) && $param->isDefaultValueAvailable()) {
                 $args[$key] = $param->getDefaultValue();
             }
         }
 
         $audit['rule'] = $prule;
         $audit['args'] = $args;
+        unset($audit['args']['_audit'][$audit_key]);
 
         return $func ? $ref->invoke(...$args) : $ref->invoke($this, ...$args);
     }

@@ -139,108 +139,70 @@ class AuditTest extends TestCase
         $this->assertFalse($this->audit->isSuccess());
         $this->assertEquals([], $this->audit->getValidated());
         $this->assertEquals(['Foo'=>['Foo Foo baz'],'Email'=>['This value is not a valid email address.']], $this->audit->getErrors());
+
+        // skip when required false
+        $this->audit->validate(['bar'=>'notemail'], ['foo'=>'required|email','bar'=>'required|email']);
+        $this->assertEquals([
+            'Foo'=>['This value should not be blank.'],
+            'Bar'=>['This value is not a valid email address.'],
+        ], $this->audit->getErrors());
     }
 
-    public function testValidateMessage()
+    public function messageProvider()
     {
-        $rules = [
-            'foo'=>'required|lenmin[5]|email|url|ipv4|ipv6',
-            'bar'=>'lenmax[1]',
-            'baz'=>'isprivate',
-            'qux'=>'ispublic',
-            'quux'=>'isreserved',
-            'corge'=>'min[2]',
-            'grault'=>'max[2]',
-            'equal'=>'equal[foo]',
-            'notequal'=>'notequal[foo]',
-            'identical'=>'identical[foo]',
-            'notidentical'=>'notidentical[1,integer]',
-            'lt'=>'lt[2]',
-            'gt'=>'gt[2]',
-            'lte'=>'lte[2]',
-            'gte'=>'gte[2]',
-            'type'=>'type[string]',
-            'countmin'=>'countmin[1]',
-            'countmax'=>'countmax[1]',
-            'date'=>'date',
-            'datetime'=>'datetime',
-            'regex'=>'regex[/foo/]',
-            'choice'=>'choice[' . $this->audit->compact([1,2]) . ']',
-            'choices'=>'choices[' . $this->audit->compact([1,2]) . ']',
+        return [
+            ['foo','','required','This value should not be blank.'],
+            ['foo','','lenmin[1]','This value is too short. It should have 1 characters or more.'],
+            ['f','foo','lenmax[1]','This value is too long. It should have 1 characters or less.'],
+            ['fc00::','0.1.2.3','isprivate','This value is not a private ip address.'],
+            ['190.1.1.0','10.10.10.10','ispublic','This value is not a public ip address.'],
+            ['127.0.0.1','193.194.195.196','isreserved','This value is not a reserved ip address.'],
+            [2,1,'min[2]','This value should be 2 or more.'],
+            [2,3,'max[2]','This value should be 2 or less.'],
+            ['abc@google.com','notemail','email','This value is not a valid email address.'],
+            ['http://www.example.com/space%20here.html','noturl','url','This value is not a valid url.'],
+            ['30.88.29.1','256.256.0.0','ipv4','This value is not a valid ipv4 address.'],
+            ['0:0:0:0:0:0:0:1','FF01::101::2','ipv6','This value is not a valid ipv6 address.'],
+            ['foo','bar','equal[foo]','This value should be equal to foo.'],
+            ['bar','foo','notequal[foo]','This value should not be equal to foo.'],
+            ['bar','foo','equalfield[foo]','This value should be equal to value of foo.',['foo'=>'bar']],
+            ['foo','bar','notequalfield[foo]','This value should not be equal to value of foo.',['foo'=>'bar']],
+            [1,'1','identical[1,integer]','This value should be identical to integer 1.'],
+            ['1',1,'notidentical[1,integer]','This value should not be identical to integer 1.'],
+            [1,2,'lt[2]','This value should be less than 2.'],
+            [3,2,'gt[2]','This value should be greater than 2.'],
+            [2,3,'lte[2]','This value should be less than or equal to 2.'],
+            [2,1,'gte[2]','This value should be greater than or equal to 2.'],
+            ['1',1,'type[string]','This value should be of type string.'],
+            [[1],[],'countmin[1]','This collection should contain 1 elements or more.'],
+            [[1],[1,2],'countmax[1]','This collection should contain 1 elements or less.'],
+            ['2010-10-10','foo','date','This value is not a valid date.'],
+            ['2010-10-10 00:00:00','foo','datetime','This value is not a valid datetime.'],
+            ['foo','baz','regex[/foo:vbar:bar/]','This value is not valid.'],
+            ['bar',null,'regex[/foo:vbar:bar/]'],
+            [1,3,'choice[1:comma:2]','The value you selected is not a valid choice.'],
+            [[1,2],[3],'choices[1:comma:2]','One or more of the given values is invalid.'],
         ];
-        $data = [
-            'foo' => '',
-            'bar' => 'baz',
-            'baz' => '0.1.2.3',
-            'qux' => '10.10.10.10',
-            'quux' => '193.194.195.196',
-            'corge' => 1,
-            'grault' => 5,
-            'equal' => 'bar',
-            'notequal' => 'foo',
-            'identical' => 'bar',
-            'notidentical' => 1,
-            'lt' => 2,
-            'gt' => 2,
-            'lte' => 3,
-            'gte' => 1,
-            'type' => 1,
-            'countmin'=>[],
-            'countmax'=>[1,2],
-            'date'=>'x',
-            'datetime'=>'x',
-            'regex'=>'x',
-            'choice'=>3,
-            'choices'=>3,
-        ];
-        $this->audit->validate($data, $rules);
-        $error = $this->audit->getErrors();
-
-        $this->assertTrue($this->audit->isFailed());
-        $this->assertContains('This value should not be blank.', $error['Foo']);
-        $this->assertContains('This value is too short. It should have 5 characters or more.', $error['Foo']);
-        $this->assertContains('This value is not a valid email address.', $error['Foo']);
-        $this->assertContains('This value is not a valid url.', $error['Foo']);
-        $this->assertContains('This value is not a valid ipv4 address.', $error['Foo']);
-        $this->assertContains('This value is not a valid ipv6 address.', $error['Foo']);
-        $this->assertContains('This value is too long. It should have 1 characters or less.', $error['Bar']);
-        $this->assertContains('This value is not a private ip address.', $error['Baz']);
-        $this->assertContains('This value is not a public ip address.', $error['Qux']);
-        $this->assertContains('This value is not a reserved ip address.', $error['Quux']);
-        $this->assertContains('This value should be 2 or more.', $error['Corge']);
-        $this->assertContains('This value should be 2 or less.', $error['Grault']);
-        $this->assertContains('This value should be equal to foo.', $error['Equal']);
-        $this->assertContains('This value should not be equal to foo.', $error['Notequal']);
-        $this->assertContains('This value should be identical to string foo.', $error['Identical']);
-        $this->assertContains('This value should not be identical to integer 1.', $error['Notidentical']);
-        $this->assertContains('This value should be less than 2.', $error['Lt']);
-        $this->assertContains('This value should be greater than 2.', $error['Gt']);
-        $this->assertContains('This value should be less than or equal to 2.', $error['Lte']);
-        $this->assertContains('This value should be greater than or equal to 2.', $error['Gte']);
-        $this->assertContains('This value should be of type string.', $error['Type']);
-        $this->assertContains('This collection should contain 1 elements or more.', $error['Countmin']);
-        $this->assertContains('This collection should contain 1 elements or less.', $error['Countmax']);
-        $this->assertContains('This value is not a valid date.', $error['Date']);
-        $this->assertContains('This value is not a valid datetime.', $error['Datetime']);
-        $this->assertContains('This value is not valid.', $error['Regex']);
-        $this->assertContains('The value you selected is not a valid choice.', $error['Choice']);
-        $this->assertContains('One or more of the given values is invalid.', $error['Choices']);
     }
 
-    public function testValidateSpecialChar()
+    /** @dataProvider messageProvider */
+    public function testValidateMessage($trueVal, $falseVal, $rule, $message = null, array $extra = [])
     {
-        $rules = [
-            'foo' => 'regex[/foo:vbar:bar/]',
-            'bar' => 'regex[/foo:vbar:bar/]',
-            'choice' => 'choice[' . $this->audit->compact(['foo','bar']) . ']',
-        ];
-        $data = [
-            'foo' => 'foo',
-            'bar' => 'bar',
-            'choice' => 'foo',
-        ];
+        $data = ['field'=>$trueVal] + $extra;
+        $rules = array_fill_keys(array_keys($extra), 'required') + ['field'=>$rule];
+
         $this->audit->validate($data, $rules);
         $this->assertTrue($this->audit->isSuccess());
+
+        if ($message) {
+            $data['field'] = $falseVal;
+
+            $this->audit->validate($data, $rules);
+            $error = $this->audit->getErrors();
+
+            $this->assertTrue($this->audit->isFailed());
+            $this->assertContains($message, $error['Field']);
+        }
     }
 
     public function testValidateDotAndCustomField()
@@ -353,8 +315,19 @@ class AuditTest extends TestCase
         $this->assertTrue($this->audit->required(0));
     }
 
+    public function testEqualField()
+    {
+        $this->assertTrue($this->audit->equalField('foo', 'bar', ['validated'=>['bar'=>'foo']]));
+    }
+
+    public function testNotEqualField()
+    {
+        $this->assertTrue($this->audit->notEqualField('foo', 'bar', ['validated'=>['bar'=>'baz']]));
+    }
+
     public function testType()
     {
+        $this->assertTrue($this->audit->type('', 'string'));
         $this->assertTrue($this->audit->type('foo', 'string'));
         $this->assertTrue($this->audit->type(1, 'integer'));
         $this->assertTrue($this->audit->type([], 'array'));
@@ -494,25 +467,6 @@ class AuditTest extends TestCase
 
     public function testEmail()
     {
-        $this->assertFalse($this->audit->email('Abc.google.com', false));
-        $this->assertFalse($this->audit->email('Abc.@google.com', false));
-        $this->assertFalse($this->audit->email('Abc..123@google.com', false));
-        $this->assertFalse($this->audit->email('A@b@c@google.com', false));
-        $this->assertFalse($this->audit->email('a"b(c)d,e:f;g<h>i[j\k]l@google.com', false));
-        $this->assertFalse($this->audit->email('just"not"right@google.com', false));
-        $this->assertFalse($this->audit->email('this is"not\allowed@google.com', false));
-        $this->assertFalse($this->audit->email('this\ still\"not\\allowed@google.com', false));
-
-        $this->assertTrue($this->audit->email('niceandsimple@google.com', false));
-        $this->assertTrue($this->audit->email('very.common@google.com', false));
-        $this->assertTrue($this->audit->email('a.little.lengthy.but.fine@google.com', false));
-        $this->assertTrue($this->audit->email('disposable.email.with+symbol@google.com', false));
-        $this->assertTrue($this->audit->email('user@[IPv6:2001:db8:1ff::a0b:dbd0]', false));
-        $this->assertTrue($this->audit->email('"very.unusual.@.unusual.com"@google.com', false));
-        $this->assertTrue($this->audit->email('!#$%&\'*+-/=?^_`{}|~@google.com', false));
-        $this->assertTrue($this->audit->email('""@google.com', false));
-
-        // with domain verification (require internet connection)
         $this->assertFalse($this->audit->email('Abc.google.com'));
         $this->assertFalse($this->audit->email('Abc.@google.com'));
         $this->assertFalse($this->audit->email('Abc..123@google.com'));
@@ -526,7 +480,7 @@ class AuditTest extends TestCase
         $this->assertTrue($this->audit->email('very.common@google.com'));
         $this->assertTrue($this->audit->email('a.little.lengthy.but.fine@google.com'));
         $this->assertTrue($this->audit->email('disposable.email.with+symbol@google.com'));
-        $this->assertTrue($this->audit->email('user@[IPv6:2001:db8:1ff::a0b:dbd0]', false));
+        $this->assertTrue($this->audit->email('user@[IPv6:2001:db8:1ff::a0b:dbd0]'));
         $this->assertTrue($this->audit->email('"very.unusual.@.unusual.com"@google.com'));
         $this->assertTrue($this->audit->email('!#$%&\'*+-/=?^_`{}|~@google.com'));
         $this->assertTrue($this->audit->email('""@google.com'));
@@ -534,7 +488,6 @@ class AuditTest extends TestCase
 
     public function testIpv4()
     {
-        $this->assertFalse($this->audit->ipv4(''));
         $this->assertFalse($this->audit->ipv4('...'));
         $this->assertFalse($this->audit->ipv4('hello, world'));
         $this->assertFalse($this->audit->ipv4('256.256.0.0'));
@@ -548,7 +501,6 @@ class AuditTest extends TestCase
 
     public function testIpv6()
     {
-        $this->assertFalse($this->audit->ipv6(''));
         $this->assertFalse($this->audit->ipv6('FF01::101::2'));
         $this->assertFalse($this->audit->ipv6('::1.256.3.4'));
         $this->assertFalse($this->audit->ipv6('2001:DB8:0:0:8:800:200C:417A:221'));
@@ -594,6 +546,8 @@ class AuditTest extends TestCase
 
     public function testIsDesktop()
     {
+        $this->assertFalse($this->audit->isDesktop(''));
+
         $this->assertTrue($this->audit->isDesktop('bsd'));
         $this->assertTrue($this->audit->isDesktop('linux'));
         $this->assertTrue($this->audit->isDesktop('os x'));
@@ -603,6 +557,8 @@ class AuditTest extends TestCase
 
     public function testIsMobile()
     {
+        $this->assertFalse($this->audit->isMobile(''));
+
         $this->assertTrue($this->audit->isMobile('android'));
         $this->assertTrue($this->audit->isMobile('blackberry'));
         $this->assertTrue($this->audit->isMobile('phone'));
@@ -613,6 +569,8 @@ class AuditTest extends TestCase
 
     public function testIsBot()
     {
+        $this->assertFalse($this->audit->isBot(''));
+
         $this->assertTrue($this->audit->isBot('bot'));
         $this->assertTrue($this->audit->isBot('crawl'));
         $this->assertTrue($this->audit->isBot('slurp'));
@@ -621,6 +579,8 @@ class AuditTest extends TestCase
 
     public function testMod10()
     {
+        $this->assertFalse($this->audit->mod10(''));
+
         $this->assertTrue($this->audit->mod10('61789372994'));
         $this->assertTrue($this->audit->mod10('49927398716'));
         $this->assertFalse($this->audit->mod10('abd'));
