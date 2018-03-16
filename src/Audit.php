@@ -287,7 +287,7 @@ class Audit
      */
     public function lenMin($val, int $min): bool
     {
-        return strlen($val) >= $min;
+        return !$this->required($val) || strlen($val) >= $min;
     }
 
     /**
@@ -300,7 +300,7 @@ class Audit
      */
     public function lenMax($val, int $max): bool
     {
-        return strlen($val) <= $max;
+        return !$this->required($val) || strlen($val) <= $max;
     }
 
     /**
@@ -837,7 +837,6 @@ class Audit
             $xid = explode('|', $id);
             $xrules = explode('|', $def);
             $id = $xid[0];
-            $required = false;
 
             foreach ($xrules as $rule) {
                 $audit = [
@@ -849,17 +848,9 @@ class Audit
                 $value = $validated[$id] ?? $this->ref($id, $use);
                 $result = $this->execute($rule, $value, $audit);
 
-                if (!$required) {
-                    $required = strtolower($audit['rule']) === 'required';
-                }
-
                 if ($result === false) {
                     // validation fail
                     $this->addError($audit);
-
-                    if ($required) {
-                        break;
-                    }
                 } elseif ($result === true) {
                     $validated[$id] = $value;
                 } else {

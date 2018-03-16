@@ -139,20 +139,13 @@ class AuditTest extends TestCase
         $this->assertFalse($this->audit->isSuccess());
         $this->assertEquals([], $this->audit->getValidated());
         $this->assertEquals(['Foo'=>['Foo Foo baz'],'Email'=>['This value is not a valid email address.']], $this->audit->getErrors());
-
-        // skip when required false
-        $this->audit->validate(['bar'=>'notemail'], ['foo'=>'required|email','bar'=>'required|email']);
-        $this->assertEquals([
-            'Foo'=>['This value should not be blank.'],
-            'Bar'=>['This value is not a valid email address.'],
-        ], $this->audit->getErrors());
     }
 
     public function messageProvider()
     {
         return [
             ['foo','','required','This value should not be blank.'],
-            ['foo','','lenmin[1]','This value is too short. It should have 1 characters or more.'],
+            ['foo','f','lenmin[2]','This value is too short. It should have 2 characters or more.'],
             ['f','foo','lenmax[1]','This value is too long. It should have 1 characters or less.'],
             ['fc00::','0.1.2.3','isprivate','This value is not a private ip address.'],
             ['190.1.1.0','10.10.10.10','ispublic','This value is not a public ip address.'],
@@ -182,6 +175,11 @@ class AuditTest extends TestCase
             ['bar',null,'regex[/foo:vbar:bar/]'],
             [1,3,'choice[1:comma:2]','The value you selected is not a valid choice.'],
             [[1,2],[3],'choices[1:comma:2]','One or more of the given values is invalid.'],
+
+            [null,null,'lenmin[1]'],
+            ['',null,'lenmin[1]'],
+            [null,null,'lenmax[1]'],
+            ['',null,'lenmax[1]'],
         ];
     }
 
@@ -401,12 +399,16 @@ class AuditTest extends TestCase
 
     public function testLenMin()
     {
+        $this->assertTrue($this->audit->lenMin(null, 3));
+        $this->assertTrue($this->audit->lenMin('', 3));
         $this->assertTrue($this->audit->lenMin('foo', 3));
         $this->assertFalse($this->audit->lenMin('fo', 3));
     }
 
     public function testLenMax()
     {
+        $this->assertTrue($this->audit->lenMax(null, 3));
+        $this->assertTrue($this->audit->lenMax('', 3));
         $this->assertTrue($this->audit->lenMax('foo', 3));
         $this->assertFalse($this->audit->lenMax('foobar', 3));
     }
