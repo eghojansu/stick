@@ -114,7 +114,17 @@ class Database
      */
     public function schema(string $table, $fields = NULL, int $ttl = 0): array
     {
-        if ($ttl && $this->cache->isCached($hash, $data, 'schema', $this->options['dsn'], $table, $fields)) {
+        if (
+            $ttl
+            && $this->cache->isCached(
+                $hash,
+                $data,
+                'schema',
+                $this->options['dsn'],
+                $table,
+                $fields
+            )
+        ) {
             return $data[0];
         }
 
@@ -582,7 +592,9 @@ PTRN;
     {
         $use = $this->quotes();
 
-        return $use[0] . ($split ? implode($use[1] . '.' . $use[0], explode('.', $key)) : $key) . $use[1];
+        return $use[0] . (
+            $split ? implode($use[1] . '.' . $use[0], explode('.', $key)) : $key
+        ) . $use[1];
     }
 
     /**

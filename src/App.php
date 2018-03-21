@@ -327,16 +327,26 @@ final class App implements \ArrayAccess
     {
         set_exception_handler(function($e) {
             $this->hive['EXCEPTION'] = $e;
+            $file = cutafter(
+                $this->hive['TRACE_ROOT'],
+                $e->getFile(),
+                $e->getFile()
+            );
             $this->error(
                 500,
-                $e->getmessage() . ' ' . '[' . $e->getFile() . ':' . $e->getLine() . ']',
+                $e->getmessage() . ' ' . '[' . $file . ':' . $e->getLine() . ']',
                 $e->gettrace()
             );
         });
 
         set_error_handler(function($level, $text, $file, $line) {
             if ($level & error_reporting()) {
-                $this->error(500, $text, NULL, $level);
+                $this->error(
+                    500,
+                    preg_replace('~\b' . $this->hive['TRACE_ROOT'] . '~', '', $text),
+                    NULL,
+                    $level
+                );
             }
         });
 
@@ -1067,9 +1077,13 @@ final class App implements \ArrayAccess
         }
 
         $args = (array) $args;
-        $url = preg_replace_callback('/\{(\w+)(?:\:\w+)?\}/', function($m) use ($args) {
-            return $args[$m[1]] ?? $m[0];
-        }, $this->hive['ALIASES'][$alias]);
+        $url = preg_replace_callback(
+            '/\{(\w+)(?:\:\w+)?\}/',
+            function($m) use ($args) {
+                return $args[$m[1]] ?? $m[0];
+            },
+            $this->hive['ALIASES'][$alias]
+        );
 
         return $url;
     }

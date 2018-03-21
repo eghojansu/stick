@@ -31,7 +31,7 @@ class Mapper
     protected $table;
 
     /** @var array */
-    protected $fields;
+    protected $fields = [];
 
     /** @var array */
     protected $pkeys = [];
@@ -232,7 +232,10 @@ class Mapper
         ];
 
         $raw = $options['column'] !== null;
-        $column = $options['column'] ?? implode(',', quoteall(array_keys($this->fields), $this->db->quotes()));
+        $column = $options['column'] ?? implode(
+            ',',
+            quoteall(array_keys($this->fields), $this->db->quotes())
+        );
         $sql = 'SELECT ' . $column . ' FROM ' . $this->table;
         $params = [];
 
