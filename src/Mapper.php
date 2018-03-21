@@ -58,6 +58,21 @@ class Mapper
     }
 
     /**
+     * Clone with new source
+     *
+     * @param  string $source
+     *
+     * @return Mapper
+     */
+    public function withSource(string $source): Mapper
+    {
+        $clone = clone $this;
+        $clone->setSource($source);
+
+        return $clone;
+    }
+
+    /**
      * Set source (table)
      *
      * @param string       $source

@@ -65,6 +65,13 @@ SQL1
         $ref->setValue($this->mapper, $table);
     }
 
+    public function testWithSource()
+    {
+        $clone = $this->mapper->withSource('user');
+
+        $this->assertEquals($clone, $this->mapper);
+    }
+
     public function testSetSource()
     {
         $this->assertEquals('user', $this->mapper->setSource('')->getSource());
