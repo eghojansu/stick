@@ -38,19 +38,19 @@ class MapperTest extends TestCase
             'location' => ':memory:',
             'commands' => [
                 <<<SQL1
-CREATE TABLE `user` (
+CREATE TABLE `user_mapper` (
     `id` INTEGER NOT null PRIMARY KEY AUTOINCREMENT,
     `first_name` TEXT NOT null,
     `last_name` TEXT null DEFAULT null,
     `active` INTEGER NOT null DEFAULT 1
 );
-insert into user (first_name) values ("foo"), ("bar"), ("baz")
+insert into user_mapper (first_name) values ("foo"), ("bar"), ("baz")
 SQL1
 ,
             ],
         ]);
 
-        $this->mapper = new $mapper($database, Mapper::class === $mapper ? 'user' : null);
+        $this->mapper = new $mapper($database, Mapper::class === $mapper ? 'user_mapper' : null);
     }
 
     protected function enabledebug($log = false, string $cacheDsn = '', string $mapper = Mapper::class)
@@ -67,19 +67,19 @@ SQL1
 
     public function testWithSource()
     {
-        $clone = $this->mapper->withSource('user');
+        $clone = $this->mapper->withSource('user_mapper');
 
         $this->assertEquals($clone, $this->mapper);
     }
 
     public function testSetSource()
     {
-        $this->assertEquals('user', $this->mapper->setSource('')->getSource());
+        $this->assertEquals('user_mapper', $this->mapper->setSource('')->getSource());
     }
 
     public function testGetSource()
     {
-        $this->assertEquals('user', $this->mapper->getSource());
+        $this->assertEquals('user_mapper', $this->mapper->getSource());
     }
 
     public function testGetDb()

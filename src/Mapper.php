@@ -50,8 +50,7 @@ class Mapper
         $fields = null,
         int $ttl = 60
     ) {
-        $use = $this->source ?? $table ??
-               rtrim(cutbefore('mapper', snakecase(classname($this))), '_');
+        $use = $this->source ?? $table ?? snakecase(classname($this));
 
         $this->db = $db;
         $this->setSource($use, $fields, $ttl);
