@@ -138,7 +138,7 @@ class AuditTest extends TestCase
         $this->audit->validate([]);
         $this->assertFalse($this->audit->isSuccess());
         $this->assertEquals([], $this->audit->getValidated());
-        $this->assertEquals(['Foo'=>['Foo Foo baz'],'Email'=>['This value is not a valid email address.']], $this->audit->getErrors());
+        $this->assertEquals(['foo'=>['Foo foo baz'],'email'=>['This value is not a valid email address.']], $this->audit->getErrors());
     }
 
     public function messageProvider()
@@ -199,7 +199,7 @@ class AuditTest extends TestCase
             $error = $this->audit->getErrors();
 
             $this->assertTrue($this->audit->isFailed());
-            $this->assertContains($message, $error['Field']);
+            $this->assertContains($message, $error['field']);
         }
     }
 
@@ -207,7 +207,7 @@ class AuditTest extends TestCase
     {
         $rules = [
             'foo.bar' => 'required',
-            'foo.baz.qux|Custom Field' => 'required',
+            'foo.baz.qux' => 'required',
         ];
         $data = [
             'foo' => [
@@ -219,8 +219,8 @@ class AuditTest extends TestCase
         $error = $this->audit->getErrors();
 
         $this->assertFalse($this->audit->isSuccess());
-        $this->assertContains('This value should not be blank.', $error['Foo - Bar']);
-        $this->assertContains('This value should not be blank.', $error['Custom Field']);
+        $this->assertContains('This value should not be blank.', $error['foo.bar']);
+        $this->assertContains('This value should not be blank.', $error['foo.baz.qux']);
 
         // invalid
         $data2 = [

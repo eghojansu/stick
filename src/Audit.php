@@ -834,13 +834,11 @@ class Audit
         $validated = [];
 
         foreach ($useRules as $id => $def) {
-            $xid = explode('|', $id);
             $xrules = explode('|', $def);
-            $id = $xid[0];
 
             foreach ($xrules as $rule) {
                 $audit = [
-                    'field' => $xid[1] ?? ucwords(strtr(snakecase($id), ['_'=>' ','.'=>' - '])),
+                    'field' => $id,
                     'args' => [],
                     'rule' => null,
                     'validated' => $validated,
