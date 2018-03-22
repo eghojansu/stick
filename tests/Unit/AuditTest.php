@@ -139,6 +139,9 @@ class AuditTest extends TestCase
         $this->assertFalse($this->audit->isSuccess());
         $this->assertEquals([], $this->audit->getValidated());
         $this->assertEquals(['foo'=>['Foo foo baz'],'email'=>['This value is not a valid email address.']], $this->audit->getErrors());
+
+        $this->audit->validate([], ['foo'=>'required|email']);
+        $this->assertEquals(['foo'=>['This value should not be blank.']], $this->audit->getErrors());
     }
 
     public function messageProvider()

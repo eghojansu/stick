@@ -849,6 +849,7 @@ class Audit
                 if ($result === false) {
                     // validation fail
                     $this->addError($audit);
+                    break;
                 } elseif ($result === true) {
                     $validated[$id] = $value;
                 } else {
