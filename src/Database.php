@@ -151,6 +151,7 @@ PTRN;
 
         preg_match($cmdPattern, $driver, $match);
 
+        // @codeCoverageIgnoreStart
         if (isset($match[1]) && $match[1]) {
             $cmd = [
                 'PRAGMA table_info(' . $qtable. ')',
@@ -210,6 +211,7 @@ PTRN;
                 'Driver ' . $driver . ' is not supported'
             );
         }
+        // @codeCoverageIgnoreEnd
 
         $query = $this->pdo()->query($cmd[0]);
         $schema = $query->fetchAll(\PDO::FETCH_ASSOC);

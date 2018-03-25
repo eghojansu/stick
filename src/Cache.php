@@ -106,10 +106,12 @@ class Cache
                 return (bool) $this->cacheRef->get($ndx);
             case 'redis':
                 return $this->cacheRef->exists($ndx);
+            // @codeCoverageIgnoreStart
             case 'wincache':
                 return wincache_ucache_exists($ndx);
             case 'xcache':
                 return xcache_exists($ndx);
+            // @codeCoverageIgnoreEnd
             default:
                 return false;
         }
@@ -144,12 +146,14 @@ class Cache
             case 'redis':
                 $raw = $this->cacheRef->get($ndx);
                 break;
+            // @codeCoverageIgnoreStart
             case 'wincache':
                 $raw = wincache_ucache_get($ndx);
                 break;
             case 'xcache':
                 $raw = xcache_get($ndx);
                 break;
+                // @codeCoverageIgnoreEnd
             default:
                 $raw = null;
                 break;
@@ -190,12 +194,14 @@ class Cache
             case 'redis':
                 $this->cacheRef->set($ndx, $content, array_filter(['ex'=>$ttl]));
                 break;
+            // @codeCoverageIgnoreStart
             case 'wincache':
                 wincache_ucache_set($ndx, $content, $ttl);
                 break;
             case 'xcache':
                 xcache_set($ndx, $content, $ttl);
                 break;
+            // @codeCoverageIgnoreEnd
         }
 
         return $this;
@@ -225,10 +231,12 @@ class Cache
                 return $this->cacheRef->delete($ndx);
             case 'redis':
                 return (bool) $this->cacheRef->del($ndx);
+            // @codeCoverageIgnoreStart
             case 'wincache':
                 return wincache_ucache_delete($ndx);
             case 'xcache':
                 return xcache_unset($ndx);
+            // @codeCoverageIgnoreEnd
             default:
                 return false;
         }
@@ -293,6 +301,7 @@ class Cache
                 }
 
                 return true;
+            // @codeCoverageIgnoreStart
             case 'wincache':
                 $info = wincache_ucache_info();
                 $keys = preg_grep($regex, array_column($info['ucache_entries'], 'key_name'));
@@ -305,6 +314,7 @@ class Cache
                 xcache_unset_by_prefix($this->prefix . '.');
 
                 return true;
+            // @codeCoverageIgnoreEnd
             default:
 
                 return true;

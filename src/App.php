@@ -119,12 +119,17 @@ final class App implements \ArrayAccess
             }
         }
 
-        $_SERVER['SERVER_NAME'] = $_SERVER['SERVER_NAME'] ?? gethostname();
-        $_SERVER['SERVER_PROTOCOL'] = $_SERVER['SERVER_PROTOCOL'] ?? 'HTTP/1.0';
-        $_SERVER['REQUEST_METHOD'] = strtoupper($headers['X-HTTP-Method-Override'] ?? $_SERVER['REQUEST_METHOD'] ?? 'GET');
+        $domain = $_SERVER['SERVER_NAME'] ?? gethostname();
+        $method = strtoupper($headers['X-HTTP-Method-Override'] ?? $_SERVER['REQUEST_METHOD'] ?? 'GET');
+
+        // @codeCoverageIgnoreStart
+        if ($method === 'POST' && isset($_POST['_method'])) {
+            $method = strtoupper($_POST['_method']);
+        }
+        // @codeCoverageIgnoreEnd
 
         if ($cli) {
-            $_SERVER['REQUEST_METHOD'] = 'GET';
+            $method = 'GET';
             if (!isset($_SERVER['argv'][1])) {
                 $_SERVER['argc']++;
                 $_SERVER['argv'][1] = '/';
@@ -159,32 +164,22 @@ final class App implements \ArrayAccess
             }
         }
 
-        if (preg_match('~^\w+://~', $_SERVER['REQUEST_URI'])) {
-            // @codeCoverageIgnoreStart
-            $uri = parse_url($_SERVER['REQUEST_URI']);
-            // @codeCoverageIgnoreEnd
-        } else {
-            $uri = parse_url('//'. $_SERVER['SERVER_NAME'] . $_SERVER['REQUEST_URI']);
-        }
-        $uri += ['query'=>'', 'fragment'=>''];
+        $uridomain = preg_match('~^\w+://~', $_SERVER['REQUEST_URI']) ? '' : '//' . $domain;
+        $uri = parse_url($uridomain . $_SERVER['REQUEST_URI']) + ['query'=>'', 'fragment'=>''];
         $base = $cli ? '' : rtrim(fixslashes(dirname($_SERVER['SCRIPT_NAME'])), '/');
         $path = cutafter($base, $uri['path'], $uri['path']);
         $secure = ($_SERVER['HTTPS'] ?? '') === 'on' ||
                   ($headers['X-Forwarded-Proto'] ?? '') === 'https';
         $scheme = $secure ? 'https' : 'http';
         $port = $headers['X-Forwarded-Port'] ?? $_SERVER['SERVER_PORT'] ?? 80;
-        $domain = $_SERVER['SERVER_NAME'];
-        if (
-            strpos($domain, '.') === false
-            || filter_var($domain, FILTER_VALIDATE_IP)
-        ) {
-            $domain = '';
-        }
 
         $_SERVER['REQUEST_URI'] = $uri['path'] .
                                   rtrim('?' . $uri['query'], '?') .
                                   rtrim('#' . $uri['fragment'], '#');
         $_SERVER['DOCUMENT_ROOT'] = realpath($_SERVER['DOCUMENT_ROOT']);
+        $_SERVER['REQUEST_METHOD'] = $method;
+        $_SERVER['SERVER_NAME'] = $domain;
+        $_SERVER['SERVER_PROTOCOL'] = $_SERVER['SERVER_PROTOCOL'] ?? 'HTTP/1.0';
 
         session_cache_limiter('');
 
@@ -220,7 +215,8 @@ final class App implements \ArrayAccess
             'JAR' => [
                 'expire' => 0,
                 'path' => $base ?: '/',
-                'domain' => $domain,
+                'domain' => (strpos($domain, '.') === false || filter_var($domain, FILTER_VALIDATE_IP)) ?
+                            '' : $domain,
                 'secure' => $secure,
                 'httponly' => true
             ],
@@ -230,7 +226,7 @@ final class App implements \ArrayAccess
                 'destination' => null,
                 'headers' => null,
             ],
-            'METHOD' => $_SERVER['REQUEST_METHOD'],
+            'METHOD' => $method,
             'MODE' => 0,
             'ONAFTERROUTE' => null,
             'ONBEFOREROUTE' => null,
