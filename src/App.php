@@ -89,6 +89,9 @@ final class App implements \ArrayAccess
     /** @var array Service aliases */
     protected $aliases = [];
 
+    /** @var array Response headers key map */
+    protected $rheaders = [];
+
     /**
      * Class constructor
      */
@@ -183,17 +186,16 @@ final class App implements \ArrayAccess
 
         session_cache_limiter('');
 
-        $this->hive = ['HEADERS' => $headers];
         $this->hive = [
-            'AGENT' => $this->agent(),
-            'AJAX' => $this->ajax(),
+            'AGENT' => $this->agent($headers),
+            'AJAX' => $this->ajax($headers),
             'ALIAS' => null,
             'ALIASES' => [],
             'BASE' => $base,
             'BODY' => '',
             'CACHE' => '',
             'CASELESS' => false,
-            'CONFIG' => './',
+            'CONFIG_DIR' => './',
             'CORS' => [
                 'headers' => '',
                 'origin' => false,
@@ -211,11 +213,12 @@ final class App implements \ArrayAccess
             'HANDLER' => null,
             'HEADERS' => $headers,
             'HOST' => $_SERVER['SERVER_NAME'],
-            'IP' => $this->ip(),
+            'IP' => $this->ip($headers),
             'JAR' => [
                 'expire' => 0,
                 'path' => $base ?: '/',
-                'domain' => (strpos($domain, '.') === false || filter_var($domain, FILTER_VALIDATE_IP)) ?
+                'domain' => (strpos($domain, '.') === false
+                            || filter_var($domain, FILTER_VALIDATE_IP)) ?
                             '' : $domain,
                 'secure' => $secure,
                 'httponly' => true
@@ -252,17 +255,7 @@ final class App implements \ArrayAccess
             'SCHEME' => $scheme,
             'SEED' => hash($_SERVER['SERVER_NAME'] . $base),
             'SERIALIZER' => extension_loaded('igbinary') ? 'igbinary' : 'php',
-            'SERVICE' => [
-                'cache' => [
-                    'class' => Cache::class,
-                    'keep' => true,
-                    'params' => [
-                        'dsn' => '%CACHE%',
-                        'prefix' => '%SEED%',
-                        'temp' => '%TEMP%cache/',
-                    ],
-                ],
-            ],
+            'SERVICE' => [],
             'STATUS' => 200,
             'TEMP' => './var/',
             'TEXT' => self::HTTP_200,
@@ -274,6 +267,14 @@ final class App implements \ArrayAccess
             'VERSION' => self::VERSION,
             'XFRAME' => 'SAMEORIGIN',
         ];
+        $this->set('SERVICE.cache', [
+            'class' => Cache::class,
+            'params' => [
+                'dsn' => '%CACHE%',
+                'prefix' => '%SEED%',
+                'temp' => '%TEMP%cache/',
+            ]
+        ]);
 
         // Save a copy of hive
         $this->init = $this->hive;
@@ -293,9 +294,6 @@ final class App implements \ArrayAccess
         serialize(null, $this->hive['SERIALIZER']);
         unserialize(null, $this->hive['SERIALIZER']);
 
-        // Alias core service
-        $this->aliases[Cache::class] = 'cache';
-
         // @codeCoverageIgnoreStart
         if (PHP_SAPI === 'cli-server' && $base === $_SERVER['REQUEST_URI']) {
             $this->reroute('/');
@@ -310,6 +308,16 @@ final class App implements \ArrayAccess
             $this->error(500, 'Fatal error: ' . $error['message'], [$error]);
         }
         // @codeCoverageIgnoreEnd
+    }
+
+    /**
+     * Get hive
+     *
+     * @return array
+     */
+    public function getHive(): array
+    {
+        return $this->hive;
     }
 
     /**
@@ -337,12 +345,8 @@ final class App implements \ArrayAccess
 
         set_error_handler(function($level, $text, $file, $line) {
             if ($level & error_reporting()) {
-                $this->error(
-                    500,
-                    preg_replace('~\b' . $this->hive['TRACE_ROOT'] . '~', '', $text),
-                    NULL,
-                    $level
-                );
+                $message = preg_replace('~\b' . $this->hive['TRACE_ROOT'] . '~', '', $text);
+                $this->error(500, $message, NULL, $level);
             }
         });
 
@@ -350,16 +354,672 @@ final class App implements \ArrayAccess
     }
 
     /**
+     * Add headers
+     *
+     * @param  array       $headers
+     *
+     * @return App
+     */
+    public function headers(array $headers): App
+    {
+        foreach ($headers as $name => $contents) {
+            foreach ((array) $contents as $content) {
+                $this->header($name, (string) $content);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * Add header
+     *
+     * @param  string       $name
+     * @param  string       $content
+     *
+     * @return App
+     */
+    public function header(string $name, string $content = ''): App
+    {
+        if ($content !== '') {
+            $this->rheaders[strtolower($name)] = $name;
+            $this->hive['RHEADERS'][$name][] = $content;
+        }
+
+        return $this;
+    }
+
+    /**
+     * Get header by name
+     *
+     * @param  string $name
+     *
+     * @return array
+     */
+    public function getHeader(string $name): array
+    {
+        $key = $this->rheaders[strtolower($name)] ?? $name;
+
+        return $this->hive['RHEADERS'][$key] ?? [];
+    }
+
+    /**
+     * Get all headers
+     *
+     * @return array
+     */
+    public function getHeaders(): array
+    {
+        return $this->hive['RHEADERS'];
+    }
+
+    /**
+     * Remove header
+     *
+     * @param  string|null $name
+     *
+     * @return App
+     */
+    public function removeHeader(string $name = null): App
+    {
+        if ($name) {
+            $key = $this->rheaders[strtolower($name)] ?? $name;
+
+            unset($this->hive['RHEADERS'][$key]);
+        } else {
+            $this->hive['RHEADERS'] = [];
+        }
+
+        return $this;
+    }
+
+    /**
+     * Call callable, support (-> and ::) format
+     * Example: Class->method , Class::method
+     *
+     * @param  callable|string $callback
+     * @param  array|string $args
+     *
+     * @return mixed
+     */
+    public function call($callback, $args = null)
+    {
+        if (is_string($callback)) {
+            $callback = $this->grab($callback);
+        }
+
+        if (is_array($callback)) {
+            $ref = new \ReflectionMethod($callback[0], $callback[1]);
+        } else {
+            $ref = new \ReflectionFunction($callback);
+        }
+
+        $mArgs = $this->methodArgs($ref, (array) $args);
+
+        return call_user_func_array($callback, $mArgs);
+    }
+
+    /**
+     * Get service by id or class name
+     *
+     * @param  string $id
+     * @param array  $args
+     *
+     * @return mixed
+     */
+    public function service(string $id, array $args = [])
+    {
+        if (in_array($id, ['app', self::class])) {
+            return $this;
+        } elseif (isset($this->services[$id])) {
+            return $this->services[$id];
+        } elseif (isset($this->aliases[$id])) {
+            // real id
+            $id = $this->aliases[$id];
+
+            if (isset($this->services[$id])) {
+                return $this->services[$id];
+            }
+        }
+
+        $rule = $this->get("SERVICE.$id", []);
+        $class = $rule['class'] ?? $id;
+
+        if (isset($rule['constructor'])) {
+            $service = $this->call($rule['constructor']);
+            $class = $rule['class'] ?? get_class($service);
+
+            if (!isset($this->aliases[$class]) && $class !== $id) {
+                $this->aliases[$class] = $id;
+            }
+        } elseif (method_exists($class, '__construct')) {
+            $cArgs = $this->methodArgs(
+                new \ReflectionMethod($class, '__construct'),
+                array_merge($rule['params'] ?? [], $args)
+            );
+
+            $service = new $class(...$cArgs);
+        } else {
+            $service = new $class;
+        }
+
+        if ($rule['keep'] ?? false) {
+            $this->services[$id] = $service;
+        }
+
+        return $service;
+    }
+
+    /**
+     * Get hive ref
+     *
+     * @param  string       $key
+     * @param  bool $add
+     *
+     * @return mixed
+     */
+    public function &ref(string $key, bool $add = true)
+    {
+        $null = null;
+        $parts = $this->cut($key);
+
+        $this->startSession('SESSION' === $parts[0]);
+
+        if ($add) {
+            $var =& $this->hive;
+        } else {
+            $var = $this->hive;
+        }
+
+        foreach ($parts as $part) {
+            if (is_object($var)) {
+                if ($add || property_exists($var, $part)) {
+                    $var =& $var->$part;
+                } else {
+                    $settled = false;
+                    foreach (['get', 'is'] as $p) {
+                        $get = $p . $part;
+
+                        if (method_exists($var, $get)) {
+                            $ref = $var->$get();
+                            $var =& $ref;
+                            $settled = true;
+                            break;
+                        }
+                    }
+
+                    if (!$settled) {
+                        $var =& $null;
+                        break;
+                    }
+                }
+            } else {
+                if (!is_array($var)) {
+                    $var = [];
+                }
+                if ($add || array_key_exists($part, $var)) {
+                    $var =& $var[$part];
+                } else {
+                    $var =& $null;
+                    break;
+                }
+            }
+        }
+
+        return $var;
+    }
+
+    /**
+     * Get from hive
+     *
+     * @param  string $key
+     * @param  mixed $default
+     *
+     * @return mixed
+     */
+    public function get(string $key, $default = null)
+    {
+        $var = $this->ref($key, false);
+
+        return $var ?? $default;
+    }
+
+    /**
+     * Set to hive
+     *
+     * @param string $key
+     * @param mixed $val
+     * @param int $ttl For cookie set
+     *
+     * @return App
+     */
+    public function set(string $key, $val, int $ttl = null): App
+    {
+        static $serverMap = [
+            'URI' => 'REQUEST_URI',
+            'METHOD' => 'REQUEST_METHOD',
+        ];
+
+        preg_match(
+            '/^(?:(?:(?:GET|POST)\b(.+))|COOKIE\.(.+)|SERVICE\.(.+)|(JAR\b))$/',
+            $key,
+            $match
+        );
+
+        if (isset($serverMap[$key])) {
+            $_SERVER[$serverMap[$key]] = $val;
+        } elseif (isset($match[1]) && $match[1]) {
+            $this->set('REQUEST' . $match[1], $val);
+        } elseif (isset($match[2]) && $match[2]) {
+            $this->set('REQUEST.' . $match[2], $val);
+
+            $this->setCookie($match[2], $val, $ttl);
+        } elseif (isset($match[3]) && $match[3]) {
+            if (is_string($val)) {
+                // assume val is a class name
+                $val = ['class' => $val];
+            } elseif (is_callable($val)) {
+                $val = ['constructor' => $val];
+            } elseif (is_object($val)) {
+                $obj = $val;
+                $val = ['class' => get_class($obj)];
+            }
+
+            // defaults it's a service
+            $val += ['keep' => true];
+
+            if (isset($val['class']) && $val['class'] !== $match[3]) {
+                $this->aliases[$val['class']] = $match[3];
+            }
+
+            // update/remove existing service
+            $this->services[$match[3]] = $obj ?? null;
+        }
+
+        $var =& $this->ref($key);
+        $var = $val;
+
+        if (isset($match[4]) && $match[4]) {
+            $this->hive['JAR']['expire'] -= microtime(true);
+        } else {
+            switch ($key) {
+                case 'CACHE':
+                    $this->service('cache')->setDsn($val);
+                    break;
+                case 'SEED':
+                    $this->service('cache')->setPrefix($val);
+                    break;
+                case 'TZ':
+                    date_default_timezone_set($val);
+                    break;
+                case 'SERIALIZER':
+                    serialize(null, $val);
+                    unserialize(null, $val);
+                    break;
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * Check in hive
+     *
+     * @param  string $key
+     *
+     * @return bool
+     */
+    public function exists(string $key): bool
+    {
+        $var = $this->ref($key, false);
+
+        return isset($var);
+    }
+
+    /**
+     * Remove from hive
+     *
+     * @param  string $key
+     *
+     * @return App
+     */
+    public function clear(string $key): App
+    {
+        if ($key === 'CACHE') {
+            $this->service('cache')->reset();
+
+            return $this;
+        }
+
+        preg_match(
+            '/^(?:(?:(?:GET|POST)\b(.+))|(?:COOKIE\.(.+))|(SESSION(?:\.(.+))?)|(?:SERVICE\.(.+)))$/',
+            $key,
+            $match
+        );
+
+        if (isset($match[1]) && $match[1]) {
+            $this->clear('REQUEST' . $match[1]);
+        } elseif (isset($match[2]) && $match[2]) {
+            $this->clear('REQUEST.' . $match[2]);
+
+            $this->setCookie($match[2], null, strtotime('-1 year'));
+        } elseif (isset($match[4]) && $match[4]) {
+            $this->startSession();
+        } elseif (isset($match[3]) && $match[3]) {
+            $this->startSession();
+
+            // End session
+            session_unset();
+            session_destroy();
+            $this->clear('COOKIE.' . session_name());
+
+            $this->sync('SESSION');
+        } elseif (isset($match[5]) && $match[5]) {
+            // Remove instance too
+            $this->services[$match[5]] = null;
+        }
+
+        $parts = explode('.', $key);
+
+        if (empty($parts[1]) && array_key_exists($parts[0], $this->init)) {
+            $this->hive[$parts[0]] = $this->init[$parts[0]];
+        } else {
+            $var  =& $this->hive;
+            $last = count($parts) - 1;
+
+            foreach ($parts as $key => $part) {
+                if (is_object($var)) {
+                    if ($last == $key) {
+                        unset($var->$part);
+                    } else {
+                        $var =& $var->$part;
+                    }
+                } else {
+                    if (!is_array($var)) {
+                        break;
+                    }
+                    if ($last == $key) {
+                        unset($var[$part]);
+                    } else {
+                        $var =& $var[$part];
+                    }
+                }
+            }
+            unset($var);
+
+            if (isset($match[3]) && $match[3]) {
+                session_commit();
+                session_start();
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * Multi-variable assignment using associative array
+     *
+     * @param array $vars
+     * @param string $prefix
+     *
+     * @return App
+     */
+    public function sets(array $vars, string $prefix = ''): App
+    {
+        foreach ($vars as $var => $val) {
+            $this->set($prefix . $var, $val);
+        }
+
+        return $this;
+    }
+
+    /**
+     * Clear multiple var
+     *
+     * @param  array  $vars
+     *
+     * @return App
+     */
+    public function clears(array $vars): App
+    {
+        foreach ($vars as $var) {
+            $this->clear($var);
+        }
+
+        return $this;
+    }
+
+    /**
+     * Get and clear
+     *
+     * @param  string $key
+     *
+     * @return mixed
+     */
+    public function flash(string $key)
+    {
+        $val = $this->get($key);
+        $this->clear($key);
+
+        return $val;
+    }
+
+    /**
+     * Copy contents of hive variable to another
+     *
+     * @param string $src
+     * @param string $dst
+     *
+     * @return App
+     */
+    public function copy(string $src, string $dst): App
+    {
+        $ref =& $this->ref($dst);
+        $ref = $this->ref($src, false);
+
+        return $this;
+    }
+
+    /**
+     * Concatenate string to hive string variable
+     *
+     * @param string $key
+     * @param string $prefix
+     * @param string $suffix
+     * @param boolean $keep
+     *
+     * @return string|App
+     */
+    public function concat(string $key, string $suffix, string $prefix = '', bool $keep = false)
+    {
+        $ref =& $this->ref($key);
+        $out = $prefix . $ref . $suffix;
+
+        if ($keep) {
+            $ref = $out;
+
+            return $this;
+        }
+
+        return $out;
+    }
+
+    /**
+     * Swap keys and values of hive array variable
+     *
+     * @param string $key
+     * @param boolean $keep
+     *
+     * @return array|$this
+     */
+    public function flip(string $key, bool $keep = false)
+    {
+        $ref =& $this->ref($key);
+        $out = array_flip($ref);
+
+        if ($keep) {
+            $ref = $out;
+
+            return $this;
+        }
+
+        return $out;
+    }
+
+    /**
+     * Add element to the end of hive array variable
+     *
+     * @param string $key
+     * @param mixed $val
+     *
+     * @return App
+     */
+    public function push(string $key, $val): App
+    {
+        $ref   =& $this->ref($key);
+        $ref[] = $val;
+
+        return $this;
+    }
+
+    /**
+     * Remove last element of hive array variable
+     *
+     * @param string $key
+     *
+     * @return mixed
+     */
+    public function pop(string $key)
+    {
+        $ref =& $this->ref($key);
+
+        return array_pop($ref);
+    }
+
+    /**
+     * Add element to the beginning of hive array variable
+     *
+     * @param string $key
+     * @param mixed $val
+     *
+     * @return $this
+     */
+    public function unshift(string $key, $val)
+    {
+        $ref =& $this->ref($key);
+
+        array_unshift($ref, $val);
+
+        return $this;
+    }
+
+    /**
+     * Remove first element of hive array variable
+     *
+     * @param string $key
+     *
+     * @return mixed
+     */
+    public function shift(string $key)
+    {
+        $ref =& $this->ref($key);
+
+        return array_shift($ref);
+    }
+
+    /**
+     * Merge array with hive array variable
+     *
+     * @param string $key
+     * @param string|array $src
+     * @param boolean $keep
+     *
+     * @return array|$this
+     */
+    public function merge(string $key, $src, bool $keep = false)
+    {
+        $ref =& $this->ref($key);
+
+        if (!$ref) {
+            $ref = [];
+        }
+
+        $out = array_merge($ref, is_string($src) ? $this->get($src, []) : $src);
+
+        if ($keep) {
+            $ref = $out;
+
+            return $this;
+        }
+
+        return $out;
+    }
+
+    /**
+     * Extend hive array variable with default values from $src
+     *
+     * @param string $key
+     * @param string|array $src
+     * @param boolean $keep
+     *
+     * @return array|$this
+     */
+    public function extend(string $key, $src, bool $keep = false)
+    {
+        $ref =& $this->ref($key);
+
+        if (!$ref) {
+            $ref = [];
+        }
+
+        $out = array_replace_recursive(is_string($src) ? $this->get($src, []) : $src, $ref);
+
+        if ($keep) {
+            $ref = $out;
+
+            return $this;
+        }
+
+        return $out;
+    }
+
+    /**
+     * Grab class name and method, create instance if needed
+     *
+     * @param  string $callback
+     * @param  bool $create
+     *
+     * @return callable
+     */
+    public function grab(string $callback, bool $create = true)
+    {
+        $obj = explode('->', $callback);
+        $static = explode('::', $callback);
+
+        if (count($obj) === 2) {
+            $callback = [$create ? $this->service($obj[0]) : $obj[0], $obj[1]];
+        } elseif (count($static) === 2) {
+            $callback = $static;
+        }
+
+        return $callback;
+    }
+
+    /**
      * Get client browser name
+     *
+     * @param array $headers
      *
      * @return string
      */
-    public function agent(): string
+    public function agent(array $headers = null): string
     {
+        $use = $headers ?? $this->hive['HEADERS'];
+
         return (
-            $this->hive['HEADERS']['X-Operamini-Phone-Ua'] ??
-            $this->hive['HEADERS']['X-Skyfire-Phone'] ??
-            $this->hive['HEADERS']['User-Agent'] ??
+            $use['X-Operamini-Phone-Ua'] ??
+            $use['X-Skyfire-Phone'] ??
+            $use['User-Agent'] ??
             ''
         );
     }
@@ -367,31 +1027,33 @@ final class App implements \ArrayAccess
     /**
      * Get XMLHttpRequest (ajax) status
      *
+     * @param array $headers
+     *
      * @return bool
      */
-    public function ajax(): bool
+    public function ajax(array $headers = null): bool
     {
-        return strtolower($this->hive['HEADERS']['X-Requested-With'] ?? '') === 'xmlhttprequest';
+        $use = $headers ?? $this->hive['HEADERS'];
+
+        return strtolower($use['X-Requested-With'] ?? '') === 'xmlhttprequest';
     }
 
     /**
      * Get client ip address
      *
+     * @param array $headers
+     *
      * @return string
      */
-    public function ip(): string
+    public function ip(array $headers = null): string
     {
-        if (isset($this->hive['HEADERS']['Client-Ip'])) {
-            return $this->hive['HEADERS']['Client-Ip'];
-        } elseif (isset($this->hive['HEADERS']['X-Forwarded-For'])) {
-            $forwads = explode(',', $this->hive['HEADERS']['X-Forwarded-For']);
+        $use = $headers ?? $this->hive['HEADERS'];
 
-            return $forwads[0];
-        } elseif (isset($_SERVER['REMOTE_ADDR'])) {
-            return $_SERVER['REMOTE_ADDR'];
-        }
-
-        return '';
+        return $use['Client-Ip'] ?? (
+            isset($use['X-Forwarded-For']) ?
+                explode(',', $use['X-Forwarded-For'])[0] :
+                    $_SERVER['REMOTE_ADDR'] ?? ''
+        );
     }
 
     /**
@@ -412,10 +1074,9 @@ final class App implements \ArrayAccess
                    ')(?=\r?\n|$)/';
         $sec_pattern = '/^(?!(?:global|config|route|map|redirect|resource)s\b)' .
                        '((?:\.?\w)+)/i';
+        $dir = $absolute ? '' : $this->hive['CONFIG_DIR'];
 
         foreach ($sources as $file) {
-            $dir = $absolute ? '' : $this->hive['CONFIG'];
-
             if (!preg_match_all($pattern, read($dir . $file), $matches, PREG_SET_ORDER)) {
                 continue;
             }
@@ -533,90 +1194,6 @@ final class App implements \ArrayAccess
     }
 
     /**
-     * Add headers
-     *
-     * @param  array       $headers
-     *
-     * @return App
-     */
-    public function headers(array $headers): App
-    {
-        foreach ($headers as $name => $contents) {
-            foreach ((array) $contents as $content) {
-                $this->header($name, (string) $content);
-            }
-        }
-
-        return $this;
-    }
-
-    /**
-     * Add header
-     *
-     * @param  string       $name
-     * @param  string       $content
-     *
-     * @return App
-     */
-    public function header(string $name, string $content = ''): App
-    {
-        if ($content !== '') {
-            $this->hive['RHEADERS'][$name][] = $content;
-        }
-
-        return $this;
-    }
-
-    /**
-     * Get header by name
-     *
-     * @param  string $name
-     *
-     * @return array
-     */
-    public function getHeader(string $name): array
-    {
-        return (
-            $this->hive['RHEADERS'][$name] ??
-            $this->hive['RHEADERS'][ucfirst($name)] ??
-            $this->hive['RHEADERS'][strtolower($name)] ??
-            []
-        );
-    }
-
-    /**
-     * Get all headers
-     *
-     * @return array
-     */
-    public function getHeaders(): array
-    {
-        return $this->hive['RHEADERS'];
-    }
-
-    /**
-     * Remove header
-     *
-     * @param  string|null $name
-     *
-     * @return App
-     */
-    public function removeHeader(string $name = null): App
-    {
-        if ($name) {
-            unset(
-                $this->hive['RHEADERS'][$name],
-                $this->hive['RHEADERS'][ucfirst($name)],
-                $this->hive['RHEADERS'][strtolower($name)]
-            );
-        } else {
-            $this->hive['RHEADERS'] = [];
-        }
-
-        return $this;
-    }
-
-    /**
      * Send headers
      *
      * @return App
@@ -640,10 +1217,9 @@ final class App implements \ArrayAccess
                 }
             }
 
-            header(
-                $_SERVER['SERVER_PROTOCOL'] . ' ' . $this->hive['STATUS'] . ' ' . $this->hive['TEXT'],
-                true
-            );
+            $protocol = $_SERVER['SERVER_PROTOCOL'] . ' ' .
+                        $this->hive['STATUS'] . ' ' . $this->hive['TEXT'];
+            header($protocol, true);
         }
 
         return $this;
@@ -808,8 +1384,8 @@ final class App implements \ArrayAccess
                         $cached = $cache->get($hash);
                         list($headers, $body) = $cached[0];
 
+                        $this->headers($headers);
                         $this
-                            ->headers($headers)
                             ->expire((int) ($cached[1] + $ttl - $now))
                             ->sendHeader()
                         ;
@@ -858,10 +1434,7 @@ final class App implements \ArrayAccess
                         unset($headers['Set-Cookie']);
 
                         // Save to cache backend
-                        $cache->set($hash, [
-                            $headers,
-                            $body
-                        ], $ttl);
+                        $cache->set($hash, [$headers, $body], $ttl);
                     }
 
                     if ($this->trigger('ONAFTERROUTE', $routeArgs) === false) {
@@ -1017,9 +1590,9 @@ final class App implements \ArrayAccess
         if ($this->hive['CLI']) {
             $this->mock('GET ' . $url . ' cli');
         } else {
+            $this->header('Location', $url);
             $this
                 ->status($permanent ? 301 : 302)
-                ->header('Location', $url)
                 ->sendHeader()
             ;
         }
@@ -1200,10 +1773,8 @@ final class App implements \ArrayAccess
             return;
         }
 
-        $this
-            ->removeHeader()
-            ->status($code)
-        ;
+        $this->removeHeader();
+        $this->status($code);
 
         $header = $this->hive['TEXT'];
         $req = $this->hive['METHOD'].' '.$this->hive['PATH'];
@@ -1562,626 +2133,6 @@ ERR
     }
 
     /**
-     * Call callable, support (-> and ::) format
-     * Example: Class->method , Class::method
-     *
-     * @param  callable|string $callback
-     * @param  array|string $args
-     *
-     * @return mixed
-     */
-    public function call($callback, $args = null)
-    {
-        if (is_string($callback)) {
-            $callback = $this->grab($callback);
-        }
-
-        if (is_array($callback)) {
-            $ref = new \ReflectionMethod($callback[0], $callback[1]);
-        } else {
-            $ref = new \ReflectionFunction($callback);
-        }
-
-        $mArgs = $this->methodArgs($ref, (array) $args);
-
-        return call_user_func_array($callback, $mArgs);
-    }
-
-    /**
-     * Get service by id or class name
-     *
-     * @param  string $id
-     * @param array  $args
-     *
-     * @return mixed
-     */
-    public function service(string $id, array $args = [])
-    {
-        if (in_array($id, ['app', self::class])) {
-            return $this;
-        } elseif (isset($this->services[$id])) {
-            return $this->services[$id];
-        } elseif (isset($this->aliases[$id])) {
-            // real id
-            $id = $this->aliases[$id];
-
-            if (isset($this->services[$id])) {
-                return $this->services[$id];
-            }
-        }
-
-        $rule = $this->get("SERVICE.$id", []);
-        $class = $rule['class'] ?? $id;
-
-        if (isset($rule['constructor'])) {
-            $service = $this->call($rule['constructor']);
-            $class = $rule['class'] ?? get_class($service);
-
-            if (!isset($this->aliases[$class]) && $class !== $id) {
-                $this->aliases[$class] = $id;
-            }
-        } elseif (method_exists($class, '__construct')) {
-            $cArgs = $this->methodArgs(
-                new \ReflectionMethod($class, '__construct'),
-                array_merge($rule['params'] ?? [], $args)
-            );
-
-            $service = new $class(...$cArgs);
-        } else {
-            $service = new $class;
-        }
-
-        if ($rule['keep'] ?? false) {
-            $this->services[$id] = $service;
-        }
-
-        return $service;
-    }
-
-    /**
-     * Expose hive
-     *
-     * @return array
-     */
-    public function hive(): array
-    {
-        return $this->hive;
-    }
-
-    /**
-     * Get hive ref
-     *
-     * @param  string       $key
-     * @param  bool $add
-     *
-     * @return mixed
-     */
-    public function &ref(string $key, bool $add = true)
-    {
-        $null = null;
-        $parts = $this->cut($key);
-
-        $this->startSession('SESSION' === $parts[0]);
-
-        if ($add) {
-            $var =& $this->hive;
-        } else {
-            $var = $this->hive;
-        }
-
-        foreach ($parts as $part) {
-            if (is_object($var)) {
-                if ($add || property_exists($var, $part)) {
-                    $var =& $var->$part;
-                } else {
-                    $var =& $null;
-                    break;
-                }
-            } else {
-                if (!is_array($var)) {
-                    $var = [];
-                }
-                if ($add || array_key_exists($part, $var)) {
-                    $var =& $var[$part];
-                } else {
-                    $var =& $null;
-                    break;
-                }
-            }
-        }
-
-        return $var;
-    }
-
-    /**
-     * Get from hive
-     *
-     * @param  string $key
-     * @param  mixed $default
-     *
-     * @return mixed
-     */
-    public function get(string $key, $default = null)
-    {
-        $var = $this->ref($key, false);
-
-        return $var ?? $default;
-    }
-
-    /**
-     * Set to hive
-     *
-     * @param string $key
-     * @param mixed $val
-     * @param int $ttl For cookie set
-     *
-     * @return App
-     */
-    public function set(string $key, $val, int $ttl = null): App
-    {
-        static $serverMap = [
-            'URI' => 'REQUEST_URI',
-            'METHOD' => 'REQUEST_METHOD',
-        ];
-
-        preg_match(
-            '/^(?:(?:(?:GET|POST)\b(.+))|COOKIE\.(.+)|SERVICE\.(.+)|(JAR\b))$/',
-            $key,
-            $match
-        );
-
-        if (isset($serverMap[$key])) {
-            $_SERVER[$serverMap[$key]] = $val;
-        } elseif (isset($match[1]) && $match[1]) {
-            $this->set('REQUEST' . $match[1], $val);
-        } elseif (isset($match[2]) && $match[2]) {
-            $this->set('REQUEST.' . $match[2], $val);
-
-            $this->setCookie($match[2], $val, $ttl);
-        } elseif (isset($match[3]) && $match[3]) {
-            if (is_string($val)) {
-                // assume val is a class name
-                $val = ['class' => $val];
-            } elseif (is_callable($val)) {
-                $val = ['constructor' => $val];
-            }
-
-            // defaults it's a service
-            $val += ['keep' => true];
-
-            if (isset($val['class']) && $val['class'] !== $match[3]) {
-                $this->aliases[$val['class']] = $match[3];
-            }
-
-            // remove existing service
-            $this->services[$match[1]] = null;
-        }
-
-        $var =& $this->ref($key);
-        $var = $val;
-
-        if (isset($match[4]) && $match[4]) {
-            $this->hive['JAR']['expire'] -= microtime(true);
-        } else {
-            switch ($key) {
-                case 'CACHE':
-                    $this->service('cache')->setDsn($val);
-                    break;
-                case 'SEED':
-                    $this->service('cache')->setPrefix($val);
-                    break;
-                case 'TZ':
-                    date_default_timezone_set($val);
-                    break;
-                case 'SERIALIZER':
-                    serialize(null, $val);
-                    unserialize(null, $val);
-                    break;
-            }
-        }
-
-        return $this;
-    }
-
-    /**
-     * Check in hive
-     *
-     * @param  string $key
-     *
-     * @return bool
-     */
-    public function exists(string $key): bool
-    {
-        $var = $this->ref($key, false);
-
-        return isset($var);
-    }
-
-    /**
-     * Remove from hive
-     *
-     * @param  string $key
-     *
-     * @return App
-     */
-    public function clear(string $key): App
-    {
-        if ('CACHE' === $key) {
-            // Clear cache contents
-            $this->service('cache')->reset();
-
-            return $this;
-        }
-
-        preg_match(
-            '/^(?:(?:(?:GET|POST)\b(.+))|(?:COOKIE\.(.+))|(SESSION(?:\.(.+))?)|(?:SERVICE\.(.+)))$/',
-            $key,
-            $match
-        );
-
-        if (isset($match[1]) && $match[1]) {
-            $this->clear('REQUEST' . $match[1]);
-        } elseif (isset($match[2]) && $match[2]) {
-            $this->clear('REQUEST.' . $match[2]);
-
-            $this->setCookie($match[2], null, strtotime('-1 year'));
-        } elseif (isset($match[4]) && $match[4]) {
-            $this->startSession();
-        } elseif (isset($match[3]) && $match[3]) {
-            $this->startSession();
-
-            // End session
-            session_unset();
-            session_destroy();
-            $this->clear('COOKIE.' . session_name());
-
-            $this->sync('SESSION');
-        } elseif (isset($match[5]) && $match[5]) {
-            // Remove instance too
-            $this->services[$match[5]] = null;
-        }
-
-        $parts = explode('.', $key);
-
-        if (empty($parts[1]) && array_key_exists($parts[0], $this->init)) {
-            $this->hive[$parts[0]] = $this->init[$parts[0]];
-        } else {
-            $var  =& $this->hive;
-            $last = count($parts) - 1;
-
-            foreach ($parts as $key => $part) {
-                if (is_object($var)) {
-                    if ($last == $key) {
-                        unset($var->$part);
-                    } else {
-                        $var =& $var->$part;
-                    }
-                } else {
-                    if (!is_array($var)) {
-                        break;
-                    }
-                    if ($last == $key) {
-                        unset($var[$part]);
-                    } else {
-                        $var =& $var[$part];
-                    }
-                }
-            }
-            unset($var);
-
-            if (isset($match[3]) && $match[3]) {
-                session_commit();
-                session_start();
-            }
-        }
-
-        return $this;
-    }
-
-    /**
-     * Multi-variable assignment using associative array
-     *
-     * @param array $vars
-     * @param string $prefix
-     *
-     * @return App
-     */
-    public function sets(array $vars, string $prefix = ''): App
-    {
-        foreach ($vars as $var => $val) {
-            $this->set($prefix . $var, $val);
-        }
-
-        return $this;
-    }
-
-    /**
-     * Clear multiple var
-     *
-     * @param  array  $vars
-     *
-     * @return App
-     */
-    public function clears(array $vars): App
-    {
-        foreach ($vars as $var) {
-            $this->clear($var);
-        }
-
-        return $this;
-    }
-
-    /**
-     * Get and clear
-     *
-     * @param  string $key
-     *
-     * @return mixed
-     */
-    public function flash(string $key)
-    {
-        $val = $this->get($key);
-        $this->clear($key);
-
-        return $val;
-    }
-
-    /**
-     * Copy contents of hive variable to another
-     *
-     * @param string $src
-     * @param string $dst
-     *
-     * @return $this
-     */
-    public function copy(string $src, string $dst): App
-    {
-        $ref =& $this->ref($dst);
-        $ref = $this->ref($src, false);
-
-        return $this;
-    }
-
-    /**
-     * Concatenate string to hive string variable
-     *
-     * @param string $key
-     * @param string $prefix
-     * @param string $suffix
-     * @param boolean $keep
-     *
-     * @return string|this
-     */
-    public function concat(string $key, string $suffix, string $prefix = '', bool $keep = false)
-    {
-        $ref =& $this->ref($key);
-        $out = $prefix . $ref . $suffix;
-
-        if ($keep) {
-            $ref = $out;
-
-            return $this;
-        }
-
-        return $out;
-    }
-
-    /**
-     * Swap keys and values of hive array variable
-     *
-     * @param string $key
-     * @param boolean $keep
-     *
-     * @return array|$this
-     */
-    public function flip(string $key, bool $keep = false)
-    {
-        $ref =& $this->ref($key);
-        $out = array_flip($ref);
-
-        if ($keep) {
-            $ref = $out;
-
-            return $this;
-        }
-
-        return $out;
-    }
-
-    /**
-     * Add element to the end of hive array variable
-     *
-     * @param string $key
-     * @param mixed $val
-     *
-     * @return $this
-     */
-    public function push(string $key, $val): App
-    {
-        $ref   =& $this->ref($key);
-        $ref[] = $val;
-
-        return $this;
-    }
-
-    /**
-     * Remove last element of hive array variable
-     *
-     * @param string $key
-     *
-     * @return mixed
-     */
-    public function pop(string $key)
-    {
-        $ref =& $this->ref($key);
-
-        return array_pop($ref);
-    }
-
-    /**
-     * Add element to the beginning of hive array variable
-     *
-     * @param string $key
-     * @param mixed $val
-     *
-     * @return $this
-     */
-    public function unshift(string $key, $val)
-    {
-        $ref =& $this->ref($key);
-
-        array_unshift($ref, $val);
-
-        return $this;
-    }
-
-    /**
-     * Remove first element of hive array variable
-     *
-     * @param string $key
-     *
-     * @return mixed
-     */
-    public function shift(string $key)
-    {
-        $ref =& $this->ref($key);
-
-        return array_shift($ref);
-    }
-
-    /**
-     * Merge array with hive array variable
-     *
-     * @param string $key
-     * @param string|array $src
-     * @param boolean $keep
-     *
-     * @return array|$this
-     */
-    public function merge(string $key, $src, bool $keep = false)
-    {
-        $ref =& $this->ref($key);
-
-        if (!$ref) {
-            $ref = [];
-        }
-
-        $out = array_merge($ref, is_string($src) ? $this->get($src, []) : $src);
-
-        if ($keep) {
-            $ref = $out;
-
-            return $this;
-        }
-
-        return $out;
-    }
-
-    /**
-     * Extend hive array variable with default values from $src
-     *
-     * @param string $key
-     * @param string|array $src
-     * @param boolean $keep
-     *
-     * @return array|$this
-     */
-    public function extend(string $key, $src, bool $keep = false)
-    {
-        $ref =& $this->ref($key);
-
-        if (!$ref) {
-            $ref = [];
-        }
-
-        $out = array_replace_recursive(is_string($src) ? $this->get($src, []) : $src, $ref);
-
-        if ($keep) {
-            $ref = $out;
-
-            return $this;
-        }
-
-        return $out;
-    }
-
-    /**
-     * Grab class name and method, create instance if needed
-     *
-     * @param  string $callback
-     * @param  bool $create
-     *
-     * @return callable
-     */
-    protected function grab(string $callback, bool $create = true)
-    {
-        $obj = explode('->', $callback);
-        $static = explode('::', $callback);
-
-        if (count($obj) === 2) {
-            $callback = [$create ? $this->service($obj[0]) : $obj[0], $obj[1]];
-        } elseif (count($static) === 2) {
-            $callback = $static;
-        }
-
-        return $callback;
-    }
-
-    /**
-     * Build method arguments
-     *
-     * @param  \ReflectionFunctionAbstract $ref
-     * @param  array                       $args
-     *
-     * @return array
-     */
-    protected function methodArgs(\ReflectionFunctionAbstract $ref, array $args = []): array
-    {
-        if ($ref->getNumberOfParameters() === 0) {
-            return [];
-        }
-
-        $result  = [];
-        $pArgs = array_filter($args, 'is_numeric', ARRAY_FILTER_USE_KEY);
-
-        foreach ($ref->getParameters() as $param) {
-            $name = $param->name;
-
-            if (isset($args[$name])) {
-                $val = $args[$name];
-
-                if (is_string($val)) {
-                    // assume it is a class name
-                    if (class_exists($val)) {
-                        $val = $this->service($val);
-                    } elseif (preg_match('/(.+)?%(.+)%(.+)?/', $val, $match)) {
-                        // assume it does exists in hive
-                        $ref = $this->ref($match[2], false);
-                        if (isset($ref)) {
-                            $val = ($match[1] ?? '') . $ref . ($match[3] ?? '');
-                        } else {
-                            // it is a service alias
-                            $val = $this->service($match[2]);
-                        }
-                    }
-                }
-
-                $result[] = $val;
-            } elseif ($param->isVariadic()) {
-                $result = array_merge($result, $pArgs);
-            } elseif ($refClass = $param->getClass()) {
-                $result[] = $this->service($refClass->name);
-            } elseif ($pArgs) {
-                $result[] = array_shift($pArgs);
-            } elseif ($param->isDefaultValueAvailable()) {
-                $result[] = $param->getDefaultValue();
-            }
-        }
-
-        return $result;
-    }
-
-    /**
      * Check pattern against path
      *
      * @param string $pattern
@@ -2208,87 +2159,6 @@ ERR
         $regex = '~^' . $wild. '$~' . $modifier;
 
         return (bool) preg_match($regex, $path, $match);
-    }
-
-    /**
-     * Start session if not started yet
-     *
-     * @param bool $start
-     *
-     * @return void
-     */
-    protected function startSession(bool $start = true)
-    {
-        if ($start && !headers_sent() && session_status() !== PHP_SESSION_ACTIVE) {
-            session_start();
-        }
-
-        $this->sync('SESSION');
-    }
-
-    /**
-     * Sync PHP global with corresponding hive key
-     *
-     * @param  string $key
-     *
-     * @return array|null
-     */
-    protected function sync(string $key): ?array
-    {
-        $this->hive[$key] =& $GLOBALS["_$key"];
-
-        return $this->hive[$key];
-    }
-
-    /**
-     * Format to cookie header syntax
-     *
-     * @param string   $name
-     * @param string   $value
-     * @param int|null $ttl
-     */
-    protected function setCookie(string $name, string $value = null, int $ttl = null): void
-    {
-        $jar    = $this->hive['JAR'];
-        $cookie = $this->cookiefy($name) . '=' . urlencode($value ?? '');
-        $expire = $ttl ?? $jar['expire'];
-
-        if ($expire) {
-            $cookie .= '; Expires=' . gmdate('D, d M Y H:i:s') . ' GMT';
-        }
-
-        if ($jar['domain']) {
-            $cookie .= '; Domain=' . $jar['domain'];
-        }
-
-        if ($jar['path']) {
-            $cookie .= '; Path=' . $jar['path'];
-        }
-
-        if ($jar['secure']) {
-            $cookie = '__Secure-' . $cookie . '; Secure';
-        }
-
-        if ($jar['httponly']) {
-            $cookie .= '; HttpOnly';
-        }
-
-        $this->header('Set-Cookie', $cookie);
-    }
-
-    /**
-     * Build valid cookie name from dot based name
-     *
-     * @param  string $name
-     *
-     * @return string
-     */
-    protected function cookiefy(string $name): string
-    {
-        $parts = explode('.', $name);
-        $cname = array_shift($parts);
-
-        return $cname . ($parts ? '[' . implode('][', $parts) . ']' : '');
     }
 
     /**
@@ -2353,6 +2223,90 @@ ERR
     }
 
     /**
+     * Build method arguments
+     *
+     * @param  \ReflectionFunctionAbstract $ref
+     * @param  array                       $args
+     *
+     * @return array
+     */
+    protected function methodArgs(\ReflectionFunctionAbstract $ref, array $args = []): array
+    {
+        if ($ref->getNumberOfParameters() === 0) {
+            return [];
+        }
+
+        $result  = [];
+        $pArgs = array_filter($args, 'is_numeric', ARRAY_FILTER_USE_KEY);
+
+        foreach ($ref->getParameters() as $param) {
+            $name = $param->name;
+
+            if (isset($args[$name])) {
+                $val = $args[$name];
+
+                if (is_string($val)) {
+                    // assume it is a class name
+                    if (class_exists($val)) {
+                        $val = $this->service($val);
+                    } elseif (preg_match('/(.+)?%(.+)%(.+)?/', $val, $match)) {
+                        // assume it does exists in hive
+                        $ref = $this->ref($match[2], false);
+                        if (isset($ref)) {
+                            $val = ($match[1] ?? '') . $ref . ($match[3] ?? '');
+                        } else {
+                            // it is a service alias
+                            $val = $this->service($match[2]);
+                        }
+                    }
+                }
+
+                $result[] = $val;
+            } elseif ($param->isVariadic()) {
+                $result = array_merge($result, $pArgs);
+            } elseif ($refClass = $param->getClass()) {
+                $result[] = $this->service($refClass->name);
+            } elseif ($pArgs) {
+                $result[] = array_shift($pArgs);
+            } elseif ($param->isDefaultValueAvailable()) {
+                $result[] = $param->getDefaultValue();
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * Start session if not started yet
+     *
+     * @param bool $start
+     *
+     * @return void
+     */
+    protected function startSession(bool $start = true)
+    {
+        if ($start && !headers_sent() && session_status() !== PHP_SESSION_ACTIVE) {
+            session_start();
+        }
+
+        $this->sync('SESSION');
+    }
+
+    /**
+     * Sync PHP global with corresponding hive key
+     *
+     * @param  string $key
+     *
+     * @return array|null
+     */
+    protected function sync(string $key): ?array
+    {
+        $this->hive[$key] =& $GLOBALS["_$key"];
+
+        return $this->hive[$key];
+    }
+
+    /**
      * Return the parts of specified hive key
      *
      * @param  string $key
@@ -2370,6 +2324,57 @@ ERR
     }
 
     /**
+     * Format to cookie header syntax
+     *
+     * @param string   $name
+     * @param string   $value
+     * @param int|null $ttl
+     */
+    protected function setCookie(string $name, string $value = null, int $ttl = null): void
+    {
+        $jar    = $this->hive['JAR'];
+        $cookie = $this->cookiefy($name) . '=' . urlencode($value ?? '');
+        $expire = $ttl ?? $jar['expire'];
+
+        if ($expire) {
+            $cookie .= '; Expires=' . gmdate('D, d M Y H:i:s') . ' GMT';
+        }
+
+        if ($jar['domain']) {
+            $cookie .= '; Domain=' . $jar['domain'];
+        }
+
+        if ($jar['path']) {
+            $cookie .= '; Path=' . $jar['path'];
+        }
+
+        if ($jar['secure']) {
+            $cookie = '__Secure-' . $cookie . '; Secure';
+        }
+
+        if ($jar['httponly']) {
+            $cookie .= '; HttpOnly';
+        }
+
+        $this->header('Set-Cookie', $cookie);
+    }
+
+    /**
+     * Build valid cookie name from dot based name
+     *
+     * @param  string $name
+     *
+     * @return string
+     */
+    protected function cookiefy(string $name): string
+    {
+        $parts = explode('.', $name);
+        $cname = array_shift($parts);
+
+        return $cname . ($parts ? '[' . implode('][', $parts) . ']' : '');
+    }
+
+    /**
      * Convenient way get hive item
      *
      * @param  string $offset
@@ -2378,7 +2383,7 @@ ERR
      */
     public function &offsetget($key)
     {
-        $var =& $this->ref($key);
+        $var =& $this->ref($key, false);
 
         return $var;
     }
