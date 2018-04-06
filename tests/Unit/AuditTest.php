@@ -33,156 +33,103 @@ class AuditTest extends TestCase
         $this->assertContains('Foo', $this->audit->setMessages(['foo'=>'Foo'])->getMessages());
     }
 
-    public function testSetRule()
+    public function testAddRule()
     {
-        $this->audit->setRule('foo', function() {
+        $this->audit->addRule('foo', function() {
             return true;
         });
         $this->audit->setMessage('foo', 'Foo {arg0}');
 
         $rules = ['bar'=>'foo'];
-        $data  = ['bar'=>'baz'];
+        $data = ['bar'=>'baz'];
 
-        $this->audit->validate($data, $rules);
+        $result = $this->audit->validate($data, $rules);
 
-        $this->assertEquals($data, $this->audit->getValidated());
-    }
-
-    public function testSetGetRules()
-    {
-        $this->assertEquals([], $this->audit->getRules());
-        $this->assertEquals(['foo'=>'bar'], $this->audit->setRules(['foo'=>'bar'])->getRules());
-    }
-
-    public function testSetGetData()
-    {
-        $this->assertEquals([], $this->audit->getData());
-        $this->assertEquals(['foo'=>'bar'], $this->audit->setData(['foo'=>'bar'])->getData());
-    }
-
-    public function testIsSuccess()
-    {
-        $this->audit->validate();
-        $this->assertTrue($this->audit->isSuccess());
-    }
-
-    /**
-     * @expectedException LogicException
-     * @expectedExceptionMessage No validation has been processed, run validate method first
-     */
-    public function testIsSuccessException()
-    {
-        $this->audit->isSuccess();
-    }
-
-    public function testIsFailed()
-    {
-        $this->audit->validate([
-            'foo'=>'bar'
-        ], [
-            'foo'=>'is_int'
-        ]);
-        $this->assertTrue($this->audit->isFailed());
-    }
-
-    public function testGetErrors()
-    {
-        $this->assertEquals([], $this->audit->getErrors());
-    }
-
-    public function testGetValidated()
-    {
-        $this->assertEquals([], $this->audit->getValidated());
-    }
-
-    public function testCompact()
-    {
-        $this->assertEquals('foo:comma:bar', $this->audit->compact(['foo','bar']));
-    }
-
-    public function testEncode()
-    {
-        $this->assertEquals(':comma:foo:vbar:', $this->audit->encode(',foo|'));
-    }
-
-    public function testDecode()
-    {
-        $this->assertEquals(',foo|', $this->audit->decode(':comma:foo:vbar:'));
+        $this->assertEquals($data, $result['data']);
     }
 
     public function testValidate()
     {
-        $this->audit->setRule('foo', function($val, $foo) {
+        $this->audit->addRule('foo', function($val, $foo) {
             return $val ? $val . $foo : false;
         });
-        $this->audit->setMessage('foo', 'Foo {key} {1}');
+        $this->audit->setMessage('foo', 'Foo {field} {1}');
 
-        $this->audit->setRules([
-            'foo'=>'trim|required|foo[baz]',
-            'email'=>'email[false]',
-        ]);
-
-        // set via method
-        $this->audit->validate([
+        $rules = [
+            'foo'=>'trim|required|foo:baz',
+            'email'=>'email:false',
+        ];
+        $data = [
             'foo'=>'  bar  ',
             'email'=>'foo@bar.com'
-        ]);
-        $this->assertTrue($this->audit->isSuccess());
-        $this->assertEquals(['foo'=>'barbaz','email'=>'foo@bar.com'], $this->audit->getValidated());
+        ];
+        $expected = [
+            'success' => true,
+            'error' => [],
+            'data' => ['foo'=>'barbaz'] + $data,
+        ];
+
+        $result = $this->audit->validate($data, $rules);
+        $this->assertEquals($expected, $result);
 
         // expect error
-        $this->audit->setRules([
-            'foo'=>'foo[baz]',
-            'email'=>'email[false]',
-        ]);
-        $this->audit->validate([]);
-        $this->assertFalse($this->audit->isSuccess());
-        $this->assertEquals([], $this->audit->getValidated());
-        $this->assertEquals(['foo'=>['Foo foo baz'],'email'=>['This value is not a valid email address.']], $this->audit->getErrors());
+        $rules = [
+            'foo'=>'foo:baz',
+            'email'=>'email:false',
+        ];
+        $data = [];
+        $expected = [
+            'success' => false,
+            'error' => ['foo'=>['Foo foo baz'],'email'=>['This value is not a valid email address.']],
+            'data' => $data,
+        ];
 
-        $this->audit->validate([], ['foo'=>'required|email']);
-        $this->assertEquals(['foo'=>['This value should not be blank.']], $this->audit->getErrors());
+        $result = $this->audit->validate($data, $rules);
+        $this->assertEquals($expected, $result);
     }
 
     public function messageProvider()
     {
         return [
             ['foo','','required','This value should not be blank.'],
-            ['foo','f','lenmin[2]','This value is too short. It should have 2 characters or more.'],
-            ['f','foo','lenmax[1]','This value is too long. It should have 1 characters or less.'],
+            ['foo','f','len:3','This value is not valid. It should have exactly 3 characters.'],
+            ['foo','f','lenmin:2','This value is too short. It should have 2 characters or more.'],
+            ['f','foo','lenmax:1','This value is too long. It should have 1 characters or less.'],
             ['fc00::','0.1.2.3','isprivate','This value is not a private ip address.'],
             ['190.1.1.0','10.10.10.10','ispublic','This value is not a public ip address.'],
             ['127.0.0.1','193.194.195.196','isreserved','This value is not a reserved ip address.'],
-            [2,1,'min[2]','This value should be 2 or more.'],
-            [2,3,'max[2]','This value should be 2 or less.'],
+            [2,1,'min:2','This value should be 2 or more.'],
+            [2,3,'max:2','This value should be 2 or less.'],
             ['abc@google.com','notemail','email','This value is not a valid email address.'],
             ['http://www.example.com/space%20here.html','noturl','url','This value is not a valid url.'],
             ['30.88.29.1','256.256.0.0','ipv4','This value is not a valid ipv4 address.'],
             ['0:0:0:0:0:0:0:1','FF01::101::2','ipv6','This value is not a valid ipv6 address.'],
-            ['foo','bar','equal[foo]','This value should be equal to foo.'],
-            ['bar','foo','notequal[foo]','This value should not be equal to foo.'],
-            ['bar','foo','equalfield[foo]','This value should be equal to value of foo.',['foo'=>'bar']],
-            ['foo','bar','notequalfield[foo]','This value should not be equal to value of foo.',['foo'=>'bar']],
-            [1,'1','identical[1,integer]','This value should be identical to integer 1.'],
-            ['1',1,'notidentical[1,integer]','This value should not be identical to integer 1.'],
-            [1,2,'lt[2]','This value should be less than 2.'],
-            [3,2,'gt[2]','This value should be greater than 2.'],
-            [2,3,'lte[2]','This value should be less than or equal to 2.'],
-            [2,1,'gte[2]','This value should be greater than or equal to 2.'],
-            ['1',1,'type[string]','This value should be of type string.'],
-            [[1],[],'countmin[1]','This collection should contain 1 elements or more.'],
-            [[1],[1,2],'countmax[1]','This collection should contain 1 elements or less.'],
+            ['foo','bar','equal:foo','This value should be equal to foo.'],
+            ['bar','foo','notequal:foo','This value should not be equal to foo.'],
+            ['bar','foo','equalfield:foo','This value should be equal to value of foo.',['foo'=>'bar']],
+            ['foo','bar','notequalfield:foo','This value should not be equal to value of foo.',['foo'=>'bar']],
+            [1,'1','identical:1,integer','This value should be identical to integer 1.'],
+            ['1',1,'notidentical:1,integer','This value should not be identical to integer 1.'],
+            [1,2,'lt:2','This value should be less than 2.'],
+            [3,2,'gt:2','This value should be greater than 2.'],
+            [2,3,'lte:2','This value should be less than or equal to 2.'],
+            [2,1,'gte:2','This value should be greater than or equal to 2.'],
+            ['1',1,'type:string','This value should be of type string.'],
+            [[1],[],'count:1','This collection should contain exactly 1 elements.'],
+            [[1],[],'countmin:1','This collection should contain 1 elements or more.'],
+            [[1],[1,2],'countmax:1','This collection should contain 1 elements or less.'],
             ['2010-10-10','foo','date','This value is not a valid date.'],
             ['2010-10-10 00:00:00','foo','datetime','This value is not a valid datetime.'],
-            ['foo','baz','regex[/foo:vbar:bar/]','This value is not valid.'],
-            ['bar',null,'regex[/foo:vbar:bar/]'],
-            [1,3,'choice[1:comma:2]','The value you selected is not a valid choice.'],
-            [[1,2],[3],'choices[1:comma:2]','One or more of the given values is invalid.'],
+            ['foo','baz','regex:"/foo|bar/"','This value is not valid.'],
+            ['bar',null,'regex:"/foo|bar/"'],
+            [1,3,'choice:[1,2]','The value you selected is not a valid choice.'],
+            [[1,2],[3],'choices:[1,2]','One or more of the given values is invalid.'],
+            [1,3,'choice:{"one":1,"two":2}','The value you selected is not a valid choice.'],
 
-            [null,null,'lenmin[1]'],
-            ['',null,'lenmin[1]'],
-            [null,null,'lenmax[1]'],
-            ['',null,'lenmax[1]'],
+            [null,null,'lenmin:1'],
+            ['',null,'lenmin:1'],
+            [null,null,'lenmax:1'],
+            ['',null,'lenmax:1'],
         ];
     }
 
@@ -192,17 +139,16 @@ class AuditTest extends TestCase
         $data = ['field'=>$trueVal] + $extra;
         $rules = array_fill_keys(array_keys($extra), 'required') + ['field'=>$rule];
 
-        $this->audit->validate($data, $rules);
-        $this->assertTrue($this->audit->isSuccess());
+        $result = $this->audit->validate($data, $rules);
+        $this->assertTrue($result['success']);
 
         if ($message) {
             $data['field'] = $falseVal;
 
-            $this->audit->validate($data, $rules);
-            $error = $this->audit->getErrors();
+            $result = $this->audit->validate($data, $rules);
 
-            $this->assertTrue($this->audit->isFailed());
-            $this->assertContains($message, $error['field']);
+            $this->assertFalse($result['success']);
+            $this->assertContains($message, $result['error']['field']);
         }
     }
 
@@ -218,12 +164,11 @@ class AuditTest extends TestCase
                 // baz is not supplied
             ],
         ];
-        $this->audit->validate($data, $rules);
-        $error = $this->audit->getErrors();
+        $result = $this->audit->validate($data, $rules);
 
-        $this->assertFalse($this->audit->isSuccess());
-        $this->assertContains('This value should not be blank.', $error['foo.bar']);
-        $this->assertContains('This value should not be blank.', $error['foo.baz.qux']);
+        $this->assertFalse($result['success']);
+        $this->assertContains('This value should not be blank.', $result['error']['foo.bar']);
+        $this->assertContains('This value should not be blank.', $result['error']['foo.baz.qux']);
 
         // invalid
         $data2 = [
@@ -233,8 +178,8 @@ class AuditTest extends TestCase
                 'baz' => 'foo',
             ],
         ];
-        $this->audit->validate($data2, $rules);
-        $this->assertFalse($this->audit->isSuccess());
+        $result = $this->audit->validate($data2, $rules);
+        $this->assertFalse($result['success']);
 
         // valid
         $data3 = [
@@ -245,47 +190,16 @@ class AuditTest extends TestCase
                 ],
             ],
         ];
-        $this->audit->validate($data3, $rules);
+        $result = $this->audit->validate($data3, $rules);
 
-        $this->assertTrue($this->audit->isSuccess());
-    }
-
-    public function testValidateConstruct()
-    {
-        $audit = new Audit([
-            'foo' => function($val, $foo) {
-                return $val ? $val . $foo : false;
-            }
-        ], [
-            'foo' => 'Foo {key} {arg1}'
-        ]);
-
-        $audit->validate([
-            'foo'=>'  bar  ',
-        ], [
-            'foo'=>'trim|required|foo[baz]',
-        ]);
-
-        $this->assertTrue($audit->isSuccess());
-        $this->assertEquals(['foo'=>'barbaz'], $audit->getValidated());
-    }
-
-    /**
-     * @expectedException LogicException
-     * @expectedExceptionMessage Rule declaration is invalid, given "invalid-rule"
-     */
-    public function testValidateException1()
-    {
-        $this->audit->validate([], [
-            'foo' => 'invalid-rule'
-        ]);
+        $this->assertTrue($result['success']);
     }
 
     /**
      * @expectedException LogicException
      * @expectedExceptionMessage Rule "foo" does not exists
      */
-    public function testValidateException2()
+    public function testValidateException()
     {
         $this->audit->validate([], [
             'foo' => 'foo'
@@ -296,9 +210,9 @@ class AuditTest extends TestCase
      * @expectedException ArgumentCountError
      * @expectedExceptionMessage Validator foo expect at least 2 parameters, 1 given
      */
-    public function testValidateException3()
+    public function testValidateException2()
     {
-        $this->audit->setRule('foo', function($val, $foo) {
+        $this->audit->addRule('foo', function($val, $foo) {
             return $val . $foo;
         });
         $this->audit->validate([], [
@@ -400,6 +314,15 @@ class AuditTest extends TestCase
         $this->assertTrue($this->audit->max(4.9, 4.9));
     }
 
+    public function testLen()
+    {
+        $this->assertTrue($this->audit->len(null, 3));
+        $this->assertTrue($this->audit->len('', 3));
+        $this->assertTrue($this->audit->len('foo', 3));
+        $this->assertFalse($this->audit->len('fo', 3));
+        $this->assertFalse($this->audit->len('fooo', 3));
+    }
+
     public function testLenMin()
     {
         $this->assertTrue($this->audit->lenMin(null, 3));
@@ -414,6 +337,13 @@ class AuditTest extends TestCase
         $this->assertTrue($this->audit->lenMax('', 3));
         $this->assertTrue($this->audit->lenMax('foo', 3));
         $this->assertFalse($this->audit->lenMax('foobar', 3));
+    }
+
+    public function testCount()
+    {
+        $this->assertTrue($this->audit->count([1], 1));
+        $this->assertFalse($this->audit->count([], 1));
+        $this->assertFalse($this->audit->count([1,2], 1));
     }
 
     public function testCountMin()

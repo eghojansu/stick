@@ -19,18 +19,6 @@ class Audit
         UA_Desktop = 'bsd|linux|os\s+[x9]|solaris|windows',
         UA_Bot     = 'bot|crawl|slurp|spider';
 
-    /** @var array */
-    public static $specialMap = [
-        ',' => ':comma:',
-        '|' => ':vbar:',
-    ];
-
-    /** @var array */
-    protected $customs = [];
-
-    /** @var array */
-    protected $rules = [];
-
     /** @var array Rule message */
     protected $messages = [
         'required' => 'This value should not be blank.',
@@ -47,8 +35,10 @@ class Audit
         'notequal' => 'This value should not be equal to {1}.',
         'identical' => 'This value should be identical to {2} {1}.',
         'notidentical' => 'This value should not be identical to {2} {1}.',
+        'len' => 'This value is not valid. It should have exactly {1} characters.',
         'lenmin' => 'This value is too short. It should have {1} characters or more.',
         'lenmax' => 'This value is too long. It should have {1} characters or less.',
+        'count' => 'This collection should contain exactly {1} elements.',
         'countmin' => 'This collection should contain {1} elements or more.',
         'countmax' => 'This collection should contain {1} elements or less.',
         'regex' => null,
@@ -66,31 +56,7 @@ class Audit
     ];
 
     /** @var array */
-    protected $data = [];
-
-    /** @var array */
-    protected $validated = [];
-
-    /** @var array */
-    protected $errors = [];
-
-    /** @var bool */
-    protected $processed = false;
-
-    /**
-     * Class constructor
-     *
-     * @param array $customs
-     * @param array $messages
-     */
-    public function __construct(array $customs = [], array $messages = [])
-    {
-        foreach ($customs as $rule => $callback) {
-            $this->setRule($rule, $callback);
-        }
-
-        $this->setMessages($messages);
-    }
+    protected $rules = [];
 
     /**
      * Required rule
@@ -278,6 +244,19 @@ class Audit
     }
 
     /**
+     * Length
+     *
+     * @param  string $val
+     * @param  int    $len
+     *
+     * @return bool
+     */
+    public function len($val, int $len): bool
+    {
+        return !$this->required($val) || strlen($val) === $len;
+    }
+
+    /**
      * Min length
      *
      * @param  string $val
@@ -301,6 +280,19 @@ class Audit
     public function lenMax($val, int $max): bool
     {
         return !$this->required($val) || strlen($val) <= $max;
+    }
+
+    /**
+     * Count
+     *
+     * @param  array $val
+     * @param  int   $count
+     *
+     * @return bool
+     */
+    public function count(array $val, int $count): bool
+    {
+        return count($val) === $count;
     }
 
     /**
@@ -382,6 +374,11 @@ class Audit
      */
     public function regex($val, string $pattern): bool
     {
+        $quote = $pattern[0];
+        if (in_array($quote, ["'",'"']) && substr($pattern, -1) === $quote) {
+            $pattern = substr($pattern, 1, -1);
+        }
+
         return (bool) preg_match($pattern, $val);
     }
 
@@ -655,7 +652,7 @@ class Audit
      */
     public function getMessage(string $rule): string
     {
-        return $this->messages[$rule] ?? '';
+        return $this->messages[strtolower($rule)] ?? '';
     }
 
     /**
@@ -676,291 +673,231 @@ class Audit
      *
      * @return Audit
      */
-    public function setRule(string $rule, callable $callback): Audit
+    public function addRule(string $rule, callable $callback): Audit
     {
-        $this->customs[$rule] = $callback;
+        $this->rules[$rule] = $callback;
 
         return $this;
-    }
-
-    /**
-     * Get defined rules
-     *
-     * @return array
-     */
-    public function getRules(): array
-    {
-        return $this->rules;
-    }
-
-    /**
-     * Define rules to be used in validation
-     *
-     * @param array $rules
-     *
-     * @return Audit
-     */
-    public function setRules(array $rules): Audit
-    {
-        $this->rules = $rules;
-
-        return $this;
-    }
-
-    /**
-     * Get data
-     *
-     * @return array
-     */
-    public function getData(): array
-    {
-        return $this->data;
-    }
-
-    /**
-     * Set data to be validated
-     *
-     * @param array $data
-     * @return Audit
-     */
-    public function setData(array $data): Audit
-    {
-        $this->data = $data;
-
-        return $this;
-    }
-
-    /**
-     * Get validation status
-     *
-     * @return bool
-     *
-     * @throws LogicException
-     */
-    public function isSuccess(): bool
-    {
-        if (!$this->processed) {
-            throw new \LogicException(
-                'No validation has been processed, run validate method first'
-            );
-        }
-
-        return count($this->errors) === 0;
-    }
-
-    /**
-     * isSuccess complement
-     *
-     * @return bool
-     *
-     * @throws LogicException
-     */
-    public function isFailed(): bool
-    {
-        return !$this->isSuccess();
-    }
-
-    /**
-     * Get errors
-     *
-     * @return array
-     */
-    public function getErrors(): array
-    {
-        return $this->errors;
-    }
-
-    /**
-     * Get validated
-     *
-     * @return array
-     */
-    public function getValidated(): array
-    {
-        return $this->validated;
-    }
-
-    /**
-     * Compact array values to string
-     *
-     * @param  array  $values
-     *
-     * @return string
-     */
-    public function compact(array $values): string
-    {
-        return implode(self::$specialMap[','], $values);
-    }
-
-    /**
-     * Convert to special map
-     *
-     * @param  string $val
-     *
-     * @return string
-     */
-    public function encode(string $val): string
-    {
-        return strtr($val, self::$specialMap);
-    }
-
-    /**
-     * Inverse special map
-     *
-     * @param  string $val
-     *
-     * @return string
-     */
-    public function decode(string $val): string
-    {
-        return strtr($val, array_flip(self::$specialMap));
     }
 
     /**
      * Do validate
      *
-     * @param  array  $data
-     * @param  array  $rules
+     * @param  array $data
+     * @param  array $rules
+     * @param  array $messages
      *
-     * @return Audit
+     * @return array
      */
-    public function validate(array $data = null, array $rules = null): Audit
+    public function validate(array $data, array $rules, array $messages = []): array
     {
-        $this->errors = [];
-        $this->processed = false;
-
-        $use = $data ?? $this->data;
-        $useRules = $rules ?? $this->rules;
         $validated = [];
+        $error = [];
 
-        foreach ($useRules as $id => $def) {
-            $xrules = explode('|', $def);
+        foreach ($rules as $field => $frules) {
+            $prules = $this->parseRules($frules);
 
-            foreach ($xrules as $rule) {
+            foreach ($prules as $rule => $args) {
+                $value = array_key_exists($field, $validated) ?
+                         $validated[$field] : $this->ref($field, $data);
                 $audit = [
-                    'field' => $id,
-                    'args' => [],
-                    'rule' => null,
                     'validated' => $validated,
+                    'field' => $field,
                 ];
-                $value = $validated[$id] ?? $this->ref($id, $use);
-                $result = $this->execute($rule, $value, $audit);
+                array_unshift($args, $value);
+                $result = $this->execute($rule, $args, $audit);
 
                 if ($result === false) {
                     // validation fail
-                    $this->addError($audit);
+                    $error[$field][] = $this->errorMessage(
+                        $field,
+                        $rule,
+                        $args,
+                        $messages[$field . '.' . $rule] ?? null,
+                        $error
+                    );
                     break;
                 } elseif ($result === true) {
-                    $validated[$id] = $value;
+                    $validated[$field] = $value;
                 } else {
-                    $validated[$id] = $result;
+                    $validated[$field] = $result;
                 }
             }
         }
 
-        $this->validated = $validated;
-        $this->processed = true;
+        return [
+            'success' => count($error) === 0,
+            'error' => $error,
+            'data' => $validated,
+        ];
+    }
 
-        return $this;
+    /**
+     * Parse string rules declaration
+     *
+     * @param  string $expr
+     *
+     * @return array
+     */
+    protected function parseRules(string $expr): array
+    {
+        $len = strlen($expr);
+        $res = [];
+        $tmp = '';
+        $process = false;
+        $args = [];
+        $quote = null;
+        $astate = 0;
+        $jstate = 0;
+
+        for ($ptr = 0; $ptr < $len; $ptr++) {
+            $char = $expr[$ptr];
+            $prev = $expr[$ptr - 1] ?? null;
+
+            if (($char === '"' || $char === "'") && $prev !== '\\') {
+                if ($quote) {
+                    $quote = $quote === $char ? null : $quote;
+                } else {
+                    $quote = $char;
+                }
+                $tmp .= $char;
+            } elseif (!$quote) {
+                if ($char === ':' && $jstate === 0) {
+                    // next chars is arg
+                    $args[] = $tmp;
+                    $tmp = '';
+                } elseif ($char === ',' && $astate === 0 && $jstate === 0) {
+                    $args[] = $tmp;
+                    $tmp = '';
+                } elseif ($char === '|') {
+                    if ($tmp) {
+                        $process = true;
+                        $args[] = $tmp;
+                        $tmp = '';
+                    }
+                } elseif ($char === '[') {
+                    $astate = 1;
+                    $tmp .= $char;
+                } elseif ($char === ']' && $astate === 1 && $jstate === 0) {
+                    $astate = 0;
+                    $process = true;
+                    $args[] = json_decode($tmp . $char, true);
+                    $tmp = '';
+                } elseif ($char === '{') {
+                    $jstate = 1;
+                    $tmp .= $char;
+                } elseif ($char === '}' && $jstate === 1 && $astate === 0) {
+                    $jstate = 0;
+                    $process = true;
+                    $args[] = json_decode($tmp . $char, true);
+                    $tmp = '';
+                } else {
+                    $tmp .= $char;
+                    $astate += $char === '[' ? 1 : ($char === ']' ? -1 : 0);
+                    $jstate += $char === '{' ? 1 : ($char === '}' ? -1 : 0);
+                }
+            } else {
+                $tmp .= $char;
+            }
+
+            if (!$process && $ptr === $len - 1) {
+                $process = true;
+                if ($tmp !== '') {
+                    $args[] = $tmp;
+                    $tmp = '';
+                }
+            }
+
+            if ($process) {
+                if ($args) {
+                    $args = casts($args);
+                    $res[array_shift($args)] = $args;
+                    $args = [];
+                }
+                $process = false;
+            }
+        }
+
+        return $res;
     }
 
     /**
      * Add error message
      *
-     * @param array $audit From validate
+     * @param string $field
+     * @param string $rule
+     * @param array  $args
+     * @param string $message
+     *
+     * @return string
      */
-    protected function addError(array $audit): void
-    {
-        $message = $this->messages[strtolower($audit['rule'])] ?? 'This value is not valid.';
-        $field = $audit['field'];
+    protected function errorMessage(
+        string $field,
+        string $rule,
+        array $args,
+        string $message = null
+    ): string {
+        $use = $message ?? $this->messages[strtolower($rule)] ?? 'This value is not valid.';
 
-        if (strpos($message, '{') !== false) {
-            $keys = ['{key}'];
-            $vals = [$field];
-
-            foreach ($audit['args'] as $key => $value) {
-                $keys[] = '{' . $key . '}';
-                $vals[] = is_array($value) ? stringify($value) : $value;
-            }
-
-            $message  = str_replace($keys, $vals, $message);
+        if (strpos($use, '{') === false) {
+            return $use;
         }
 
-        $this->errors[$field][] = $message;
+        $keys = ['{field}','{rule}'];
+        $vals = [$field,$rule];
+
+        foreach ($args as $key => $value) {
+            $keys[] = '{' . $key . '}';
+            $vals[] = is_array($value) ? stringify($value) : $value;
+        }
+
+        return str_replace($keys, $vals, $use);
     }
 
     /**
      * Execute rule
      *
      * @param  string $rule
-     * @param  mixed  $val
-     * @param  array  &$audit
+     * @param  array  $args
+     * @param  array  $audit
      *
      * @return mixed
      *
-     * @throws LogicException
      * @throws DomainException
      * @throws ArgumentCountError
      */
-    protected function execute(string $rule, $val, array &$audit)
+    protected function execute(string $rule, array $args, array $audit)
     {
-        if (!preg_match('/^(\w+)(?:\[([^\]]+)\])?$/', $rule, $match)) {
-            throw new \LogicException(
-                'Rule declaration is invalid, given "' . $rule . '"'
-            );
-        }
-
-        $prule = $match[1];
-        $args = [];
         $func = true;
 
-        if (isset($match[2]) && $match[2]) {
-            foreach (explode(',', $match[2]) as $key => $value) {
-                $dvalue = $this->decode($value);
-                $args[] = strpos($dvalue, ',') === false ?
-                          cast($dvalue) : casts(explode(',', $dvalue));
-            }
-        }
-
-        if (isset($this->customs[$prule])) {
-            $ref = new \ReflectionFunction($this->customs[$prule]);
-        } elseif (method_exists($this, $prule)) {
-            $ref = new \ReflectionMethod($this, $prule);
+        if (isset($this->rules[$rule])) {
+            $ref = new \ReflectionFunction($this->rules[$rule]);
+        } elseif (method_exists($this, $rule)) {
+            $ref = new \ReflectionMethod($this, $rule);
             $func = false;
-        } elseif (is_callable($prule)) {
-            $ref = new \ReflectionFunction($prule);
+        } elseif (is_callable($rule)) {
+            $ref = new \ReflectionFunction($rule);
         } else {
-            throw new \DomainException(
-                'Rule "' . $prule . '" does not exists'
-            );
+            throw new \DomainException('Rule "' . $rule . '" does not exists');
         }
-
-        // First parameter is value
-        array_unshift($args, $val);
 
         $argCount = count($args);
         $reqCount = max(1, $ref->getNumberOfRequiredParameters());
 
         if ($argCount < $reqCount) {
             throw new \ArgumentCountError(
-                'Validator ' . $prule . ' expect at least ' . $reqCount . ' parameters, ' .
+                'Validator ' . $rule . ' expect at least ' . $reqCount . ' parameters, ' .
                 $argCount . ' given'
             );
         }
 
-        $audit_key = -1;
         foreach ($ref->getParameters() as $key => $param) {
             if ($param->name === '_audit') {
                 $args[$key] = $audit;
-                $audit_key = $key;
             } elseif (!isset($args[$key]) && $param->isDefaultValueAvailable()) {
                 $args[$key] = $param->getDefaultValue();
             }
         }
-
-        $audit['rule'] = $prule;
-        $audit['args'] = $args;
-        unset($audit['args']['_audit'][$audit_key]);
 
         return $func ? $ref->invoke(...$args) : $ref->invoke($this, ...$args);
     }

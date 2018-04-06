@@ -466,12 +466,12 @@ function cast($val)
 {
     if (is_numeric($val)){
         return $val + 0;
-    }
+    } elseif (is_scalar($val)) {
+        $val = trim($val);
 
-    $val = trim($val);
-
-    if (preg_match('/^\w+$/i', $val) && defined($val)) {
-        return \constant($val);
+        if (preg_match('/^\w+$/i', $val) && defined($val)) {
+            return \constant($val);
+        }
     }
 
     return $val;
