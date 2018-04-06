@@ -94,6 +94,8 @@ final class App implements \ArrayAccess
 
     /**
      * Class constructor
+     *
+     * @param int $debug
      */
     public function __construct()
     {
@@ -267,12 +269,20 @@ final class App implements \ArrayAccess
             'VERSION' => self::VERSION,
             'XFRAME' => 'SAMEORIGIN',
         ];
+        // Register core service
         $this->set('SERVICE.cache', [
             'class' => Cache::class,
             'params' => [
                 'dsn' => '%CACHE%',
                 'prefix' => '%SEED%',
                 'temp' => '%TEMP%cache/',
+            ]
+        ]);
+        $this->set('SERVICE.template', [
+            'class' => Template::class,
+            'params' => [
+                'tmp' => '%TEMP%template/',
+                'dirs' => './ui/',
             ]
         ]);
 
@@ -536,22 +546,8 @@ final class App implements \ArrayAccess
                 if ($add || property_exists($var, $part)) {
                     $var =& $var->$part;
                 } else {
-                    $settled = false;
-                    foreach (['get', 'is'] as $p) {
-                        $get = $p . $part;
-
-                        if (method_exists($var, $get)) {
-                            $ref = $var->$get();
-                            $var =& $ref;
-                            $settled = true;
-                            break;
-                        }
-                    }
-
-                    if (!$settled) {
-                        $var =& $null;
-                        break;
-                    }
+                    $var =& $null;
+                    break;
                 }
             } else {
                 if (!is_array($var)) {
@@ -579,9 +575,7 @@ final class App implements \ArrayAccess
      */
     public function get(string $key, $default = null)
     {
-        $var = $this->ref($key, false);
-
-        return $var ?? $default;
+        return $this->ref($key, false) ?? $default;
     }
 
     /**
@@ -2383,7 +2377,7 @@ ERR
      */
     public function &offsetget($key)
     {
-        $var =& $this->ref($key, false);
+        $var =& $this->ref($key);
 
         return $var;
     }

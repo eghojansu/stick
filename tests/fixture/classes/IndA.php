@@ -1,19 +1,17 @@
 <?php declare(strict_types=1);
 
-namespace Fal\Stick\Test\fixture;
+namespace Fal\Stick\Test\fixture\classes;
 
-class DepDateTime
+class IndA
 {
     public $ts;
-    public $dt;
 
     /**
      * Class constructor
      *
      */
-    public function __construct(\DateTime $dt)
+    public function __construct()
     {
         $this->ts = microtime();
-        $this->dt = $dt;
     }
 }

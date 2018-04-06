@@ -15,8 +15,8 @@ use Fal\Stick as f;
 use Fal\Stick\Cache;
 use Fal\Stick\Database;
 use Fal\Stick\Mapper;
-use Fal\Stick\Test\fixture\UserEntity;
-use Fal\Stick\Test\fixture\UserMapper;
+use Fal\Stick\Test\fixture\classes\UserEntity;
+use Fal\Stick\Test\fixture\classes\UserMapper;
 use PHPUnit\Framework\TestCase;
 
 class MapperTest extends TestCase

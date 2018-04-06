@@ -197,7 +197,7 @@ function split(string $str, bool $noempty = true): array
  * @param  string $prefix
  * @return array
  */
-function extract(array $arr, string $prefix): array
+function extract_prefix(array $arr, string $prefix): array
 {
     $out = [];
     $cut = strlen($prefix);
@@ -220,7 +220,7 @@ function extract(array $arr, string $prefix): array
  */
 function constants($class, string $prefix = ''): array
 {
-    return extract((new \ReflectionClass($class))->getconstants(), $prefix);
+    return extract_prefix((new \ReflectionClass($class))->getconstants(), $prefix);
 }
 
 /**
@@ -309,7 +309,10 @@ function constant(string $var, $default = null)
  */
 function quoteall(array $keys, array $quote = [], string $delim = ','): array
 {
-    return explode($delim, $quote[0] . implode($quote[1] . $delim . $quote[0], $keys) . $quote[1]);
+    $open = $quote[0] ?? '';
+    $close = $quote[1] ?? '';
+
+    return explode($delim, $open . implode($close . $delim . $open, $keys) . $close);
 }
 
 /**

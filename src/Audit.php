@@ -341,7 +341,7 @@ class Audit
     {
         try {
             $date = (new \DateTime($val))->format($format);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             $date = (string) $val;
         }
 

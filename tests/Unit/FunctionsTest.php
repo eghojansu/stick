@@ -12,7 +12,7 @@
 namespace Fal\Stick\Test\Unit;
 
 use Fal\Stick as f;
-use Fal\Stick\Test\fixture\CommonClass;
+use Fal\Stick\Test\fixture\classes\FixCommon;
 use PHPUnit\Framework\Testcase;
 
 class FunctionsTest extends Testcase
@@ -126,14 +126,14 @@ class FunctionsTest extends Testcase
         $expected = ['foo'=>'bar', 'bar'=>'baz'];
         $arr = ['foo_foo'=>'bar', 'foo_bar'=>'baz', 'bar_baz'=>'qux'];
         $prefix = 'foo_';
-        $result = f\extract($arr, $prefix);
+        $result = f\extract_prefix($arr, $prefix);
         $this->assertEquals($expected, $result);
     }
 
     public function testConstants()
     {
         $expected = ['FOO'=>'bar'];
-        $class = CommonClass::class;
+        $class = FixCommon::class;
         $prefix = 'PREFIX_';
         $result = f\constants($class, $prefix);
         $this->assertEquals($expected, $result);
@@ -181,7 +181,7 @@ class FunctionsTest extends Testcase
 
     public function testConstant()
     {
-        $this->assertEquals('bar', f\constant(CommonClass::class . '::PREFIX_FOO'));
+        $this->assertEquals('bar', f\constant(FixCommon::class . '::PREFIX_FOO'));
     }
 
     public function testQuoteall()

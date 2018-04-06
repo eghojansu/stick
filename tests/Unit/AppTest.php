@@ -13,15 +13,15 @@ namespace Fal\Stick\Test\Unit;
 
 use Fal\Stick as f;
 use Fal\Stick\App;
-use Fal\Stick\Test\fixture\CommonClass;
-use Fal\Stick\Test\fixture\ControllerClass;
-use Fal\Stick\Test\fixture\DepA;
-use Fal\Stick\Test\fixture\DepDateTime;
-use Fal\Stick\Test\fixture\DepDepAIndB;
-use Fal\Stick\Test\fixture\IndA;
-use Fal\Stick\Test\fixture\IndB;
-use Fal\Stick\Test\fixture\ResourceClass;
-use Fal\Stick\Test\fixture\UserEntity;
+use Fal\Stick\Test\fixture\classes\FixCommon;
+use Fal\Stick\Test\fixture\classes\FixController;
+use Fal\Stick\Test\fixture\classes\DepA;
+use Fal\Stick\Test\fixture\classes\DepDateTime;
+use Fal\Stick\Test\fixture\classes\DepDepAIndB;
+use Fal\Stick\Test\fixture\classes\IndA;
+use Fal\Stick\Test\fixture\classes\IndB;
+use Fal\Stick\Test\fixture\classes\FixResource;
+use Fal\Stick\Test\fixture\classes\UserEntity;
 use PHPUnit\Framework\TestCase;
 
 class AppTest extends TestCase
@@ -76,9 +76,9 @@ class AppTest extends TestCase
             ->route('GET /sync sync', function() {
                 echo 'sync foo';
             })
-            ->route('GET custom /custom/{custom}', ControllerClass::class . '->{custom}')
+            ->route('GET custom /custom/{custom}', FixController::class . '->{custom}')
             ->route('GET invalidclass /invalidclass', 'InvalidClass->invalid')
-            ->route('GET invalidmethod /invalidmethod', ControllerClass::class .'->invalid')
+            ->route('GET invalidmethod /invalidmethod', FixController::class .'->invalid')
             ->route('GET invalidfunction /invalidfunction', 'invalidfunction')
             ->route('GET emptycallback /emptycallback', null)
             ->route('GET /cookie', function(App $app) {
@@ -583,7 +583,7 @@ class AppTest extends TestCase
 
     public function testResources()
     {
-        $class = ResourceClass::class;
+        $class = FixResource::class;
         $this->app->resources(['foo', 'bar'], $class, 0, 0, ['index','store']);
 
         $expected = [
@@ -606,7 +606,7 @@ class AppTest extends TestCase
 
     public function testResource()
     {
-        $class = ResourceClass::class;
+        $class = FixResource::class;
         $this->app->resource('foo', $class);
 
         $expected = [
@@ -659,12 +659,12 @@ class AppTest extends TestCase
      */
     public function testResourceException()
     {
-        $this->app->resource('', ResourceClass::class);
+        $this->app->resource('', FixResource::class);
     }
 
     public function testMaps()
     {
-        $this->app->maps(['/', '/home'], ControllerClass::class);
+        $this->app->maps(['/', '/home'], FixController::class);
 
         $routes = $this->app['ROUTES'];
 
@@ -673,7 +673,7 @@ class AppTest extends TestCase
 
     public function testMap()
     {
-        $this->app->map('/', ControllerClass::class);
+        $this->app->map('/', FixController::class);
 
         $routes = $this->app['ROUTES'];
 
@@ -914,8 +914,8 @@ class AppTest extends TestCase
     public function testCall()
     {
         $this->assertEquals('foo', $this->app->call('trim', ' foo '));
-        $this->assertEquals('foobar', $this->app->call(CommonClass::class.'->prefixFoo', 'bar'));
-        $this->assertEquals('quxquux', $this->app->call(CommonClass::class.'::prefixQux', 'quux'));
+        $this->assertEquals('foobar', $this->app->call(FixCommon::class.'->prefixFoo', 'bar'));
+        $this->assertEquals('quxquux', $this->app->call(FixCommon::class.'::prefixQux', 'quux'));
         $this->assertEquals('foobarbaz', $this->app->call(function(...$args) {
             return implode('', $args);
         }, ['foo','bar','baz']));
@@ -1029,12 +1029,6 @@ class AppTest extends TestCase
         $this->assertEquals('foo', $_COOKIE['domain']);
         $this->assertContains('Domain=foo.com', $this->app->getHeader('Set-Cookie')[1]);
         $this->assertContains('Secure', $this->app->getHeader('Set-Cookie')[1]);
-
-        // Object with getter and setter
-        $obj = new UserEntity;
-        $obj->setFirstName('foo');
-        $this->app->set('user', $obj);
-        $this->assertEquals('foo', $this->app['user.firstname']);
     }
 
     public function testExists()
@@ -1082,8 +1076,8 @@ class AppTest extends TestCase
         $this->assertNull($this->app['SESSION.foo']);
 
         // SERVICE
-        $this->app->set('SERVICE.foo', CommonClass::class);
-        $this->assertEquals(['class'=>CommonClass::class, 'keep'=>true], $this->app['SERVICE.foo']);
+        $this->app->set('SERVICE.foo', FixCommon::class);
+        $this->assertEquals(['class'=>FixCommon::class, 'keep'=>true], $this->app['SERVICE.foo']);
         $this->app->clear('SERVICE.foo');
         $this->assertNull($this->app['SERVICE.foo']);
 
@@ -1173,6 +1167,10 @@ class AppTest extends TestCase
     {
         $this->app['foo'] = 'bar';
         $this->assertEquals('bar', $this->app['foo']);
+
+        $this->app['ctr'] = 0;
+        $this->app['ctr']++;
+        $this->assertEquals(1, $this->app['ctr']);
     }
 
     public function testOffsetset()

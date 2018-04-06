@@ -1,8 +1,8 @@
 <?php
 
-namespace Fal\Stick\Test\fixture;
+namespace Fal\Stick\Test\fixture\classes;
 
-class CommonClass
+class FixCommon
 {
     const PREFIX_FOO = 'bar';
     const BAR = 'baz';

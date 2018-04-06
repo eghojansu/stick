@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Source</title>
+</head>
+<body>
+  <!-- comment -->
+  {# One line comment #}c
+  {# multiline comment
+    with expr
+    {% if foo %}
+      foo
+    {% endif %}
+  #}c
+
+  <!-- if -->
+  {% if a > b %}
+    a is bigger than b
+  {% elseif a == b %}
+    a is equal to b
+  {% else %}
+    a is smaller than b
+  {% endif %}
+
+  {% if foo|intval > 0 %}
+    foo more than zero
+  {% endif %}
+
+  <!-- if with method call -->
+  {% if date->format('Y') and is_int(1) and checkvar %}
+    Foo is good
+  {% endif %}
+
+  <!-- for -->
+  {% for i in 1..10 %}
+    {{ i }}
+  {% endfor %}
+
+  {% for name in names, no %}
+    {{ no.index ~ '. ' ~ name }}
+  {% endfor %}
+
+  {% for record in records, no %}
+    {% for field, value in record %}
+      {{ no.index ~ '. ' ~ field ~ ' ' ~ value }}
+    {% endfor %}
+  {% endfor %}
+
+  <!-- echo -->
+  {{ 'Value of PASSWORD_BCRYPT constant is ' ~ PASSWORD_BCRYPT }}
+  {{ foo }}
+  {{ student.name }}
+  {{ student.grades.first }}
+  {{ user->profile->name }}
+  {{ user->profile->getName() }}
+  {{ user->hasRole('foo') }}
+  {{ user->age > 18 ? 'Adult' : 'Teenager' }}
+  {{ trim(foo) }}
+  {{ 'Bcrypt hash of "password" is ' ~ password_hash('password', PASSWORD_BCRYPT) }}
+  {{ "Bcrypt hash of 'gassword' is " ~ password_hash("gassword", PASSWORD_BCRYPT) }}
+  {{ "Bcrypt hash of 'gass\"word' is " ~ password_hash("gassword", PASSWORD_BCRYPT) }}
+
+  <!-- encode -->
+  {{ foo|esc }}
+  {{ foo(foo)|esc }}
+
+  <!-- filter -->
+  {{ foo|filter }}
+  {{ bar.baz|filter }}
+  {{ baz.qux.quux|filter }}
+  {{ user->age|filter }}
+  {{ user->profile->name|filter }}
+
+  {{ foo|filter|filter2 }}
+  {{ foo|filter|filter2|filter3 }}
+
+  {{ foo|filter('</p>') }}
+  {{ user->profile->name|filter('o') }}
+  {{ student.name|filter(foo) }}
+
+  <!-- set -->
+  {% set foo = 'bar'; bar = 'baz' %}
+  {% set qux = ['quux'] %}
+</body>
+</html>
