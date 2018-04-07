@@ -30,6 +30,8 @@ class AppTest extends TestCase
 
     public function setUp()
     {
+        error_clear_last();
+
         $_SERVER['argc'] = 1;
         $_SERVER['argv'] = [$_SERVER['argv'][0]];
         $_SERVER['CONTENT_LENGTH'] = 0;

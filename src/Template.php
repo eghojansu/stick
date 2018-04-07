@@ -19,6 +19,11 @@ namespace Fal\Stick;
  */
 class Template
 {
+    const CONTEXT = '$context';
+    const ARR_OPEN = "['";
+    const ARR_CLOSE = "']";
+    const REG_WORD = '/^\w+$/';
+
     /** @var App */
     protected $app;
 
@@ -34,6 +39,10 @@ class Template
     /** @var array */
     protected $funcs = [
         'esc' => 'htmlspecialchars',
+        'startswith' => __NAMESPACE__ . '\\' . 'startswith',
+        'endswith' => __NAMESPACE__ . '\\' . 'endswith',
+        'istartswith' => __NAMESPACE__ . '\\' . 'istartswith',
+        'iendswith' => __NAMESPACE__ . '\\' . 'iendswith',
     ];
 
     /**
@@ -113,11 +122,11 @@ class Template
      *
      * @param  string $file
      * @param  array  $data
-     * @param  bool   $onlyData
+     * @param  bool   $global
      *
      * @return string
      */
-    public function render(string $file, array $data = [], bool $onlyData = false): string
+    public function render(string $file, array $data = [], bool $global = true): string
     {
         foreach ($this->dirs as $dir) {
             $view = $dir . $file;
@@ -135,7 +144,7 @@ class Template
                     file_put_contents($parsed, $this->parse($content));
                 }
 
-                $data = $this->sandbox($parsed, $data + ($onlyData ? [] : $this->app->getHive()));
+                $data = $this->sandbox($parsed, $data + ($global ? $this->app->getHive() : []));
 
                 foreach ($this->events['after'] ?? [] as $cb) {
                     $data = $this->app->call($cb, [$data, $view]);
@@ -152,16 +161,14 @@ class Template
      * Include parsed template file
      *
      * @param  string $file
-     * @param  array  $data
+     * @param  array  $context
      *
      * @return string
      */
-    protected function sandbox(string $file, array $data): string
+    protected function sandbox(string $file, array $context): string
     {
-        extract($data);
-
         ob_start();
-        require($file);
+        require $file;
         return ob_get_clean();
     }
 
@@ -233,18 +240,25 @@ class Template
     protected function parseExpr(string $expr): string
     {
         $common = [
+            'endmacro' => '} endif',
             'endfor' => 'endforeach',
             'else' => 'else:',
+        ];
+        $parser = [
+            'for' => 'parseFor',
+            'set' => 'parseVar',
+            'include' => 'parseInclude',
+            'macro' => 'parseMacro',
+            'import' => 'parseImport',
         ];
 
         if (preg_match('/^(if|elseif)\h+(.+)/s', $expr, $match)) {
             $parsed = $match[1] . ' (' . $this->parseVar($match[2]) . '):';
-        } elseif (preg_match('/^for\h+(.+)/', $expr, $match)) {
-            $parsed = $this->parseFor($match[1]);
-        } elseif (preg_match('/^set\h+(.+)/s', $expr, $match)) {
-            $parsed = $this->parseVar($match[1]);
-        } elseif (preg_match('/^(?|' . implode('|', array_keys($common)) . ')\b/', $expr, $match)) {
-            $parsed = $common[$match[0]];
+        } elseif (preg_match('/^(?|(' . implode('|', array_keys($parser)) . '))\h+(.+)/s', $expr, $match)) {
+            $parse = $parser[$match[1]];
+            $parsed = $this->$parse($match[2]);
+        } elseif (preg_match('/^(?|(' . implode('|', array_keys($common)) . '))\b(.*)/s', $expr, $match)) {
+            $parsed = $common[$match[1]] . rtrim($match[2]);
         } else {
             $parsed = $expr;
         }
@@ -265,6 +279,113 @@ class Template
     }
 
     /**
+     * Parse macro expr
+     *
+     * @param  string $expr
+     *
+     * @return string
+     */
+    protected function parseMacro(string $expr): string
+    {
+        $args = '';
+        $process = null;
+        $name = '';
+        $line = '';
+        $last = '';
+        $tmp = '';
+        $len = strlen($expr);
+        $quote = null;
+
+        for ($ptr = 0; $ptr < $len; $ptr++) {
+            $char = $expr[$ptr];
+            $next = $expr[$ptr + 1] ?? null;
+
+            if (($char === '"' || $char === "'") && $prev !== '\\') {
+                if ($quote) {
+                    $quote = $quote === $char ? null : $quote;
+                } else {
+                    $quote = $char;
+                }
+                $tmp .= $char;
+            } elseif (!$quote) {
+                if ($char === '(') {
+                    $name = $tmp;
+                    $tmp = '';
+                } elseif ($char === ')') {
+                    $process = $tmp;
+                    $tmp = '';
+                } elseif ($char === ',') {
+                    $process = $tmp . $char;
+                    $tmp = '';
+                } else {
+                    $tmp .= $char;
+                }
+            } else {
+                $tmp .= $char;
+            }
+
+            if ($process !== null) {
+                $line .= '$' . ltrim($process);
+                preg_match('/^\w+/', trim($process), $match);
+                $last = $match[0];
+                $args .= self::context($last) . ' = $' . $last . ';';
+                $process = null;
+            }
+        }
+
+        $context = substr(self::CONTEXT, 1);
+
+        return 'if (!function_exists(' . "'" . $name . "'" . ')):' .
+               'function ' . $name . '(' . $line . ') {' .
+               'if (!isset(' . self::CONTEXT . ')):' .
+               self::CONTEXT . ' = ' .
+               (
+                    $last === $context ?
+                    '$GLOBALS' . self::ARR_OPEN . $context . self::ARR_CLOSE :
+                    '[]'
+               ) . ';' .
+               'endif;' .
+               $args
+               ;
+    }
+
+    /**
+     * Parse include expr
+     *
+     * @param  string $expr
+     *
+     * @return string
+     */
+    protected function parseInclude(string $expr): string
+    {
+        $context = self::CONTEXT;
+
+        if (preg_match('/^(.+)\h+with\h+(.+)\h+only/s', $expr, $match)) {
+            $file = $this->parseVar($match[1]);
+            $context = $this->parseVar($match[2]);
+        } elseif (preg_match('/^(.+)\h+with\h+(.+)/s', $expr, $match)) {
+            $file = $this->parseVar($match[1]);
+            $context = $this->parseVar($match[2]) . ' + ' . $context;
+        } else {
+            $file = $this->parseVar($expr);
+        }
+
+        return 'echo $this->render(' . $file . ', ' . $context . ', false)';
+    }
+
+    /**
+     * Like include without outputing
+     *
+     * @param  string $expr
+     *
+     * @return string
+     */
+    protected function parseImport(string $expr): string
+    {
+        return '$this->render(' . $this->parseVar($expr) . ', ' . self::CONTEXT . ', false)';
+    }
+
+    /**
      * Parse for
      *
      * @param  string $expr
@@ -274,29 +395,35 @@ class Template
     protected function parseFor(string $expr): string
     {
         preg_match(
-            '/^(?:(\w+)(?:,\h*(\w+))?)\h+in\h+(?:(\d+\.{2}\d+)|([\w\.]+))(?:,\h*(\w+))?/',
+            '/^(?:(\w+)(?:,\h*(\w+))?)(?:\h+with\h+(\w+))?\h+in\h+(?:(?:(\d+)\.{2}(\d+))|(.+))/s',
             $expr,
             $match
         );
 
         $res = 'foreach (';
-        if (isset($match[3]) && $match[3]) {
-            $x = explode('..', $match[3]);
-            $res .= 'range(' . min(...$x) . ',' . max(...$x) . ')';
+        if (isset($match[4]) && $match[4]) {
+            $res .= 'range(' . $match[4] . ',' . $match[5] . ')';
         } else {
-            $res .= $this->parseVar($match[4]) . ' ?: []';
+            $res .= $this->parseVar($match[6]) . ' ?: []';
         }
 
         $res .= ' as ';
+        $s = '$';
+
         if (isset($match[2]) && $match[2]) {
-            $res .= '$' . $match[1] . ' => ' . '$' . $match[2];
+            $key = $match[1];
+            $val = $match[2];
+            $res .= $s . $key . ' => ' . $s . $val;
         } else {
-            $res .= '$' . $match[1];
+            $key = '';
+            $val = $match[1];
+            $res .= $s . $val;
         }
+
         $res .= '):';
 
-        if (isset($match[5]) && $match[5]) {
-            $ctr = '$' . $match[5];
+        if (isset($match[3]) && $match[3]) {
+            $ctr = self::context($match[3]);
             $res = $ctr . " = ['index'=>0,'index0'=>-1,'odd'=>null,'even'=>null]; " .
                    $res . ' ' .
                    $ctr . "['index']++;" .
@@ -322,13 +449,11 @@ class Template
         $len = strlen($expr);
         $res = '';
         $tmp = '';
-        $process = '';
+        $process = null;
         $sep = '';
         $var = '';
         $quote = null;
         $arr = false;
-        $arrOpen = "['";
-        $arrClose = "']";
         $obj = false;
         $func = false;
         $keywords = ['and','or','xor'];
@@ -346,7 +471,16 @@ class Template
                 }
                 $tmp .= $char;
             } elseif (!$quote) {
-                if ($char === '(') {
+                if (in_array($char, ['[',']',','])) {
+                    $process = $tmp;
+                    $sep .= $char;
+                    $tmp = '';
+                } elseif ($char === '=' && $next === '>') {
+                    $process = $tmp;
+                    $sep .= $char . $next;
+                    $tmp = '';
+                    $ptr++;
+                } elseif ($char === '(') {
                     $func = true;
                     $process = $tmp . ($obj ? $char : '');
                     $tmp = '';
@@ -355,17 +489,17 @@ class Template
                     $tmp = $char;
                 } elseif ($char === '.') {
                     if ($arr) {
-                        $tmp .= $arrClose. $arrOpen;
+                        $tmp .= self::ARR_CLOSE . self::ARR_OPEN;
                     } else {
-                        $var = '$' . $tmp;
-                        $tmp = $arrOpen;
+                        $var = self::context($tmp);
+                        $tmp = self::ARR_OPEN;
                         $arr = true;
                     }
                 } elseif ($char === '-' && $next === '>') {
                     if ($obj) {
                         $tmp .= $char . $next;
                     } else {
-                        $var = '$' . $tmp;
+                        $var = self::context($tmp);
                         $tmp = $char . $next;
                         $obj = true;
                     }
@@ -377,9 +511,6 @@ class Template
                 } elseif ($char === '~') {
                     $process = $tmp;
                     $tmp = '.';
-                } elseif ($char === ',') {
-                    $process = $tmp;
-                    $tmp = $char;
                 } else {
                     $tmp .= $char;
                 }
@@ -387,14 +518,14 @@ class Template
                 $tmp .= $char;
             }
 
-            if ($process === '' && $ptr === $len - 1) {
+            if ($process === null && $ptr === $len - 1) {
                 $process = $tmp;
                 $tmp = '';
             }
 
-            if ($process !== '') {
+            if ($process !== null) {
                 if ($arr) {
-                    $line = $var . $process . $arrClose;
+                    $line = $var . $process . self::ARR_CLOSE;
                     $arr = false;
                     $var = '';
                 } elseif ($obj) {
@@ -407,19 +538,19 @@ class Template
                     $line = is_string($alt) ? $alt . '(' : '$this->call(' .
                             "'" . $process . "'" . ($next === ')' ? '' : ', ');
                     $func = false;
-                } elseif (preg_match('/^[\d.]+$/', $process) || defined($process)) {
-                    $line = $process;
                 } elseif (
-                    preg_match('/^\w+$/', $process)
+                    !is_numeric($process)
+                    && !defined($process)
                     && !in_array($process, $keywords)
+                    && preg_match(self::REG_WORD, $process)
                 ) {
-                    $line = '$' . $process;
+                    $line = self::context($process);
                 } else {
                     $line = $process;
                 }
 
                 $res .= $line . $sep;
-                $process = '';
+                $process = null;
                 $sep = '';
             }
         }
@@ -527,5 +658,17 @@ class Template
         }
 
         return $res;
+    }
+
+    /**
+     * Context var helper
+     *
+     * @param  string $var
+     *
+     * @return string
+     */
+    protected static function context(string $var): string
+    {
+        return self::CONTEXT . self::ARR_OPEN . $var . self::ARR_CLOSE;
     }
 }

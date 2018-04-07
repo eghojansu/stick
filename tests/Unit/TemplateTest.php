@@ -84,7 +84,7 @@ class TemplateTest extends TestCase
             return $content . 'beforerender';
         });
         $this->template->render('source.html', $this->data);
-        $parsed = f\read(FIXTURE . 'template/parsed.php') . 'beforerender';
+        $parsed = f\read(FIXTURE . 'template/source.php') . 'beforerender';
         $actual = f\read(TEMP . 'template/' . f\hash(FIXTURE . 'template/source.html') . '.php');
 
         $this->assertEquals($parsed, $actual);
@@ -96,7 +96,7 @@ class TemplateTest extends TestCase
             return $content . 'afterrender';
         });
         $this->template->render('source.html', $this->data);
-        $parsed = f\read(FIXTURE . 'template/parsed.php') . 'afterrender';
+        $parsed = f\read(FIXTURE . 'template/source.php') . 'afterrender';
         $actual = f\read(TEMP . 'template/' . f\hash(FIXTURE . 'template/source.html') . '.php') . 'afterrender';
 
         $this->assertEquals($parsed, $actual);
@@ -105,7 +105,7 @@ class TemplateTest extends TestCase
     public function testRender()
     {
         $rendered = $this->template->render('source.html', $this->data);
-        $parsed = f\read(FIXTURE . 'template/parsed.php');
+        $parsed = f\read(FIXTURE . 'template/source.php');
         $actual = f\read(TEMP . 'template/' . f\hash(FIXTURE . 'template/source.html') . '.php');
 
         $this->assertEquals($parsed, $actual);

@@ -37,11 +37,11 @@
     {{ i }}
   {% endfor %}
 
-  {% for name in names, no %}
+  {% for name with no in names %}
     {{ no.index ~ '. ' ~ name }}
   {% endfor %}
 
-  {% for record in records, no %}
+  {% for record with no in records %}
     {% for field, value in record %}
       {{ no.index ~ '. ' ~ field ~ ' ' ~ value }}
     {% endfor %}
@@ -80,7 +80,39 @@
   {{ student.name|filter(foo) }}
 
   <!-- set -->
+  {% set key = 'name' %}
+  {{ student[name] }}
+
   {% set foo = 'bar'; bar = 'baz' %}
-  {% set qux = ['quux'] %}
+  {% set qux = ['quux',foo,user->age,student.name] %}
+  {% set quux = ['quux',foo , user->age] %}
+  {% set bleh = ['one'=> 1, 'two'=> 2,'three'=>foo,'four'=>user->age,'five'=>student.name] %}
+
+  {% include 'fragment.html' %}
+  {% include 'fragment.html' with ['fragment'=>'fragment var','foo'=>foo] %}
+  {% include 'fragment.html' with ['fragment'=>'fragment var','foo'=>foo] only %}
+
+  {% macro name(one, two, three) %}
+    {% if one !== two %}
+      {{ one ~ two ~ three }}
+    {% endif %}
+  {% endmacro %}
+
+  {% macro name1(one = 1, two = 'two', three = '3') %}
+    {% if one !== two %}
+      {{ one ~ two ~ three }}
+    {% endif %}
+  {% endmacro %}
+
+  {% macro name2(one = 1, context = null) %}
+    {% if one !== two %}
+      {{ one ~ two ~ three }}
+    {% endif %}
+  {% endmacro %}
+
+  {{ name1('siji') }}
+
+  {% import 'fragment.html' %}
+  {{ startswith('f', 'foo') ? 'yes' : 'no' }}
 </body>
 </html>

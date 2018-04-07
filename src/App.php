@@ -285,6 +285,7 @@ final class App implements \ArrayAccess
                 'dirs' => './ui/',
             ]
         ]);
+        $this->set('SERVICE.audit', Audit::class);
 
         // Save a copy of hive
         $this->init = $this->hive;
