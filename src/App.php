@@ -193,6 +193,7 @@ final class App implements \ArrayAccess
             'AJAX' => $this->ajax($headers),
             'ALIAS' => null,
             'ALIASES' => [],
+            'AUTOLOAD' => [],
             'BASE' => $base,
             'BODY' => '',
             'CACHE' => '',
@@ -233,6 +234,7 @@ final class App implements \ArrayAccess
             ],
             'METHOD' => $method,
             'MODE' => 0,
+            'NAMESPACE' => [],
             'ONAFTERROUTE' => null,
             'ONBEFOREROUTE' => null,
             'ONERROR' => null,
@@ -362,6 +364,63 @@ final class App implements \ArrayAccess
         });
 
         return $this;
+    }
+
+    /**
+     * Register autoloader
+     *
+     * @return string
+     *
+     * @codeCoverageIgnore
+     */
+    public function registerAutoloader(): App
+    {
+        foreach (reqarr($this->hive['AUTOLOAD']) as $file) {
+            ex_include($file);
+        }
+
+        spl_autoload_register([$this, 'autoload']);
+    }
+
+    /**
+     * Autoload class
+     *
+     * Logic taken from composer ClassLoader
+     *
+     * @param  string $class
+     *
+     * @return bool|void
+     */
+    public function autoload($class)
+    {
+        $logicalPath = fixslashes($class) . '.php';
+        $subPath = $class;
+
+        while (false !== $lastPos = strrpos($subPath, '\\')) {
+            $subPath = substr($subPath, 0, $lastPos);
+            $paths = $this->hive['NAMESPACE'][$subPath . '\\'] ?? null;
+
+            if ($paths) {
+                $pathEnd = substr($logicalPath, $lastPos + 1);
+
+                foreach (reqarr($paths) as $dir) {
+                    if (file_exists($file = $dir . $pathEnd)) {
+                        ex_include($file);
+
+                        return true;
+                    }
+                }
+            }
+        }
+
+        // fallback (root)
+        foreach (reqarr($this->hive['NAMESPACE']['\\'] ?? []) as $dir) {
+            if (file_exists($file = $dir . $logicalPath)) {
+                ex_include($file);
+
+                return true;
+            }
+        }
     }
 
     /**

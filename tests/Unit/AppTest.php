@@ -13,16 +13,18 @@ namespace Fal\Stick\Test\Unit;
 
 use Fal\Stick as f;
 use Fal\Stick\App;
-use Fal\Stick\Test\fixture\classes\FixCommon;
-use Fal\Stick\Test\fixture\classes\FixController;
 use Fal\Stick\Test\fixture\classes\DepA;
 use Fal\Stick\Test\fixture\classes\DepDateTime;
 use Fal\Stick\Test\fixture\classes\DepDepAIndB;
+use Fal\Stick\Test\fixture\classes\FixCommon;
+use Fal\Stick\Test\fixture\classes\FixController;
+use Fal\Stick\Test\fixture\classes\FixResource;
 use Fal\Stick\Test\fixture\classes\IndA;
 use Fal\Stick\Test\fixture\classes\IndB;
-use Fal\Stick\Test\fixture\classes\FixResource;
 use Fal\Stick\Test\fixture\classes\UserEntity;
+use Fal\Stick\Test\fixture\classes\autoload\LoadA;
 use PHPUnit\Framework\TestCase;
+use classes\autoload\LoadB;
 
 class AppTest extends TestCase
 {
@@ -1213,5 +1215,31 @@ class AppTest extends TestCase
     {
         unset($this->app->foo);
         $this->assertFalse(isset($this->app->foo));
+    }
+
+    public function autoloadProvider()
+    {
+        return [
+            [LoadA::class, true],
+            [LoadB::class, true],
+            // doesn't exists
+            [LoadC::class, false],
+        ];
+    }
+
+    /** @dataProvider autoloadProvider */
+    public function testAutoload($class, $expected)
+    {
+        $this->app['NAMESPACE'] = [
+            '\\' => FIXTURE,
+            'Fal\\Stick\\Test\\' => ROOT,
+        ];
+
+        if ($expected) {
+            $this->assertFalse(class_exists($class, false));
+        }
+
+        $this->assertEquals($expected, $this->app->autoload($class));
+        $this->assertEquals($expected, class_exists($class, false));
     }
 }

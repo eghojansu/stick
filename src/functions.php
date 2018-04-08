@@ -269,7 +269,7 @@ function mkdir(string $path, int $mode = 0755, bool $recursive = true): bool
  */
 function reqarr($var, bool $noempty = true): array
 {
-    return is_array($var) ? $var : split($var, $noempty);
+    return is_array($var) ? $var : split($var ?? '', $noempty);
 }
 
 /**
@@ -593,4 +593,33 @@ function classname($class): string
     $pos = strrpos($ns, '\\');
 
     return $pos === false ? $ns : substr($ns, $pos + 1);
+}
+
+/**
+ * Get class namespace
+ *
+ * @param  string|obj $class
+ *
+ * @return string
+ */
+function classnamespace($class): string
+{
+    $full = ltrim(is_object($class) ? get_class($class) : $class, '\\');
+    $pos = strrpos($full, '\\');
+
+    return $pos === false ? '' : substr($full, 0, $pos);
+}
+
+/**
+ * Scope isolated include
+ *
+ * Prevents access to $this/self from included files.
+ *
+ * @param  string $file
+ *
+ * @return mixed
+ */
+function ex_include(string $file)
+{
+    include $file;
 }
