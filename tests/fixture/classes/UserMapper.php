@@ -2,7 +2,7 @@
 
 namespace Fal\Stick\Test\fixture\classes;
 
-use Fal\Stick\Mapper;
+use Fal\Stick\Database\Mapper;
 
 class UserMapper extends Mapper
 {

@@ -12,6 +12,7 @@
 namespace Fal\Stick\Test\Unit;
 
 use Fal\Stick as f;
+use Fal\Stick\App;
 use Fal\Stick\Test\fixture\classes\FixCommon;
 use PHPUnit\Framework\Testcase;
 
@@ -184,24 +185,23 @@ class FunctionsTest extends Testcase
         $this->assertEquals('bar', f\constant(FixCommon::class . '::PREFIX_FOO'));
     }
 
-    public function testQuoteall()
+    public function testQuote()
     {
         $src = ['foo','bar'];
-        $this->assertEquals($src, f\quoteall($src));
-        $this->assertEquals([':foo:',':bar:'], f\quoteall($src, [':',':']));
-        $this->assertEquals([':foo:',':bar:',':qux,:'], f\quoteall($src+[2=>'qux,'], [':',':'], '|'));
-        $this->assertEquals([':u_foo',':u_bar'], f\quoteall($src, [':u_']));
-        $this->assertEquals(['foo_u:','bar_u:'], f\quoteall($src, ['','_u:']));
+        $this->assertEquals('foobar', f\quote('foobar'));
+        $this->assertEquals('foobar', f\quote($src));
+        $this->assertEquals(':foo:,:bar:', f\quote($src, [':',':'], ','));
+        $this->assertEquals(':foo:|:bar:|:qux,:', f\quote($src+[2=>'qux,'], [':',':'], '|'));
+        $this->assertEquals(':u_foo,:u_bar', f\quote($src, [':u_'], ','));
+        $this->assertEquals('foo_u:,bar_u:', f\quote($src, ['','_u:'], ','));
     }
 
-    public function testQuotekey()
+    public function testQuoteAll()
     {
-        $src = ['foo'=>'bar','bar'=>'baz'];
-        $this->assertEquals($src, f\quotekey($src));
-        $this->assertEquals([':foo:'=>'bar',':bar:'=>'baz'], f\quotekey($src, [':',':']));
-        $this->assertEquals([':foo:'=>'bar',':bar:'=>'baz',':qux,:'=>'quux'], f\quotekey($src+['qux,'=>'quux'], [':',':'], '|'));
-        $this->assertEquals([':u_foo'=>'bar',':u_bar'=>'baz'], f\quotekey($src, [':u_']));
-        $this->assertEquals(['foo_u:'=>'bar','bar_u:'=>'baz'], f\quotekey($src, ['','_u:']));
+        $src = ['foo','bar'];
+        $this->assertEquals($src, f\quoteAll($src));
+        $this->assertEquals(['[foo]','[bar]'], f\quoteAll($src, ['[',']'], ','));
+        $this->assertEquals(['[0]'=>'foo','[1]'=>'bar'], f\quoteAll($src, ['[',']'], null, true));
     }
 
     public function testStartswith()
@@ -274,29 +274,6 @@ class FunctionsTest extends Testcase
         $this->assertEquals('foo', f\cast('foo'));
     }
 
-    public function testCasts()
-    {
-        $casts = f\casts([
-            '0',
-            'true',
-            'false',
-            'null',
-            '0.1',
-            'foo',
-        ]);
-        $this->assertEquals(
-            [
-                0,
-                true,
-                false,
-                null,
-                0.1,
-                'foo'
-            ],
-            $casts
-        );
-    }
-
     public function testPicktoargs()
     {
         $this->assertEquals([0,'foo',true,false], f\picktoargs([0,'foo',true,false,null,'bar']));
@@ -347,14 +324,20 @@ class FunctionsTest extends Testcase
         $this->assertEquals('FunctionsTest', f\classname(self::class));
     }
 
-    public function testClassnamespace()
+    public function testClassns()
     {
-        $this->assertEquals(__NAMESPACE__, f\classnamespace($this));
-        $this->assertEquals(__NAMESPACE__, f\classnamespace(self::class));
+        $this->assertEquals(__NAMESPACE__, f\classns($this));
+        $this->assertEquals(__NAMESPACE__, f\classns(self::class));
     }
 
     public function testCsv()
     {
         $this->assertEquals("1,2,'3'", f\csv([1,2,'3']));
+    }
+
+    public function testRootns()
+    {
+        $this->assertEquals(f\classns(App::class) . '\\classname', f\rootns('classname'));
+        $this->assertEquals('bar\\classname', f\rootns('classname', 'bar'));
     }
 }

@@ -105,7 +105,7 @@ class Cache
             case 'memcached':
                 return (bool) $this->cacheRef->get($ndx);
             case 'redis':
-                return $this->cacheRef->exists($ndx);
+                return (bool) $this->cacheRef->exists($ndx);
             // @codeCoverageIgnoreStart
             case 'wincache':
                 return wincache_ucache_exists($ndx);

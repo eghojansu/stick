@@ -383,17 +383,6 @@ class AppTest extends TestCase
         $this->assertEquals('Method Not Allowed', $this->app['TEXT']);
     }
 
-    public function testRunBlacklisted()
-    {
-        $this->app['QUIET'] = true;
-        $this->app['DNSBL'] = ['dnsbl.justspam.org'];
-        $this->app['IP'] = '202.67.46.23';
-        $this->registerRoutes();
-
-        $this->app->mock('GET /foo');
-        $this->assertEquals('Forbidden', $this->app['TEXT']);
-    }
-
     public function testMock()
     {
         // Covered in testRun
@@ -573,16 +562,6 @@ class AppTest extends TestCase
         $this->app['METHOD'] = 'POST';
         $this->app->expire(-1);
         $this->assertEquals('no-cache', $this->app->getHeader('Pragma')[0]);
-    }
-
-    public function testBlacklisted()
-    {
-        $this->assertFalse($this->app->blacklisted('0.0.0.0'));
-
-        // this domain is blacklisted on below host (require internet connection)
-        $blacklist = '202.67.46.23';
-        $this->app->set('DNSBL', ['dnsbl.justspam.org']);
-        $this->assertTrue($this->app->blacklisted($blacklist));
     }
 
     public function testResources()

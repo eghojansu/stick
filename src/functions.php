@@ -61,7 +61,7 @@ function stringify($arg, array $stack = []): string
  */
 function csv(array $args): string
 {
-    return implode(',', array_map('stripcslashes', array_map(__NAMESPACE__ . '\\stringify', $args)));
+    return implode(',', array_map('stripcslashes', array_map(rootns('stringify'), $args)));
 }
 
 /**
@@ -299,36 +299,46 @@ function constant(string $var, $default = null)
 }
 
 /**
- * Quote array
+ * Do quote
  *
- * @param  array  $data
- * @param  array  $quote
- * @param  string $delim
+ * @param  array|string $data
+ * @param  array        $quote
+ * @param  string       $delim
  *
- * @return array
+ * @return string
  */
-function quoteall(array $keys, array $quote = [], string $delim = ','): array
+function quote($data, array $quote = [], string $delim = ''): string
 {
     $open = $quote[0] ?? '';
     $close = $quote[1] ?? '';
 
-    return explode($delim, $open . implode($close . $delim . $open, $keys) . $close);
+    return $open . implode($close . $delim . $open, (array) $data) . $close;
 }
 
 /**
- * Quote array key
+ * Quote array values
  *
  * @param  array  $data
  * @param  array  $quote
  * @param  string $delim
+ * @param  bool   $keyOnly
  *
  * @return array
  */
-function quotekey(array $data, array $quote = [], string $delim = ','): array
+function quoteAll(array $data, array $quote = [], string $delim = null, bool $keyOnly = false): array
 {
-    $quote += ['',''];
+    $res = [];
+    $use = $delim ?? '';
 
-    return array_combine(quoteall(array_keys($data), $quote, $delim), $data);
+    foreach ($data as $key => $value) {
+        if ($keyOnly) {
+            $res[quote($key, $quote, $use)] = $value;
+        } else {
+            $res[$key] = quote($value, $quote, $use);
+        }
+    }
+
+    return $res;
 }
 
 /**
@@ -478,24 +488,6 @@ function cast($val)
 }
 
 /**
- * Cast every member of array
- *
- * @param  array $args
- *
- * @return array
- */
-function casts(array $args): array
-{
-    $casts = [];
-
-    foreach ($args as $key => $value) {
-        $casts[$key] = cast($value);
-    }
-
-    return $casts;
-}
-
-/**
  * Pick $keys from $source, stop on null item
  *
  * @param  array      $source
@@ -602,7 +594,7 @@ function classname($class): string
  *
  * @return string
  */
-function classnamespace($class): string
+function classns($class): string
 {
     $full = ltrim(is_object($class) ? get_class($class) : $class, '\\');
     $pos = strrpos($full, '\\');
@@ -617,9 +609,22 @@ function classnamespace($class): string
  *
  * @param  string $file
  *
- * @return mixed
+ * @return void
  */
-function ex_include(string $file)
+function ex_include(string $file): void
 {
     include $file;
+}
+
+/**
+ * Helper to get function name from namespace
+ *
+ * @param  string      $name
+ * @param  string|null $root
+ *
+ * @return string
+ */
+function rootns(string $name, string $root = __NAMESPACE__): string
+{
+    return $root . '\\' . $name;
 }

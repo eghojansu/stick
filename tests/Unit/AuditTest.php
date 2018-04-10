@@ -12,6 +12,9 @@
 namespace Fal\Stick\Test\Unit;
 
 use Fal\Stick\Audit;
+use Fal\Stick\Cache;
+use Fal\Stick\Database\Sql;
+use Fal\Stick\Test\fixture\classes\FixCommon;
 use PHPUnit\Framework\TestCase;
 
 class AuditTest extends TestCase
@@ -21,6 +24,34 @@ class AuditTest extends TestCase
     public function setUp()
     {
         $this->audit = new Audit();
+    }
+
+    protected function db()
+    {
+        $db = new Sql(new Cache('', 'test', TEMP . 'cache/'), [
+            'driver' => 'sqlite',
+            'location' => ':memory:',
+            'commands' => [
+                <<<SQL1
+CREATE TABLE `user` (
+    `id` INTEGER NOT null PRIMARY KEY AUTOINCREMENT,
+    `first_name` TEXT NOT null,
+    `last_name` TEXT null DEFAULT null,
+    `active` INTEGER NOT null DEFAULT 1
+);
+insert into user (first_name) values ("foo"), ("bar"), ("baz")
+SQL1
+,
+            ],
+        ]);
+        $this->audit->addService($db, 'db');
+
+        return $db;
+    }
+
+    public function testAddService()
+    {
+        $this->assertEquals($this->audit, $this->audit->addService(new FixCommon));
     }
 
     public function testGetSetMessage()
@@ -125,6 +156,9 @@ class AuditTest extends TestCase
             [1,3,'choice:[1,2]','The value you selected is not a valid choice.'],
             [[1,2],[3],'choices:[1,2]','One or more of the given values is invalid.'],
             [1,3,'choice:{"one":1,"two":2}','The value you selected is not a valid choice.'],
+            ['foo','quux','exists:user,first_name','This value is not valid.'],
+            ['quux','foo','unique:user,first_name','This value is already used.'],
+            ['quux','foo','unique:user,first_name,id,2','This value is already used.'],
 
             [null,null,'lenmin:1'],
             ['',null,'lenmin:1'],
@@ -136,6 +170,8 @@ class AuditTest extends TestCase
     /** @dataProvider messageProvider */
     public function testValidateMessage($trueVal, $falseVal, $rule, $message = null, array $extra = [])
     {
+        $this->db();
+
         $data = ['field'=>$trueVal] + $extra;
         $rules = array_fill_keys(array_keys($extra), 'required') + ['field'=>$rule];
 
@@ -218,6 +254,24 @@ class AuditTest extends TestCase
         $this->audit->validate([], [
             'foo' => 'foo'
         ]);
+    }
+
+    public function testExists()
+    {
+        $this->db();
+
+        $this->assertTrue($this->audit->exists('foo', 'user', 'first_name'));
+        $this->assertFalse($this->audit->exists('quux', 'user', 'first_name'));
+    }
+
+    public function testUnique()
+    {
+        $this->db();
+
+        $this->assertFalse($this->audit->unique('foo', 'user', 'first_name'));
+        $this->assertFalse($this->audit->unique('foo', 'user', 'first_name', 'id', 2));
+        $this->assertTrue($this->audit->unique('foo', 'user', 'first_name', 'id', 1));
+        $this->assertTrue($this->audit->unique('quux', 'user', 'first_name'));
     }
 
     public function testRequired()
@@ -551,5 +605,14 @@ class AuditTest extends TestCase
         $this->assertEquals($type, $this->audit->card('4012888888881881'));
 
         $this->assertEquals('', $this->audit->card('1234567890'));
+    }
+
+    /**
+     * @expectedException LogicException
+     * @expectedExceptionMessage Service "db" is not registered
+     */
+    public function testReqServiceException()
+    {
+        $this->audit->unique('foo', 'bar', 'baz');
     }
 }

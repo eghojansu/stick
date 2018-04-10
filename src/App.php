@@ -287,7 +287,6 @@ final class App implements \ArrayAccess
                 'dirs' => './ui/',
             ]
         ]);
-        $this->set('SERVICE.audit', Audit::class);
 
         // Save a copy of hive
         $this->init = $this->hive;
@@ -1154,7 +1153,7 @@ final class App implements \ArrayAccess
 
                 if ($cmd) {
                     $call = $cmd[1];
-                    $args = casts(str_getcsv($match['rval']));
+                    $args = array_map(rootns('cast'), str_getcsv($match['rval']));
                     array_unshift($args, $match['lval']);
 
                     $this->$call(...$args);
@@ -1339,12 +1338,14 @@ final class App implements \ArrayAccess
      */
     public function run(): void
     {
+        // @codeCoverageIgnoreStart
         if ($this->blacklisted($this->hive['IP'])) {
             // Spammer detected
             $this->error(403);
 
             return;
         }
+        // @codeCoverageIgnoreEnd
 
         if (!$this->hive['ROUTES']) {
             // No routes defined
@@ -1897,6 +1898,8 @@ ERR
      * @param  string $ip
      *
      * @return bool
+     *
+     * @codeCoverageIgnore
      */
     public function blacklisted(string $ip): bool
     {

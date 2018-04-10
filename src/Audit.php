@@ -53,10 +53,66 @@ class Audit
         'isprivate' => 'This value is not a private ip address.',
         'isreserved' => 'This value is not a reserved ip address.',
         'ispublic' => 'This value is not a public ip address.',
+        'exists' => null,
+        'unique' => 'This value is already used.',
     ];
 
     /** @var array */
     protected $rules = [];
+
+    /** @var array */
+    protected $services = [];
+
+    /**
+     * Add service
+     *
+     * @param object $instance
+     * @param string $id
+     *
+     * @return  Audit
+     */
+    public function addService($instance, string $id = null): Audit
+    {
+        $useId = $id ?? get_class($instance);
+
+        $this->services[$useId] = $instance;
+
+        return $this;
+    }
+
+    /**
+     * Check record existance
+     *
+     * Require service with id "db" (instance of DatabaseInterface)
+     *
+     * @param  mixed  $val
+     * @param  string $table
+     * @param  string $column
+     *
+     * @return bool
+     */
+    public function exists($val, string $table, string $column): bool
+    {
+        return (bool) $this->reqService('db')->selectOne($table, [$column=>$val]);
+    }
+
+    /**
+     * Check record unique
+     *
+     * @param  mixed       $val
+     * @param  string      $table
+     * @param  string      $column
+     * @param  string|null $fid
+     * @param  mixe        $id
+     *
+     * @return bool
+     */
+    public function unique($val, string $table, string $column, string $fid = null, $id = null): bool
+    {
+        $res = $this->reqService('db')->selectOne($table, [$column=>$val]);
+
+        return !$res || ($fid && (!isset($res[$fid]) || $res[$fid] == $id));
+    }
 
     /**
      * Required rule
@@ -764,10 +820,10 @@ class Audit
             } elseif (!$quote) {
                 if ($char === ':' && $jstate === 0) {
                     // next chars is arg
-                    $args[] = $tmp;
+                    $args[] = cast($tmp);
                     $tmp = '';
                 } elseif ($char === ',' && $astate === 0 && $jstate === 0) {
-                    $args[] = $tmp;
+                    $args[] = cast($tmp);
                     $tmp = '';
                 } elseif ($char === '|') {
                     if ($tmp) {
@@ -803,14 +859,13 @@ class Audit
             if (!$process && $ptr === $len - 1) {
                 $process = true;
                 if ($tmp !== '') {
-                    $args[] = $tmp;
+                    $args[] = cast($tmp);
                     $tmp = '';
                 }
             }
 
             if ($process) {
                 if ($args) {
-                    $args = casts($args);
                     $res[array_shift($args)] = $args;
                     $args = [];
                 }
@@ -928,5 +983,23 @@ class Audit
         }
 
         return $var;
+    }
+
+    /**
+     * Get required service
+     *
+     * @param  string $id
+     *
+     * @return object
+     *
+     * @throws LogicException If service not found
+     */
+    protected function reqService(string $id)
+    {
+        if (isset($this->services[$id])) {
+            return $this->services[$id];
+        }
+
+        throw new \LogicException('Service "' . $id . '" is not registered');
     }
 }
