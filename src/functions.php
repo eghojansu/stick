@@ -488,6 +488,30 @@ function cast($val)
 }
 
 /**
+ * Pick from array
+ *
+ * @param  array $keys
+ * @param  array $source
+ * @param  bool  $default
+ *
+ * @return array
+ */
+function pick(array $keys, array $source, bool $default = true): array
+{
+    $res = [];
+
+    foreach ($keys as $key) {
+        if ($default) {
+            $res[$key] = $source[$key] ?? null;
+        } elseif (array_key_exists($key, $source)) {
+            $res[$key] = $source[$key];
+        }
+    }
+
+    return $res;
+}
+
+/**
  * Pick $keys from $source, stop on null item
  *
  * @param  array      $source

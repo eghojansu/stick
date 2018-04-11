@@ -7,6 +7,7 @@ class UserEntity
     private $id;
     private $firstName;
     private $lastName;
+    private $active = 1;
 
     /**
      * Get id
@@ -73,6 +74,29 @@ class UserEntity
     public function setLastName($lastName): UserEntity
     {
         $this->lastName = $lastName;
+
+        return $this;
+    }
+
+    /**
+     * Get active
+     *
+     * @return mixed
+     */
+    public function isActive()
+    {
+        return $this->active;
+    }
+
+    /**
+     * Set active
+     *
+     * @param mixed $active
+     * @return UserEntity
+     */
+    public function setActive($active): UserEntity
+    {
+        $this->active = $active;
 
         return $this;
     }

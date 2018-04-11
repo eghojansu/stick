@@ -274,6 +274,13 @@ class FunctionsTest extends Testcase
         $this->assertEquals('foo', f\cast('foo'));
     }
 
+    public function testPick()
+    {
+        $this->assertEquals([1,2], f\pick([0,1], range(1,5)));
+        $this->assertEquals([1,6=>null], f\pick([0,6], range(1,5)));
+        $this->assertEquals([1], f\pick([0,-1], range(1,5), false));
+    }
+
     public function testPicktoargs()
     {
         $this->assertEquals([0,'foo',true,false], f\picktoargs([0,'foo',true,false,null,'bar']));
