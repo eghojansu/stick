@@ -523,14 +523,8 @@ function picktoargs(array $source, array $keys = null): array
 {
     $picked = [];
 
-    if ($keys === null) {
-        $topick = array_keys($source);
-    } else {
-        $topick = array_intersect(array_keys($source), $keys);
-    }
-
-    foreach ($topick as $pos => $key) {
-        if ($source[$key] === null) {
+    foreach ($keys ?? array_keys($source) as $pos => $key) {
+        if (!isset($source[$key])) {
             return $picked;
         }
 

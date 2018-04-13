@@ -13,6 +13,8 @@ namespace Fal\Stick\Test\Unit;
 
 use Fal\Stick as f;
 use Fal\Stick\App;
+use Fal\Stick\Cache;
+use Fal\Stick\Template;
 use Fal\Stick\Test\fixture\classes\DepA;
 use Fal\Stick\Test\fixture\classes\DepDateTime;
 use Fal\Stick\Test\fixture\classes\DepDepAIndB;
@@ -32,8 +34,6 @@ class AppTest extends TestCase
 
     public function setUp()
     {
-        error_clear_last();
-
         $_SERVER['argc'] = 1;
         $_SERVER['argv'] = [$_SERVER['argv'][0]];
         $_SERVER['CONTENT_LENGTH'] = 0;
@@ -284,10 +284,8 @@ class AppTest extends TestCase
     public function testRunEventBeforeRoute()
     {
         $this->registerRoutes();
-        $this->app->set('ONBEFOREROUTE', function(App $app) {
+        $this->app->set('EVENT.BEFOREROUTE', function(App $app) {
             $app->set('RESPONSE', 'beforeroute');
-
-            return false;
         });
         $this->app['QUIET'] = true;
         $this->app->mock('GET /foo');
@@ -297,10 +295,8 @@ class AppTest extends TestCase
     public function testRunEventAfterRoute()
     {
         $this->registerRoutes();
-        $this->app->set('ONAFTERROUTE', function(App $app) {
+        $this->app->set('EVENT.AFTERROUTE', function(App $app) {
             $app->set('RESPONSE', 'afterroute');
-
-            return false;
         });
         $this->app['QUIET'] = true;
         $this->app->mock('GET /foo');
@@ -414,7 +410,7 @@ class AppTest extends TestCase
     {
         $this->registerRoutes();
 
-        $this->app->set('ONREROUTE', function(App $app, $url, $permanent) {
+        $this->app->set('EVENT.REROUTE', function(App $app, $url, $permanent) {
             $app->set('reroute', [$url, $permanent]);
         });
 
@@ -504,7 +500,7 @@ class AppTest extends TestCase
         $this->assertContains(404, $error);
 
         $this->app->clear('ERROR');
-        $this->app['ONERROR'] = function(App $app) {
+        $this->app['EVENT.ERROR'] = function(App $app) {
             $app->set('foo_error.bar', 'baz');
         };
 
@@ -675,7 +671,7 @@ class AppTest extends TestCase
     public function testRedirect()
     {
         $this->app->redirect('GET /foo', '/bar');
-        $this->app->set('ONREROUTE', function(App $app, $url, $permanent) {
+        $this->app->set('EVENT.REROUTE', function(App $app, $url, $permanent) {
             $app->set('reroute', [$url, $permanent]);
         });
 
@@ -909,6 +905,14 @@ class AppTest extends TestCase
         $this->assertEquals($this->app, $this->app->service('app'));
         $this->assertEquals($this->app, $this->app->service(App::class));
 
+        $cache = $this->app->service('cache');
+        $this->assertInstanceof(Cache::class, $cache);
+        $this->assertEquals($cache, $this->app->service(Cache::class));
+
+        $template = $this->app->service('template');
+        $this->assertInstanceof(Template::class, $template);
+        $this->assertEquals($template, $this->app->service(Template::class));
+
         $inda = $this->app->service(IndA::class);
         $this->assertInstanceof(IndA::class, $inda);
 
@@ -952,6 +956,14 @@ class AppTest extends TestCase
         $this->app->set('SERVICE.user', $user);
         $fromService = $this->app->service('user');
         $this->assertEquals($user, $fromService);
+    }
+
+    public function testService2()
+    {
+        $inda = new IndA;
+        $depa = $this->app->service(DepA::class, [$inda]);
+        $this->assertInstanceof(DepA::class, $depa);
+        $this->assertEquals($inda, $depa->inda);
     }
 
     public function testRef()
@@ -1220,5 +1232,18 @@ class AppTest extends TestCase
 
         $this->assertEquals($expected, $this->app->autoload($class));
         $this->assertEquals($expected, class_exists($class, false));
+    }
+
+    public function testTrigger()
+    {
+        $this->assertFalse($this->app->trigger('foo'));
+
+        $handler = function(App $app) {
+            $app['event foo is null'] = true;
+        };
+        $this->app['EVENT.foo'] = $handler;
+        $this->assertTrue($this->app->trigger('foo'));
+        $this->assertTrue($this->app['event foo is null']);
+        $this->assertEquals($handler, $this->app['EVENT.foo']);
     }
 }

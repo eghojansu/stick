@@ -284,7 +284,7 @@ class FunctionsTest extends Testcase
     public function testPicktoargs()
     {
         $this->assertEquals([0,'foo',true,false], f\picktoargs([0,'foo',true,false,null,'bar']));
-        $this->assertEquals([0,'foo',true], f\picktoargs([0,'foo',true,false,null,'bar'], [2,1,0]));
+        $this->assertEquals([true,'foo',0], f\picktoargs([0,'foo',true,false,null,'bar'], [2,1,0]));
     }
 
     public function testSerialize()

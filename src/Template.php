@@ -24,8 +24,8 @@ class Template
     const ARR_CLOSE = "']";
     const REG_WORD = '/^\w+$/';
 
-    /** @var App */
-    protected $app;
+    /** @var array */
+    protected $globals = [];
 
     /** @var array */
     protected $dirs = [];
@@ -48,15 +48,13 @@ class Template
     /**
      * Class constructor
      *
-     * @param App   $app
-     * @param tmp   $tmp  Temporary dir
-     * @param array $dirs
+     * @param string $tmp          Temporary dir
+     * @param string $template_dir Comma delimited dirs
      */
-    public function __construct(App $app, string $tmp, $dirs)
+    public function __construct(string $tmp, string $template_dir)
     {
-        $this->app = $app;
         $this->tmp = $tmp;
-        $this->dirs = (array) $dirs;
+        $this->dirs = reqarr($template_dir);
 
         mkdir($tmp);
     }
@@ -72,6 +70,35 @@ class Template
     public function addFunction(string $name, $callback = null): Template
     {
         $this->funcs[$name] = $callback ?? $name;
+
+        return $this;
+    }
+
+    /**
+     * Add to global context var
+     *
+     * @param string $name
+     * @param mixed  $val
+     *
+     * @return Template
+     */
+    public function addGlobal(string $name, $val): Template
+    {
+        $this->globals[$name] = $val;
+
+        return $this;
+    }
+
+    /**
+     * Add to global context var, massively
+     *
+     * @param array $data
+     *
+     * @return Template
+     */
+    public function addGlobals(array $data): Template
+    {
+        $this->globals = $data + $this->globals;
 
         return $this;
     }
@@ -138,16 +165,16 @@ class Template
                     $content = read($view);
 
                     foreach ($this->events['before'] ?? [] as $cb) {
-                        $content = $this->app->call($cb, [$content, $view]);
+                        $content = call_user_func_array($cb, [$content, $view]);
                     }
 
                     file_put_contents($parsed, $this->parse($content));
                 }
 
-                $data = $this->sandbox($parsed, $data + ($global ? $this->app->getHive() : []));
+                $data = $this->sandbox($parsed, $data + ($global ? $this->globals : []));
 
                 foreach ($this->events['after'] ?? [] as $cb) {
-                    $data = $this->app->call($cb, [$data, $view]);
+                    $data = call_user_func_array($cb, [$data, $view]);
                 }
 
                 return $data;

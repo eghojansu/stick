@@ -26,6 +26,11 @@ class AuditTest extends TestCase
         $this->audit = new Audit();
     }
 
+    public function tearDown()
+    {
+        error_clear_last();
+    }
+
     protected function db()
     {
         $db = new Sql(new Cache('', 'test', TEMP . 'cache/'), [

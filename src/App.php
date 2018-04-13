@@ -210,6 +210,7 @@ final class App implements \ArrayAccess
             'DEBUG' => 0,
             'DNSBL' => '',
             'ERROR' => null,
+            'EVENT' => [],
             'EXCEPTION' => null,
             'EXEMPT' => null,
             'FRAGMENT' => $uri['fragment'],
@@ -235,11 +236,6 @@ final class App implements \ArrayAccess
             'METHOD' => $method,
             'MODE' => 0,
             'NAMESPACE' => [],
-            'ONAFTERROUTE' => null,
-            'ONBEFOREROUTE' => null,
-            'ONERROR' => null,
-            'ONREROUTE' => null,
-            'ONUNLOAD' => null,
             'PACKAGE' => self::PACKAGE,
             'PATH' => urldecode($path),
             'PARAMS' => null,
@@ -284,7 +280,7 @@ final class App implements \ArrayAccess
             'class' => Template::class,
             'params' => [
                 'tmp' => '%TEMP%template/',
-                'dirs' => './ui/',
+                'template_dir' => './ui/',
             ]
         ]);
 
@@ -1476,7 +1472,7 @@ final class App implements \ArrayAccess
 
                     $routeArgs = array_slice($args, 1);
 
-                    if ($this->trigger('ONBEFOREROUTE', $routeArgs) === false) {
+                    if ($this->trigger('BEFOREROUTE', $routeArgs)) {
                         return;
                     }
 
@@ -1492,7 +1488,7 @@ final class App implements \ArrayAccess
                         $cache->set($hash, [$headers, $body], $ttl);
                     }
 
-                    if ($this->trigger('ONAFTERROUTE', $routeArgs) === false) {
+                    if ($this->trigger('AFTERROUTE', $routeArgs)) {
                         return;
                     }
                 }
@@ -1631,7 +1627,7 @@ final class App implements \ArrayAccess
             $url = $this->build($url);
         }
 
-        if ($this->trigger('ONREROUTE', [$url, $permanent]) === true) {
+        if ($this->trigger('REROUTE', [$url, $permanent])) {
             return false;
         }
 
@@ -1731,7 +1727,7 @@ final class App implements \ArrayAccess
             session_commit();
         }
 
-        if ($this->trigger('ONUNLOAD', [$cwd], true) === true) {
+        if ($this->trigger('UNLOAD', [$cwd], true)) {
             return;
         }
 
@@ -1844,7 +1840,7 @@ final class App implements \ArrayAccess
         }
 
         if ($this->hive['LOG_ERROR']['enabled']) {
-            $logs = picktoargs($this->hive['LOG_ERROR'], ['destination','headers','type']);
+            $logs = picktoargs($this->hive['LOG_ERROR'], ['type','destination','headers']);
             $eol = $logs[0] === 3 ? "\n" : '';
 
             error_log($text . $eol, ...$logs);
@@ -1861,7 +1857,7 @@ final class App implements \ArrayAccess
 
         $this->expire(-1);
 
-        if ($this->trigger('ONERROR', null, true) === true || $this->hive['QUIET']) {
+        if ($this->trigger('ERROR', null, true) || $this->hive['QUIET']) {
             return;
         }
 
@@ -2190,6 +2186,39 @@ ERR
     }
 
     /**
+     * Trigger event if exists
+     *
+     * Boolean true needs to be returned if you need to give control back to the caller.
+     *
+     * @param  string     $event
+     * @param  array|null $args
+     * @param  bool       $once
+     *
+     * @return bool
+     */
+    public function trigger(string $event, array $args = null, bool $once = false): bool
+    {
+        $id = 'EVENT.' . $event;
+        $handler = $this->get($id);
+
+        if (!$handler) {
+            return false;
+        }
+
+        if ($once) {
+            $this->clear($id);
+        }
+
+        $result = $this->call($handler, $args) === true ? false : true;
+
+        if ($once) {
+            $this->set($id, $handler);
+        }
+
+        return $result;
+    }
+
+    /**
      * Check pattern against path
      *
      * @param string $pattern
@@ -2216,32 +2245,6 @@ ERR
         $regex = '~^' . $wild. '$~' . $modifier;
 
         return (bool) preg_match($regex, $path, $match);
-    }
-
-    /**
-     * Trigger event if exists
-     *
-     * @param  string     $event
-     * @param  array|null $args
-     * @param  bool       $once
-     *
-     * @return bool|null
-     */
-    protected function trigger(string $event, array $args = null, bool $once = false): ?bool
-    {
-        if (isset($this->hive[$event])) {
-            $handler = $this->hive[$event];
-
-            if ($once) {
-                $this->hive[$event] = null;
-            }
-
-            $result  = $this->call($handler, $args);
-
-            return $result !== false;
-        }
-
-        return null;
     }
 
     /**
@@ -2322,7 +2325,20 @@ ERR
             } elseif ($param->isVariadic()) {
                 $result = array_merge($result, $pArgs);
             } elseif ($refClass = $param->getClass()) {
-                $result[] = $this->service($refClass->name);
+                $found = false;
+                $classname = $refClass->name;
+                foreach ($pArgs as $pArg) {
+                    if (is_a($pArg, $classname) || is_subclass_of($pArg, $classname)) {
+                        $result[] = $pArg;
+                        array_shift($pArgs);
+                        $found = true;
+                        break;
+                    }
+                }
+
+                if (!$found) {
+                    $result[] = $this->service($classname);
+                }
             } elseif ($pArgs) {
                 $result[] = array_shift($pArgs);
             } elseif ($param->isDefaultValueAvailable()) {
