@@ -1239,11 +1239,14 @@ class AppTest extends TestCase
         $this->assertFalse($this->app->trigger('foo'));
 
         $handler = function(App $app) {
-            $app['event foo is null'] = true;
+            $app['event_foo_is_null'] = $app['EVENT.foo'] === null;
         };
         $this->app['EVENT.foo'] = $handler;
         $this->assertTrue($this->app->trigger('foo'));
-        $this->assertTrue($this->app['event foo is null']);
+        $this->assertFalse($this->app['event_foo_is_null']);
         $this->assertEquals($handler, $this->app['EVENT.foo']);
+
+        $this->assertTrue($this->app->trigger('foo', null, true));
+        $this->assertTrue($this->app['event_foo_is_null']);
     }
 }
