@@ -12,6 +12,7 @@
 namespace Fal\Stick\Test\Unit;
 
 use Fal\Stick as f;
+use Fal\Stick\App;
 use Fal\Stick\Template;
 use Fal\Stick\Test\fixture\classes\ProfileObj;
 use Fal\Stick\Test\fixture\classes\UserObj;
@@ -26,7 +27,7 @@ class TemplateTest extends TestCase
     {
         error_clear_last();
 
-        $this->template = new Template(TEMP . 'template/', FIXTURE . 'template/');
+        $this->template = new Template(new App, TEMP . 'template/', FIXTURE . 'template/');
         $this->template->addFunction('foo', 'trim');
         $this->template->addFunction('filter', 'trim');
         $this->template->addFunction('filter2', 'trim');

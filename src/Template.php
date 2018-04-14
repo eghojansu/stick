@@ -24,6 +24,9 @@ class Template
     const ARR_CLOSE = "']";
     const REG_WORD = '/^\w+$/';
 
+    /** @var App */
+    protected $app;
+
     /** @var array */
     protected $globals = [];
 
@@ -43,16 +46,20 @@ class Template
         'endswith' => __NAMESPACE__ . '\\' . 'endswith',
         'istartswith' => __NAMESPACE__ . '\\' . 'istartswith',
         'iendswith' => __NAMESPACE__ . '\\' . 'iendswith',
+        'route' => '$this->app->alias',
+        'path' => '$this->app->path',
     ];
 
     /**
      * Class constructor
      *
+     * @param App    $app
      * @param string $tmp          Temporary dir
      * @param string $template_dir Comma delimited dirs
      */
-    public function __construct(string $tmp, string $template_dir)
+    public function __construct(App $app, string $tmp, string $template_dir)
     {
+        $this->app = $app;
         $this->tmp = $tmp;
         $this->dirs = reqarr($template_dir);
 

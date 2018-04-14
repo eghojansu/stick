@@ -1681,6 +1681,18 @@ final class App implements \ArrayAccess
     }
 
     /**
+     * Concat base with given path (require slash prefix)
+     *
+     * @param  string $path
+     *
+     * @return string
+     */
+    public function path(string $path): string
+    {
+        return $this->hive['BASE'] . $path;
+    }
+
+    /**
      * Build url from named route
      *
      * @param  string $alias
