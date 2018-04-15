@@ -7,6 +7,9 @@
   <filter>
     <whitelist processUncoveredFilesFromWhitelist="true">
       <directory>src</directory>
+      <exclude>
+        <file>src/autoload.php</file>
+      </exclude>
     </whitelist>
   </filter>
 

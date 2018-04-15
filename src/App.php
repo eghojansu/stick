@@ -375,6 +375,8 @@ final class App implements \ArrayAccess
         }
 
         spl_autoload_register([$this, 'autoload']);
+
+        return $this;
     }
 
     /**
