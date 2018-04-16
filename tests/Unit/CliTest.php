@@ -89,4 +89,10 @@ class CliTest extends TestCase
         $this->expectOutputString("\033[1;37m\033[46mfoo\033[0m");
         $this->cli->write('foo', 'white:cyan');
     }
+
+    public function testWriteNoColor()
+    {
+        $this->expectOutputString('foo');
+        $this->cli->write('foo');
+    }
 }

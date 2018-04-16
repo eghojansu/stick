@@ -457,11 +457,6 @@ class AppTest extends TestCase
         $this->assertEquals('/foo/bar', $this->app->build('/foo/bar'));
     }
 
-    public function testPath()
-    {
-        $this->assertEquals('/asset', $this->app->path('/asset'));
-    }
-
     public function testAlias()
     {
         $this->app->route('GET foo /foo/{bar}', function() {});

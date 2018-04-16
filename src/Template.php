@@ -24,9 +24,6 @@ class Template
     const ARR_CLOSE = "']";
     const REG_WORD = '/^\w+$/';
 
-    /** @var App */
-    protected $app;
-
     /** @var array */
     protected $globals = [];
 
@@ -46,20 +43,16 @@ class Template
         'endswith' => __NAMESPACE__ . '\\' . 'endswith',
         'istartswith' => __NAMESPACE__ . '\\' . 'istartswith',
         'iendswith' => __NAMESPACE__ . '\\' . 'iendswith',
-        'route' => '$this->app->alias',
-        'path' => '$this->app->path',
     ];
 
     /**
      * Class constructor
      *
-     * @param App    $app
      * @param string $tmp          Temporary dir
      * @param string $template_dir Comma delimited dirs
      */
-    public function __construct(App $app, string $tmp, string $template_dir)
+    public function __construct(string $tmp, string $template_dir)
     {
-        $this->app = $app;
         $this->tmp = $tmp;
         $this->dirs = reqarr($template_dir);
 
@@ -333,6 +326,7 @@ class Template
         for ($ptr = 0; $ptr < $len; $ptr++) {
             $char = $expr[$ptr];
             $next = $expr[$ptr + 1] ?? null;
+            $prev = $expr[$ptr - 1] ?? null;
 
             if (($char === '"' || $char === "'") && $prev !== '\\') {
                 if ($quote) {
@@ -442,24 +436,26 @@ class Template
         }
 
         $res .= ' as ';
-        $s = '$';
 
         if (isset($match[2]) && $match[2]) {
             $key = $match[1];
             $val = $match[2];
-            $res .= $s . $key . ' => ' . $s . $val;
+            $res .= '$' . $key . ' => ' . '$' . $val;
+            $inject = self::context($key) . ' = $' . $key . '; ' .
+                      self::context($val) . ' = $' . $val;
         } else {
             $key = '';
             $val = $match[1];
-            $res .= $s . $val;
+            $res .= '$' . $val;
+            $inject = self::context($val) . ' = $' . $val;
         }
 
-        $res .= '):';
+        $res .= '): ' . $inject;
 
         if (isset($match[3]) && $match[3]) {
             $ctr = self::context($match[3]);
             $res = $ctr . " = ['index'=>0,'index0'=>-1,'odd'=>null,'even'=>null]; " .
-                   $res . ' ' .
+                   $res . '; ' .
                    $ctr . "['index']++;" .
                    $ctr . "['index0']++;" .
                    $ctr . "['odd'] = " . $ctr . "['index'] % 2 === 0;" .
@@ -521,6 +517,9 @@ class Template
                 } elseif ($char === ')') {
                     $process = $tmp;
                     $tmp = $char;
+                } elseif ($char === '!') {
+                    $process = $tmp . $char;
+                    $tmp = '';
                 } elseif ($char === '.') {
                     if ($arr) {
                         $tmp .= self::ARR_CLOSE . self::ARR_OPEN;

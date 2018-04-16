@@ -28,16 +28,16 @@
   <?php endif ?>
 
   <!-- for -->
-  <?php foreach (range(1,10) as $i): ?>
+  <?php foreach (range(1,10) as $i): $context['i'] = $i ?>
     <?php echo $context['i'] ?>
   <?php endforeach ?>
 
-  <?php $context['no'] = ['index'=>0,'index0'=>-1,'odd'=>null,'even'=>null]; foreach ($context['names'] ?: [] as $name): $context['no']['index']++;$context['no']['index0']++;$context['no']['odd'] = $context['no']['index'] % 2 === 0;$context['no']['even'] = $context['no']['index'] % 2 !== 0 ?>
+  <?php $context['no'] = ['index'=>0,'index0'=>-1,'odd'=>null,'even'=>null]; foreach ($context['names'] ?: [] as $name): $context['name'] = $name; $context['no']['index']++;$context['no']['index0']++;$context['no']['odd'] = $context['no']['index'] % 2 === 0;$context['no']['even'] = $context['no']['index'] % 2 !== 0 ?>
     <?php echo $context['no']['index'] . '. ' . $context['name'] ?>
   <?php endforeach ?>
 
-  <?php $context['no'] = ['index'=>0,'index0'=>-1,'odd'=>null,'even'=>null]; foreach ($context['records'] ?: [] as $record): $context['no']['index']++;$context['no']['index0']++;$context['no']['odd'] = $context['no']['index'] % 2 === 0;$context['no']['even'] = $context['no']['index'] % 2 !== 0 ?>
-    <?php foreach ($context['record'] ?: [] as $field => $value): ?>
+  <?php $context['no'] = ['index'=>0,'index0'=>-1,'odd'=>null,'even'=>null]; foreach ($context['records'] ?: [] as $record): $context['record'] = $record; $context['no']['index']++;$context['no']['index0']++;$context['no']['odd'] = $context['no']['index'] % 2 === 0;$context['no']['even'] = $context['no']['index'] % 2 !== 0 ?>
+    <?php foreach ($context['record'] ?: [] as $field => $value): $context['field'] = $field; $context['value'] = $value ?>
       <?php echo $context['no']['index'] . '. ' . $context['field'] . ' ' . $context['value'] ?>
     <?php endforeach ?>
   <?php endforeach ?>
