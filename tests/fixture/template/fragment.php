@@ -1,4 +1,1 @@
-Fragment
-
-<?php echo $context['fragment'] ?>
-<?php echo $context['foo'] ?>
+This is fragment content

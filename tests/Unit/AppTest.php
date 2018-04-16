@@ -14,7 +14,6 @@ namespace Fal\Stick\Test\Unit;
 use Fal\Stick as f;
 use Fal\Stick\App;
 use Fal\Stick\Cache;
-use Fal\Stick\Template;
 use Fal\Stick\Test\fixture\classes\DepA;
 use Fal\Stick\Test\fixture\classes\DepDateTime;
 use Fal\Stick\Test\fixture\classes\DepDepAIndB;
@@ -908,10 +907,6 @@ class AppTest extends TestCase
         $cache = $this->app->service('cache');
         $this->assertInstanceof(Cache::class, $cache);
         $this->assertEquals($cache, $this->app->service(Cache::class));
-
-        $template = $this->app->service('template');
-        $this->assertInstanceof(Template::class, $template);
-        $this->assertEquals($template, $this->app->service(Template::class));
 
         $inda = $this->app->service(IndA::class);
         $this->assertInstanceof(IndA::class, $inda);

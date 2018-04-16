@@ -11,697 +11,207 @@
 
 namespace Fal\Stick;
 
-/**
- * Template engine mimic Twig
- *
- * Note:
- * - Not support autoescaping
- */
 class Template
 {
-    const CONTEXT = '$context';
-    const ARR_OPEN = "['";
-    const ARR_CLOSE = "']";
-    const REG_WORD = '/^\w+$/';
+    /** Block mark */
+    const BLOCK_MARK = '<!-- block_%s -->';
 
-    /** @var array */
-    protected $globals = [];
-
-    /** @var array */
-    protected $dirs = [];
-
-    /** @var array */
-    protected $events = [];
+    /** @var TemplateEngine */
+    protected $engine;
 
     /** @var string */
-    protected $tmp;
+    protected $file;
+
+    /** @var Template */
+    protected $parent;
 
     /** @var array */
-    protected $funcs = [
-        'esc' => 'htmlspecialchars',
-        'startswith' => __NAMESPACE__ . '\\' . 'startswith',
-        'endswith' => __NAMESPACE__ . '\\' . 'endswith',
-        'istartswith' => __NAMESPACE__ . '\\' . 'istartswith',
-        'iendswith' => __NAMESPACE__ . '\\' . 'iendswith',
-    ];
+    protected $context;
+
+    /** @var string */
+    protected $rendered = '';
+
+    /** @var array */
+    protected $blocks = [];
 
     /**
      * Class constructor
      *
-     * @param string $tmp          Temporary dir
-     * @param string $template_dir Comma delimited dirs
+     * @param TemplateEngine $engine
+     * @param string         $file
+     * @param array          $context
      */
-    public function __construct(string $tmp, string $template_dir)
+    public function __construct(TemplateEngine $engine, string $file, array $context)
     {
-        $this->tmp = $tmp;
-        $this->dirs = reqarr($template_dir);
-
-        mkdir($tmp);
+        $this->engine = $engine;
+        $this->file = $file;
+        $this->context = $context;
     }
 
     /**
-     * Add function alias
+     * Get parent block content
      *
-     * @param string $name
-     * @param mixed $callback
-     *
-     * @return Template
+     * @return string
      */
-    public function addFunction(string $name, $callback = null): Template
+    public function parent(): string
     {
-        $this->funcs[$name] = $callback ?? $name;
+        if (!$this->parent) {
+            return '';
+        }
 
-        return $this;
+        end($this->blocks);
+        $last = key($this->blocks);
+
+        return $last ? $this->parent->getBlock($last) : '';
     }
 
     /**
-     * Add to global context var
+     * Get block content
      *
-     * @param string $name
-     * @param mixed  $val
+     * @param  string $name
      *
-     * @return Template
+     * @return string
      */
-    public function addGlobal(string $name, $val): Template
+    public function getBlock(string $name): string
     {
-        $this->globals[$name] = $val;
-
-        return $this;
+        return $this->blocks[$name] ?? '';
     }
 
     /**
-     * Add to global context var, massively
+     * Get blocks
      *
-     * @param array $data
-     *
-     * @return Template
+     * @return array
      */
-    public function addGlobals(array $data): Template
+    public function getBlocks(): array
     {
-        $this->globals = $data + $this->globals;
-
-        return $this;
+        return $this->blocks;
     }
 
     /**
-     * Call registered function
+     * Get rendered
      *
-     * @param  string $func
-     * @param  mixed $args
-     *
-     * @return mixed
+     * @return string
      */
-    public function call(string $func, ...$args)
+    public function getRendered(): string
     {
-        return call_user_func_array($this->funcs[$func], $args);
-    }
-
-    /**
-     * Register before render event
-     *
-     * @param  callable $callback
-     *
-     * @return Template
-     */
-    public function beforeRender(callable $callback): Template
-    {
-        $this->events['before'][] = $callback;
-
-        return $this;
-    }
-
-    /**
-     * Register after render event
-     *
-     * @param  callable $callback
-     *
-     * @return Template
-     */
-    public function afterRender(callable $callback): Template
-    {
-        $this->events['after'][] = $callback;
-
-        return $this;
+        return $this->rendered;
     }
 
     /**
      * Render template
      *
-     * @param  string $file
-     * @param  array  $data
-     * @param  bool   $global
+     * @param bool $replace
      *
      * @return string
      */
-    public function render(string $file, array $data = [], bool $global = true): string
+    public function render(bool $replace = true): string
     {
-        foreach ($this->dirs as $dir) {
-            $view = $dir . $file;
+        extract($this->context);
+        ob_start();
+        require $this->file;
+        $out = ob_get_clean();
 
-            if (file_exists($view)) {
-                $parsed = $this->tmp . hash($view) . '.php';
-
-                if (!is_file($parsed) || filemtime($parsed) < filemtime($view)) {
-                    $content = read($view);
-
-                    foreach ($this->events['before'] ?? [] as $cb) {
-                        $content = call_user_func_array($cb, [$content, $view]);
-                    }
-
-                    file_put_contents($parsed, $this->parse($content));
-                }
-
-                $data = $this->sandbox($parsed, $data + ($global ? $this->globals : []));
-
-                foreach ($this->events['after'] ?? [] as $cb) {
-                    $data = call_user_func_array($cb, [$data, $view]);
-                }
-
-                return $data;
-            }
+        if ($this->parent) {
+            $out = $this->replaceBlocks(
+                $this->parent->getRendered(),
+                $this->blocks + $this->parent->getBlocks()
+            );
+            $replace = false;
         }
 
-        throw new \LogicException('View file does not exists: '. $file);
+        if ($replace) {
+            $out = $this->replaceBlocks($out, $this->blocks);
+        }
+
+        return $this->rendered = $out;
     }
 
     /**
-     * Include parsed template file
+     * Include file
      *
      * @param  string $file
      * @param  array  $context
      *
      * @return string
      */
-    protected function sandbox(string $file, array $context): string
+    protected function include(string $file, array $context = []): string
     {
+        return $this->engine->make($file, $context)->render();
+    }
+
+    /**
+     * Set parent template
+     *
+     * @param  string $file
+     * @param  array  $context
+     *
+     * @return void
+     */
+    protected function layout(string $file, array $context = []): void
+    {
+        $this->parent = $this->engine->make($file, $context);
+        $this->parent->render(false);
+    }
+
+    /**
+     * Open block
+     *
+     * @param  string $name
+     *
+     * @return void
+     */
+    protected function block(string $name): void
+    {
+        $this->blocks[$name] = null;
         ob_start();
-        require $file;
-        return ob_get_clean();
     }
 
     /**
-     * Parse file template
+     * Close block
      *
-     * @param  string $text
+     * @return void
+     */
+    protected function endBlock(): void
+    {
+        $content = ob_get_clean();
+        end($this->blocks);
+        $last = key($this->blocks);
+        $this->blocks[$last] = $content;
+
+        printf(self::BLOCK_MARK, $last);
+    }
+
+    /**
+     * Perform block content replacement
+     *
+     * @param  string $content
+     * @param  array  $blocks
      *
      * @return string
      */
-    protected function parse(string $text): string
+    protected function replaceBlocks(string $content, array $blocks): string
     {
-        $parsed = '';
-        $tmp = '';
-        $len = strlen($text);
-        $commentStart = -1;
-        $isExpr = false;
-        $isOut = false;
+        $search = [];
+        $replace = [];
 
-        for ($ptr = 0; $ptr < $len; $ptr++) {
-            $char = $text[$ptr];
-            $open = $char . ($text[$ptr + 1] ?? '');
-            $close = ($text[$ptr - 1] ?? '') . $char;
-
-            if ($open === '{#') {
-                $parsed .= $tmp;
-                $commentStart = strlen($parsed);
-                $tmp = '';
-                $ptr++;
-            } elseif ($close === '#}' && $commentStart > -1) {
-                $parsed = substr($parsed, 0, $commentStart);
-                $commentStart = -1;
-                $tmp = '';
-            } elseif ($open === '{%' && $commentStart === -1) {
-                $parsed .= $tmp;
-                $isExpr = true;
-                $tmp = '';
-                $ptr++;
-            } elseif ($close === '%}' && $isExpr) {
-                $parsed .= $this->parseExpr(trim(substr($tmp, 0, -1)));
-                $isExpr = false;
-                $tmp = '';
-            } elseif ($open === '{{' && $commentStart === -1) {
-                $parsed .= $tmp;
-                $isOut = true;
-                $tmp = '';
-                $ptr++;
-            } elseif ($close === '}}' && $isOut) {
-                $parsed .= $this->parseOut(trim(substr($tmp, 0, -1)));
-                $isOut = false;
-                $tmp = '';
-            } else {
-                $tmp .= $char;
-            }
+        foreach ($blocks as $id => $block) {
+            $search[] = '/' . preg_quote(sprintf(self::BLOCK_MARK, $id), '/') . '/';
+            $replace[] = $block;
         }
 
-        $parsed .= $tmp;
-
-        return $parsed;
+        return preg_replace($search, $replace, $content);
     }
 
     /**
-     * Parse expr
+     * Call registered function
      *
-     * @param  string $expr
+     * @param  string $method
+     * @param  array  $args
      *
-     * @return string
+     * @return mixed
      */
-    protected function parseExpr(string $expr): string
+    public function __call($method, $args)
     {
-        $common = [
-            'endmacro' => '} endif',
-            'endfor' => 'endforeach',
-            'else' => 'else:',
-        ];
-        $parser = [
-            'for' => 'parseFor',
-            'set' => 'parseVar',
-            'include' => 'parseInclude',
-            'macro' => 'parseMacro',
-            'import' => 'parseImport',
-        ];
-
-        if (preg_match('/^(if|elseif)\h+(.+)/s', $expr, $match)) {
-            $parsed = $match[1] . ' (' . $this->parseVar($match[2]) . '):';
-        } elseif (preg_match('/^(?|(' . implode('|', array_keys($parser)) . '))\h+(.+)/s', $expr, $match)) {
-            $parse = $parser[$match[1]];
-            $parsed = $this->$parse($match[2]);
-        } elseif (preg_match('/^(?|(' . implode('|', array_keys($common)) . '))\b(.*)/s', $expr, $match)) {
-            $parsed = $common[$match[1]] . rtrim($match[2]);
-        } else {
-            $parsed = $expr;
-        }
-
-        return '<?php ' . $parsed . ' ?>';
-    }
-
-    /**
-     * Parse out expr
-     *
-     * @param  string $expr
-     *
-     * @return string
-     */
-    protected function parseOut(string $expr): string
-    {
-        return '<?php echo ' . $this->parseVar($expr, true) . ' ?>';
-    }
-
-    /**
-     * Parse macro expr
-     *
-     * @param  string $expr
-     *
-     * @return string
-     */
-    protected function parseMacro(string $expr): string
-    {
-        $args = '';
-        $process = null;
-        $name = '';
-        $line = '';
-        $last = '';
-        $tmp = '';
-        $len = strlen($expr);
-        $quote = null;
-
-        for ($ptr = 0; $ptr < $len; $ptr++) {
-            $char = $expr[$ptr];
-            $next = $expr[$ptr + 1] ?? null;
-            $prev = $expr[$ptr - 1] ?? null;
-
-            if (($char === '"' || $char === "'") && $prev !== '\\') {
-                if ($quote) {
-                    $quote = $quote === $char ? null : $quote;
-                } else {
-                    $quote = $char;
-                }
-                $tmp .= $char;
-            } elseif (!$quote) {
-                if ($char === '(') {
-                    $name = $tmp;
-                    $tmp = '';
-                } elseif ($char === ')') {
-                    $process = $tmp;
-                    $tmp = '';
-                } elseif ($char === ',') {
-                    $process = $tmp . $char;
-                    $tmp = '';
-                } else {
-                    $tmp .= $char;
-                }
-            } else {
-                $tmp .= $char;
-            }
-
-            if ($process !== null) {
-                $line .= '$' . ltrim($process);
-                preg_match('/^\w+/', trim($process), $match);
-                $last = $match[0];
-                $args .= self::context($last) . ' = $' . $last . ';';
-                $process = null;
-            }
-        }
-
-        $context = substr(self::CONTEXT, 1);
-
-        return 'if (!function_exists(' . "'" . $name . "'" . ')):' .
-               'function ' . $name . '(' . $line . ') {' .
-               'if (!isset(' . self::CONTEXT . ')):' .
-               self::CONTEXT . ' = ' .
-               (
-                    $last === $context ?
-                    '$GLOBALS' . self::ARR_OPEN . $context . self::ARR_CLOSE :
-                    '[]'
-               ) . ';' .
-               'endif;' .
-               $args
-               ;
-    }
-
-    /**
-     * Parse include expr
-     *
-     * @param  string $expr
-     *
-     * @return string
-     */
-    protected function parseInclude(string $expr): string
-    {
-        $context = self::CONTEXT;
-
-        if (preg_match('/^(.+)\h+with\h+(.+)\h+only/s', $expr, $match)) {
-            $file = $this->parseVar($match[1]);
-            $context = $this->parseVar($match[2]);
-        } elseif (preg_match('/^(.+)\h+with\h+(.+)/s', $expr, $match)) {
-            $file = $this->parseVar($match[1]);
-            $context = $this->parseVar($match[2]) . ' + ' . $context;
-        } else {
-            $file = $this->parseVar($expr);
-        }
-
-        return 'echo $this->render(' . $file . ', ' . $context . ', false)';
-    }
-
-    /**
-     * Like include without outputing
-     *
-     * @param  string $expr
-     *
-     * @return string
-     */
-    protected function parseImport(string $expr): string
-    {
-        return '$this->render(' . $this->parseVar($expr) . ', ' . self::CONTEXT . ', false)';
-    }
-
-    /**
-     * Parse for
-     *
-     * @param  string $expr
-     *
-     * @return string
-     */
-    protected function parseFor(string $expr): string
-    {
-        preg_match(
-            '/^(?:(\w+)(?:,\h*(\w+))?)(?:\h+with\h+(\w+))?\h+in\h+(?:(?:(\d+)\.{2}(\d+))|(.+))/s',
-            $expr,
-            $match
-        );
-
-        $res = 'foreach (';
-        if (isset($match[4]) && $match[4]) {
-            $res .= 'range(' . $match[4] . ',' . $match[5] . ')';
-        } else {
-            $res .= $this->parseVar($match[6]) . ' ?: []';
-        }
-
-        $res .= ' as ';
-
-        if (isset($match[2]) && $match[2]) {
-            $key = $match[1];
-            $val = $match[2];
-            $res .= '$' . $key . ' => ' . '$' . $val;
-            $inject = self::context($key) . ' = $' . $key . '; ' .
-                      self::context($val) . ' = $' . $val;
-        } else {
-            $key = '';
-            $val = $match[1];
-            $res .= '$' . $val;
-            $inject = self::context($val) . ' = $' . $val;
-        }
-
-        $res .= '): ' . $inject;
-
-        if (isset($match[3]) && $match[3]) {
-            $ctr = self::context($match[3]);
-            $res = $ctr . " = ['index'=>0,'index0'=>-1,'odd'=>null,'even'=>null]; " .
-                   $res . '; ' .
-                   $ctr . "['index']++;" .
-                   $ctr . "['index0']++;" .
-                   $ctr . "['odd'] = " . $ctr . "['index'] % 2 === 0;" .
-                   $ctr . "['even'] = " . $ctr . "['index'] % 2 !== 0" ;
-        }
-
-        return $res;
-    }
-
-    /**
-     * Parse var
-     *
-     * @param  string $expr
-     *
-     * @return string
-     */
-    protected function parseVar(string $expr): string
-    {
-        $expr = $this->parseFilter($expr);
-
-        $len = strlen($expr);
-        $res = '';
-        $tmp = '';
-        $process = null;
-        $sep = '';
-        $var = '';
-        $quote = null;
-        $arr = false;
-        $obj = false;
-        $func = false;
-        $keywords = ['and','or','xor'];
-
-        for ($ptr = 0; $ptr < $len; $ptr++) {
-            $char = $expr[$ptr];
-            $prev = $expr[$ptr - 1] ?? null;
-            $next = $expr[$ptr + 1] ?? null;
-
-            if (($char === '"' || $char === "'") && $prev !== '\\') {
-                if ($quote) {
-                    $quote = $quote === $char ? null : $quote;
-                } else {
-                    $quote = $char;
-                }
-                $tmp .= $char;
-            } elseif (!$quote) {
-                if (in_array($char, ['[',']',','])) {
-                    $process = $tmp;
-                    $sep .= $char;
-                    $tmp = '';
-                } elseif ($char === '=' && $next === '>') {
-                    $process = $tmp;
-                    $sep .= $char . $next;
-                    $tmp = '';
-                    $ptr++;
-                } elseif ($char === '(') {
-                    $func = true;
-                    $process = $tmp . ($obj ? $char : '');
-                    $tmp = '';
-                } elseif ($char === ')') {
-                    $process = $tmp;
-                    $tmp = $char;
-                } elseif ($char === '!') {
-                    $process = $tmp . $char;
-                    $tmp = '';
-                } elseif ($char === '.') {
-                    if ($arr) {
-                        $tmp .= self::ARR_CLOSE . self::ARR_OPEN;
-                    } else {
-                        $var = self::context($tmp);
-                        $tmp = self::ARR_OPEN;
-                        $arr = true;
-                    }
-                } elseif ($char === '-' && $next === '>') {
-                    if ($obj) {
-                        $tmp .= $char . $next;
-                    } else {
-                        $var = self::context($tmp);
-                        $tmp = $char . $next;
-                        $obj = true;
-                    }
-                    $ptr++;
-                } elseif ($char === ' ') {
-                    $process = $tmp;
-                    $tmp = '';
-                    $sep = $char;
-                } elseif ($char === '~') {
-                    $process = $tmp;
-                    $tmp = '.';
-                } else {
-                    $tmp .= $char;
-                }
-            } else {
-                $tmp .= $char;
-            }
-
-            if ($process === null && $ptr === $len - 1) {
-                $process = $tmp;
-                $tmp = '';
-            }
-
-            if ($process !== null) {
-                if ($arr) {
-                    $line = $var . $process . self::ARR_CLOSE;
-                    $arr = false;
-                    $var = '';
-                } elseif ($obj) {
-                    $line = $var . $process;
-                    $func = false;
-                    $obj = false;
-                    $var = '';
-                } elseif ($func) {
-                    $alt = $this->funcs[$process] ?? $process;
-                    $line = is_string($alt) ? $alt . '(' : '$this->call(' .
-                            "'" . $process . "'" . ($next === ')' ? '' : ', ');
-                    $func = false;
-                } elseif (
-                    !is_numeric($process)
-                    && !defined($process)
-                    && !in_array($process, $keywords)
-                    && preg_match(self::REG_WORD, $process)
-                ) {
-                    $line = self::context($process);
-                } else {
-                    $line = $process;
-                }
-
-                $res .= $line . $sep;
-                $process = null;
-                $sep = '';
-            }
-        }
-
-        $res .= $tmp;
-
-        return $res;
-    }
-
-    /**
-     * Parse filter
-     *
-     * @param  string $expr
-     *
-     * @return string
-     */
-    protected function parseFilter(string $expr): string
-    {
-        $len = strlen($expr);
-        $res = '';
-        $tmp = '';
-        $sep = '';
-        $filter = [];
-        $process = null;
-        $quote = null;
-        $pstate = 0;
-        $findName = false;
-        $inFilter = false;
-
-        for ($ptr = 0; $ptr < $len; $ptr++) {
-            $char = $expr[$ptr];
-            $next = $expr[$ptr + 1] ?? null;
-            $prev = $expr[$ptr - 1] ?? null;
-
-            if (($char === '"' || $char === "'") && $prev !== '\\') {
-                if ($quote) {
-                    $quote = $quote === $char ? null : $quote;
-                } else {
-                    $quote = $char;
-                }
-                $tmp .= $char;
-            } elseif (!$quote) {
-                if ($char === '|') {
-                    if ($findName) {
-                        array_unshift($filter, ')');
-                        if ($filter) {
-                            $filter[] = '(';
-                        }
-                    }
-                    $filter[] = $tmp;
-                    $tmp = '';
-
-                    $findName = true;
-                } elseif ($char === '(' && $findName && !$inFilter) {
-                    if ($filter) {
-                        $filter[] = '(';
-                    }
-                    $filter[] = $tmp;
-                    $tmp = '';
-
-                    $findName = false;
-                    $inFilter = true;
-                    $pstate = 1;
-                } elseif ($char === ')' && $inFilter && $pstate === 1) {
-                    array_unshift($filter, ', ' . $tmp . $char);
-                    $tmp = '';
-                    $inFilter = false;
-                    $pstate = 0;
-                } elseif ($char === ' ' && !$inFilter) {
-                    $process = $filter;
-                    $filter = [];
-                    $sep = $char;
-                } else {
-                    $tmp .= $char;
-                    $pstate += $char === '(' ? 1 : ($char === ')' ? -1 : 0);
-                }
-            } else {
-                $tmp .= $char;
-            }
-
-            if ($process === null && $ptr === $len - 1) {
-                $process = $filter;
-                $filter = [];
-            }
-
-            if ($process !== null) {
-                if ($tmp !== '') {
-                    if ($findName) {
-                        array_unshift($process, ')');
-                    }
-                    if ($process) {
-                        $process[] = '(';
-                    }
-                    $process[] = $tmp;
-                    $tmp = '';
-                }
-
-                krsort($process);
-
-                $res .= implode('', $process) . $sep;
-                $process = null;
-                $findName = false;
-                $sep = '';
-            }
-        }
-
-        return $res;
-    }
-
-    /**
-     * Context var helper
-     *
-     * @param  string $var
-     *
-     * @return string
-     */
-    protected static function context(string $var): string
-    {
-        return self::CONTEXT . self::ARR_OPEN . $var . self::ARR_CLOSE;
+        return $this->engine->$method(...$args);
     }
 }

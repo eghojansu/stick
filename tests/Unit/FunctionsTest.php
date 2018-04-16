@@ -347,4 +347,39 @@ class FunctionsTest extends Testcase
         $this->assertEquals(f\classns(App::class) . '\\classname', f\rootns('classname'));
         $this->assertEquals('bar\\classname', f\rootns('classname', 'bar'));
     }
+
+    public function parseExprProvider()
+    {
+        return [
+            [
+                'foo',
+                [
+                    'foo' => [],
+                ]
+            ],
+            [
+                'foo|bar',
+                [
+                    'foo' => [],
+                    'bar' => [],
+                ]
+            ],
+            [
+                'foo:1|bar:arg|baz:[0,1,2]|qux:{"foo":"bar"}|quux:1,arg,[0,1,2],{"foo":"bar"}',
+                [
+                    'foo' => [1],
+                    'bar' => ['arg'],
+                    'baz' => [[0,1,2]],
+                    'qux' => [['foo'=>'bar']],
+                    'quux' => [1, 'arg', [0,1,2],['foo'=>'bar']],
+                ]
+            ],
+        ];
+    }
+
+    /** @dataProvider parseExprProvider */
+    public function testParseExpr($expr, $expected)
+    {
+        $this->assertEquals($expected, f\parse_expr($expr));
+    }
 }

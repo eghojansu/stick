@@ -276,13 +276,6 @@ final class App implements \ArrayAccess
                 'temp' => '%TEMP%cache/',
             ]
         ]);
-        $this->set('SERVICE.template', [
-            'class' => Template::class,
-            'params' => [
-                'tmp' => '%TEMP%template/',
-                'template_dir' => './ui/',
-            ]
-        ]);
 
         // Save a copy of hive
         $this->init = $this->hive;

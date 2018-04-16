@@ -13,117 +13,44 @@ namespace Fal\Stick\Test\Unit;
 
 use Fal\Stick as f;
 use Fal\Stick\Template;
-use Fal\Stick\Test\fixture\classes\ProfileObj;
-use Fal\Stick\Test\fixture\classes\UserObj;
+use Fal\Stick\TemplateEngine;
 use PHPUnit\Framework\TestCase;
 
 class TemplateTest extends TestCase
 {
     protected $template;
-    protected $data;
 
     public function setUp()
     {
-        $this->template = new Template(TEMP . 'template/', FIXTURE . 'template/');
-        $this->template->addFunction('foo', 'trim');
-        $this->template->addFunction('filter', 'trim');
-        $this->template->addFunction('filter2', 'trim');
-        $this->template->addFunction('filter3', 'trim');
-        $this->data = [
-            'date' => new \DateTime(),
-            'user' => new UserObj(new ProfileObj('foo'), ['foo','bar'], 19),
-            'foo' => '<p>Foo is paragraf</p>',
-            'student' => [
-                'name' => 'foo',
-                'grades' => [
-                    'first' => '1st grade',
-                    'second' => '2nd grade',
-                ],
-            ],
-            'baz' => ['qux'=>['quux'=>'bleh']],
-            'bar' => ['baz'=>'qux'],
-            'records' => [
-                ['name'=>'foo'],
-            ],
-            'names' => ['foo'],
-            'checkvar' => 'foo',
-            'a' => 1,
-            'b' => 2,
-        ];
+        $engine = new TemplateEngine(FIXTURE . 'template/');
+        $this->template = new Template($engine, FIXTURE . 'template/main.php', ['var'=>'<span>foo</span>']);
     }
 
-    public function tearDown()
+    public function testParent()
     {
-        foreach (glob(TEMP . 'template/*') as $file) {
-            unlink($file);
-        }
+        $this->assertEquals('', $this->template->parent());
+
+        $this->template->render();
+        $expected = '<script src="script.js"></script>';
+        $this->assertEquals($expected, trim($this->template->parent()));
     }
 
-    public function testAddFunction()
+    public function testGetBlock()
     {
-        $this->assertEquals($this->template, $this->template->addFunction('foo', 'bar'));
+        $this->template->render();
+        $this->assertEquals('Main page - Template Layout', $this->template->getBlock('title'));
     }
 
-    public function testAddGlobal()
+    public function testGetBlocks()
     {
-        $this->assertEquals($this->template, $this->template->addGlobal('foo', 'bar'));
+        $this->template->render();
+        $this->assertEquals(3, count($this->template->getBlocks()));
     }
 
-    public function testAddGlobals()
+    public function testGetRendered()
     {
-        $this->assertEquals($this->template, $this->template->addGlobals(['foo'=>'bar']));
-    }
-
-    public function testCall()
-    {
-        $this->template->addFunction('xtrim', 'trim');
-        $this->template->addFunction('closure', function($foo) {
-            return trim($foo);
-        });
-
-        $this->assertEquals('foo', $this->template->call('xtrim', ' foo '));
-        $this->assertEquals('foo', $this->template->call('closure', ' foo '));
-    }
-
-    public function testBeforeRender()
-    {
-        $this->template->beforeRender(function($content) {
-            return $content . 'beforerender';
-        });
-        $this->template->render('source.html', $this->data);
-        $parsed = f\read(FIXTURE . 'template/source.php') . 'beforerender';
-        $actual = f\read(TEMP . 'template/' . f\hash(FIXTURE . 'template/source.html') . '.php');
-
-        $this->assertEquals($parsed, $actual);
-    }
-
-    public function testAfterRender()
-    {
-        $this->template->afterRender(function($content) {
-            return $content . 'afterrender';
-        });
-        $this->template->render('source.html', $this->data);
-        $parsed = f\read(FIXTURE . 'template/source.php') . 'afterrender';
-        $actual = f\read(TEMP . 'template/' . f\hash(FIXTURE . 'template/source.html') . '.php') . 'afterrender';
-
-        $this->assertEquals($parsed, $actual);
-    }
-
-    public function testRender()
-    {
-        $rendered = $this->template->render('source.html', $this->data);
-        $parsed = f\read(FIXTURE . 'template/source.php');
-        $actual = f\read(TEMP . 'template/' . f\hash(FIXTURE . 'template/source.html') . '.php');
-
-        $this->assertEquals($parsed, $actual);
-    }
-
-    /**
-     * @expectedException LogicException
-     * @expectedExceptionMessage View file does not exists: foo
-     */
-    public function testRenderException()
-    {
-        $this->template->render('foo');
+        $this->template->render();
+        $expected = file_get_contents(FIXTURE . 'template/main.html') . "\n";
+        $this->assertEquals($expected, $this->template->getRendered());
     }
 }
