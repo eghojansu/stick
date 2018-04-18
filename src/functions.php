@@ -36,12 +36,12 @@ function stringify($arg, array $stack = []): string
             }
             $str = ltrim($str, ',');
 
-            return get_class($arg) . '::__set_state([' . $str . '])';
+            return addslashes(get_class($arg)) . '::__set_state([' . $str . '])';
         case 'array':
             $str = '';
             $num = isset($arg[0]) && ctype_digit(implode('', array_keys($arg)));
             foreach ($arg as $key=>$val) {
-                $str .= ($num ? '' : (var_export($key, true) . '=>')) .
+                $str .= ',' . ($num ? '' : (var_export($key, true) . '=>')) .
                         stringify($val, array_merge($stack, [$arg]));
             }
             $str = ltrim($str, ',');

@@ -1814,11 +1814,6 @@ final class App implements \ArrayAccess
      */
     public function error(int $code, string $text = '', array $trace = null, int $level = 0): void
     {
-        if ($this->hive['ERROR']) {
-            // Prevent recursive call
-            return;
-        }
-
         $this->removeHeader();
         $this->status($code);
 
@@ -1842,6 +1837,7 @@ final class App implements \ArrayAccess
             error_log($traceStr, ...$logs);
         }
 
+        $prev = $this->hive['ERROR'];
         $this->hive['ERROR'] = [
             'status' => $header,
             'code' => $code,
@@ -1852,7 +1848,7 @@ final class App implements \ArrayAccess
 
         $this->expire(-1);
 
-        if ($this->trigger('ERROR', null, true) || $this->hive['QUIET']) {
+        if (!$prev && ($this->trigger('ERROR', null, true) || $this->hive['QUIET'])) {
             return;
         }
 
@@ -1862,7 +1858,9 @@ final class App implements \ArrayAccess
                 $this->hive['DEBUG']? [] : ['trace' => 1]
             ));
         } else {
-            $tracePre = $this->hive['DEBUG'] ? '<pre>' . $traceStr . '</pre>' : '';
+            $tracePre = $this->hive['DEBUG'] ?
+                '<pre>' . wordwrap($traceStr, 160, PHP_EOL . '  ', true) . '</pre>' :
+                '';
 
             $this->html(<<<ERR
 <!DOCTYPE html>
