@@ -204,36 +204,38 @@ class Template
     /**
      * Render template
      *
-     * @param  string $file    Relative or realpath
-     * @param  array  $context
+     * @param  string      $file    Relative or realpath
+     * @param  array|null  $context
      *
      * @return string
      *
      * @throws LogicException If view not found
      */
-    public function render(string $file, array $context = []): string
+    public function render(string $file, array $context = null): string
     {
-        if (file_exists($file)) {
-            return $this->sandbox($file, $context);
-        } elseif ($this->exists($file, $view)) {
-            return $this->sandbox($view, $context);
+        if (file_exists($view = $file) || $this->exists($file, $view)) {
+            return $this->sandbox($view, $context ?? []);
         }
 
         throw new \LogicException('View file does not exists: ' . $file);
     }
 
     /**
-     * Include file
+     * Render file with trim option
      *
      * @param  string     $file
      * @param  array|null $context
      * @param  int        $mode
      *
-     * @return void
+     * @return string
      */
-    public function include(string $file, array $context = null, int $mode = 0): void
+    public function include(string $file, array $context = null, int $mode = 0): string
     {
-        echo $this->trim($this->render($file, $context ?? []), $mode);
+        $rule = [1 => 'ltrim', 'rtrim', 'trim'];
+        $use = $rule[$mode] ?? null;
+        $res = $this->render($file, $context);
+
+        return $use ? $use($res) : $res;
     }
 
     /**
@@ -251,28 +253,6 @@ class Template
         ob_start();
         include $file;
         return ob_get_clean();
-    }
-
-    /**
-     * Perform trim
-     *
-     * @param  string $val
-     * @param  int    $mode
-     *
-     * @return string
-     */
-    protected function trim(string $val, int $mode = 0): string
-    {
-        switch ($mode) {
-            case 1:
-                return ltrim($val);
-            case 2:
-                return rtrim($val);
-            case 3:
-                return trim($val);
-            default:
-                return $val;
-        }
     }
 
     /**

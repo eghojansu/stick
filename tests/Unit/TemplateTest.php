@@ -133,9 +133,7 @@ class TemplateTest extends TestCase
 
     public function testInclude()
     {
-        $expected = file_get_contents(FIXTURE . 'template/includeme.html');
-        $this->expectOutputString($expected);
-
-        $this->template->include('includeme');
+        $expected = trim(file_get_contents(FIXTURE . 'template/includeme.html'));
+        $this->assertEquals($expected, $this->template->include('includeme', null, 3));
     }
 }
