@@ -11,9 +11,7 @@
 
 namespace Fal\Stick\Test\Unit;
 
-use Fal\Stick as f;
 use Fal\Stick\Template;
-use Fal\Stick\TemplateEngine;
 use PHPUnit\Framework\TestCase;
 
 class TemplateTest extends TestCase
@@ -22,35 +20,122 @@ class TemplateTest extends TestCase
 
     public function setUp()
     {
-        $engine = new TemplateEngine(FIXTURE . 'template/');
-        $this->template = new Template($engine, FIXTURE . 'template/main.php', ['var'=>'<span>foo</span>']);
+        $this->template = new Template(FIXTURE . 'template/');
     }
 
-    public function testParent()
+    public function testAddFunction()
     {
-        $this->assertEquals('', $this->template->parent());
-
-        $this->template->render();
-        $expected = '<script src="script.js"></script>';
-        $this->assertEquals($expected, trim($this->template->parent()));
+        $this->assertEquals($this->template, $this->template->addFunction('foo', 'trim'));
     }
 
-    public function testGetBlock()
+    public function testAddGlobal()
     {
-        $this->template->render();
-        $this->assertEquals('Main page - Template Layout', $this->template->getBlock('title'));
+        $this->assertEquals($this->template, $this->template->addGlobal('foo', 'bar'));
     }
 
-    public function testGetBlocks()
+    public function testAddGlobals()
     {
-        $this->template->render();
-        $this->assertEquals(3, count($this->template->getBlocks()));
+        $this->assertEquals($this->template, $this->template->addGlobals(['foo'=>'bar']));
     }
 
-    public function testGetRendered()
+    public function testGetTemplateExtension()
     {
-        $this->template->render();
-        $expected = file_get_contents(FIXTURE . 'template/main.html') . "\n";
-        $this->assertEquals($expected, $this->template->getRendered());
+        $this->assertEquals('.php', $this->template->getTemplateExtension());
+    }
+
+    public function testSetTemplateExtension()
+    {
+        $this->assertEquals('', $this->template->setTemplateExtension('')->getTemplateExtension());
+    }
+
+    public function testFilter()
+    {
+        $this->assertEquals('fOO', $this->template->filter('foo', 'upper|lcfirst'));
+    }
+
+    public function testEsc()
+    {
+        $this->assertEquals('&lt;span&gt;foo&lt;/span&gt;', $this->template->esc('<span>foo</span>'));
+    }
+
+    public function testE()
+    {
+        $this->assertEquals('&lt;span&gt;foo&lt;/span&gt;', $this->template->e('<span>foo</span>'));
+    }
+
+    public function testMagicMethodCall()
+    {
+        $this->assertEquals('FOO', $this->template->upper('foo'));
+        $this->assertTrue($this->template->startswith('foo', 'foobar'));
+        $this->assertEquals('fOO', $this->template->lcfirst('FOO'));
+
+        // calling macro
+        $expected = '<input type="text" name="noname">';
+        $this->assertEquals($expected, $this->template->input());
+
+        $expected = '<input type="hidden" name="hidden">';
+        $this->assertEquals($expected, $this->template->input(['type'=>'hidden', 'name'=>'hidden']));
+
+        $expected = 'Message content: no message';
+        $this->assertEquals($expected, $this->template->message());
+
+        $expected = 'Message content: what message';
+        $this->assertEquals($expected, $this->template->message('what message'));
+    }
+
+    /**
+     * @expectedException BadFunctionCallException
+     * @expectedExceptionMessage Call to undefined function foo
+     */
+    public function testMagicMethodCallException()
+    {
+        $this->template->foo();
+    }
+
+    public function testExists()
+    {
+        $this->assertTrue($this->template->exists('include', $a));
+        $this->assertEquals(FIXTURE.'template/include.php', $a);
+
+        $this->assertFalse($this->template->exists('foo', $b));
+        $this->assertNull($b);
+    }
+
+    public function testHasMacro()
+    {
+        $this->assertTrue($this->template->hasMacro('input', $a));
+        $this->assertEquals(FIXTURE.'template/macros/input.php', $a);
+
+        $this->assertFalse($this->template->hasMacro('foo', $b));
+        $this->assertNull($b);
+    }
+
+    public function testRender()
+    {
+        $expected = file_get_contents(FIXTURE . 'template/include.html');
+        $this->assertEquals($expected, $this->template->render('include'));
+    }
+
+    public function testRender2()
+    {
+        $expected = file_get_contents(FIXTURE . 'template/single.html');
+        $this->assertEquals($expected, $this->template->render('single', ['pageTitle'=>'Foo']));
+    }
+
+    /**
+     * @expectedException LogicException
+     * @expectedExceptionMessage View file does not exists: foo
+     */
+    public function testRenderException()
+    {
+        $this->template->render('foo');
+    }
+
+    public function testInclude()
+    {
+        $expected = file_get_contents(FIXTURE . 'template/includeme.html');
+        $this->expectOutputString($expected);
+
+        $this->template->include('includeme');
     }
 }
