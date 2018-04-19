@@ -496,7 +496,7 @@ class AppTest extends TestCase
         $this->app->error(500);
 
         $error = $this->app['ERROR'];
-        $this->assertContains(404, $error);
+        $this->assertContains(500, $error);
 
         $this->app->clear('ERROR');
         $this->app['EVENT.ERROR'] = function(App $app) {

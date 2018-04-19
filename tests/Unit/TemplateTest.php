@@ -28,14 +28,14 @@ class TemplateTest extends TestCase
         $this->assertEquals($this->template, $this->template->addFunction('foo', 'trim'));
     }
 
-    public function testAddGlobal()
+    public function testGet()
     {
-        $this->assertEquals($this->template, $this->template->addGlobal('foo', 'bar'));
+        $this->assertEquals('bar', $this->template->get('foo', 'bar'));
     }
 
-    public function testAddGlobals()
+    public function testSet()
     {
-        $this->assertEquals($this->template, $this->template->addGlobals(['foo'=>'bar']));
+        $this->assertEquals('bar', $this->template->set('foo', 'bar')->get('foo'));
     }
 
     public function testGetTemplateExtension()

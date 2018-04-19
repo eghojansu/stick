@@ -14,7 +14,7 @@ namespace Fal\Stick;
 class Template
 {
     /** @var array */
-    protected $globals = [];
+    protected $context = [];
 
     /** @var array */
     protected $dirs = [];
@@ -59,30 +59,29 @@ class Template
     }
 
     /**
-     * Add to global context var
+     * Get from context
+     *
+     * @param string $name
+     * @param mixed  $default
+     *
+     * @return mixed
+     */
+    public function get(string $name, $default = null)
+    {
+        return $this->context[$name] ?? $default;
+    }
+
+    /**
+     * Add to context
      *
      * @param string $name
      * @param mixed  $val
      *
      * @return Template
      */
-    public function addGlobal(string $name, $val): Template
+    public function set(string $name, $val): Template
     {
-        $this->globals[$name] = $val;
-
-        return $this;
-    }
-
-    /**
-     * Add to global context var, massively
-     *
-     * @param array $data
-     *
-     * @return Template
-     */
-    public function addGlobals(array $data): Template
-    {
-        $this->globals = $data + $this->globals;
+        $this->context[$name] = $val;
 
         return $this;
     }
@@ -248,7 +247,7 @@ class Template
      */
     protected function sandbox(string $file, array $context = []): string
     {
-        extract($this->globals);
+        extract($this->context);
         extract($context);
         ob_start();
         include $file;

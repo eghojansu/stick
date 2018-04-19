@@ -1848,36 +1848,31 @@ final class App implements \ArrayAccess
 
         $this->expire(-1);
 
-        if (!$prev && ($this->trigger('ERROR', null, true) || $this->hive['QUIET'])) {
+        if ((!$prev && $this->trigger('ERROR', null, true)) || $this->hive['QUIET']) {
             return;
         }
 
         if ($this->hive['AJAX']) {
             $this->json(array_diff_key(
                 $this->hive['ERROR'],
-                $this->hive['DEBUG']? [] : ['trace' => 1]
+                $this->hive['DEBUG'] ? [] : ['trace' => 1]
             ));
         } else {
-            $tracePre = $this->hive['DEBUG'] ?
-                '<pre>' . wordwrap($traceStr, 160, PHP_EOL . '  ', true) . '</pre>' :
-                '';
-
-            $this->html(<<<ERR
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-  <title>{$code} {$header}</title>
-</head>
-<body>
-  <h1>{$header}</h1>
-  <p>$text</p>
-  $tracePre
-</body>
-</html>
-ERR
-);
+            $this->html(
+                '<!DOCTYPE html>' .
+                '<html>' .
+                '<head>' .
+                  '<meta charset="UTF-8">' .
+                  '<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">' .
+                  '<title>' . $code . ' ' . $header . '</title>' .
+                '</head>' .
+                '<body>' .
+                  '<h1>' . $header . '</h1>' .
+                  '<p>' . $text . '</p>' .
+                  ($this->hive['DEBUG'] ? '<pre>' . wordwrap($traceStr, 160, PHP_EOL . '  ', true) . '</pre>' : '') .
+                '</body>' .
+                '</html>'
+            );
         }
     }
 
