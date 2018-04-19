@@ -30,6 +30,11 @@ class DatabaseUserProviderTest extends TestCase
         );
     }
 
+    public function tearDown()
+    {
+        error_clear_last();
+    }
+
     protected function db()
     {
         $cache = new Cache('', 'test', TEMP . 'cache/');

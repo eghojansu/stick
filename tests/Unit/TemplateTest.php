@@ -23,9 +23,21 @@ class TemplateTest extends TestCase
         $this->template = new Template(FIXTURE . 'template/');
     }
 
+    public function tearDown()
+    {
+        error_clear_last();
+    }
+
     public function testAddFunction()
     {
         $this->assertEquals($this->template, $this->template->addFunction('foo', 'trim'));
+    }
+
+    public function testSetMacroAliases()
+    {
+        $this->template->setMacroAliases(['foo'=>'message']);
+        $expected = 'Message content: what message';
+        $this->assertEquals($expected, $this->template->foo('what message'));
     }
 
     public function testGet()
@@ -36,6 +48,36 @@ class TemplateTest extends TestCase
     public function testSet()
     {
         $this->assertEquals('bar', $this->template->set('foo', 'bar')->get('foo'));
+    }
+
+    public function testPush()
+    {
+        $this->assertEquals(['bar'], $this->template->push('foo', 'bar')->get('foo'));
+        $this->assertEquals(['baz','qux'], $this->template->set('bar', 'baz')->push('bar', 'qux')->get('bar'));
+    }
+
+    public function testPop()
+    {
+        $this->assertNull($this->template->pop('foo'));
+        $this->assertEquals('bar', $this->template->push('foo', 'bar')->pop('foo'));
+    }
+
+    public function testUnshift()
+    {
+        $this->assertEquals(['bar'], $this->template->unshift('foo', 'bar')->get('foo'));
+        $this->assertEquals(['qux','baz'], $this->template->set('bar', 'baz')->unshift('bar', 'qux')->get('bar'));
+    }
+
+    public function testShift()
+    {
+        $this->assertNull($this->template->shift('foo'));
+        $this->assertEquals('bar', $this->template->push('foo', 'bar')->shift('foo'));
+    }
+
+    public function testMerge()
+    {
+        $this->assertEquals(['bar'], $this->template->merge('foo', ['bar'])->get('foo'));
+        $this->assertEquals(['bar','baz'], $this->template->merge('foo', ['baz'])->get('foo'));
     }
 
     public function testGetTemplateExtension()
@@ -74,7 +116,7 @@ class TemplateTest extends TestCase
         $this->assertEquals($expected, $this->template->input());
 
         $expected = '<input type="hidden" name="hidden">';
-        $this->assertEquals($expected, $this->template->input(['type'=>'hidden', 'name'=>'hidden']));
+        $this->assertEquals($expected, $this->template->input('hidden', 'hidden'));
 
         $expected = 'Message content: no message';
         $this->assertEquals($expected, $this->template->message());

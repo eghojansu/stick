@@ -25,7 +25,7 @@ class JwtTest extends TestCase
 
     public function tearDown()
     {
-        # code...
+        error_clear_last();
     }
 
     public function testGetAlgorithm()

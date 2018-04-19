@@ -56,6 +56,8 @@ class AppTest extends TestCase
         }
 
         $this->app->clears(explode('|', App::GLOBALS));
+
+        error_clear_last();
     }
 
     protected function registerRoutes()

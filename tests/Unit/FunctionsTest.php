@@ -26,6 +26,8 @@ class FunctionsTest extends Testcase
         if (file_exists($dir = TEMP . 'mktest')) {
             rmdir($dir);
         }
+
+        error_clear_last();
     }
 
     public function testStringify()

@@ -34,6 +34,11 @@ class SqlTest extends TestCase
         $this->build();
     }
 
+    public function tearDown()
+    {
+        error_clear_last();
+    }
+
     protected function build(string $dsn = '', array $option = [])
     {
         $cache = new Cache($dsn, 'test', TEMP . 'cache/');

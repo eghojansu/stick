@@ -56,6 +56,7 @@ class Auth
         $this->provider = $provider;
         $this->encoder = $encoder;
         $this->setOption($option);
+        $this->getUser();
     }
 
     /**
@@ -112,10 +113,7 @@ class Auth
 
         $this->userLoaded = false;
         $this->user = null;
-
-        $this->app
-            ->clear('SESSION.user_login_id')
-            ->reroute($this->option['homepage']);
+        $this->app->clear('SESSION.user_login_id');
     }
 
     /**
@@ -125,11 +123,7 @@ class Auth
      */
     public function getUser(): ?UserInterface
     {
-        if ($this->userLoaded || $this->user) {
-            return $this->user;
-        }
-
-        if ($this->app->trigger('LOADUSER', [$this])) {
+        if ($this->userLoaded || $this->user || $this->app->trigger('LOADUSER', [$this])) {
             return $this->user;
         }
 
@@ -270,7 +264,6 @@ class Auth
         $this->option = $option + [
             'loginPath' => '/login',
             'redirect' => '/',
-            'homepage' => '/',
             'rules' => [],
             'roleHierarchy' => [],
         ];

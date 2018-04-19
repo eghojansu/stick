@@ -23,6 +23,11 @@ class BcryptPasswordEncoderTest extends TestCase
         $this->encoder = new BcryptPasswordEncoder();
     }
 
+    public function tearDown()
+    {
+        error_clear_last();
+    }
+
     public function testHash()
     {
         $plain = 'foo';

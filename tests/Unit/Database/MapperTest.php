@@ -37,6 +37,11 @@ class MapperTest extends TestCase
         $this->build();
     }
 
+    public function tearDown()
+    {
+        error_clear_last();
+    }
+
     protected function build(string $dsn = null, string $option = null, string $mapper = null)
     {
         $cache = new Cache($dsn ?? '', 'test', TEMP . 'cache/');

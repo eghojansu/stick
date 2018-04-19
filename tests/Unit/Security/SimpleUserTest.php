@@ -23,6 +23,11 @@ class SimpleUserTest extends TestCase
         $this->user = new SimpleUser('1','foo','bar');
     }
 
+    public function tearDown()
+    {
+        error_clear_last();
+    }
+
     public function testSetId()
     {
         $this->assertEquals('2', $this->user->setId('2')->getId());

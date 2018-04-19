@@ -11,9 +11,15 @@
 
 namespace Fal\Stick\Test\Unit;
 
+use Fal\Stick\App;
 use Fal\Stick\Audit;
 use Fal\Stick\Cache;
+use Fal\Stick\Database\DatabaseInterface;
 use Fal\Stick\Database\Sql;
+use Fal\Stick\Security\Auth;
+use Fal\Stick\Security\InMemoryUserProvider;
+use Fal\Stick\Security\PlainPasswordEncoder;
+use Fal\Stick\Security\SimpleUserTransformer;
 use Fal\Stick\Test\fixture\classes\FixCommon;
 use PHPUnit\Framework\TestCase;
 
@@ -23,21 +29,17 @@ class AuditTest extends TestCase
 
     public function setUp()
     {
-        $this->audit = new Audit();
-    }
-
-    public function tearDown()
-    {
-        error_clear_last();
-    }
-
-    protected function db()
-    {
-        $db = new Sql(new Cache('', 'test', TEMP . 'cache/'), [
-            'driver' => 'sqlite',
-            'location' => ':memory:',
-            'commands' => [
-                <<<SQL1
+        $app = new App;
+        $app->set('TEMP', TEMP);
+        $app->set('CACHE', '');
+        $app->set('SERVICE.db', [
+            'class' => DatabaseInterface::class,
+            'constructor' => function(Cache $cache) {
+                return new Sql($cache, [
+                    'driver' => 'sqlite',
+                    'location' => ':memory:',
+                    'commands' => [
+                        <<<SQL1
 CREATE TABLE `user` (
     `id` INTEGER NOT null PRIMARY KEY AUTOINCREMENT,
     `first_name` TEXT NOT null,
@@ -47,16 +49,31 @@ CREATE TABLE `user` (
 insert into user (first_name) values ("foo"), ("bar"), ("baz")
 SQL1
 ,
-            ],
+                    ],
+                ]);
+            }
         ]);
-        $this->audit->addService($db, 'db');
-
-        return $db;
+        $app->set('SERVICE.auth', [
+            'class' => Auth::class,
+            'constructor' => function(App $app) {
+                return new Auth(
+                    $app,
+                    new InMemoryUserProvider(
+                        ['foo'=>'bar','baz'=>'qux'],
+                        new SimpleUserTransformer()
+                    ),
+                    new PlainPasswordEncoder
+                );
+            }
+        ]);
+        $auth = $app->service('auth');
+        $auth->login($auth->getProvider()->findById('foo'));
+        $this->audit = new Audit($app);
     }
 
-    public function testAddService()
+    public function tearDown()
     {
-        $this->assertEquals($this->audit, $this->audit->addService(new FixCommon));
+        error_clear_last();
     }
 
     public function testGetSetMessage()
@@ -164,6 +181,7 @@ SQL1
             ['foo','quux','exists:user,first_name','This value is not valid.'],
             ['quux','foo','unique:user,first_name','This value is already used.'],
             ['quux','foo','unique:user,first_name,id,2','This value is already used.'],
+            ['bar','baz','password','This value should be equal to current user password.'],
 
             [null,null,'lenmin:1'],
             ['',null,'lenmin:1'],
@@ -175,8 +193,6 @@ SQL1
     /** @dataProvider messageProvider */
     public function testValidateMessage($trueVal, $falseVal, $rule, $message = null, array $extra = [])
     {
-        $this->db();
-
         $data = ['field'=>$trueVal] + $extra;
         $rules = array_fill_keys(array_keys($extra), 'required') + ['field'=>$rule];
 
@@ -261,18 +277,20 @@ SQL1
         ]);
     }
 
+    public function testPassword()
+    {
+        $this->assertTrue($this->audit->password('bar'));
+        $this->assertFalse($this->audit->password('baz'));
+    }
+
     public function testExists()
     {
-        $this->db();
-
         $this->assertTrue($this->audit->exists('foo', 'user', 'first_name'));
         $this->assertFalse($this->audit->exists('quux', 'user', 'first_name'));
     }
 
     public function testUnique()
     {
-        $this->db();
-
         $this->assertFalse($this->audit->unique('foo', 'user', 'first_name'));
         $this->assertFalse($this->audit->unique('foo', 'user', 'first_name', 'id', 2));
         $this->assertTrue($this->audit->unique('foo', 'user', 'first_name', 'id', 1));
@@ -610,14 +628,5 @@ SQL1
         $this->assertEquals($type, $this->audit->card('4012888888881881'));
 
         $this->assertEquals('', $this->audit->card('1234567890'));
-    }
-
-    /**
-     * @expectedException LogicException
-     * @expectedExceptionMessage Service "db" is not registered
-     */
-    public function testReqServiceException()
-    {
-        $this->audit->unique('foo', 'bar', 'baz');
     }
 }

@@ -2315,16 +2315,20 @@ final class App implements \ArrayAccess
             } elseif ($refClass = $param->getClass()) {
                 $found = false;
                 $classname = $refClass->name;
-                foreach ($pArgs as $pArg) {
+                foreach ($pArgs as $pos => $pArg) {
                     if (is_a($pArg, $classname) || is_subclass_of($pArg, $classname)) {
                         $result[] = $pArg;
-                        array_shift($pArgs);
                         $found = true;
                         break;
                     }
                 }
 
-                if (!$found) {
+                if ($found) {
+                    $pArgs = array_merge(
+                        array_slice($pArgs, 0, $pos),
+                        array_slice($pArgs, $pos + 1)
+                    );
+                } else {
                     $result[] = $this->service($classname);
                 }
             } elseif ($pArgs) {

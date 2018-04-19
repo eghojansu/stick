@@ -23,6 +23,11 @@ class PlainPasswordEncoderTest extends TestCase
         $this->encoder = new PlainPasswordEncoder();
     }
 
+    public function tearDown()
+    {
+        error_clear_last();
+    }
+
     public function testHash()
     {
         $plain = 'foo';

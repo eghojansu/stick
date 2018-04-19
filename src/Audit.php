@@ -55,29 +55,40 @@ class Audit
         'ispublic' => 'This value is not a public ip address.',
         'exists' => null,
         'unique' => 'This value is already used.',
+        'password' => 'This value should be equal to current user password.',
     ];
+
+    /** @var App */
+    protected $app;
 
     /** @var array */
     protected $rules = [];
 
-    /** @var array */
-    protected $services = [];
+    /**
+     * Class constructor
+     *
+     * @param App $app
+     */
+    public function __construct(App $app)
+    {
+        $this->app = $app;
+    }
 
     /**
-     * Add service
+     * Check user password
      *
-     * @param object $instance
-     * @param string $id
+     * Require service with id "auth" (instance of Auth)
      *
-     * @return  Audit
+     * @param  mixed  $val
+     *
+     * @return bool
      */
-    public function addService($instance, string $id = null): Audit
+    public function password($val): bool
     {
-        $useId = $id ?? get_class($instance);
+        $auth = $this->app->service('auth');
+        $user = $auth->getUser();
 
-        $this->services[$useId] = $instance;
-
-        return $this;
+        return $user ? $auth->getEncoder()->verify($val, $user->getPassword()) : true;
     }
 
     /**
@@ -93,7 +104,7 @@ class Audit
      */
     public function exists($val, string $table, string $column): bool
     {
-        return (bool) $this->reqService('db')->selectOne($table, [$column=>$val]);
+        return (bool) $this->app->service('db')->selectOne($table, [$column=>$val]);
     }
 
     /**
@@ -109,7 +120,7 @@ class Audit
      */
     public function unique($val, string $table, string $column, string $fid = null, $id = null): bool
     {
-        $res = $this->reqService('db')->selectOne($table, [$column=>$val]);
+        $res = $this->app->service('db')->selectOne($table, [$column=>$val]);
 
         return !$res || ($fid && (!isset($res[$fid]) || $res[$fid] == $id));
     }
@@ -895,23 +906,5 @@ class Audit
         }
 
         return $var;
-    }
-
-    /**
-     * Get required service
-     *
-     * @param  string $id
-     *
-     * @return object
-     *
-     * @throws LogicException If service not found
-     */
-    protected function reqService(string $id)
-    {
-        if (isset($this->services[$id])) {
-            return $this->services[$id];
-        }
-
-        throw new \LogicException('Service "' . $id . '" is not registered');
     }
 }

@@ -34,6 +34,8 @@ class CacheTest extends TestCase
             }
             rmdir($cache);
         }
+
+        error_clear_last();
     }
 
     public function cacheProvider()

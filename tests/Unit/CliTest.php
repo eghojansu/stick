@@ -23,6 +23,11 @@ class CliTest extends TestCase
         $this->cli = new Cli;
     }
 
+    public function tearDown()
+    {
+        error_clear_last();
+    }
+
     public function testGetWidth()
     {
         $this->assertEquals(80, $this->cli->getWidth());

@@ -62,6 +62,11 @@ SQL1
         );
     }
 
+    public function tearDown()
+    {
+        error_clear_last();
+    }
+
     public function testAttempt()
     {
         $this->auth->setOption(['redirect'=>'/secure']);
@@ -103,7 +108,7 @@ SQL1
         $this->assertEquals('1', $this->app['SESSION.user_login_id']);
         $this->app->clear('SESSION.user_login_id');
 
-        $this->app->set('EVENT.LOGIN', function($user, $auth) use ($user2) {
+        $this->app->set('EVENT.LOGIN', function($user, Auth $auth) use ($user2) {
             $auth->setUser(clone $user2);
         });
         $this->auth->login($user);
@@ -119,13 +124,12 @@ SQL1
 
         $this->auth->logout();
         $this->assertNull($this->app['SESSION.user_login_id']);
-        $this->assertEquals('/', $this->app->flash('rerouted'));
 
-        $this->app['EVENT.LOGOUT'] = function($user, $auth) {
+        $this->app['EVENT.LOGOUT'] = function($user, Auth $auth) {
             $auth->setUser(null);
         };
         $this->auth->logout();
-        $this->assertNull($this->app->flash('rerouted'));
+        $this->assertNull($this->auth->getUser());
     }
 
     public function testGetUser()
@@ -139,7 +143,7 @@ SQL1
         $this->assertEquals($user, $this->auth->getUser());
 
         $this->auth->logout();
-        $this->app['EVENT.LOADUSER'] = function($auth) use ($user2) {
+        $this->app['EVENT.LOADUSER'] = function(Auth $auth) use ($user2) {
             $auth->setUser(clone $user2);
         };
         $this->assertEquals($user2, $this->auth->getUser());
@@ -241,7 +245,6 @@ SQL1
         $init = [
             'loginPath' => '/login',
             'redirect' => '/',
-            'homepage' => '/',
             'rules' => [],
             'roleHierarchy' => [],
         ];

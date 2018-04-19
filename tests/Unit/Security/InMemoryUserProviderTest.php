@@ -28,6 +28,11 @@ class InMemoryUserProviderTest extends TestCase
         );
     }
 
+    public function tearDown()
+    {
+        error_clear_last();
+    }
+
     public function testAddUser()
     {
         $this->provider->addUser('quux', 'bleh');
