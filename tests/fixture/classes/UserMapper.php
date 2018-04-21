@@ -2,9 +2,8 @@
 
 namespace Fal\Stick\Test\fixture\classes;
 
-use Fal\Stick\Database\Mapper;
+use Fal\Stick\Database\SqlMapper;
 
-class UserMapper extends Mapper
+class UserMapper extends SqlMapper
 {
-    protected $map = UserEntity::class;
 }

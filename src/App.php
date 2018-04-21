@@ -99,8 +99,10 @@ final class App implements \ArrayAccess
      */
     public function __construct()
     {
+        $charset = 'UTF-8';
         $cli = PHP_SAPI === 'cli';
         $check = error_reporting((E_ALL|E_STRICT)&~(E_NOTICE|E_USER_NOTICE));
+        ini_set('default_charset', $charset);
 
         // @codeCoverageIgnoreStart
         if (function_exists('apache_setenv')) {
@@ -209,6 +211,7 @@ final class App implements \ArrayAccess
             'CLI' => $cli,
             'DEBUG' => 0,
             'DNSBL' => '',
+            'ENCODING' => $charset,
             'ERROR' => null,
             'EVENT' => [],
             'EXCEPTION' => null,
@@ -699,6 +702,9 @@ final class App implements \ArrayAccess
                 case 'SERIALIZER':
                     serialize(null, $val);
                     unserialize(null, $val);
+                    break;
+                case 'ENCODING':
+                    ini_set('default_charset', $val);
                     break;
             }
         }
@@ -1862,7 +1868,7 @@ final class App implements \ArrayAccess
                 '<!DOCTYPE html>' .
                 '<html>' .
                 '<head>' .
-                  '<meta charset="UTF-8">' .
+                  '<meta charset="' . $this->hive['ENCODING'] . '">' .
                   '<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">' .
                   '<title>' . $code . ' ' . $header . '</title>' .
                 '</head>' .

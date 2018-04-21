@@ -15,7 +15,7 @@ use Fal\Stick\App;
 use Fal\Stick\Cache;
 use Fal\Stick\Database\Sql;
 use Fal\Stick\Security\Auth;
-use Fal\Stick\Security\DatabaseUserProvider;
+use Fal\Stick\Security\SqlUserProvider;
 use Fal\Stick\Security\PlainPasswordEncoder;
 use Fal\Stick\Security\SimpleUser;
 use Fal\Stick\Security\SimpleUserTransformer;
@@ -57,7 +57,7 @@ SQL1
         ]);
         $this->auth = new Auth(
             $this->app,
-            new DatabaseUserProvider($db, new SimpleUserTransformer()),
+            new SqlUserProvider($db, new SimpleUserTransformer()),
             new PlainPasswordEncoder
         );
     }
@@ -232,7 +232,7 @@ SQL1
 
     public function testGetProvider()
     {
-        $this->assertInstanceOf(DatabaseUserProvider::class, $this->auth->getProvider());
+        $this->assertInstanceOf(SqlUserProvider::class, $this->auth->getProvider());
     }
 
     public function testGetEncoder()

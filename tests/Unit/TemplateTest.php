@@ -143,13 +143,17 @@ class TemplateTest extends TestCase
         $this->assertNull($b);
     }
 
-    public function testHasMacro()
+    public function testmacroExists()
     {
-        $this->assertTrue($this->template->hasMacro('input', $a));
+        $this->assertTrue($this->template->macroExists('input', $a));
         $this->assertEquals(FIXTURE.'template/macros/input.php', $a);
 
-        $this->assertFalse($this->template->hasMacro('foo', $b));
+        $this->assertFalse($this->template->macroExists('foo', $b));
         $this->assertNull($b);
+
+        $this->template->setMacroAliases(['foo'=>'input']);
+        $this->assertTrue($this->template->macroExists('foo', $c));
+        $this->assertEquals(FIXTURE.'template/macros/input.php', $c);
     }
 
     public function testRender()

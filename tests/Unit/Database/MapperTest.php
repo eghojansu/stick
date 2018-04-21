@@ -11,26 +11,18 @@
 
 namespace Fal\Stick\Test\Unit\Database;
 
+use function Fal\Stick\split;
 use Fal\Stick\Cache;
-use Fal\Stick\Database\DatabaseInterface;
-use Fal\Stick\Database\Mapper;
 use Fal\Stick\Database\Sql;
-use Fal\Stick\Test\fixture\classes\UserEntity;
-use Fal\Stick\Test\fixture\classes\UserMapper;
+use Fal\Stick\Database\SqlMapper;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * Testing abstract mapper methods
+ */
 class MapperTest extends TestCase
 {
-    private $expected = [
-        'r1' => ['id'=>'1','first_name'=>'foo','last_name'=>null,'active'=>'1'],
-        'r2' => ['id'=>'2','first_name'=>'bar','last_name'=>null,'active'=>'1'],
-        'r3' => ['id'=>'3','first_name'=>'baz','last_name'=>null,'active'=>'1'],
-        'success' => ['00000',null,null],
-        'outrange' => ['HY000',25,'bind or column index out of range'],
-        'notable' => ['HY000',1,'no such table: muser'],
-        'nocolumn' => ['HY000',1,'no such column: foo'],
-    ];
-    protected $mapper;
+    private $mapper;
 
     public function setUp()
     {
@@ -42,7 +34,7 @@ class MapperTest extends TestCase
         error_clear_last();
     }
 
-    protected function build(string $dsn = null, string $option = null, string $mapper = null)
+    private function build(string $dsn = null, string $option = null)
     {
         $cache = new Cache($dsn ?? '', 'test', TEMP . 'cache/');
         $cache->reset();
@@ -53,609 +45,208 @@ class MapperTest extends TestCase
             'commands' => [
                 <<<SQL1
 CREATE TABLE `user_mapper` (
-    `id` INTEGER NOT null PRIMARY KEY AUTOINCREMENT,
-    `first_name` TEXT NOT null,
-    `last_name` TEXT null DEFAULT null,
-    `active` INTEGER NOT null DEFAULT 1
+    `id` INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    `first_name` TEXT NOT NULL,
+    `last_name` TEXT NULL DEFAULT NULL,
+    `active` INTEGER NOT NULL DEFAULT 1
 );
-insert into user_mapper (first_name) values ("foo"), ("bar"), ("baz")
+insert into `user_mapper` (first_name) values ("foo"), ("bar"), ("baz");
+CREATE TABLE `nokey` (
+    `id` INTEGER NOT NULL,
+    `name` TEXT NOT NULL
+);
+insert into `nokey` (id,name) values(1,"foo"), (2,"bar")
 SQL1
 ,
             ],
         ]);
 
-        $use = $mapper ?? Mapper::class;
-
-        $this->mapper = new $use($database, $mapper ? null : 'user_mapper');
-    }
-
-    protected function enabledebug($log = false, string $dsn = null, string $mapper = null)
-    {
-        $this->build($dsn, ['debug'=>true, 'log'=>$log], $mapper);
-    }
-
-    protected function changeTable(string $table)
-    {
-        $ref = new \ReflectionProperty($this->mapper, 'table');
-        $ref->setAccessible(true);
-        $ref->setValue($this->mapper, $table);
-
-        $ref = new \ReflectionProperty($this->mapper, 'source');
-        $ref->setAccessible(true);
-        $ref->setValue($this->mapper, $table);
-    }
-
-    public function testWithSource()
-    {
-        $clone = $this->mapper->withSource('user_mapper');
-
-        $this->assertEquals($clone, $this->mapper);
-    }
-
-    public function testSetSource()
-    {
-        $this->assertEquals('user_mapper', $this->mapper->setSource('')->getSource());
-    }
-
-    public function testGetSource()
-    {
-        $this->assertEquals('user_mapper', $this->mapper->getSource());
-    }
-
-    public function testGetDb()
-    {
-        $this->assertInstanceof(DatabaseInterface::class, $this->mapper->getDb());
-    }
-
-    public function testFind()
-    {
-        $this->assertEquals($this->expected['r1'], $this->mapper->find(1));
-        $this->assertEquals($this->expected['r1'], $this->mapper->find([1]));
-    }
-
-    /**
-     * @expectedException ArgumentCountError
-     * @expectedExceptionRegex /expect exactly 1 arguments, given only 2 arguments$/
-     */
-    public function testFindException()
-    {
-        $this->mapper->find([1,2]);
+        $this->mapper = new SqlMapper($database, 'user_mapper');
     }
 
     public function testFindOne()
     {
-        $res = $this->mapper->findOne(['first_name'=>'foo']);
-        $this->assertEquals($this->expected['r1'], $res);
+        $found = $this->mapper->findOne();
+        $this->assertEquals('foo', $found->get('first_name'));
+
+        // with filter
+        $this->assertNull($this->mapper->findOne('id = 4'));
     }
 
-    public function testFindAll()
+    public function testSave()
     {
-        extract($this->expected);
+        $this->mapper->set('first_name', 'bleh');
+        $this->mapper->save();
+        $check = $this->mapper->findId(4);
+        $this->assertEquals('bleh', $check->get('first_name'));
 
-        $res = $this->mapper->findAll();
-        $expected = [$r1,$r2,$r3];
-
-        $this->assertEquals($expected, $res);
+        $this->mapper->set('first_name', 'bar');
+        $this->mapper->save();
+        $check = $this->mapper->findId(4);
+        $this->assertEquals('bar', $check->get('first_name'));
     }
 
-    public function testPaginate()
+    public function testGetTable()
     {
-        extract($this->expected);
+        $this->assertEquals('user_mapper', $this->mapper->getTable());
+    }
 
-        $res = $this->mapper->paginate();
-        $expected = [
-            'subset' => [$r1,$r2,$r3],
-            'total' => 3,
-            'pages' => 1,
-            'page'  => 1,
-            'start' => 1,
-            'end'   => 3,
+    public function testSetTable()
+    {
+        $this->assertEquals('nokey', $this->mapper->setTable('nokey')->getTable());
+    }
+
+    public function paginateProvider()
+    {
+        $str = 'qux, quux, corge, grault, garply, waldo, fred, plugh, xyzzy, thud';
+        $all = split($str);
+        $len = 3 + count($all);
+
+        return [
+            [
+                $all,
+                [1, null, ['perpage'=>2]],
+                [
+                    'total' => $len,
+                    'pages' => 7,
+                    'page'  => 1,
+                    'start' => 1,
+                    'end'   => 2,
+                ]
+            ],
+            [
+                $all,
+                [2, null, ['perpage'=>2]],
+                [
+                    'total' => $len,
+                    'pages' => 7,
+                    'page'  => 2,
+                    'start' => 3,
+                    'end'   => 4,
+                ]
+            ],
+            [
+                $all,
+                [2, null, ['perpage'=>3]],
+                [
+                    'total' => $len,
+                    'pages' => 5,
+                    'page'  => 2,
+                    'start' => 4,
+                    'end'   => 6,
+                ]
+            ],
+            [
+                $all,
+                [5, null, ['perpage'=>3]],
+                [
+                    'total' => $len,
+                    'pages' => 5,
+                    'page'  => 5,
+                    'start' => 13,
+                    'end'   => 13,
+                ]
+            ],
+            [
+                $all,
+                [0, null, ['perpage'=>2]],
+                [
+                    'total' => $len,
+                    'pages' => 7,
+                    'page'  => 0,
+                    'start' => 0,
+                    'end'   => 0,
+                ]
+            ],
+            [
+                [],
+                [0, null, ['perpage'=>2]],
+                [
+                    'total' => 3,
+                    'pages' => 2,
+                    'page'  => 0,
+                    'start' => 0,
+                    'end'   => 0,
+                ]
+            ],
         ];
+    }
 
+    /** @dataProvider paginateProvider */
+    public function testPaginate($data, $args, $expected)
+    {
+        foreach ($data as $s) {
+            $this->mapper->fromArray(['first_name'=>$s])->insert()->reset();
+        }
+
+        $res = $this->mapper->paginate(...$args);
+        $subset = array_shift($res);
         $this->assertEquals($expected, $res);
     }
 
-    public function testCount()
+    public function testDry()
     {
-        $this->assertEquals(3, $this->mapper->count());
-        $this->assertEquals(1, $this->mapper->count('id=1'));
+        $this->assertTrue($this->mapper->dry());
+        $this->assertFalse($this->mapper->loadId(1)->dry());
     }
 
-    public function testInsert()
+    public function testValid()
     {
-        $this->assertEquals('4', $this->mapper->insert(['first_name'=>'bleh']));
+        $this->assertFalse($this->mapper->valid());
+        $this->assertTrue($this->mapper->loadId(1)->valid());
     }
 
-    public function testUpdate()
+    public function testGetTrigger()
     {
-        $this->assertTrue($this->mapper->update(['first_name'=>'xbleh'], 'id=1'));
-
-        $this->changeTable('muser');
-        $this->assertFalse($this->mapper->update(['first_name'=>'xbleh'], 'id=1'));
+        $this->assertEquals(null, $this->mapper->getTrigger('foo'));
     }
 
-    public function testDelete()
+    public function testSetTrigger()
     {
-        $this->assertTrue($this->mapper->delete('id=1'));
-
-        $this->changeTable('muser');
-        $this->assertFalse($this->mapper->delete('id=1'));
+        $func = function() {};
+        $this->assertEquals($func, $this->mapper->setTrigger('foo', $func)->getTrigger('foo'));
     }
 
-    public function testMagicMethod()
+    public function testArrayAccess()
     {
-        $res = $this->mapper->findByFirstName('foo');
-        $this->assertEquals([$this->expected['r1']], $res);
+        $this->assertNull($this->mapper['id']);
+        $this->mapper['id'] = 3;
+        $this->assertEquals(3, $this->mapper['id']);
+        $this->assertTrue(isset($this->mapper['id']));
+        unset($this->mapper['id']);
+        $this->assertTrue(isset($this->mapper['id']));
+        $this->assertNull($this->mapper['id']);
+    }
 
-        $res = $this->mapper->findOneByFirstName('foo');
-        $this->assertEquals($this->expected['r1'], $res);
+    public function testMagicAccess()
+    {
+        $this->assertNull($this->mapper->id);
+        $this->mapper->id = 3;
+        $this->assertEquals(3, $this->mapper->id);
+        $this->assertTrue(isset($this->mapper->id));
+        unset($this->mapper->id);
+        $this->assertTrue(isset($this->mapper->id));
+        $this->assertNull($this->mapper->id);
+    }
+
+    public function testMagicCall()
+    {
+        $found = $this->mapper->findOneByFirstName('bar');
+        $this->assertEquals(2, $found->get('id'));
+        $this->assertEquals('bar', $found->get('first_name'));
+
+        $all = $this->mapper->findByFirstName('bar');
+        $this->assertEquals(1, count($all));
+        $this->assertEquals(2, $all[0]->get('id'));
+        $this->assertEquals('bar', $all[0]->get('first_name'));
     }
 
     /**
      * @expectedException BadMethodCallException
-     * @expectedExceptionRegex /^Invalid method/
+     * @expectedExceptionRegex /Call to undefined method/
      */
-    public function testMagicMethodException()
+    public function testMagicCallParent()
     {
-        $this->mapper->invalidMethodCall();
-    }
-
-    public function testFactory()
-    {
-        extract($this->expected);
-
-        $this->build(null, null, UserMapper::class);
-
-        $res = $this->mapper->find(1);
-        $this->assertInstanceof(UserEntity::class, $res);
-
-        $subset = [];
-        foreach ([$r1,$r2,$r3] as $r) {
-            $user = new UserEntity;
-            $user->setId($r['id']);
-            $user->setFirstName($r['first_name']);
-            $user->setLastName($r['last_name']);
-
-            $subset[] = $user;
-        }
-
-        $pagination = [
-            'subset' => $subset,
-            'total' => 3,
-            'pages' => 1,
-            'page'  => 1,
-            'start' => 1,
-            'end'   => 3,
-        ];
-        $res = $this->mapper->paginate();
-
-        $this->assertEquals($pagination, $res);
-    }
-
-    public function testMapperEntity()
-    {
-        extract($this->expected);
-
-        $this->build(null, null, UserMapper::class);
-
-        $user = new UserEntity;
-        $user->setId($r1['id']);
-        $user->setFirstName($r1['first_name']);
-        $user->setLastName($r1['last_name']);
-
-        $res = $this->mapper->find(1);
-        $this->assertEquals($user, $res);
-
-        $res = $this->mapper->findOne($user);
-        $this->assertEquals($user, $res);
-
-        $this->mapper->beforeinsert(function($obj) {
-            $obj->setFirstName('not bleh');
-        });
-        $user->setId(null);
-        $user->setFirstName('bleh');
-        $res = $this->mapper->insert($user);
-        $this->assertEquals('4', $res);
-        $user->setId('4');
-        $res = $this->mapper->findone($user);
-        $this->assertEquals($user, $res);
-    }
-
-    public function testOnload()
-    {
-        $this->mapper->onload(function($data, $id) {
-            if ($id['id'] === '1') {
-                return true;
-            } elseif ($id['id'] === '2') {
-                $data['first_name'] = 'load ' . $data['first_name'];
-
-                return $data;
-            }
-
-            return false;
-        });
-
-        $res = $this->mapper->find(1);
-        $expected = $this->expected['r1'];
-        $this->assertEquals($expected, $res);
-
-        $res = $this->mapper->find(2);
-        $expected = $this->expected['r2'];
-        $expected['first_name'] = 'load bar';
-        $this->assertEquals($expected, $res);
-
-        $res = $this->mapper->find(3);
-        $this->assertNull($res);
-    }
-
-    public function testBeforeinsert()
-    {
-        $this->mapper->beforeinsert(function($data) {
-            if ($data['first_name'] === 'bleh') {
-                return true;
-            } elseif ($data['first_name'] === 'xbleh') {
-                $data['first_name'] = 'insert ' . $data['first_name'];
-
-                return $data;
-            }
-
-            return false;
-        });
-
-        $res = $this->mapper->insert(['first_name'=>'bleh']);
-        $expected = '4';
-        $this->assertEquals($expected, $res);
-
-        $this->mapper->insert(['first_name'=>'xbleh']);
-        $res = $this->mapper->find(5);
-        $expected = $this->expected['r1'];
-        $expected['id'] = '5';
-        $expected['first_name'] = 'insert xbleh';
-        $this->assertEquals($expected, $res);
-
-        $res = $this->mapper->insert(['first_name'=>'xfoo']);
-        $this->assertFalse($res);
-    }
-
-    public function testAfterinsert()
-    {
-        $this->mapper->afterinsert(function($data, $id) {
-            if ($id === '4') {
-                return true;
-            } elseif ($id === '5') {
-                $data['first_name'] = 'inserted ' . $data['first_name'];
-
-                return $data;
-            }
-
-            return false;
-        });
-
-        $res = $this->mapper->insert(['first_name'=>'bleh']);
-        $expected = '4';
-        $this->assertEquals($expected, $res);
-
-        $res = $this->mapper->insert(['first_name'=>'xbleh']);
-        $expected = ['first_name'=>'inserted xbleh'];
-        $this->assertEquals($expected, $res);
-
-        $res = $this->mapper->insert(['first_name'=>'xfoo']);
-        $expected = '6';
-        $this->assertEquals($expected, $res);
-    }
-
-    public function testOninsert()
-    {
-        $this->mapper->oninsert(function($data, $id) {
-            if ($id === '4') {
-                return true;
-            } elseif ($id === '5') {
-                $data['first_name'] = 'inserted ' . $data['first_name'];
-
-                return $data;
-            }
-
-            return false;
-        });
-
-        $res = $this->mapper->insert(['first_name'=>'bleh']);
-        $expected = '4';
-        $this->assertEquals($expected, $res);
-
-        $res = $this->mapper->insert(['first_name'=>'xbleh']);
-        $expected = ['first_name'=>'inserted xbleh'];
-        $this->assertEquals($expected, $res);
-
-        $res = $this->mapper->insert(['first_name'=>'xfoo']);
-        $expected = '6';
-        $this->assertEquals($expected, $res);
-    }
-
-    public function testBeforeupdate()
-    {
-        $this->mapper->beforeupdate(function($data, $id) {
-            if ($id === 'id=1') {
-                return true;
-            } elseif ($id === 'id=2') {
-                $data['first_name'] = 'update ' . $data['first_name'];
-
-                return $data;
-            }
-
-            return false;
-        });
-
-        $res = $this->mapper->update(['first_name'=>'xfoo'], 'id=1');
-        $this->assertTrue($res);
-
-        $res = $this->mapper->update(['first_name'=>'xbar'], 'id=2');
-        $this->assertTrue($res);
-        $res = $this->mapper->find(2);
-        $expected = $this->expected['r2'];
-        $expected['first_name'] = 'update xbar';
-        $this->assertEquals($expected, $res);
-
-        $res = $this->mapper->update(['first_name'=>'xqux'], 'id=3');
-        $this->assertFalse($res);
-    }
-
-    public function testAfterupdate()
-    {
-        $this->mapper->afterupdate(function($data, $id) {
-            if ($id === 'id=1') {
-                return true;
-            } elseif ($id === 'id=2') {
-                $data['first_name'] = 'updated ' . $data['first_name'];
-
-                return $data;
-            }
-
-            return false;
-        });
-
-        $res = $this->mapper->update(['first_name'=>'xfoo'], 'id=1');
-        $this->assertTrue($res);
-
-        $res = $this->mapper->update(['first_name'=>'xbar'], 'id=2');
-        $expected = ['first_name'=>'updated xbar'];
-        $this->assertEquals($expected, $res);
-
-        $res = $this->mapper->update(['first_name'=>'xqux'], 'id=3');
-        $this->assertTrue($res);
-    }
-
-    public function testOnupdate()
-    {
-        $this->mapper->onupdate(function($data, $id) {
-            if ($id === 'id=1') {
-                return true;
-            } elseif ($id === 'id=2') {
-                $data['first_name'] = 'updated ' . $data['first_name'];
-
-                return $data;
-            }
-
-            return false;
-        });
-
-        $res = $this->mapper->update(['first_name'=>'xfoo'], 'id=1');
-        $this->assertTrue($res);
-
-        $res = $this->mapper->update(['first_name'=>'xbar'], 'id=2');
-        $expected = ['first_name'=>'updated xbar'];
-        $this->assertEquals($expected, $res);
-
-        $res = $this->mapper->update(['first_name'=>'xqux'], 'id=3');
-        $this->assertTrue($res);
-    }
-
-    public function testBeforesave()
-    {
-        $this->mapper->beforesave(function($data, $id = null) {
-            if ($id) {
-                if ($id === 'id=1') {
-                    return true;
-                } elseif ($id === 'id=2') {
-                    $data['first_name'] = 'update ' . $data['first_name'];
-
-                    return $data;
-                }
-            } else {
-                if ($data['first_name'] === 'bleh') {
-                    return true;
-                } elseif ($data['first_name'] === 'xbleh') {
-                    $data['first_name'] = 'insert ' . $data['first_name'];
-
-                    return $data;
-                }
-            }
-
-            return false;
-        });
-
-        $res = $this->mapper->update(['first_name'=>'xfoo'], 'id=1');
-        $this->assertTrue($res);
-
-        $res = $this->mapper->update(['first_name'=>'xbar'], 'id=2');
-        $this->assertTrue($res);
-        $res = $this->mapper->find(2);
-        $expected = $this->expected['r2'];
-        $expected['first_name'] = 'update xbar';
-        $this->assertEquals($expected, $res);
-
-        $res = $this->mapper->update(['first_name'=>'xqux'], 'id=3');
-        $this->assertFalse($res);
-
-        $res = $this->mapper->insert(['first_name'=>'bleh']);
-        $expected = '4';
-        $this->assertEquals($expected, $res);
-
-        $this->mapper->insert(['first_name'=>'xbleh']);
-        $res = $this->mapper->find(5);
-        $expected = $this->expected['r1'];
-        $expected['id'] = '5';
-        $expected['first_name'] = 'insert xbleh';
-        $this->assertEquals($expected, $res);
-
-        $res = $this->mapper->insert(['first_name'=>'xfoo']);
-        $this->assertFalse($res);
-    }
-
-    public function testAftersave()
-    {
-        $this->mapper->aftersave(function($data, $id = null) {
-            if ($id) {
-                if ($id === 'id=1') {
-                    return true;
-                } elseif ($id === 'id=2') {
-                    $data['first_name'] = 'updated ' . $data['first_name'];
-
-                    return $data;
-                } elseif ($id === '4') {
-                    return true;
-                } elseif ($id === '5') {
-                    $data['first_name'] = 'inserted ' . $data['first_name'];
-
-                    return $data;
-                }
-            }
-
-            return false;
-        });
-
-        $res = $this->mapper->update(['first_name'=>'xfoo'], 'id=1');
-        $this->assertTrue($res);
-
-        $res = $this->mapper->update(['first_name'=>'xbar'], 'id=2');
-        $expected = ['first_name'=>'updated xbar'];
-        $this->assertEquals($expected, $res);
-
-        $res = $this->mapper->update(['first_name'=>'xqux'], 'id=3');
-        $this->assertTrue($res);
-
-        $res = $this->mapper->insert(['first_name'=>'bleh']);
-        $expected = '4';
-        $this->assertEquals($expected, $res);
-
-        $res = $this->mapper->insert(['first_name'=>'xbleh']);
-        $expected = ['first_name'=>'inserted xbleh'];
-        $this->assertEquals($expected, $res);
-
-        $res = $this->mapper->insert(['first_name'=>'xfoo']);
-        $expected = '6';
-        $this->assertEquals($expected, $res);
-    }
-
-    public function testOnsave()
-    {
-        $this->mapper->onsave(function($data, $id = null) {
-            if ($id) {
-                if ($id === 'id=1') {
-                    return true;
-                } elseif ($id === 'id=2') {
-                    $data['first_name'] = 'updated ' . $data['first_name'];
-
-                    return $data;
-                } elseif ($id === '4') {
-                    return true;
-                } elseif ($id === '5') {
-                    $data['first_name'] = 'inserted ' . $data['first_name'];
-
-                    return $data;
-                }
-            }
-
-            return false;
-        });
-
-        $res = $this->mapper->update(['first_name'=>'xfoo'], 'id=1');
-        $this->assertTrue($res);
-
-        $res = $this->mapper->update(['first_name'=>'xbar'], 'id=2');
-        $expected = ['first_name'=>'updated xbar'];
-        $this->assertEquals($expected, $res);
-
-        $res = $this->mapper->update(['first_name'=>'xqux'], 'id=3');
-        $this->assertTrue($res);
-
-        $res = $this->mapper->insert(['first_name'=>'bleh']);
-        $expected = '4';
-        $this->assertEquals($expected, $res);
-
-        $res = $this->mapper->insert(['first_name'=>'xbleh']);
-        $expected = ['first_name'=>'inserted xbleh'];
-        $this->assertEquals($expected, $res);
-
-        $res = $this->mapper->insert(['first_name'=>'xfoo']);
-        $expected = '6';
-        $this->assertEquals($expected, $res);
-    }
-
-    public function testBeforedelete()
-    {
-        $this->mapper->beforedelete(function($filter, $id) {
-            if ($filter === 'id=1') {
-                return true;
-            } elseif ($filter === 'id=2') {
-                return 'id=3';
-            }
-
-            return false;
-        });
-
-        $res = $this->mapper->delete('id=1');
-        $this->assertTrue($res);
-
-        $res = $this->mapper->delete('id=2');
-        $this->assertTrue($res);
-        $this->assertEquals(1, $this->mapper->count('id=2'));
-        $this->assertEquals(0, $this->mapper->count('id=3'));
-
-        $res = $this->mapper->delete('id="2"');
-        $this->assertFalse($res);
-    }
-
-    public function testAfterdelete()
-    {
-        $this->mapper->afterdelete(function($filter, $id) {
-            if ($filter === 'id=1') {
-                return true;
-            } elseif ($filter === 'id=2') {
-                return 'id=2 deleted';
-            }
-
-            return false;
-        });
-
-        $res = $this->mapper->delete('id=1');
-        $this->assertTrue($res);
-
-        $res = $this->mapper->delete('id=2');
-        $this->assertEquals('id=2 deleted', $res);
-
-        $res = $this->mapper->delete('id=3');
-        $this->assertTrue($res);
-    }
-
-    public function testOndelete()
-    {
-        $this->mapper->ondelete(function($filter, $id) {
-            if ($filter === 'id=1') {
-                return true;
-            } elseif ($filter === 'id=2') {
-                return 'id=2 deleted';
-            }
-
-            return false;
-        });
-
-        $res = $this->mapper->delete('id=1');
-        $this->assertTrue($res);
-
-        $res = $this->mapper->delete('id=2');
-        $this->assertEquals('id=2 deleted', $res);
-
-        $res = $this->mapper->delete('id=3');
-        $this->assertTrue($res);
+        $this->mapper->undefinedMethod();
     }
 }

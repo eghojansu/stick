@@ -22,10 +22,6 @@ class SqlTest extends TestCase
         'r1' => ['id'=>'1','first_name'=>'foo','last_name'=>null,'active'=>'1'],
         'r2' => ['id'=>'2','first_name'=>'bar','last_name'=>null,'active'=>'1'],
         'r3' => ['id'=>'3','first_name'=>'baz','last_name'=>null,'active'=>'1'],
-        'success' => ['00000',null,null],
-        'outrange' => ['HY000',25,'bind or column index out of range'],
-        'notable' => ['HY000',1,'no such table: muser'],
-        'nocolumn' => ['HY000',1,'no such column: foo'],
     ];
     private $sql;
 
@@ -39,7 +35,7 @@ class SqlTest extends TestCase
         error_clear_last();
     }
 
-    protected function build(string $dsn = '', array $option = [])
+    private function build(string $dsn = '', array $option = [])
     {
         $cache = new Cache($dsn, 'test', TEMP . 'cache/');
         $cache->reset();
@@ -47,8 +43,7 @@ class SqlTest extends TestCase
         $this->sql = new Sql($cache, $option + [
             'driver' => 'sqlite',
             'location' => ':memory:',
-            'commands' => [
-                <<<SQL1
+            'commands' => <<<SQL1
 CREATE TABLE `user` (
     `id` INTEGER NOT null PRIMARY KEY AUTOINCREMENT,
     `first_name` TEXT NOT null,
@@ -60,29 +55,27 @@ CREATE TABLE `user2` (
     `name` TEXT NOT null
 )
 SQL1
-,
-            ],
         ]);
     }
 
-    protected function filldb()
+    private function filldb()
     {
         $this->sql->pdo()->exec('insert into user (first_name) values ("foo"), ("bar"), ("baz")');
     }
 
-    protected function enableDebug()
+    private function enableDebug()
     {
         $this->sql->setOption(['debug'=>true] + $this->sql->getOption());
     }
 
-    protected function enableLog()
+    private function enableLog()
     {
         $this->sql->setOption(['log'=>true] + $this->sql->getOption());
     }
 
-    protected function changeDriver(string $driver)
+    private function changeDriver(string $driver)
     {
-        $ref = new \ReflectionProperty($this->sql, 'driverName');
+        $ref = new \ReflectionProperty($this->sql, 'driver');
         $ref->setAccessible(true);
         $ref->setValue($this->sql, $driver);
     }
@@ -125,7 +118,7 @@ SQL1
 
     /**
      * @expectedException LogicException
-     * @expectedExceptionMessage Currently, there is no logic for unknown DSN creation, please provide a valid one
+     * @expectedExceptionMessage There is no logic for unknown DSN creation, please provide a valid one
      */
     public function testSetOptionException1()
     {
@@ -159,9 +152,6 @@ SQL1
         $this->sql->setOption([
             'driver' => 'sqlite',
             'location' => ':memory:',
-            'attributes' => [
-                \PDO::ATTR_ERRMODE => \PDO::ERRMODE_SILENT
-            ],
         ]);
 
         $pdo = $this->sql->pdo();
@@ -202,70 +192,70 @@ SQL1
         $this->sql->pdo();
     }
 
-    public function testIsTableExists()
+    public function testExists()
     {
-        $this->assertTrue($this->sql->isTableExists('user'));
-        $this->assertFalse($this->sql->isTableExists('foo'));
+        $this->assertTrue($this->sql->exists('user'));
+        $this->assertTrue($this->sql->exists('user2'));
+        $this->assertFalse($this->sql->exists('foo'));
     }
 
-    public function testIsTableExistsCache()
+    public function testExistsCache()
     {
         $this->build('auto');
 
         // with cache
-        $this->assertTrue($this->sql->isTableExists('user', 5));
-        $this->assertTrue($this->sql->isTableExists('user', 5));
+        $this->assertTrue($this->sql->exists('user', 5));
+        $this->assertTrue($this->sql->exists('user', 5));
     }
 
-    public function testGetDriverName()
+    public function testGetDriver()
     {
-        $this->assertEquals('sqlite', $this->sql->getDriverName());
+        $this->assertEquals('sqlite', $this->sql->getDriver());
     }
 
-    public function testGetDriverVersion()
+    public function testGetVersion()
     {
-        $this->assertNotEmpty($this->sql->getDriverVersion());
+        $this->assertNotEmpty($this->sql->getVersion());
     }
 
-    public function testGetLogs()
+    public function testGetLog()
     {
         $this->enableLog();
-        $this->assertEquals([], $this->sql->getLogs());
+        $this->assertEquals('', $this->sql->getLog());
 
-        $this->sql->run('select * from user');
-        $this->assertEquals([['select * from user',null]], $this->sql->getLogs());
+        $this->sql->exec('select * from user');
+        $this->assertContains('select * from user', $this->sql->getLog());
+
+        $this->sql->exec('insert into user (first_name) values (?)', ['quux']);
+        $this->assertContains("insert into user (first_name) values ('quux')", $this->sql->getLog());
+
+        $this->sql->exec('insert into user (id,first_name) values (?,?)', [['5',\PDO::PARAM_INT],'bleh']);
+        $this->assertContains("insert into user (id,first_name) values (5,'bleh')", $this->sql->getLog());
     }
 
-    public function testGetErrors()
-    {
-        $this->assertEquals([], $this->sql->getErrors());
 
-        $this->sql->select('muser');
-        $this->assertEquals([$this->expected['notable']], $this->sql->getErrors());
-    }
-
-    public function testGetSchema()
+    public function testSchema()
     {
-        $schema = $this->sql->getSchema('user');
+        $schema = $this->sql->schema('user');
         $this->assertEquals(['id','first_name','last_name','active'], array_keys($schema));
 
         // second schema
-        $schema = $this->sql->getSchema('user2');
+        $schema = $this->sql->schema('user2');
         $this->assertEquals(['id','name'], array_keys($schema));
     }
 
-    public function testGetSchemaWithFields()
+    public function testSchemaWithFields()
     {
-        $schema = $this->sql->getSchema('user', ['first_name','last_name']);
+        $schema = $this->sql->schema('user', ['first_name','last_name']);
         $this->assertEquals(2, count($schema));
     }
 
-    public function testGetSchemaCache()
+    public function testSchemaCache()
     {
         $this->build('auto');
 
-        $init = $this->sql->getSchema('user', null, 5);
-        $cached = $this->sql->getSchema('user', null, 5);
+        $init = $this->sql->schema('user', null, 5);
+        $cached = $this->sql->schema('user', null, 5);
 
         $this->assertEquals($init, $cached);
     }
@@ -274,10 +264,10 @@ SQL1
      * @expectedException LogicException
      * @expectedExceptionMessage Driver unknown is not supported
      */
-    public function testGetSchemaException()
+    public function testSchemaException()
     {
         $this->changeDriver('unknown');
-        $this->sql->getSchema('foo.user');
+        $this->sql->schema('foo.user');
     }
 
     public function testGetQuote()
@@ -319,7 +309,7 @@ SQL1
         $this->assertFalse($this->sql->isTrans());
     }
 
-    public function runProvider()
+    public function execProvider()
     {
         extract($this->expected);
 
@@ -327,118 +317,85 @@ SQL1
             [
                 'select * from user',
                 null,
-                [
-                    'success' => true,
-                    'error' => $success,
-                    'data' => [$r1,$r2,$r3],
-                ]
+                [$r1,$r2,$r3],
             ],
             [
                 'select * from user where id = ?',
                 [1],
-                [
-                    'success' => true,
-                    'error' => $success,
-                    'data' => [$r1],
-                ]
+                [$r1],
             ],
             [
                 'select * from user where id = :id',
                 [':id'=>1],
-                [
-                    'success' => true,
-                    'error' => $success,
-                    'data' => [$r1],
-                ]
+                [$r1],
             ],
             [
                 'select * from user where id = ?',
-                [[1],['x'=>2]],
-                [
-                    'success' => false,
-                    'error' => $outrange,
-                    'data' => [[$r1]],
-                ]
-            ],
-            [
-                'select * from muser',
-                null,
-                [
-                    'success' => false,
-                    'error' => $notable,
-                    'data' => [],
-                ]
+                [1],
+                [$r1],
             ],
             [
                 'insert into user (first_name) values ("bleh")',
                 null,
-                [
-                    'success' => true,
-                    'error' => $success,
-                    'data' => true,
-                ]
+                1,
             ],
             [
                 'insert into user (first_name) values (?)',
-                [['one'],['two']],
-                [
-                    'success' => true,
-                    'error' => $success,
-                    'data' => [true,true],
-                ]
+                ['one'],
+                1,
             ],
+            [
+                [
+                    'select * from user where id = ?',
+                    'select * from user where id = ?',
+                ],
+                1,
+                [[$r1],[$r1]]
+            ],
+            [
+                '',
+                null,
+                null
+            ]
         ];
     }
 
-    /** @dataProvider runProvider */
-    public function testRun($sql, $params, $expected)
+    /** @dataProvider execProvider */
+    public function testExec($sql, $params, $expected)
     {
         $this->filldb();
 
-        $this->assertEquals($expected, $this->sql->run($sql, $params));
+        $this->assertEquals($expected, $this->sql->exec($sql, $params));
     }
 
-    public function runAllProvider()
+    public function testExecCache()
     {
-        extract($this->expected);
-        $bleh = ['id'=>4,'first_name'=>'bleh','last_name'=>null,'active'=>1];
-
-        return [
-            [
-                [
-                    ['select * from user where id = 1'],
-                    ['select * from user where id = 2'],
-                ],
-                true,
-                [[$r1],[$r2]],
-            ],
-            [
-                [
-                    ['select * from user where id = 1'],
-                    ['select * from muser'],
-                ],
-                true,
-                [[$r1],[]],
-            ],
-            [
-                [
-                    ['select * from user where id = 1'],
-                    ['insert into user (first_name) values ("bleh")'],
-                    ['insert into user (first_name) values ("bleh2")'],
-                    ['select * from user where first_name = "bleh"'],
-                ],
-                true,
-                [[$r1],true,true,[$bleh]],
-            ],
-        ];
-    }
-
-    /** @dataProvider runAllProvider */
-    public function testRunAll($queries, $stop, $expected)
-    {
+        $this->build('auto');
         $this->filldb();
 
-        $this->assertEquals($expected, $this->sql->runAll($queries, $stop));
+        $sql = 'select * from user limit 1';
+        $this->assertEquals([$this->expected['r1']], $this->sql->exec($sql, null, 5));
+        $this->assertEquals([$this->expected['r1']], $this->sql->exec($sql, null, 5));
+    }
+
+    /**
+     * @expectedException LogicException
+     * @expectedExceptionMessage PDO: no such table: muser
+     */
+    public function testExecException()
+    {
+        $this->sql->begin();
+        $this->sql->exec('select * from muser');
+    }
+
+    /**
+     * @expectedException LogicException
+     * @expectedExceptionMessage PDOStatement: bind or column index out of range
+     */
+    public function testExecException2()
+    {
+        $this->sql->begin();
+        $this->sql->exec('select * from user where id = ?', [1,2]);
     }
 
     public function filterProvider()
@@ -541,255 +498,62 @@ SQL1
         $this->sql->filter(['foo ><'=>'str']);
     }
 
-    public function selectProvider()
+    public function testGetName()
     {
-        extract($this->expected);
-
-        return [
-            [
-                ['user', ['first_name'=>'foo']],
-                [$r1],
-            ],
-            [
-                ['user', null, ['group'=>'id','having'=>['id []'=>[1,2,3]],'order'=>'id desc','offset'=>1,'limit'=>2]],
-                [$r2,$r1],
-            ],
-            [
-                ['user', 'foo = "bar"'],
-                [],
-            ],
-            [
-                ['user', null, ['column'=>['id','first_name','last_name','active']]],
-                [$r1,$r2,$r3],
-            ],
-        ];
+        $this->assertEquals('', $this->sql->getName());
     }
 
-    /** @dataProvider selectProvider */
-    public function testSelect($args, $expected)
+    public function testGetEncoding()
     {
-        $this->filldb();
-
-        $res = $this->sql->select(...$args);
-
-        $this->assertEquals($expected, $res);
+        $this->assertEquals('UTF-8', $this->sql->getEncoding());
     }
 
-    public function testSelectCache()
+    public function testSetEncoding()
     {
-        extract($this->expected);
-
-        $this->build('auto');
-
-        $this->filldb();
-
-        // with cache
-        $res = $this->sql->select('user', null, null, 5);
-        $expected = [$r1,$r2,$r3];
-
-        $this->assertEquals($expected, $res);
-
-        // call again
-        $res = $this->sql->select('user', null, null, 5);
-        $this->assertEquals($expected, $res);
+        $this->assertEquals('foo', $this->sql->setEncoding('foo')->getEncoding());
     }
 
-    public function testSelectOne()
+    public function testType()
     {
-        $this->filldb();
-        $res = $this->sql->selectOne('user');
-
-        $this->assertEquals($this->expected['r1'], $res);
+        $this->assertEquals(\PDO::PARAM_NULL, $this->sql->type(null));
+        $this->assertEquals(\PDO::PARAM_BOOL, $this->sql->type(true));
+        $this->assertEquals(\PDO::PARAM_INT, $this->sql->type(1));
+        $this->assertEquals(Sql::PARAM_FLOAT, $this->sql->type(0.0));
+        $this->assertEquals(\PDO::PARAM_STR, $this->sql->type('foo'));
+        $fp = fopen(FIXTURE . 'long.txt', 'rb');
+        $this->assertEquals(\PDO::PARAM_LOB, $this->sql->type($fp));
     }
 
-    public function insertProvider()
+    public function testRealType()
     {
-        extract($this->expected);
-
-        return [
-            [
-                ['user', ['first_name'=>'foo']],
-                '1',
-            ],
-            [
-                ['muser', ['first_name'=>'foo']],
-                '0',
-            ],
-        ];
+        $this->assertEquals(\PDO::PARAM_STR, $this->sql->realType(0.0));
+        $this->assertEquals(\PDO::PARAM_STR, $this->sql->realType(null, Sql::PARAM_FLOAT));
     }
 
-    /** @dataProvider insertProvider */
-    public function testInsert($args, $expected)
+    public function testValue()
     {
-        $res = $this->sql->insert(...$args);
-
-        $this->assertEquals($expected, $res);
+        $this->assertEquals(null, $this->sql->value(\PDO::PARAM_NULL, 'foo'));
+        $this->assertEquals('0.0', $this->sql->value(Sql::PARAM_FLOAT, 0.0));
+        $this->assertEquals(true, $this->sql->value(\PDO::PARAM_BOOL, 1));
+        $this->assertEquals(1, $this->sql->value(\PDO::PARAM_INT, '1'));
+        $this->assertEquals('1', $this->sql->value(\PDO::PARAM_STR, '1'));
+        $this->assertEquals('1', $this->sql->value('foo', '1'));
+        $fp = fopen(FIXTURE . 'long.txt', 'rb');
+        $this->assertEquals((binary) $fp, $this->sql->value(\PDO::PARAM_LOB, $fp));
     }
 
-    public function updateProvider()
+    public function testQuote()
     {
-        extract($this->expected);
-
-        return [
-            [
-                ['user', ['first_name'=>'xfoo'], 'id=1'],
-                true,
-                ['user', 'id=1'],
-                [['first_name'=>'xfoo'] + $r1],
-            ],
-            [
-                ['muser', ['first_name'=>'foo'],'id=1'],
-                false,
-                ['user', 'id=1'],
-                [$r1],
-            ],
-            [
-                ['user', ['first_name'=>'xfoo',['last_name = first_name']],'id=1'],
-                true,
-                ['user', 'id=1'],
-                [['first_name'=>'xfoo','last_name'=>'foo'] + $r1],
-            ],
-        ];
+        $this->assertEquals("'foo'", $this->sql->quote('foo'));
+        $this->changeDriver(Sql::DB_ODBC);
+        $this->assertEquals("'foo'", $this->sql->quote('foo'));
     }
 
-    /** @dataProvider updateProvider */
-    public function testUpdate($args, $expected, $args2, $expected2)
+    public function testGetRows()
     {
-        $this->filldb();
-
-        $res = $this->sql->update(...$args);
-        $this->assertEquals($expected, $res);
-
-        $confirm = $this->sql->select(...$args2);
-        $this->assertEquals($expected2, $confirm);
-    }
-
-    public function testDelete()
-    {
-        $this->filldb();
-
-        $this->assertEquals(3, $this->sql->count('user'));
-        $this->assertEquals(1, $this->sql->count('user', 'id=1'));
-
-        $this->assertTrue($this->sql->delete('user', 'id=1'));
-        $this->assertEquals(2, $this->sql->count('user'));
-
-        $this->assertTrue($this->sql->delete('user', null));
-        $this->assertEquals(0, $this->sql->count('user'));
-    }
-
-    public function testCount()
-    {
-        $this->filldb();
-
-        $this->assertEquals(3, $this->sql->count('user'));
-
-        // query false
-        $this->assertEquals(0, $this->sql->count('muser'));
-    }
-
-    public function paginateProvider()
-    {
-        $str = 'foo, bar, baz, qux, quux, corge, grault, garply, waldo, fred, plugh, xyzzy, thud';
-        $all = split($str);
-        $len = count($all);
-
-        return [
-            [
-                $all,
-                ['user', 1, null, ['column'=>'first_name','limit'=>2]],
-                [
-                    'subset' => [
-                        ['first_name'=>'foo'],
-                        ['first_name'=>'bar'],
-                    ],
-                    'total' => $len,
-                    'pages' => 7,
-                    'page'  => 1,
-                    'start' => 1,
-                    'end'   => 2,
-                ]
-            ],
-            [
-                $all,
-                ['user', 2, null, ['column'=>'first_name','limit'=>2]],
-                [
-                    'subset' => [
-                        ['first_name'=>'baz'],
-                        ['first_name'=>'qux'],
-                    ],
-                    'total' => $len,
-                    'pages' => 7,
-                    'page'  => 2,
-                    'start' => 3,
-                    'end'   => 4,
-                ]
-            ],
-            [
-                $all,
-                ['user', 2, null, ['column'=>'first_name','limit'=>3]],
-                [
-                    'subset' => [
-                        ['first_name'=>'qux'],
-                        ['first_name'=>'quux'],
-                        ['first_name'=>'corge'],
-                    ],
-                    'total' => $len,
-                    'pages' => 5,
-                    'page'  => 2,
-                    'start' => 4,
-                    'end'   => 6,
-                ]
-            ],
-            [
-                $all,
-                ['user', 5, null, ['column'=>'first_name','limit'=>3]],
-                [
-                    'subset' => [
-                        ['first_name'=>'thud'],
-                    ],
-                    'total' => $len,
-                    'pages' => 5,
-                    'page'  => 5,
-                    'start' => 13,
-                    'end'   => 13,
-                ]
-            ],
-            [
-                $all,
-                ['user', 0, null, ['column'=>'first_name','limit'=>2]],
-                [
-                    'subset' => [],
-                    'total' => $len,
-                    'pages' => 7,
-                    'page'  => 0,
-                    'start' => 0,
-                    'end'   => 0,
-                ]
-            ],
-            [
-                [],
-                ['user', 0, null, ['column'=>'first_name','limit'=>2]],
-                [
-                    'subset' => [],
-                    'total' => 0,
-                    'pages' => 0,
-                    'page'  => 0,
-                    'start' => 0,
-                    'end'   => 0,
-                ]
-            ],
-        ];
-    }
-
-    /** @dataProvider paginateProvider */
-    public function testPaginate($data, $args, $expected)
-    {
-        foreach ($data as $s) {
-            $this->sql->insert('user', ['first_name'=>$s]);
-        }
-
-        $res = $this->sql->paginate(...$args);
-        $this->assertEquals($expected, $res);
+        $this->assertEquals(0, $this->sql->getRows());
+        $out = $this->sql->exec('insert into user (first_name) values ("foo")');
+        $this->assertEquals(1, $out);
+        $this->assertEquals(1, $this->sql->getRows());
     }
 }

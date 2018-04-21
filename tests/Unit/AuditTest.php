@@ -14,8 +14,9 @@ namespace Fal\Stick\Test\Unit;
 use Fal\Stick\App;
 use Fal\Stick\Audit;
 use Fal\Stick\Cache;
-use Fal\Stick\Database\DatabaseInterface;
+use Fal\Stick\Database\MapperInterface;
 use Fal\Stick\Database\Sql;
+use Fal\Stick\Database\SqlMapper;
 use Fal\Stick\Security\Auth;
 use Fal\Stick\Security\InMemoryUserProvider;
 use Fal\Stick\Security\PlainPasswordEncoder;
@@ -33,7 +34,7 @@ class AuditTest extends TestCase
         $app->set('TEMP', TEMP);
         $app->set('CACHE', '');
         $app->set('SERVICE.db', [
-            'class' => DatabaseInterface::class,
+            'class' => Sql::class,
             'constructor' => function(Cache $cache) {
                 return new Sql($cache, [
                     'driver' => 'sqlite',
@@ -52,6 +53,12 @@ SQL1
                     ],
                 ]);
             }
+        ]);
+        $app->set('SERVICE.mapper', [
+            'class' => MapperInterface::class,
+            'constructor' => function(Sql $db) {
+                return new SqlMapper($db);
+            },
         ]);
         $app->set('SERVICE.auth', [
             'class' => Auth::class,

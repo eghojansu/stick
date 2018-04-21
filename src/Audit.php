@@ -94,7 +94,7 @@ class Audit
     /**
      * Check record existance
      *
-     * Require service with id "db" (instance of DatabaseInterface)
+     * Require service with id "mapper" (instance of MapperInterface)
      *
      * @param  mixed  $val
      * @param  string $table
@@ -104,11 +104,15 @@ class Audit
      */
     public function exists($val, string $table, string $column): bool
     {
-        return (bool) $this->app->service('db')->selectOne($table, [$column=>$val]);
+        $mapper = $this->app->service('mapper')->withTable($table)->findOne([$column=>$val]);
+
+        return $mapper ? $mapper->valid() : false;
     }
 
     /**
      * Check record unique
+     *
+     * Require service with id "mapper" (instance of MapperInterface)
      *
      * @param  mixed       $val
      * @param  string      $table
@@ -120,9 +124,9 @@ class Audit
      */
     public function unique($val, string $table, string $column, string $fid = null, $id = null): bool
     {
-        $res = $this->app->service('db')->selectOne($table, [$column=>$val]);
+        $mapper = $this->app->service('mapper')->withTable($table)->findOne([$column=>$val]);
 
-        return !$res || ($fid && (!isset($res[$fid]) || $res[$fid] == $id));
+        return !$mapper || ($fid && (!$mapper->exists($fid) || $mapper->get($fid) == $id));
     }
 
     /**

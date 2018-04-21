@@ -11,11 +11,11 @@
 
 namespace Fal\Stick\Security;
 
-use Fal\Stick\Database\DatabaseInterface;
+use Fal\Stick\Database\Sql;
 
-class DatabaseUserProvider implements UserProviderInterface
+class SqlUserProvider implements UserProviderInterface
 {
-    /** @var DatabaseInterface */
+    /** @var Sql */
     protected $db;
 
     /** @var UserTransformerInterface */
@@ -27,12 +27,12 @@ class DatabaseUserProvider implements UserProviderInterface
     /**
      * Class constructor
      *
-     * @param DatabaseInterface        $db
+     * @param Sql                      $db
      * @param callable                 $transformer
      * @param UserTransformerInterface $option
      */
     public function __construct(
-        DatabaseInterface $db,
+        Sql $db,
         UserTransformerInterface $transformer,
         array $option = []
     ) {
@@ -56,9 +56,9 @@ class DatabaseUserProvider implements UserProviderInterface
      *
      * @param  array $option
      *
-     * @return DatabaseUserProvider
+     * @return SqlUserProvider
      */
-    public function setOption(array $option): DatabaseUserProvider
+    public function setOption(array $option): SqlUserProvider
     {
         $this->option = $option + [
             'table' => 'user',
@@ -74,7 +74,7 @@ class DatabaseUserProvider implements UserProviderInterface
      */
     public function findByUsername(string $username): ?UserInterface
     {
-        return $this->transform([$this->option['username'] => $username]);
+        return $this->transform($this->option['username'], $username);
     }
 
     /**
@@ -82,23 +82,25 @@ class DatabaseUserProvider implements UserProviderInterface
      */
     public function findById(string $id): ?UserInterface
     {
-        return $this->transform([$this->option['id'] => $id]);
+        return $this->transform($this->option['id'], $id);
     }
 
     /**
      * Transform record to UserInterface
      *
-     * @param  array  $filter
+     * @param  string  $key
+     * @param  scalar  $val
      *
      * @return UserInterface|null
      */
-    protected function transform(array $filter): ?UserInterface
+    protected function transform(string $key, $val): ?UserInterface
     {
-        $user = $this->db->selectOne(
-            $this->option['table'],
-            $filter
+        $user = $this->db->exec(
+            'SELECT * FROM ' . $this->db->quotekey($this->option['table']) .
+            ' WHERE ' . $this->db->quotekey($key) . ' = ? LIMIT 1',
+            [$val]
         );
 
-        return $user ? $this->transformer->transform($user) : null;
+        return $user ? $this->transformer->transform($user[0]) : null;
     }
 }

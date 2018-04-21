@@ -13,18 +13,18 @@ namespace Fal\Stick\Test\Unit\Security;
 
 use Fal\Stick\Cache;
 use Fal\Stick\Database\Sql;
-use Fal\Stick\Security\DatabaseUserProvider;
+use Fal\Stick\Security\SqlUserProvider;
 use Fal\Stick\Security\SimpleUser;
 use Fal\Stick\Security\SimpleUserTransformer;
 use PHPUnit\Framework\TestCase;
 
-class DatabaseUserProviderTest extends TestCase
+class SqlUserProviderTest extends TestCase
 {
     private $provider;
 
     public function setUp()
     {
-        $this->provider = new DatabaseUserProvider(
+        $this->provider = new SqlUserProvider(
             $this->db(),
             new SimpleUserTransformer()
         );

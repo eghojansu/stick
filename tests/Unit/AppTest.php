@@ -992,6 +992,10 @@ class AppTest extends TestCase
         $this->assertEquals('bar', $this->app->set('POST.foo', 'bar')->get('POST.foo'));
         $this->assertEquals('bar', $this->app->get('REQUEST.foo'));
 
+        // update charset
+        $this->app->set('ENCODING', 'UTF-8');
+        $this->assertEquals('UTF-8', ini_get('default_charset'));
+
         // update timezone
         $this->app->set('TZ', 'Asia/Jakarta');
         $this->assertEquals('Asia/Jakarta', date_default_timezone_get());

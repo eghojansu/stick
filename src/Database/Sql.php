@@ -5,10 +5,32 @@ namespace Fal\Stick\Database;
 use function Fal\Stick\quote;
 use function Fal\Stick\quoteAll;
 use function Fal\Stick\startswith;
+use function Fal\Stick\stringify;
 use Fal\Stick\Cache;
 
-class Sql implements DatabaseInterface
+class Sql
 {
+    /** Supported database engine name */
+    const DB_SQLITE = 'sqlite';
+    const DB_SQLITE2 = 'sqlite2';
+    const DB_MYSQL = 'mysql';
+    const DB_PGSQL = 'pgsql';
+    const DB_OCI = 'oci';
+    const DB_MSSQL = 'mssql';
+    const DB_SQLSRV = 'sqlsrv';
+    const DB_ODBC = 'odbc';
+    const DB_SYBASE = 'sybase';
+    const DB_DBLIB = 'dblib';
+
+    /** Special data type */
+    const PARAM_FLOAT = 'float';
+
+    /** @var string */
+    protected $encoding;
+
+    /** @var array Original option */
+    protected $original;
+
     /** @var array */
     protected $option;
 
@@ -18,31 +40,63 @@ class Sql implements DatabaseInterface
     /** @var Cache */
     protected $cache;
 
-    /** @var array */
-    protected $logs = [];
-
-    /** @var array */
-    protected $errors = [];
-
     /** @var string */
-    protected $driverName;
+    protected $log = '';
 
-    /** @var string */
-    protected $driverVersion;
+    /** @var string Driver name */
+    protected $driver;
+
+    /** @var string Driver version */
+    protected $version;
 
     /** @var bool */
     protected $trans;
 
+    /** @var int */
+    protected $rows = 0;
+
     /**
      * Class constructor
      *
-     * @param Cache $cache
-     * @param array $option
+     * @param Cache  $cache
+     * @param array  $option
+     * @param string $encoding
      */
-    public function __construct(Cache $cache, array $option)
+    public function __construct(Cache $cache, array $option, string $encoding = 'UTF-8')
     {
         $this->cache = $cache;
+        $this->encoding = $encoding;
         $this->setOption($option);
+    }
+
+    /**
+     * Get database driver name
+     *
+     * @return string
+     */
+    public function getDriver(): string
+    {
+        return $this->driver ?? $this->pdo()->getAttribute(\PDO::ATTR_DRIVER_NAME);
+    }
+
+    /**
+     * Get database driver version
+     *
+     * @return string
+     */
+    public function getVersion(): string
+    {
+        return $this->version ?? $this->pdo()->getAttribute(\PDO::ATTR_SERVER_VERSION);
+    }
+
+    /**
+     * Get current database name
+     *
+     * @return string
+     */
+    public function getName(): string
+    {
+        return $this->option['dbname'] ?? '';
     }
 
     /**
@@ -53,6 +107,30 @@ class Sql implements DatabaseInterface
     public function getCache(): Cache
     {
         return $this->cache;
+    }
+
+    /**
+     * Get encoding
+     *
+     * @return string
+     */
+    public function getEncoding(): string
+    {
+        return $this->encoding;
+    }
+
+    /**
+     * Set encoding
+     *
+     * @param string $encoding
+     * @return Sql
+     */
+    public function setEncoding(string $encoding): Sql
+    {
+        $this->encoding = $encoding;
+        $this->setOption($this->original);
+
+        return $this;
     }
 
     /**
@@ -69,72 +147,58 @@ class Sql implements DatabaseInterface
      * Set option, available option (and its default value):
      *     debug: bool       = false (enable debug mode)
      *     log: bool         = false (log query)
-     *     driver: string    = unknown (database driver name, eg: mysql, sqlite)
+     *     driver: string    = void|unknown (database driver name, eg: mysql, sqlite)
      *     dsn: string       = void (valid dsn)
-     *     server: string    = void|127.0.0.1 (on mysql)
-     *     port: int         = void|3306 (on mysql)
-     *     password: string  = void (on mysql)
-     *     username: string  = void
+     *     server: string    = 127.0.0.1
+     *     port: int         = 3306
+     *     password: string  = null
+     *     username: string  = null
      *     dbname: string    = void
      *     location: string  = void (for sqlite driver)
-     *     attributes: array = void (map array attribute and its value)
-     *     commands: array   = void (commands after pdo creation)
+     *     option: array     = [] (A key=>value array of driver-specific connection options)
+     *     commands: array   = void (Commands to be executed)
      *     defaults: array   = void (defaults configuration)
      *
      * @param array $option
      * @return Sql
-     *
-     * @throws LogicException
      */
     public function setOption(array $option): Sql
     {
-        $option += ['debug' => false, 'log' => false, 'driver' => 'unknown'];
+        $defaults = [
+            'debug' => false,
+            'log' => false,
+            'server' => '127.0.0.1',
+            'port' => 3306,
+            'username' => null,
+            'password' => null,
+            'option' => [],
+            'commands' => [],
+        ];
+        $pattern = '/^.+?(?:dbname|database)=(.+?)(?=;|$)/is';
+        $use = $option + $defaults;
+        $dsn = $use['dsn'] ?? null;
+        $driver = strtolower($use['driver'] ?? 'unknown');
+        $driverDefaults = [
+            self::DB_MYSQL => ['option' => [
+                \PDO::MYSQL_ATTR_INIT_COMMAND => 'SET NAMES ' . strtolower(
+                    str_replace('-', '', $this->encoding)
+                ).';'
+            ]]
+        ];
 
-        if (empty($option['dsn'])) {
-            $driver = strtolower($option['driver']);
-
-            if ($driver === 'mysql') {
-                $option += [
-                    'server' => '127.0.0.1',
-                    'port' => 3306,
-                    'password' => null,
-                ];
-
-                if (
-                    empty($option['server'])
-                    || empty($option['username'])
-                    || empty($option['dbname'])
-                ) {
-                    throw new \LogicException('Invalid mysql driver configuration');
-                }
-
-                $option['dsn'] = 'mysql:host=' . $option['server'] .
-                                  ';port=' . $option['port'] .
-                                  ';dbname=' . $option['dbname'];
-            } elseif ($driver === 'sqlite') {
-                if (empty($option['location'])) {
-                    throw new \LogicException('Invalid sqlite driver configuration');
-                }
-
-                // location can be full filepath or :memory:
-                $option['dsn'] = 'sqlite:' . $option['location'];
-            } else {
-                throw new \LogicException(
-                    'Currently, there is no logic for ' . $driver .
-                    ' DSN creation, please provide a valid one'
-                );
-            }
-        } elseif (
-            empty($option['dbname'])
-            && preg_match('/^.+?(?:dbname|database)=(.+?)(?=;|$)/is', $option['dsn'], $parts)
-        ) {
-            $option['dbname'] = $parts[1];
+        if (empty($dsn)) {
+            $use['dsn'] = $this->createDsn($driver, $use);
+        } elseif (preg_match($pattern, $dsn, $match)) {
+            $driver = $use['driver'] ?? strstr($dsn, ':', true);
+            $use['dbname'] = $use['dbname'] ?? $match[1];
+            $use['driver'] = $driver;
         }
 
-        $this->option = $option;
+        $this->option = array_replace_recursive($driverDefaults[$driver] ?? [], $use);
+        $this->original = $option;
         $this->pdo = null;
-        $this->driverName = null;
-        $this->driverVersion = null;
+        $this->driver = null;
+        $this->version = null;
         $this->trans = null;
 
         return $this;
@@ -157,19 +221,11 @@ class Sql implements DatabaseInterface
         $o = $this->option;
 
         try {
-            $pdo = new \PDO($o['dsn'], $o['username'] ?? null, $o['password'] ?? null);
+            $this->pdo = new \PDO($o['dsn'], $o['username'], $o['password'], $o['option']);
 
-            foreach ($o['attributes'] ?? [] as $attribute => $value) {
-                $pdo->setAttribute($attribute, $value);
+            foreach ((array) $o['commands'] as $cmd) {
+                $this->pdo->exec($cmd);
             }
-
-            $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
-
-            foreach ($o['commands'] ?? [] as $command) {
-                $pdo->exec($command);
-            }
-
-            $this->pdo = $pdo;
         } catch (\PDOException $e) {
             if ($o['debug']) {
                 throw $e;
@@ -182,43 +238,67 @@ class Sql implements DatabaseInterface
     }
 
     /**
-     * Check if table exists
+     * Map data type of argument to a PDO constant
      *
-     * @param  string $table
-     * @param  int    $ttl
+     * @param  mixed $val
      *
-     * @return bool
+     * @return mixed
      */
-    public function isTableExists(string $table, int $ttl = 0): bool
+    public function type($val)
     {
-        $res = $this->run('SELECT 1 FROM ' . $this->quotekey($table), null, $ttl);
+        static $types = [
+            'NULL' => \PDO::PARAM_NULL,
+            'boolean' => \PDO::PARAM_BOOL,
+            'integer' => \PDO::PARAM_INT,
+            'resource' => \PDO::PARAM_LOB,
+            'float' => self::PARAM_FLOAT,
+            'double' => self::PARAM_FLOAT,
+            'default' => \PDO::PARAM_STR,
+        ];
 
-        return $res['success'];
+        return $types[gettype($val)] ?? $types['default'];
     }
 
     /**
-     * Perform self::run in sequence
+     * Real PDO type
      *
-     * @param  array $queries       [[sql, params, ttl]]
-     * @param  bool  $stopOnFailure
+     * @param  mixed $val
+     * @param  mixed &$type
      *
-     * @return array
+     * @return mixed
      */
-    public function runAll(array $queries, bool $stopOnFailure = true): array
+    public function realType($val, $type = null)
     {
-        $result = [];
+        $use = $type ?? $this->type($val);
 
-        foreach ($queries as $query) {
-            $res = $this->run(...$query);
-            $result[] = $res['data'];
-            $this->error($res);
+        return $use === self::PARAM_FLOAT ? \PDO::PARAM_STR : $use;
+    }
 
-            if ($stopOnFailure && !$res['success']) {
-                break;
-            }
+    /**
+     * Cast value to PHP type
+     *
+     * @param  mixed $type
+     * @param  mixed $val
+     *
+     * @return mixed
+     */
+    public function value($type, $val)
+    {
+        if ($type === self::PARAM_FLOAT) {
+            return is_string($val) ? $val : str_replace(',', '.', $val);
+        } elseif ($type === \pdo::PARAM_NULL) {
+            return NULL;
+        } elseif ($type === \pdo::PARAM_INT) {
+            return (int) $val;
+        } elseif ($type === \pdo::PARAM_BOOL) {
+            return (bool) $val;
+        } elseif ($type === \pdo::PARAM_STR) {
+            return (string) $val;
+        } elseif ($type === \pdo::PARAM_LOB) {
+            return (binary) $val;
+        } else {
+            return $val;
         }
-
-        return $result;
     }
 
     /**
@@ -344,129 +424,25 @@ class Sql implements DatabaseInterface
     }
 
     /**
-     * {@inheritdoc}
+     * Get table schema
+     *
+     * @param  string      $table
+     * @param  array|null  $fields
+     * @param  int         $ttl
+     *
+     * @return array       ['field'=>['type'=>string,'pdo_type'=>string,'default'=>mixed,'nullable'=>bool,'pkey'=>bool]]
      */
-    public function getDriverName(): string
-    {
-        return $this->driverName ?? $this->pdo()->getAttribute(\PDO::ATTR_DRIVER_NAME);
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function getDriverVersion(): string
-    {
-        return $this->driverVersion ?? $this->pdo()->getAttribute(\PDO::ATTR_SERVER_VERSION);
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function getLogs(): array
-    {
-        return $this->logs;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function getErrors(): array
-    {
-        return $this->errors;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function getSchema(string $table, array $fields = null, int $ttl = 0): array
+    public function schema(string $table, array $fields = null, int $ttl = 0): array
     {
         if ($ttl && $this->cache->isCached($hash, $data, 'schema', $table, $fields)) {
             return $data[0];
         }
 
         if (strpos($table, '.')) {
-            list($schemaName, $table) = explode('.', $table);
+            list($db, $table) = explode('.', $table);
         }
 
-        // Supported engines
-        $cmdPattern = <<<PTRN
-/^(?:
-    (sqlite2?)|
-    (mysql)|
-    (mssql|sqlsrv|sybase|dblib|pgsql|odbc)|
-    (oci)
-)$/x
-PTRN;
-        $driver = $this->getDriverName();
-        $qtable = $this->quotekey($table);
-        $dbname = $schemaName ?? $this->option['dbname'] ?? '';
-
-        if ($dbname) {
-            $dbname = $this->quotekey($dbname);
-        }
-
-        preg_match($cmdPattern, $driver, $match);
-
-        // @codeCoverageIgnoreStart
-        if (isset($match[1]) && $match[1]) {
-            $cmd = [
-                'PRAGMA table_info(' . $qtable. ')',
-                'name', 'type', 'dflt_value', 'notnull', 0, 'pk', TRUE,
-            ];
-        } elseif (isset($match[2]) && $match[2]) {
-            $cmd = [
-                'SHOW columns FROM ' . $dbname . '.' . $qtable,
-                'Field', 'Type', 'Default', 'Null', 'YES', 'Key', 'PRI',
-            ];
-        } elseif (isset($match[3]) && $match[3]) {
-            $cmd = [
-                'SELECT '.
-                    'C.COLUMN_NAME AS field,' .
-                    'C.DATA_TYPE AS type,' .
-                    'C.COLUMN_DEFAULT AS defval,' .
-                    'C.IS_NULLABLE AS nullable,' .
-                    'T.CONSTRAINT_TYPE AS pkey ' .
-                'FROM INFORMATION_SCHEMA.COLUMNS AS C ' .
-                'LEFT OUTER JOIN ' .
-                    'INFORMATION_SCHEMA.KEY_COLUMN_USAGE AS K ' .
-                    'ON ' .
-                        'C.TABLE_NAME=K.TABLE_NAME AND ' .
-                        'C.COLUMN_NAME=K.COLUMN_NAME AND ' .
-                        'C.TABLE_SCHEMA=K.TABLE_SCHEMA ' .
-                        ($dbname ? 'AND C.TABLE_CATALOG=K.TABLE_CATALOG ' : '').
-                'LEFT OUTER JOIN ' .
-                    'INFORMATION_SCHEMA.TABLE_CONSTRAINTS AS T ON ' .
-                        'K.TABLE_NAME=T.TABLE_NAME AND ' .
-                        'K.CONSTRAINT_NAME=T.CONSTRAINT_NAME AND ' .
-                        'K.TABLE_SCHEMA=T.TABLE_SCHEMA ' .
-                        ($dbname ? 'AND K.TABLE_CATALOG=T.TABLE_CATALOG ' : '') .
-                'WHERE ' .
-                    'C.TABLE_NAME=' . $qtable .
-                    ($dbname ? ' AND C.TABLE_CATALOG=' . $qtable : ''),
-                'field', 'type', 'defval', 'nullable', 'YES', 'pkey', 'PRIMARY KEY',
-            ];
-        } elseif (isset($match[4]) && $match[4]) {
-            $cmd = [
-                'SELECT c.column_name AS field, ' .
-                    'c.data_type AS type, ' .
-                    'c.data_default AS defval, ' .
-                    'c.nullable AS nullable, ' .
-                    '(SELECT t.constraint_type ' .
-                        'FROM all_cons_columns acc' .
-                        ' LEFT OUTER JOIN all_constraints t' .
-                        ' ON acc.constraint_name=t.constraint_name' .
-                        ' WHERE acc.table_name=' . $qtable .
-                        ' AND acc.column_name=c.column_name' .
-                        ' AND constraint_type=' . $this->quote('P') . ') AS pkey '.
-                'FROM all_tab_cols c ' .
-                'WHERE c.table_name=' . $qtable,
-                'FIELD', 'TYPE', 'DEFVAL', 'NULLABLE', 'Y', 'PKEY', 'P',
-            ];
-        } else {
-            throw new \DomainException('Driver ' . $driver . ' is not supported');
-        }
-        // @codeCoverageIgnoreEnd
-
+        $cmd = $this->schemaCmd($table, $db ?? $this->option['dbname'] ?? '');
         $query = $this->pdo()->query($cmd[0]);
         $schema = $query->fetchAll(\PDO::FETCH_ASSOC);
         $rows = [];
@@ -478,7 +454,10 @@ PTRN;
 
             $rows[$row[$cmd[1]]] = [
                 'type' => $row[$cmd[2]],
-                'default' => $row[$cmd[3]],
+                'pdo_type' => $this->pdoType($row[$cmd[2]]),
+                'default' => is_string($row[$cmd[3]]) ?
+                    preg_replace('/^\s*([\'"])(.*)\1\s*/', '\2', $row[$cmd[3]]) :
+                    $row[$cmd[3]],
                 'nullable' => $row[$cmd[4]] == $cmd[5],
                 'pkey' => $row[$cmd[6]] == $cmd[7],
             ];
@@ -493,27 +472,22 @@ PTRN;
     }
 
     /**
-     * {@inheritdoc}
+     * Get quote char (open and close)
+     *
+     * @return array
      */
     public function getQuote(): array
     {
         $quotes = [
-            '``' => 'sqlite2?|mysql',
-            '""' => 'pgsql|oci',
-            '[]' => 'mssql|sqlsrv|odbc|sybase|dblib',
+            '``' => [self::DB_SQLITE, self::DB_SQLITE2, self::DB_MYSQL],
+            '""' => [self::DB_PGSQL, self::DB_OCI],
+            '[]' => [self::DB_MSSQL, self::DB_SQLSRV, self::DB_ODBC, self::DB_SYBASE, self::DB_DBLIB],
         ];
+        $driver = $this->getDriver();
 
-        preg_match(
-            '/^(?:(' . implode(')|(', $quotes) . '))$/',
-            $this->getDriverName(),
-            $match
-        );
-
-        foreach ($match as $key => $part) {
-            if ($key > 0 && $part) {
-                $keys = array_keys($quotes);
-
-                return str_split($keys[$key - 1]);
+        foreach ($quotes as $quote => $engines) {
+            if (in_array($driver, $engines)) {
+                return str_split($quote);
             }
         }
 
@@ -521,7 +495,30 @@ PTRN;
     }
 
     /**
-     * {@inheritdoc}
+     * Quote string
+     *
+     * @param  string $val
+     * @param  mixed  $type
+     *
+     * @return string
+     */
+    public function quote($val, $type = null): string
+    {
+        switch ($this->getDriver()) {
+            case self::DB_ODBC:
+                return is_string($val) ? stringify(str_replace('\'', '\'\'', $val)) : (string) $val;
+            default:
+                return $this->pdo()->quote($val, $type ?? \PDO::PARAM_STR);
+        }
+    }
+
+    /**
+     * Return quoted identifier name
+     *
+     * @param  string  $key
+     * @param  boolean $split
+     *
+     * @return string
      */
     public function quotekey(string $key, bool $split = true): string
     {
@@ -529,7 +526,9 @@ PTRN;
     }
 
     /**
-     * {@inheritdoc}
+     * Open transaction
+     *
+     * @return bool
      */
     public function begin(): bool
     {
@@ -540,7 +539,9 @@ PTRN;
     }
 
     /**
-     * {@inheritdoc}
+     * Commit and close transaction
+     *
+     * @return bool
      */
     public function commit(): bool
     {
@@ -551,7 +552,9 @@ PTRN;
     }
 
     /**
-     * {@inheritdoc}
+     * Roolback and close transaction
+     *
+     * @return bool
      */
     public function rollback(): bool
     {
@@ -562,7 +565,9 @@ PTRN;
     }
 
     /**
-     * {@inheritdoc}
+     * Get transaction status
+     *
+     * @return bool
      */
     public function isTrans(): bool
     {
@@ -570,272 +575,379 @@ PTRN;
     }
 
     /**
-     * {@inheritdoc}
+     * Exec command(s)
+     *
+     * @param  string|array $cmds
+     * @param  mixed        $args
+     * @param  int          $ttl
+     *
+     * @return mixed
+     *
+     * @throws LogicException If commands resulting error
      */
-    public function run(string $sql, array $params = null, int $ttl = 0): array
+    public function exec($cmds, $args = null, int $ttl = 0)
     {
-        if ($ttl && $this->cache->isCached($hash, $data, 'sql', $sql, $params)) {
-            return $data[0];
+        $res = [];
+        $auto = false;
+        $count = 1;
+        $one = true;
+        $driver = $this->getDriver();
+        $fetchPattern = [
+            '/(?:^[\s\(]*(?:EXPLAIN|SELECT|PRAGMA|SHOW)|RETURNING)\b/is',
+            '/^\s*(?:CALL|EXEC)\b/is',
+        ];
+
+        if (is_null($args)) {
+            $args = [];
+        } elseif (is_scalar($args)) {
+            $args = [1 => $args];
         }
 
-        $this->log($sql, $params);
+        if (is_array($cmds)) {
+            $count = count($cmds);
+            $one = $count === 1;
 
-        $params = (array) $params;
-        $one = is_scalar(reset($params));
-        $data = [];
-        $safe = '00000';
-
-        try {
-            $query = $this->pdo()->prepare($sql);
-            $fetch = (bool) preg_match(
-                '/(?:^[\s\(]*(?:EXPLAIN|SELECT|PRAGMA|SHOW)|RETURNING)\b/is',
-                $sql
-            );
-            $error = [$safe,null,null];
-            $use = $error;
-
-            foreach ($one ? [$params] : $params as $param) {
-                $res = $query->execute($param);
-                $error = $query->errorCode() === $safe ? $use : $query->errorInfo();
-                $data[] = $fetch ? $query->fetchAll(\PDO::FETCH_ASSOC) : $res;
+            if (count($args) < $count) {
+                // Apply arguments to SQL commands
+                $args = array_fill(0, $count, $args);
             }
-        } catch (\PDOException $e) {
-            $error = $e->errorInfo;
-            $ttl = 0;
-        }
 
-        $result = [
-            'success' => $error[0] === $safe,
-            'error' => $error,
-            'data' => $one && $data ? $data[0] : $data,
-        ];
-
-        if ($ttl) {
-            $this->cache->set($hash, $result, $ttl);
-        }
-
-        return $result;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function select(string $table, $filter = null, array $option = null, int $ttl = 0): array
-    {
-        $use = ($option ?? []) + [
-            'column' => null,
-            'group' => null,
-            'having' => null,
-            'order' => null,
-            'limit' => 0,
-            'offset' => 0,
-        ];
-
-        $param = [];
-        $sql = 'SELECT ';
-
-        if (is_array($use['column'])) {
-            $sql .= implode(',', array_map([$this, 'quotekey'], $use['column']));
+            if (!$this->trans) {
+                $this->begin();
+                $auto = true;
+            }
         } else {
-            $sql .= $use['column'] ?? '*';
+            $cmds = [$cmds];
+            $args = [$args];
         }
 
-        $sql .= ' FROM ' . $table;
+        $this->pdo();
 
-        $f = $this->filter($filter);
-        if ($f) {
-            $sql .= ' WHERE ' . array_shift($f);
-            $param = array_merge($param, $f);
-        }
+        for ($i = 0; $i < $count; $i++) {
+            $cmd = $cmds[$i];
+            $arg = $args[$i];
+            $start = microtime(true);
 
-        if ($use['group']) {
-            $sql .= ' GROUP BY ' . $use['group'];
-        }
-
-        $f = $this->filter($use['having']);
-        if ($f) {
-            $sql .= ' HAVING ' . array_shift($f);
-            $param = array_merge($param, $f);
-        }
-
-        if ($use['order']) {
-            $sql .= ' ORDER BY ' . $use['order'];
-        }
-
-        if ($use['limit']) {
-            $sql .= ' LIMIT ' . max(0, $use['limit']);
-
-            if ($use['offset']) {
-                $sql .= ' OFFSET ' . max(0, $use['offset']);
+            if (!preg_replace('/(^\s+|[\s;]+$)/', '', $cmd)) {
+                continue;
             }
-        }
 
-        $res = $this->run($sql, $param, $ttl);
-        $this->error($res);
+            // ensure 1-based arguments
+            if (array_key_exists(0, $arg)) {
+                array_unshift($arg, '');
+                unset($arg[0]);
+            }
 
-        return $res['data'];
-    }
+            if ($ttl && $this->cache->isCached($hash, $data, 'sql', $cmd, $arg)) {
+                $this->log($cmd, $arg, $start, false, true);
+                $res[$i] = $data[0];
 
-    /**
-     * {@inheritdoc}
-     */
-    public function selectOne(string $table, $filter = null, array $option = null, int $ttl = 0): array
-    {
-        $res = $this->select($table, $filter, ['limit'=>1] + (array) $option, $ttl);
+                continue;
+            }
 
-        return $res[0] ?? [];
-    }
+            $query = $this->pdo->prepare($cmd);
+            $error = $this->pdo->errorinfo();
 
-    /**
-     * {@inheritdoc}
-     */
-    public function insert(string $table, array $data): string
-    {
-        $len = -1;
-        $param = [];
-        $sql = 'INSERT INTO ' . $this->quotekey($table) . '(';
+            if (!is_object($query) || ($error && $error[0] !== \PDO::ERR_NONE)) {
+                // PDO-level error occurred
+                if ($this->trans) {
+                    $this->rollback();
+                }
 
-        foreach ($data as $key => $value) {
-            $sql .= $this->quotekey($key) . ', ';
-            $param[] = $value;
-            $len++;
-        }
+                throw new \LogicException('PDO: ' . $error[2]);
+            }
 
-        $sql = rtrim($sql, ', ') . ') VALUES (' . str_repeat('?, ', $len) . '?)';
-        $res = $this->run($sql, $param);
-        $this->error($res);
+            foreach ($arg as $key => $val) {
+                if (is_array($val)) {
+                    // User-specified data type
+                    $query->bindvalue($key, $val[0], $this->realType(null, $val[1]));
+                } else {
+                    // Convert to PDO data type
+                    $query->bindvalue($key, $val, $this->realType($val));
+                }
+            }
 
-        return $res['success'] ? $this->pdo()->lastInsertId() : '0';
-    }
+            $this->log($cmd, $arg);
+            $query->execute();
+            $this->log($cmd, $arg, $start, true);
 
-    /**
-     * {@inheritdoc}
-     */
-    public function update(string $table, array $data, $filter): bool
-    {
-        $sql = 'UPDATE ' . $this->quotekey($table) . ' SET ';
-        $param = [];
+            $error = $query->errorinfo();
 
-        foreach ($data as $key => $value) {
-            if (is_array($value)) {
-                // raw
-                $sql .= reset($value) . ', ';
+            if ($error && $error[0] !== \PDO::ERR_NONE) {
+                // Statement-level error occurred
+                if ($this->trans) {
+                    $this->rollback();
+                }
+
+                throw new \LogicException('PDOStatement: ' . $error[2]);
+            }
+
+            if (preg_match($fetchPattern[0], $cmd) || (preg_match($fetchPattern[1], $cmd) && $query->columnCount())) {
+                $res[$i] = $query->fetchall(\PDO::FETCH_ASSOC);
+
+                // Work around SQLite quote bug
+                if (in_array($driver, [self::DB_SQLITE, self::DB_SQLITE2])) {
+                    foreach ($res[$i] as $pos => $rec) {
+                        unset($res[$i][$pos]);
+                        $res[$i][$pos] = [];
+                        foreach ($rec as $key => $val) {
+                            $res[$i][$pos][trim($key, '\'"[]`')] = $val;
+                        }
+                    }
+                }
+
+                $this->rows = count($res[$i]);
+
+                if ($ttl) {
+                    // Save to cache backend
+                    $this->cache->set($hash, $res[$i], $ttl);
+                }
             } else {
-                $k = ':u_' . $key;
-                $sql .= $this->quotekey($key) . ' = ' . $k . ', ';
-                $param[$k] = $value;
+                $this->rows = $res[$i] = $query->rowcount();
             }
+
+            $query->closecursor();
+            unset($query);
         }
 
-        $sql = rtrim($sql, ', ');
-
-        $f = $this->filter($filter);
-        if ($f) {
-            $sql .= ' WHERE ' . array_shift($f);
-            $param = array_merge($param, $f);
+        if ($this->trans && $auto) {
+            $this->commit();
         }
 
-        $res = $this->run($sql, $param);
-        $this->error($res);
-
-        return $res['success'];
+        return $one ? $res[0] ?? null : $res;
     }
 
     /**
-     * {@inheritdoc}
-     */
-    public function delete(string $table, $filter): bool
-    {
-        $sql = 'DELETE FROM ' . $this->quotekey($table);
-        $param = [];
-
-        $f = $this->filter($filter);
-        if ($f) {
-            $sql .= ' WHERE ' . array_shift($f);
-            $param = array_merge($param, $f);
-        }
-
-        $res = $this->run($sql, $param);
-        $this->error($res);
-
-        return $res['success'];
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function count(string $table, $filter = null, array $option = null, int $ttl = 0): int
-    {
-        $res = $this->select(
-            $table,
-            $filter,
-            ['column' => 'count(*) as ' . $this->quotekey('c')] + (array) $option,
-            $ttl
-        );
-
-        return (int) ($res[0]['c'] ?? 0);
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function paginate(
-        string $table,
-        int $page = 1,
-        $filter = null,
-        array $option = null,
-        int $ttl = 0
-    ): array {
-        $use = (array) $option;
-        $limit = $use['limit'] ?? $this->option['defaults']['pagination'] ?? 10;
-        $total = $this->count($table, $filter, $option, $ttl);
-        $pages = (int) ceil($total / $limit);
-        $subset = [];
-        $start = 0;
-        $end = 0;
-
-        if ($page > 0) {
-            $offset = ($page - 1) * $limit;
-            $subset = $this->select(
-                $table,
-                $filter,
-                compact('limit','offset') + $use,
-                $ttl
-            );
-            $start = $offset + 1;
-            $end = $offset + count($subset);
-        }
-
-        return compact('subset', 'total', 'pages', 'page', 'start', 'end');
-    }
-
-    /**
-     * Log error result
+     * Get log
      *
-     * @param  array $data
-     *
-     * @return void
+     * @return string
      */
-    protected function error(array $data): void
+    public function getLog(): string
     {
-        if (!$data['success']) {
-            $this->errors[] = $data['error'];
-        }
+        return $this->log;
     }
 
     /**
-     * Log sql and param
+     * Get affected rows/row count affected by last query
+     *
+     * @return int
+     */
+    public function getRows(): int
+    {
+        return $this->rows;
+    }
+
+    /**
+     * Check if table exists
+     *
+     * @param  string $table
+     *
+     * @return bool
+     */
+    public function exists(string $table): bool
+    {
+        $mode = $this->pdo()->getAttribute(\PDO::ATTR_ERRMODE);
+        $this->pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_SILENT);
+        $out = $this->pdo->query('SELECT 1 FROM ' . $this->quotekey($table).' LIMIT 1');
+        $this->pdo->setAttribute(\PDO::ATTR_ERRMODE, $mode);
+
+        return is_object($out);
+    }
+
+    /**
+     * Log sql and arg
      *
      * @param  string $sql
-     * @param  array  $param
+     * @param  array  $arg
+     * @param  float  $start
+     * @param  bool   $replace
+     * @param  bool   $cached
      *
      * @return void
      */
-    protected function log(string $sql, array $param = null): void
+    protected function log(string $sql, array $arg, float $start = 0, bool $replace = false, bool $cached = false): void
     {
-        if ($this->option['log']) {
-            $this->logs[] = [$sql, $param];
+        if (!$this->option['log']) {
+            return;
         }
+
+        $keys = $vals = [];
+        $time = '(' . ($start ? sprintf('%.1f', 1e3* (microtime(true) - $start)) : '-0') . 'ms)';
+
+        foreach ($arg as $key => $val) {
+            if (is_array($val)) {
+                // User-specified data type
+                $vals[] = stringify($cached ? $val[0] : $this->value($val[1], $val[0]));
+            } else {
+                $vals[] = stringify($cached ? $val : $this->value($this->realType($val), $val));
+            }
+            $keys[] = '/' . preg_quote(is_numeric($key) ? chr(0) . '?' : $key) . '/';
+        }
+
+        if ($replace) {
+            $this->log = str_replace('(-0ms)', $time, $this->log);
+        } else {
+            $this->log .= date('r') . ' ' . $time . ' ' .
+                        ($cached ? '[CACHED] ' : '') .
+                        preg_replace($keys, $vals, str_replace('?', chr(0) . '?', $sql), 1) .
+                        PHP_EOL;
+        }
+    }
+
+    /**
+     * Create pdo dsn
+     *
+     * @param  string $driver
+     * @param  array  $option
+     *
+     * @return string
+     *
+     * @throws LogicException
+     */
+    protected function createDsn(string $driver, array $option): string
+    {
+        switch ($driver) {
+            case self::DB_MYSQL:
+                if (isset($option['server'], $option['username'], $option['dbname'])) {
+                    return
+                        $driver .
+                        ':host=' . $option['server'] .
+                        ';port=' . $option['port'] .
+                        ';dbname=' . $option['dbname'];
+                }
+
+                $error = 'Invalid mysql driver configuration';
+                break;
+
+            case self::DB_SQLITE:
+            case self::DB_SQLITE2:
+                if (isset($option['location'])) {
+                    // location can be full filepath or :memory:
+                    return $driver . ':' . $option['location'];
+                }
+
+                $error = 'Invalid sqlite driver configuration';
+                break;
+        }
+
+        throw new \LogicException( $error ??
+            'There is no logic for ' . $driver .
+            ' DSN creation, please provide a valid one'
+        );
+    }
+
+    /**
+     * String sql data type to PDO data type
+     *
+     * @param  string $type
+     *
+     * @return mixed
+     */
+    protected function pdoType(string $type)
+    {
+        // Data types
+        static $types = [
+            'int' => \PDO::PARAM_INT,
+            'integer' => \PDO::PARAM_INT,
+            'bool' => \PDO::PARAM_BOOL,
+            'blob' => \PDO::PARAM_LOB,
+            'bytea' => \PDO::PARAM_LOB,
+            'image' => \PDO::PARAM_LOB,
+            'binary' => \PDO::PARAM_LOB,
+            'float' => self::PARAM_FLOAT,
+            'real' => self::PARAM_FLOAT,
+            'double' => self::PARAM_FLOAT,
+            'decimal' => self::PARAM_FLOAT,
+            'numeric' => self::PARAM_FLOAT,
+            'default' => \PDO::PARAM_STR,
+        ];
+
+        return $types[strtolower($type)] ?? $types['default'];
+    }
+
+    /**
+     * Get schema command
+     *
+     * @param  string $table
+     * @param  string $dbname
+     *
+     * @return array
+     *
+     * @throws LogicException
+     */
+    protected function schemaCmd(string $table, string $dbname): array
+    {
+        // Supported engines
+        static $groups = [
+            1 => [self::DB_SQLITE, self::DB_SQLITE2],
+            [self::DB_MYSQL],
+            [self::DB_MSSQL, self::DB_SQLSRV, self::DB_SYBASE, self::DB_DBLIB, self::DB_PGSQL, self::DB_ODBC],
+            [self::DB_OCI]
+        ];
+
+        $tbl = $this->quotekey($table);
+        $db = $dbname ? $this->quotekey($dbname) : '';
+        $cmds = [
+            1 => [
+                'PRAGMA table_info(' . $tbl. ')',
+                'name', 'type', 'dflt_value', 'notnull', 0, 'pk', true,
+            ],
+            [
+                'SHOW columns FROM ' . $db . '.' . $tbl,
+                'Field', 'Type', 'Default', 'Null', 'YES', 'Key', 'PRI',
+            ],
+            [
+                'SELECT '.
+                    'C.COLUMN_NAME AS field,' .
+                    'C.DATA_TYPE AS type,' .
+                    'C.COLUMN_DEFAULT AS defval,' .
+                    'C.IS_NULLABLE AS nullable,' .
+                    'T.CONSTRAINT_TYPE AS pkey ' .
+                'FROM INFORMATION_SCHEMA.COLUMNS AS C ' .
+                'LEFT OUTER JOIN ' .
+                    'INFORMATION_SCHEMA.KEY_COLUMN_USAGE AS K ' .
+                    'ON ' .
+                        'C.TABLE_NAME=K.TABLE_NAME AND ' .
+                        'C.COLUMN_NAME=K.COLUMN_NAME AND ' .
+                        'C.TABLE_SCHEMA=K.TABLE_SCHEMA ' .
+                        ($db ? 'AND C.TABLE_CATALOG=K.TABLE_CATALOG ' : '').
+                'LEFT OUTER JOIN ' .
+                    'INFORMATION_SCHEMA.TABLE_CONSTRAINTS AS T ON ' .
+                        'K.TABLE_NAME=T.TABLE_NAME AND ' .
+                        'K.CONSTRAINT_NAME=T.CONSTRAINT_NAME AND ' .
+                        'K.TABLE_SCHEMA=T.TABLE_SCHEMA ' .
+                        ($db ? 'AND K.TABLE_CATALOG=T.TABLE_CATALOG ' : '') .
+                'WHERE ' .
+                    'C.TABLE_NAME=' . $tbl .
+                    ($db ? ' AND C.TABLE_CATALOG=' . $tbl : ''),
+                'field', 'type', 'defval', 'nullable', 'YES', 'pkey', 'PRIMARY KEY',
+            ],
+            [
+                'SELECT c.column_name AS field, ' .
+                    'c.data_type AS type, ' .
+                    'c.data_default AS defval, ' .
+                    'c.nullable AS nullable, ' .
+                    '(SELECT t.constraint_type ' .
+                        'FROM all_cons_columns acc' .
+                        ' LEFT OUTER JOIN all_constraints t' .
+                        ' ON acc.constraint_name=t.constraint_name' .
+                        ' WHERE acc.table_name=' . $tbl .
+                        ' AND acc.column_name=c.column_name' .
+                        ' AND constraint_type=' . $this->quote('P') . ') AS pkey '.
+                'FROM all_tab_cols c ' .
+                'WHERE c.table_name=' . $tbl,
+                'FIELD', 'TYPE', 'DEFVAL', 'NULLABLE', 'Y', 'PKEY', 'P',
+            ],
+        ];
+        $driver = $this->getDriver();
+
+        foreach ($groups as $id => $members) {
+            if (in_array($driver, $members)) {
+                return $cmds[$id];
+            }
+        }
+
+        throw new \DomainException('Driver ' . $driver . ' is not supported');
     }
 
     /**

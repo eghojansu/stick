@@ -288,13 +288,12 @@ class Template
      *
      * @return bool
      */
-    public function hasMacro(string $file, string &$realpath = null): bool
+    public function macroExists(string $file, string &$realpath = null): bool
     {
+        $use = $this->aliases[$file] ?? $file;
+
         foreach ($this->macros as $rel) {
-            if (
-                $this->exists($rel . '/' . $file, $macro)
-                || $this->exists($rel . '/' . ($this->aliases[$file] ?? $file), $macro)
-            ) {
+            if ($this->exists($rel . '/' . $use, $macro)) {
                 $realpath = $macro;
 
                 return true;
@@ -387,10 +386,10 @@ class Template
      *
      * @throws BadFunctionCallException
      */
-    public function __call($method, $args)
+    public function __call($func, $args)
     {
-        $custom = $this->funcs[$method] ?? null;
-        $lib = __NAMESPACE__ . '\\' . $method;
+        $custom = $this->funcs[$func] ?? null;
+        $lib = __NAMESPACE__ . '\\' . $func;
 
         if ($custom) {
             // registered function
@@ -398,24 +397,24 @@ class Template
         } elseif (is_callable($lib)) {
             // try from library namespace
             return $lib(...$args);
-        } elseif (is_callable($method)) {
+        } elseif (is_callable($func)) {
             // from globals
-            return $method(...$args);
-        } elseif ($this->hasMacro($method, $filepath)) {
+            return $func(...$args);
+        } elseif ($this->macroExists($func, $filepath)) {
             // how use the macro is up to the creator
             // we only treat provided arguments with following logic:
             // call macro like other function call, ex: $this->macroname($arg1, $arg2, ...$argN)
             //   we map args into ['arg1'=>$arg1,'arg2'=>$arg2,...'argN'=>$argN]
             //   (the "arg" will be constant)
 
-            $use = [];
-            foreach ($args as $key => $value) {
-                $use['arg' . ($key + 1)] = $value;
+            if ($args) {
+                $keys = explode('|', 'arg' . implode('|arg', range(1, count($args))));
+                $args = array_combine($keys, $args);
             }
 
-            return trim($this->render($filepath, $use));
+            return trim($this->render($filepath, $args));
         }
 
-        throw new \BadFunctionCallException('Call to undefined function ' . $method);
+        throw new \BadFunctionCallException('Call to undefined function ' . $func);
     }
 }
