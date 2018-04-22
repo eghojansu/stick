@@ -196,22 +196,38 @@ SQL1
         $this->assertTrue($this->mapper->loadId(1)->loaded());
     }
 
-    public function testGetTrigger()
-    {
-        $this->assertEquals(null, $this->mapper->getTrigger('foo'));
-    }
-
-    public function testSetTrigger()
-    {
-        $func = function() {};
-        $this->assertEquals($func, $this->mapper->setTrigger('foo', $func)->getTrigger('foo'));
-    }
-
     public function testTrigger()
     {
-        $func = function() {};
         $this->assertFalse($this->mapper->trigger('foo'));
-        $this->assertTrue($this->mapper->setTrigger('foo', $func)->trigger('foo'));
+
+        $ctr = 0;
+        $target = 0;
+        $first = function() use (&$target, &$ctr) {
+            $target = 1;
+            $ctr++;
+        };
+        $second = function() use (&$target, &$ctr) {
+            $target = 2;
+
+            return true;
+        };
+        $this->mapper->addTrigger('foo', $first);
+        $this->mapper->addTrigger('foo', $second, true);
+        $this->assertFalse($this->mapper->trigger('foo'));
+        $this->assertEquals(2, $target);
+        $this->assertEquals(0, $ctr);
+
+        $target = 0;
+        $first = function() use (&$target) {
+            $target = 1;
+        };
+        $second = function() use (&$target) {
+            $target = 2;
+        };
+        $this->mapper->addTrigger('bar', $first);
+        $this->mapper->addTrigger('bar', $second, true);
+        $this->assertTrue($this->mapper->trigger('bar'));
+        $this->assertEquals(1, $target);
     }
 
     public function testArrayAccess()

@@ -107,17 +107,13 @@ abstract class AbstractMapper implements MapperInterface
     /**
      * {@inheritdoc}
      */
-    public function getTrigger(string $name): ?callable
+    public function addTrigger(string $name, callable $func, bool $first = false): MapperInterface
     {
-        return $this->trigger[$name] ?? null;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function setTrigger(string $name, callable $func): MapperInterface
-    {
-        $this->trigger[$name] = $func;
+        if ($first && isset($this->trigger[$name])) {
+            array_unshift($this->trigger[$name], $func);
+        } else {
+            $this->trigger[$name][] = $func;
+        }
 
         return $this;
     }
@@ -138,7 +134,13 @@ abstract class AbstractMapper implements MapperInterface
             return false;
         }
 
-        return call_user_func_array($this->trigger[$event], $args) === true ? false : true;
+        foreach ($this->trigger[$event] as $func) {
+            if (call_user_func_array($func, $args) === true) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**

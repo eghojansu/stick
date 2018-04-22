@@ -234,7 +234,7 @@ SQL1
 
     public function testInsertBeforeEvent()
     {
-        $this->mapper->setTrigger(MapperInterface::EVENT_BEFOREINSERT, function($mapper) {
+        $this->mapper->addTrigger(MapperInterface::EVENT_BEFOREINSERT, function($mapper) {
             // canceled
             $mapper->set('first_name', 'not ' . $mapper->get('first_name'));
         });
@@ -242,17 +242,17 @@ SQL1
         $this->assertEquals('not quux', $this->mapper->insert()->get('first_name'));
         $this->assertEquals(3, $this->mapper->count());
 
-        $this->mapper->setTrigger(MapperInterface::EVENT_BEFOREINSERT, function($mapper) {
+        $this->mapper->addTrigger(MapperInterface::EVENT_BEFOREINSERT, function($mapper) {
             // continue
             return true;
-        });
+        }, true);
         $this->assertEquals('not quux', $this->mapper->insert()->get('first_name'));
         $this->assertEquals(4, $this->mapper->count());
     }
 
     public function testInsertAfterEvent()
     {
-        $this->mapper->setTrigger(MapperInterface::EVENT_INSERT, function($mapper) {
+        $this->mapper->addTrigger(MapperInterface::EVENT_INSERT, function($mapper) {
             // canceled, but already inserted to db
             $mapper->set('first_name', 'not ' . $mapper->get('first_name'));
         });
@@ -285,7 +285,7 @@ SQL1
     public function testUpdateBeforeEvent()
     {
         $this->mapper->loadId(1);
-        $this->mapper->setTrigger(MapperInterface::EVENT_BEFOREUPDATE, function($mapper) {
+        $this->mapper->addTrigger(MapperInterface::EVENT_BEFOREUPDATE, function($mapper) {
             // canceled
             $mapper->set('first_name', 'not ' . $mapper->get('first_name'));
         });
@@ -298,10 +298,10 @@ SQL1
 
         // new test
         $this->mapper->loadId(2);
-        $this->mapper->setTrigger(MapperInterface::EVENT_BEFOREUPDATE, function($mapper) {
+        $this->mapper->addTrigger(MapperInterface::EVENT_BEFOREUPDATE, function($mapper) {
             // continue
             return true;
-        });
+        }, true);
         $this->mapper->set('first_name', 'quux');
         $this->assertEquals('quux', $this->mapper->update()->get('first_name'));
 
@@ -313,7 +313,7 @@ SQL1
     public function testUpdateAfterEvent()
     {
         $this->mapper->loadId(1);
-        $this->mapper->setTrigger(MapperInterface::EVENT_UPDATE, function($mapper) {
+        $this->mapper->addTrigger(MapperInterface::EVENT_UPDATE, function($mapper) {
             // canceled, but already updated to db
             $mapper->set('first_name', 'not ' . $mapper->get('first_name'));
         });
@@ -349,7 +349,7 @@ SQL1
     public function testDeleteBeforeEvent()
     {
         $this->mapper->loadId(1);
-        $this->mapper->setTrigger(MapperInterface::EVENT_BEFOREDELETE, function($mapper) {
+        $this->mapper->addTrigger(MapperInterface::EVENT_BEFOREDELETE, function($mapper) {
             // canceled
         });
         $this->assertEquals(0, $this->mapper->delete());
@@ -360,7 +360,7 @@ SQL1
 
         // new test
         $this->mapper->loadId(2);
-        $this->mapper->setTrigger(MapperInterface::EVENT_BEFOREDELETE, function($mapper) {
+        $this->mapper->addTrigger(MapperInterface::EVENT_BEFOREDELETE, function($mapper) {
             // continue
             return true;
         });
@@ -374,7 +374,7 @@ SQL1
     public function testDeleteAfterEvent()
     {
         $this->mapper->loadId(1);
-        $this->mapper->setTrigger(MapperInterface::EVENT_DELETE, function($mapper) {
+        $this->mapper->addTrigger(MapperInterface::EVENT_DELETE, function($mapper) {
             // canceled, but already deleted in db
         });
         $this->assertEquals(1, $this->mapper->delete());

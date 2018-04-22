@@ -284,21 +284,13 @@ interface MapperInterface extends \ArrayAccess
     public function reset(): MapperInterface;
 
     /**
-     * Get trigger
-     *
-     * @param string $name
-     *
-     * @return callable|null
-     */
-    public function getTrigger(string $name): ?callable;
-
-    /**
-     * Set trigger
+     * Add trigger
      *
      * @param string   $name
      * @param callable $func
+     * @param bool     $first
      *
      * @return MapperInterface
      */
-    public function setTrigger(string $name, callable $func): MapperInterface;
+    public function addTrigger(string $name, callable $func, bool $first = false): MapperInterface;
 }
