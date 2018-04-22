@@ -514,6 +514,6 @@ SQL1
 
         // reset
         $this->mapper->reset();
-        $this->assertEquals(1, $this->mapper->get('ctr'));
+        $this->assertEquals(2, $this->mapper->get('ctr'));
     }
 }
