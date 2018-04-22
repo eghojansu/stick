@@ -1449,12 +1449,7 @@ final class App implements \ArrayAccess
                     }
 
                     if (!is_callable($handler)) {
-                        if (is_array($handler)) {
-                            $this->error(404);
-                        } else {
-                            $info = stringify($handler);
-                            $this->error(500, 'Invalid method: ' . $info);
-                        }
+                        $this->error(405);
 
                         return;
                     }

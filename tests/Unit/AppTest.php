@@ -256,13 +256,13 @@ class AppTest extends TestCase
             ['GET invalidclass', 'regex/Not Found/', ['TEXT'=>'Not Found','PATH'=>'/invalidclass']],
 
             // invalid class method
-            ['GET invalidmethod', 'regex/Not Found/', ['TEXT'=>'Not Found','PATH'=>'/invalidmethod']],
+            ['GET invalidmethod', 'regex/Method Not Allowed/', ['TEXT'=>'Method Not Allowed','PATH'=>'/invalidmethod']],
 
             // invalid function
-            ['GET invalidfunction', 'regex/Internal Server Error/', ['TEXT'=>'Internal Server Error','PATH'=>'/invalidfunction']],
+            ['GET invalidfunction', 'regex/Method Not Allowed/', ['TEXT'=>'Method Not Allowed','PATH'=>'/invalidfunction']],
 
             // invalid callback
-            ['GET emptycallback', 'regex/Internal Server Error/', ['TEXT'=>'Internal Server Error','PATH'=>'/emptycallback']],
+            ['GET emptycallback', 'regex/Method Not Allowed/', ['TEXT'=>'Method Not Allowed','PATH'=>'/emptycallback']],
 
             // pure not found
             ['GET /none', 'regex/Not Found/', ['TEXT'=>'Not Found','ERROR.status'=>'Not Found','PATH'=>'/none']],
