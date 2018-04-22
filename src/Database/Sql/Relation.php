@@ -175,6 +175,16 @@ class Relation implements \Iterator, \Countable, \ArrayAccess
     }
 
     /**
+     * Ensure used mapper
+     *
+     * @return Mapper
+     */
+    protected function map(): Mapper
+    {
+        return $this->skip(0) ?? $this->target;
+    }
+
+    /**
      * Get current related mapper count
      *
      * @return int
@@ -243,9 +253,7 @@ class Relation implements \Iterator, \Countable, \ArrayAccess
      */
     public function offsetExists($offset)
     {
-        $current = $this->skip(0);
-
-        return $current ? $current->exists($offset) : false;
+        return $this->map()->exists($offset);
     }
 
     /**
@@ -257,9 +265,7 @@ class Relation implements \Iterator, \Countable, \ArrayAccess
      */
     public function offsetGet($offset)
     {
-        $current = $this->skip(0);
-
-        return $current ? $current->get($offset) : null;
+        return $this->map()->get($offset);
     }
 
     /**
@@ -272,11 +278,7 @@ class Relation implements \Iterator, \Countable, \ArrayAccess
      */
     public function offsetSet($offset, $value)
     {
-        $current = $this->skip(0);
-
-        if ($current) {
-            $current->set($offset, $value);
-        }
+        $this->map()->set($offset, $value);
     }
 
     /**
@@ -288,11 +290,7 @@ class Relation implements \Iterator, \Countable, \ArrayAccess
      */
     public function offsetUnset($offset)
     {
-        $current = $this->skip(0);
-
-        if ($current) {
-            $current->clear($offset);
-        }
+        $this->map()->clear($offset);
     }
 
     /**
@@ -342,5 +340,18 @@ class Relation implements \Iterator, \Countable, \ArrayAccess
     public function __unset($name)
     {
         $this->offsetUnset($name);
+    }
+
+    /**
+     * Proxy to mapper method
+     *
+     * @param  string $method
+     * @param  array  $args
+     *
+     * @return mixed
+     */
+    public function __call($method, array $args)
+    {
+        return $this->map()->$method(...$args) ;
     }
 }

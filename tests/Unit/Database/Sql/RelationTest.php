@@ -129,4 +129,14 @@ SQL1
         unset($this->relation->name);
         $this->assertEquals('bar', $this->relation->name);
     }
+
+    public function testMagicCall()
+    {
+        $this->assertEquals('user', $this->relation->getTable());
+
+        // call to target object
+        $this->ref->reset();
+        $this->assertEquals('user', $this->relation->getTable());
+        $this->assertEquals(1, $this->relation->get('friend_id'));
+    }
 }
