@@ -845,6 +845,7 @@ class Audit
      *
      * @throws DomainException
      * @throws ArgumentCountError
+     * @throws UnexpectedValueException
      */
     protected function execute(string $rule, array $args, array $audit)
     {
@@ -857,6 +858,8 @@ class Audit
             $func = false;
         } elseif (is_callable($rule)) {
             $ref = new \ReflectionFunction($rule);
+        } elseif (!$rule) {
+            throw new \UnexpectedValueException('Rule declaration is invalid');
         } else {
             throw new \DomainException('Rule "' . $rule . '" does not exists');
         }

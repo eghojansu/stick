@@ -284,6 +284,17 @@ SQL1
         ]);
     }
 
+    /**
+     * @expectedException UnexpectedValueException
+     * @expectedExceptionMessage Rule declaration is invalid
+     */
+    public function testValidateException3()
+    {
+        $this->audit->validate([], [
+            'foo' => 'foo[bar]'
+        ]);
+    }
+
     public function testPassword()
     {
         $this->assertTrue($this->audit->password('bar'));
