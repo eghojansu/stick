@@ -51,7 +51,7 @@ class Relation implements \Iterator, \Countable, \ArrayAccess
         $this->ref = $ref;
         $this->refId = $refId;
         $this->target = $target ?? (clone $ref)->reset();
-        $this->targetId = $targetId ?? $this->target->getTable() . '_' . $refId;
+        $this->targetId = $targetId ?? $ref->getTable() . '_id';
         $this->option = ((array) $option) + [
             'lookup' => null,
             'one' => $option['one'] ?? !isset($option['lookup']),
@@ -59,7 +59,7 @@ class Relation implements \Iterator, \Countable, \ArrayAccess
             'option' => [],
             'ttl' => 0,
             'refId' => $ref->getTable() . '_' . $refId,
-            'targetId' => $this->targetId,
+            'targetId' => $option['targetId'] ?? $this->target->getTable() . '_id',
         ];
         if ($this->option['one']) {
             $this->option['option']['limit'] = 1;
