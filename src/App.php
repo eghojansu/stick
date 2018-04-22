@@ -104,7 +104,6 @@ final class App implements \ArrayAccess
         $check = error_reporting((E_ALL|E_STRICT)&~(E_NOTICE|E_USER_NOTICE));
         ini_set('default_charset', $charset);
 
-        // @codeCoverageIgnoreStart
         if (function_exists('apache_setenv')) {
             // Work around Apache pre-2.4 VirtualDocumentRoot bug
             $_SERVER['DOCUMENT_ROOT'] = str_replace(
@@ -114,7 +113,6 @@ final class App implements \ArrayAccess
             );
             apache_setenv('DOCUMENT_ROOT', $_SERVER['DOCUMENT_ROOT']);
         }
-        // @codeCoverageIgnoreEnd
 
         $headers = [];
         foreach ($_SERVER as $key => $value) {
@@ -129,11 +127,9 @@ final class App implements \ArrayAccess
         $domain = $_SERVER['SERVER_NAME'] ?? gethostname();
         $method = strtoupper($headers['X-HTTP-Method-Override'] ?? $_SERVER['REQUEST_METHOD'] ?? 'GET');
 
-        // @codeCoverageIgnoreStart
         if ($method === 'POST' && isset($_POST['_method'])) {
             $method = strtoupper($_POST['_method']);
         }
-        // @codeCoverageIgnoreEnd
 
         if ($cli) {
             $method = 'GET';
@@ -298,7 +294,6 @@ final class App implements \ArrayAccess
         serialize(null, $this->hive['SERIALIZER']);
         unserialize(null, $this->hive['SERIALIZER']);
 
-        // @codeCoverageIgnoreStart
         if (PHP_SAPI === 'cli-server' && $base === $_SERVER['REQUEST_URI']) {
             $this->reroute('/');
         }
@@ -311,7 +306,6 @@ final class App implements \ArrayAccess
             // Error detected
             $this->error(500, 'Fatal error: ' . $error['message'], [$error]);
         }
-        // @codeCoverageIgnoreEnd
     }
 
     /**
@@ -328,8 +322,6 @@ final class App implements \ArrayAccess
      * Register error handler
      *
      * @return App
-     *
-     * @codeCoverageIgnore
      */
     public function registerErrorHandler(): App
     {
@@ -361,8 +353,6 @@ final class App implements \ArrayAccess
      * Register autoloader
      *
      * @return string
-     *
-     * @codeCoverageIgnore
      */
     public function registerAutoloader(): App
     {
@@ -1335,14 +1325,12 @@ final class App implements \ArrayAccess
      */
     public function run(): void
     {
-        // @codeCoverageIgnoreStart
         if ($this->blacklisted($this->hive['IP'])) {
             // Spammer detected
             $this->error(403);
 
             return;
         }
-        // @codeCoverageIgnoreEnd
 
         if (!$this->hive['ROUTES']) {
             // No routes defined
@@ -1715,8 +1703,6 @@ final class App implements \ArrayAccess
      * @param  string $cwd
      *
      * @return void
-     *
-     * @codeCoverageIgnore
      */
     public function unload(string $cwd): void
     {
@@ -1888,8 +1874,6 @@ final class App implements \ArrayAccess
      * @param  string $ip
      *
      * @return bool
-     *
-     * @codeCoverageIgnore
      */
     public function blacklisted(string $ip): bool
     {

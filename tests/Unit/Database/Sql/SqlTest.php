@@ -9,11 +9,11 @@
  * file that was distributed with this source code.
  */
 
-namespace Fal\Stick\Test\Unit\Database;
+namespace Fal\Stick\Test\Unit\Database\Sql;
 
 use function Fal\Stick\split;
 use Fal\Stick\Cache;
-use Fal\Stick\Database\Sql;
+use Fal\Stick\Database\Sql\Sql;
 use PHPUnit\Framework\TestCase;
 
 class SqlTest extends TestCase

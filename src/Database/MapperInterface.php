@@ -267,14 +267,14 @@ interface MapperInterface extends \ArrayAccess
      *
      * @return bool
      */
-    public function dry(): bool;
+    public function unloaded(): bool;
 
     /**
      * Dry complement
      *
      * @return bool
      */
-    public function valid(): bool;
+    public function loaded(): bool;
 
     /**
      * Reset cursor

@@ -9,16 +9,17 @@
  * file that was distributed with this source code.
  */
 
-namespace Fal\Stick\Test\Unit\Database;
+namespace Fal\Stick\Test\Unit\Database\Sql;
 
 use Fal\Stick\Cache;
 use Fal\Stick\Database\MapperInterface;
-use Fal\Stick\Database\Sql;
-use Fal\Stick\Database\SqlMapper;
+use Fal\Stick\Database\Sql\Mapper;
+use Fal\Stick\Database\Sql\Relation;
+use Fal\Stick\Database\Sql\Sql;
 use Fal\Stick\Test\fixture\classes\UserMapper;
 use PHPUnit\Framework\TestCase;
 
-class SqlMapperTest extends TestCase
+class MapperTest extends TestCase
 {
     private $expected = [
         'r1' => ['id'=>'1','first_name'=>'foo','last_name'=>null,'active'=>'1'],
@@ -106,7 +107,7 @@ SQL1
             ],
         ]);
 
-        $use = $mapper ?? SqlMapper::class;
+        $use = $mapper ?? Mapper::class;
 
         $this->mapper = new $use($database, $mapper ? null : 'user_mapper');
     }
@@ -492,19 +493,6 @@ SQL1
         $this->mapper->clear('bar');
     }
 
-    public function testMagicLoad()
-    {
-        $this->mapper->loadByFirstName('bar');
-        $this->assertEquals(2, $this->mapper->get('id'));
-        $this->assertEquals('bar', $this->mapper->get('first_name'));
-    }
-
-    /** @expectedException BadMethodCallException */
-    public function testMagicLoadParent()
-    {
-        $this->mapper->undefinedMethod();
-    }
-
     public function testCustomMapper()
     {
         $this->build(null, null, UserMapper::class);
@@ -515,5 +503,10 @@ SQL1
         // reset
         $this->mapper->reset();
         $this->assertEquals(2, $this->mapper->get('ctr'));
+    }
+
+    public function testCreateRelation()
+    {
+        $this->assertInstanceOf(Relation::class, $this->mapper->createRelation());
     }
 }

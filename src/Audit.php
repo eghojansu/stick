@@ -104,9 +104,7 @@ class Audit
      */
     public function exists($val, string $table, string $column): bool
     {
-        $mapper = $this->app->service('mapper')->withTable($table)->findOne([$column=>$val]);
-
-        return $mapper ? $mapper->valid() : false;
+        return is_object($this->app->service('mapper')->withTable($table)->findOne([$column=>$val]));
     }
 
     /**

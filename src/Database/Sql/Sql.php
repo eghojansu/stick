@@ -1,6 +1,15 @@
 <?php declare(strict_types=1);
 
-namespace Fal\Stick\Database;
+/**
+ * This file is part of the eghojansu/stick library.
+ *
+ * (c) Eko Kurniawan <ekokurniawanbs@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
+namespace Fal\Stick\Database\Sql;
 
 use function Fal\Stick\quote;
 use function Fal\Stick\quoteAll;
@@ -8,6 +17,9 @@ use function Fal\Stick\startswith;
 use function Fal\Stick\stringify;
 use Fal\Stick\Cache;
 
+/**
+ * PDO Wrapper
+ */
 class Sql
 {
     /** Supported database engine name */

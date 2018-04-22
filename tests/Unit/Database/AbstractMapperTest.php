@@ -13,14 +13,14 @@ namespace Fal\Stick\Test\Unit\Database;
 
 use function Fal\Stick\split;
 use Fal\Stick\Cache;
-use Fal\Stick\Database\Sql;
-use Fal\Stick\Database\SqlMapper;
+use Fal\Stick\Database\Sql\Sql;
+use Fal\Stick\Database\Sql\Mapper;
 use PHPUnit\Framework\TestCase;
 
 /**
  * Testing abstract mapper methods
  */
-class MapperTest extends TestCase
+class AbstractMapperTest extends TestCase
 {
     private $mapper;
 
@@ -61,7 +61,7 @@ SQL1
             ],
         ]);
 
-        $this->mapper = new SqlMapper($database, 'user_mapper');
+        $this->mapper = new Mapper($database, 'user_mapper');
     }
 
     public function testFindOne()
@@ -184,16 +184,16 @@ SQL1
         $this->assertEquals($expected, $res);
     }
 
-    public function testDry()
+    public function testUnloaded()
     {
-        $this->assertTrue($this->mapper->dry());
-        $this->assertFalse($this->mapper->loadId(1)->dry());
+        $this->assertTrue($this->mapper->unloaded());
+        $this->assertFalse($this->mapper->loadId(1)->unloaded());
     }
 
-    public function testValid()
+    public function testLoaded()
     {
-        $this->assertFalse($this->mapper->valid());
-        $this->assertTrue($this->mapper->loadId(1)->valid());
+        $this->assertFalse($this->mapper->loaded());
+        $this->assertTrue($this->mapper->loadId(1)->loaded());
     }
 
     public function testGetTrigger()
@@ -205,6 +205,13 @@ SQL1
     {
         $func = function() {};
         $this->assertEquals($func, $this->mapper->setTrigger('foo', $func)->getTrigger('foo'));
+    }
+
+    public function testTrigger()
+    {
+        $func = function() {};
+        $this->assertFalse($this->mapper->trigger('foo'));
+        $this->assertTrue($this->mapper->setTrigger('foo', $func)->trigger('foo'));
     }
 
     public function testArrayAccess()
@@ -239,6 +246,10 @@ SQL1
         $this->assertEquals(1, count($all));
         $this->assertEquals(2, $all[0]->get('id'));
         $this->assertEquals('bar', $all[0]->get('first_name'));
+
+        $this->mapper->loadByFirstName('bar');
+        $this->assertEquals(2, $this->mapper->get('id'));
+        $this->assertEquals('bar', $this->mapper->get('first_name'));
     }
 
     /**

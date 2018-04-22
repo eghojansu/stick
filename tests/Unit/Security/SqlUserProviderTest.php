@@ -12,7 +12,7 @@
 namespace Fal\Stick\Test\Unit\Security;
 
 use Fal\Stick\Cache;
-use Fal\Stick\Database\Sql;
+use Fal\Stick\Database\Sql\Sql;
 use Fal\Stick\Security\SqlUserProvider;
 use Fal\Stick\Security\SimpleUser;
 use Fal\Stick\Security\SimpleUserTransformer;

@@ -15,7 +15,7 @@ use function Fal\Stick\snakecase;
 use function Fal\Stick\istartswith;
 use function Fal\Stick\icutafter;
 
-abstract class Mapper implements MapperInterface
+abstract class AbstractMapper implements MapperInterface
 {
     /** Pagination records perpage */
     const PERPAGE = 10;
@@ -91,7 +91,7 @@ abstract class Mapper implements MapperInterface
     /**
      * {@inheritdoc}
      */
-    public function dry(): bool
+    public function unloaded(): bool
     {
         return !$this->loaded;
     }
@@ -99,7 +99,7 @@ abstract class Mapper implements MapperInterface
     /**
      * {@inheritdoc}
      */
-    public function valid(): bool
+    public function loaded(): bool
     {
         return $this->loaded;
     }
@@ -132,13 +132,31 @@ abstract class Mapper implements MapperInterface
      *
      * @return bool
      */
-    protected function trigger(string $event, array $args = []): bool
+    public function trigger(string $event, array $args = []): bool
     {
         if (!isset($this->trigger[$event])) {
             return false;
         }
 
         return call_user_func_array($this->trigger[$event], $args) === true ? false : true;
+    }
+
+    /**
+     * Shift field args
+     *
+     * @param  string $field
+     * @param  array  $args
+     *
+     * @return array
+     */
+    protected function fieldArgs(string $field, array $args): array
+    {
+        if ($args) {
+            $first = array_shift($args);
+            array_unshift($args, [$field => $first]);
+        }
+
+        return $args;
     }
 
     /**
@@ -241,22 +259,19 @@ abstract class Mapper implements MapperInterface
     {
         if (istartswith('findoneby', $method)) {
             $field = snakecase(icutafter('findoneby', $method));
-
-            if ($args) {
-                $first = array_shift($args);
-                array_unshift($args, [$field => $first]);
-            }
+            $args = $this->fieldArgs($field, $args);
 
             return $this->findOne(...$args);
         } elseif (istartswith('findby', $method)) {
             $field = snakecase(icutafter('findby', $method));
-
-            if ($args) {
-                $first = array_shift($args);
-                array_unshift($args, [$field => $first]);
-            }
+            $args = $this->fieldArgs($field, $args);
 
             return $this->find(...$args);
+        } elseif (istartswith('loadby', $method)) {
+            $field = snakecase(icutafter('loadby', $method));
+            $args = $this->fieldArgs($field, $args);
+
+            return $this->load(...$args);
         }
 
         throw new \BadMethodCallException(

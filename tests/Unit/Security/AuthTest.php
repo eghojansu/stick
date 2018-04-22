@@ -13,7 +13,7 @@ namespace Fal\Stick\Test\Unit\Security;
 
 use Fal\Stick\App;
 use Fal\Stick\Cache;
-use Fal\Stick\Database\Sql;
+use Fal\Stick\Database\Sql\Sql;
 use Fal\Stick\Security\Auth;
 use Fal\Stick\Security\SqlUserProvider;
 use Fal\Stick\Security\PlainPasswordEncoder;

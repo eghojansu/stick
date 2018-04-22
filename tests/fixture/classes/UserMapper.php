@@ -2,9 +2,9 @@
 
 namespace Fal\Stick\Test\fixture\classes;
 
-use Fal\Stick\Database\SqlMapper;
+use Fal\Stick\Database\Sql\Mapper;
 
-class UserMapper extends SqlMapper
+class UserMapper extends Mapper
 {
     private $ctr = 0;
 

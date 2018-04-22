@@ -15,8 +15,8 @@ use Fal\Stick\App;
 use Fal\Stick\Audit;
 use Fal\Stick\Cache;
 use Fal\Stick\Database\MapperInterface;
-use Fal\Stick\Database\Sql;
-use Fal\Stick\Database\SqlMapper;
+use Fal\Stick\Database\Sql\Sql;
+use Fal\Stick\Database\Sql\Mapper;
 use Fal\Stick\Security\Auth;
 use Fal\Stick\Security\InMemoryUserProvider;
 use Fal\Stick\Security\PlainPasswordEncoder;
@@ -57,7 +57,7 @@ SQL1
         $app->set('SERVICE.mapper', [
             'class' => MapperInterface::class,
             'constructor' => function(Sql $db) {
-                return new SqlMapper($db);
+                return new Mapper($db);
             },
         ]);
         $app->set('SERVICE.auth', [

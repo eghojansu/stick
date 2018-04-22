@@ -9,14 +9,16 @@
  * file that was distributed with this source code.
  */
 
-namespace Fal\Stick\Database;
+namespace Fal\Stick\Database\Sql;
 
+use Fal\Stick\Database\AbstractMapper;
+use Fal\Stick\Database\MapperInterface;
 use function Fal\Stick\classname;
-use function Fal\Stick\istartswith;
 use function Fal\Stick\icutafter;
+use function Fal\Stick\istartswith;
 use function Fal\Stick\snakecase;
 
-class SqlMapper extends Mapper
+class Mapper extends AbstractMapper
 {
     /** @var Sql */
     protected $db;
@@ -73,6 +75,19 @@ class SqlMapper extends Mapper
     public function getDb(): Sql
     {
         return $this->db;
+    }
+
+    /**
+     * Create relation to other mapper
+     *
+     * @param Mapper $target
+     * @param string $targetId
+     * @param string $option
+     * @param string $refId
+     */
+    public function createRelation(Mapper $target = null, string $targetId = null, array $option = null, string $refId = null)
+    {
+        return new Relation($this, $refId ?? reset($this->pkeys), $target, $targetId, $option);
     }
 
     /**
@@ -626,9 +641,9 @@ class SqlMapper extends Mapper
      *
      * @param  array $row
      *
-     * @return SqlMapper
+     * @return Mapper
      */
-    protected function factory(array $row): SqlMapper
+    protected function factory(array $row): Mapper
     {
         $mapper = clone $this;
         $mapper->reset();
@@ -691,7 +706,6 @@ class SqlMapper extends Mapper
             $order = ' ORDER BY ' . $use['order'];
         }
 
-        // @codeCoverageIgnoreStart
         // SQL Server fixes
         if (in_array($this->driver, [Sql::DB_MSSQL, Sql::DB_SQLSRV, Sql::DB_ODBC]) && ($use['limit'] || $use['offset'])) {
             // order by pkey when no ordering option was given
@@ -730,34 +744,7 @@ class SqlMapper extends Mapper
                 $sql .= ' OFFSET ' . (int) $use['offset'];
             }
         }
-        // @codeCoverageIgnoreEnd
 
         return [$sql, $arg];
-    }
-
-    /**
-     * Proxy to mapper method
-     * Example:
-     *   loadByUsername('foo') = load(['username'=>'foo'])
-     *
-     * @param  string $method
-     * @param  array  $args
-     *
-     * @return mixed
-     */
-    public function __call($method, array $args)
-    {
-        if (istartswith('loadby', $method)) {
-            $field = snakecase(icutafter('loadby', $method));
-
-            if ($args) {
-                $first = array_shift($args);
-                array_unshift($args, [$field => $first]);
-            }
-
-            return $this->load(...$args);
-        }
-
-        return parent::__call($method, $args);
     }
 }

@@ -11,7 +11,7 @@
 
 namespace Fal\Stick\Security;
 
-use Fal\Stick\Database\Sql;
+use Fal\Stick\Database\Sql\Sql;
 
 class SqlUserProvider implements UserProviderInterface
 {
