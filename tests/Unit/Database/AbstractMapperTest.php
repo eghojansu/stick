@@ -230,6 +230,71 @@ SQL1
         $this->assertEquals(1, $target);
     }
 
+    public function testOnload()
+    {
+        $this->assertEquals($this->mapper, $this->mapper->onload(function() {}));
+    }
+
+    public function testBeforeinsert()
+    {
+        $this->assertEquals($this->mapper, $this->mapper->beforeinsert(function() {}));
+    }
+
+    public function testAfterinsert()
+    {
+        $this->assertEquals($this->mapper, $this->mapper->afterinsert(function() {}));
+    }
+
+    public function testOninsert()
+    {
+        $this->assertEquals($this->mapper, $this->mapper->oninsert(function() {}));
+    }
+
+    public function testBeforeupdate()
+    {
+        $this->assertEquals($this->mapper, $this->mapper->beforeupdate(function() {}));
+    }
+
+    public function testAfterupdate()
+    {
+        $this->assertEquals($this->mapper, $this->mapper->afterupdate(function() {}));
+    }
+
+    public function testOnupdate()
+    {
+        $this->assertEquals($this->mapper, $this->mapper->onupdate(function() {}));
+    }
+
+    public function testBeforesave()
+    {
+        $this->assertEquals($this->mapper, $this->mapper->beforesave(function() {}));
+    }
+
+    public function testAftersave()
+    {
+        $this->assertEquals($this->mapper, $this->mapper->aftersave(function() {}));
+    }
+
+    public function testOnsave()
+    {
+        $this->assertEquals($this->mapper, $this->mapper->onsave(function() {}));
+    }
+
+    public function testBeforedelete()
+    {
+        $this->assertEquals($this->mapper, $this->mapper->beforedelete(function() {}));
+    }
+
+    public function testAfterdelete()
+    {
+        $this->assertEquals($this->mapper, $this->mapper->afterdelete(function() {}));
+    }
+
+    public function testOndelete()
+    {
+        $this->assertEquals($this->mapper, $this->mapper->ondelete(function() {}));
+    }
+
     public function testArrayAccess()
     {
         $this->assertNull($this->mapper['id']);

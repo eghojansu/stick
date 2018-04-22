@@ -11,9 +11,9 @@
 
 namespace Fal\Stick\Database;
 
-use function Fal\Stick\snakecase;
-use function Fal\Stick\istartswith;
 use function Fal\Stick\icutafter;
+use function Fal\Stick\istartswith;
+use function Fal\Stick\snakecase;
 
 abstract class AbstractMapper implements MapperInterface
 {
@@ -116,6 +116,114 @@ abstract class AbstractMapper implements MapperInterface
         }
 
         return $this;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function onload(callable $func, bool $first = false): MapperInterface
+    {
+        return $this->addTrigger(MapperInterface::EVENT_LOAD, $func, $first);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function beforeinsert(callable $func, bool $first = false): MapperInterface
+    {
+        return $this->addTrigger(MapperInterface::EVENT_BEFOREINSERT, $func, $first);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function afterinsert(callable $func, bool $first = false): MapperInterface
+    {
+        return $this->addTrigger(MapperInterface::EVENT_AFTERINSERT, $func, $first);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function oninsert(callable $func, bool $first = false): MapperInterface
+    {
+        return $this->afterinsert($func, $first);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function beforeupdate(callable $func, bool $first = false): MapperInterface
+    {
+        return $this->addTrigger(MapperInterface::EVENT_BEFOREUPDATE, $func, $first);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function afterupdate(callable $func, bool $first = false): MapperInterface
+    {
+        return $this->addTrigger(MapperInterface::EVENT_AFTERUPDATE, $func, $first);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function onupdate(callable $func, bool $first = false): MapperInterface
+    {
+        return $this->afterupdate($func, $first);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function beforesave(callable $func, bool $first = false): MapperInterface
+    {
+        return $this
+            ->addTrigger(MapperInterface::EVENT_BEFOREINSERT, $func, $first)
+            ->addTrigger(MapperInterface::EVENT_BEFOREUPDATE, $func, $first);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function aftersave(callable $func, bool $first = false): MapperInterface
+    {
+        return $this
+            ->addTrigger(MapperInterface::EVENT_AFTERINSERT, $func, $first)
+            ->addTrigger(MapperInterface::EVENT_AFTERUPDATE, $func, $first);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function onsave(callable $func, bool $first = false): MapperInterface
+    {
+        return $this->aftersave($func, $first);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function beforedelete(callable $func, bool $first = false): MapperInterface
+    {
+        return $this->addTrigger(MapperInterface::EVENT_BEFOREDELETE, $func, $first);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function afterdelete(callable $func, bool $first = false): MapperInterface
+    {
+        return $this->addTrigger(MapperInterface::EVENT_AFTERDELETE, $func, $first);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function ondelete(callable $func, bool $first = false): MapperInterface
+    {
+        return $this->afterdelete($func, $first);
     }
 
     /**

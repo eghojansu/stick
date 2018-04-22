@@ -293,4 +293,134 @@ interface MapperInterface extends \ArrayAccess
      * @return MapperInterface
      */
     public function addTrigger(string $name, callable $func, bool $first = false): MapperInterface;
+
+    /**
+     * Define onload trigger
+     *
+     * @param  callable $func
+     * @param  bool     $first
+     *
+     * @return MapperInterface
+     */
+    public function onload(callable $func, bool $first = false): MapperInterface;
+
+    /**
+     * Define beforeinsert trigger
+     *
+     * @param  callable $func
+     * @param  bool     $first
+     *
+     * @return MapperInterface
+     */
+    public function beforeinsert(callable $func, bool $first = false): MapperInterface;
+
+    /**
+     * Define afterinsert trigger
+     *
+     * @param  callable $func
+     * @param  bool     $first
+     *
+     * @return MapperInterface
+     */
+    public function afterinsert(callable $func, bool $first = false): MapperInterface;
+
+    /**
+     * Define oninsert trigger
+     *
+     * @param  callable $func
+     * @param  bool     $first
+     *
+     * @return MapperInterface
+     */
+    public function oninsert(callable $func, bool $first = false): MapperInterface;
+
+    /**
+     * Define beforeupdate trigger
+     *
+     * @param  callable $func
+     * @param  bool     $first
+     *
+     * @return MapperInterface
+     */
+    public function beforeupdate(callable $func, bool $first = false): MapperInterface;
+
+    /**
+     * Define afterupdate trigger
+     *
+     * @param  callable $func
+     * @param  bool     $first
+     *
+     * @return MapperInterface
+     */
+    public function afterupdate(callable $func, bool $first = false): MapperInterface;
+
+    /**
+     * Define onupdate trigger
+     *
+     * @param  callable $func
+     * @param  bool     $first
+     *
+     * @return MapperInterface
+     */
+    public function onupdate(callable $func, bool $first = false): MapperInterface;
+
+    /**
+     * Define beforeinsert and beforeupdate trigger
+     *
+     * @param  callable $func
+     * @param  bool     $first
+     *
+     * @return MapperInterface
+     */
+    public function beforesave(callable $func, bool $first = false): MapperInterface;
+
+    /**
+     * Define beforeinsert and beforeupdate trigger
+     *
+     * @param  callable $func
+     * @param  bool     $first
+     *
+     * @return MapperInterface
+     */
+    public function aftersave(callable $func, bool $first = false): MapperInterface;
+
+    /**
+     * Define oninsert and onupdate trigger
+     *
+     * @param  callable $func
+     * @param  bool     $first
+     *
+     * @return MapperInterface
+     */
+    public function onsave(callable $func, bool $first = false): MapperInterface;
+
+    /**
+     * Define beforedelete trigger
+     *
+     * @param  callable $func
+     * @param  bool     $first
+     *
+     * @return MapperInterface
+     */
+    public function beforedelete(callable $func, bool $first = false): MapperInterface;
+
+    /**
+     * Define afterdelete trigger
+     *
+     * @param  callable $func
+     * @param  bool     $first
+     *
+     * @return MapperInterface
+     */
+    public function afterdelete(callable $func, bool $first = false): MapperInterface;
+
+    /**
+     * Define ondelete trigger
+     *
+     * @param  callable $func
+     * @param  bool     $first
+     *
+     * @return MapperInterface
+     */
+    public function ondelete(callable $func, bool $first = false): MapperInterface;
 }

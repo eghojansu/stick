@@ -567,9 +567,11 @@ class Mapper extends AbstractMapper
         } elseif (array_key_exists($key, $this->props)) {
             return $this->props[$key]['value'];
         } elseif (method_exists($this, $key)) {
+            $res = $this->$key();
             $this->props[$key]['self'] = true;
+            $this->props[$key]['value'] =& $res;
 
-            return $this->props[$key]['value'] = $this->$key();
+            return $this->props[$key]['value'];
         }
 
         throw new \LogicException('Undefined field ' . $key);
