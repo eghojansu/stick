@@ -468,6 +468,12 @@ class SqlMapper extends Mapper
             unset($field);
         }
 
+        foreach ($this->props as $key => $field) {
+            if ($field['self']) {
+                unset($this->props[$key]);
+            }
+        }
+
         $this->loaded = false;
 
         return $this;
@@ -479,7 +485,7 @@ class SqlMapper extends Mapper
     public function toArray(callable $func = null): array
     {
         $res = [];
-        foreach ($this->fields + $this->adhoc as $key => $value) {
+        foreach ($this->fields + $this->adhoc + $this->props as $key => $value) {
             $res[$key] = $value['value'];
         }
 
@@ -544,15 +550,11 @@ class SqlMapper extends Mapper
         } elseif (array_key_exists($key, $this->adhoc)) {
             return $this->adhoc[$key]['value'];
         } elseif (array_key_exists($key, $this->props)) {
-            if (is_callable($this->props[$key])) {
-                $call = $this->props[$key];
-                $res = $call($this);
-                $ref =& $res;
-            } else {
-                $ref =& $this->props[$key];
-            }
+            return $this->props[$key]['value'];
+        } elseif (method_exists($this, $key)) {
+            $this->props[$key]['self'] = true;
 
-            return $ref;
+            return $this->props[$key]['value'] = $this->$key();
         }
 
         throw new \LogicException('Undefined field ' . $key);
@@ -576,9 +578,9 @@ class SqlMapper extends Mapper
             $this->adhoc[$key]['value'] = $val;
         } elseif (is_string($val)) {
             // Parenthesize expression in case it's a subquery
-            $this->adhoc[$key] = ['expr'=> '(' . $val . ')', 'value'=>null];
+            $this->adhoc[$key] = ['expr' => '(' . $val . ')', 'value' => null];
         } else {
-            $this->props[$key] = $val;
+            $this->props[$key] = ['self' => false, 'value' => $val];
         }
 
         return $this;

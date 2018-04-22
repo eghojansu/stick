@@ -439,12 +439,6 @@ SQL1
         $this->mapper->set('obj', $obj);
         $this->assertEquals($obj, $this->mapper->get('obj'));
         $this->assertEquals('foo', $this->mapper->get('obj')->name);
-
-        // callable prop
-        $this->mapper->set('call', function($mapper) {
-            return $mapper->get('obj');
-        });
-        $this->assertEquals($obj, $this->mapper->get('call'));
     }
 
     /**
@@ -515,5 +509,11 @@ SQL1
     {
         $this->build(null, null, UserMapper::class);
         $this->assertEquals(3, $this->mapper->count());
+        $this->assertEquals(1, $this->mapper->get('ctr'));
+        $this->assertEquals(1, $this->mapper->get('ctr'));
+
+        // reset
+        $this->mapper->reset();
+        $this->assertEquals(1, $this->mapper->get('ctr'));
     }
 }

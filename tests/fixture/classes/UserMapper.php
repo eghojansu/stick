@@ -6,4 +6,10 @@ use Fal\Stick\Database\SqlMapper;
 
 class UserMapper extends SqlMapper
 {
+    private $ctr = 0;
+
+    public function ctr()
+    {
+        return ++$this->ctr;
+    }
 }
