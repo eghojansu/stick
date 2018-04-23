@@ -108,6 +108,7 @@ SQL1
                 [1, null, ['perpage'=>2]],
                 [
                     'total' => $len,
+                    'count' => 2,
                     'pages' => 7,
                     'page'  => 1,
                     'start' => 1,
@@ -119,6 +120,7 @@ SQL1
                 [2, null, ['perpage'=>2]],
                 [
                     'total' => $len,
+                    'count' => 2,
                     'pages' => 7,
                     'page'  => 2,
                     'start' => 3,
@@ -130,6 +132,7 @@ SQL1
                 [2, null, ['perpage'=>3]],
                 [
                     'total' => $len,
+                    'count' => 3,
                     'pages' => 5,
                     'page'  => 2,
                     'start' => 4,
@@ -141,6 +144,7 @@ SQL1
                 [5, null, ['perpage'=>3]],
                 [
                     'total' => $len,
+                    'count' => 1,
                     'pages' => 5,
                     'page'  => 5,
                     'start' => 13,
@@ -152,6 +156,7 @@ SQL1
                 [0, null, ['perpage'=>2]],
                 [
                     'total' => $len,
+                    'count' => 0,
                     'pages' => 7,
                     'page'  => 0,
                     'start' => 0,
@@ -163,6 +168,7 @@ SQL1
                 [0, null, ['perpage'=>2]],
                 [
                     'total' => 3,
+                    'count' => 0,
                     'pages' => 2,
                     'page'  => 0,
                     'start' => 0,

@@ -77,15 +77,17 @@ abstract class AbstractMapper implements MapperInterface
         $subset = [];
         $start = 0;
         $end = 0;
+        $count = 0;
 
         if ($page > 0) {
             $offset = ($page - 1) * $limit;
             $subset = $this->find($filter, compact('limit', 'offset') + $use, $ttl);
+            $count = count($subset);
             $start = $offset + 1;
-            $end = $offset + count($subset);
+            $end = $offset + $count;
         }
 
-        return compact('subset', 'total', 'pages', 'page', 'start', 'end');
+        return compact('subset', 'total', 'count', 'pages', 'page', 'start', 'end');
     }
 
     /**
