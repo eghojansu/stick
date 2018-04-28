@@ -35,8 +35,17 @@ class Mapper extends AbstractMapper
     /** @var string Quoted table */
     protected $map;
 
+    /** @var string */
+    protected $alias = 'm';
+
+    /** @var string Quoted alias */
+    protected $qalias;
+
     /** @var string Driver name */
     protected $driver;
+
+    /** @var array Join clause and fields */
+    protected $join = ['clause' => null, 'fields' => null];
 
     /** @var bool */
     protected $one = false;
@@ -64,6 +73,7 @@ class Mapper extends AbstractMapper
         $this->ttl = $ttl;
         $this->original = $fields;
         $this->driver = $db->getDriver();
+        $this->qalias = $db->quotekey($this->alias);
         $this->setTable($table ?? $this->table ?? snakecase(classname($this)));
     }
 
@@ -75,6 +85,18 @@ class Mapper extends AbstractMapper
     public function getDb(): Sql
     {
         return $this->db;
+    }
+
+    /**
+     * Get alias
+     *
+     * @param bool $quoted
+     *
+     * @return string
+     */
+    public function getAlias(bool $quoted = false): string
+    {
+        return $quoted ? $this->qalias : $this->alias;
     }
 
     /**
@@ -129,7 +151,7 @@ class Mapper extends AbstractMapper
      */
     public function withTable(string $table, array $option = null): MapperInterface
     {
-        return new static($this->db, $table, $option['fields'] ?? null, $option['ttl'] ?? 60);
+        return new self($this->db, $table, $option['fields'] ?? null, $option['ttl'] ?? 60);
     }
 
     /**
@@ -149,7 +171,7 @@ class Mapper extends AbstractMapper
         $this->fields = $this->db->schema($use, $this->original, $this->ttl);
         $this->reset();
 
-        if (!$this->pkeys || $this->table !== $prev) {
+        if (!$this->pkeys || ($prev && $this->table !== $prev)) {
             $this->pkeys = [];
 
             foreach ($this->fields as $key => $value) {
@@ -169,17 +191,22 @@ class Mapper extends AbstractMapper
      */
     public function count($filter = null, array $option = null, int $ttl = 0): int
     {
+        $use = ((array) $option) + [
+            'joinFields' => $this->join['fields'] ?? null,
+            'joinClause' => $this->join['clause'] ?? null,
+        ];
+
         $adhoc = '';
         foreach ($this->adhoc as $key => $field) {
             $adhoc .= ',' . $field['expr'] . ' AS ' . $this->db->quotekey($key);
         }
 
-        $fields = '*' . $adhoc;
+        $fields = $this->qalias . '.*' . $adhoc;
         if (in_array($this->driver, [Sql::DB_MSSQL, Sql::DB_DBLIB, Sql::DB_SQLSRV])) {
             $fields = 'TOP 100 PERCENT ' . $fields;
         }
 
-        list($sql, $arg) = $this->stringify($fields, $filter, $option);
+        list($sql, $arg) = $this->stringify($fields, $filter, $use);
 
         $sql = 'SELECT COUNT(*) AS ' . $this->db->quotekey('_rows') .
             ' FROM (' . $sql . ') AS ' . $this->db->quotekey('_temp');
@@ -197,6 +224,8 @@ class Mapper extends AbstractMapper
 
         if ($found) {
             $this->fields = $found->fields;
+            $this->adhoc = $found->adhoc;
+            $this->props = $found->props;
             $this->loaded = $found->loaded;
         }
 
@@ -212,6 +241,8 @@ class Mapper extends AbstractMapper
 
         if ($found) {
             $this->fields = $found->fields;
+            $this->adhoc = $found->adhoc;
+            $this->props = $found->props;
             $this->loaded = $found->loaded;
         }
 
@@ -234,7 +265,12 @@ class Mapper extends AbstractMapper
             );
         }
 
-        return $this->findOne(array_combine($this->pkeys, $pvals), null, $ttl);
+        $pkeys = [];
+        foreach ($this->pkeys as $key) {
+            $pkeys[] = $this->alias . '.' . $key;
+        }
+
+        return $this->findOne(array_combine($pkeys, $pvals), null, $ttl);
     }
 
     /**
@@ -242,17 +278,28 @@ class Mapper extends AbstractMapper
      */
     public function find($filter = null, array $option = null, int $ttl = 0): array
     {
-        $use = ((array) $option) + ['group' => null];
+        $use = ((array) $option) + [
+            'group' => null,
+            'joinFields' => $this->join['fields'] ?? null,
+            'joinClause' => $this->join['clause'] ?? null,
+        ];
 
         $adhoc = '';
         foreach ($this->adhoc as $key=>$field) {
-            $adhoc .= ',' . $field['expr'] . ' AS ' . $this->db->quotekey($key);
+            $adhoc .= $field['expr'] . ' AS ' . $this->db->quotekey($key) . ',';
         }
 
-        $fields = ($use['group'] && !in_array($this->driver, [Sql::DB_MYSQL, Sql::DB_SQLITE])?
-                    $use['group'] : implode(',', array_map([$this->db,'quotekey'], array_keys($this->fields)))) .
-                  $adhoc;
-        list($sql, $arg) = $this->stringify($fields, $filter, $use);
+        if ($use['group'] && !in_array($this->driver, [Sql::DB_MYSQL, Sql::DB_SQLITE])) {
+            $fields = $use['group'];
+        } else {
+            $fields = '';
+
+            foreach ($this->fields as $key => $field) {
+                $fields .= $this->qalias . '.' . $key . ',';
+            }
+        }
+
+        list($sql, $arg) = $this->stringify(rtrim($fields . $adhoc, ','), $filter, $use);
 
         $res = $this->db->exec($sql, $arg, $ttl);
         $out = [];
@@ -285,7 +332,7 @@ class Mapper extends AbstractMapper
         $values = '';
         $filter = [];
         $ckeys = [];
-        $pkeys = $this->getPkeys();
+        $pkeys = $this->getPkeysValue();
         $inc = NULL;
 
         if ($this->trigger(MapperInterface::EVENT_BEFOREINSERT, [$this, $pkeys])) {
@@ -299,7 +346,7 @@ class Mapper extends AbstractMapper
                     $inc = $key;
                 }
 
-                $filter[$key] = $this->db->value($field['pdo_type'], $field['value']);
+                $filter[$this->alias . '.' . $key] = $this->db->value($field['pdo_type'], $field['value']);
             }
 
             if ($field['changed'] && $key !== $inc) {
@@ -338,11 +385,14 @@ class Mapper extends AbstractMapper
         // Reload to obtain default and auto-increment field values
         $reload = $inc || $filter;
         if ($reload) {
+            $join = $this->join;
+            $this->join = null;
             $this->load($inc ?
-                [$inc => $this->db->value($this->fields[$inc]['pdo_type'], $id)] :
+                [$this->alias . '.' . $inc => $this->db->value($this->fields[$inc]['pdo_type'], $id)] :
                 $filter
             );
-            $pkeys = $this->getPkeys();
+            $this->join = $join;
+            $pkeys = $this->getPkeysValue();
         }
 
         if ($this->trigger(MapperInterface::EVENT_AFTERINSERT, [$this, $pkeys])) {
@@ -370,7 +420,7 @@ class Mapper extends AbstractMapper
         $ctr = 0;
         $pairs = '';
         $filter = '';
-        $pkeys = $this->getPkeys('initial');
+        $pkeys = $this->getPkeysValue('initial');
 
         if ($this->trigger(MapperInterface::EVENT_BEFOREUPDATE, [$this, $pkeys])) {
             return $this;
@@ -391,7 +441,7 @@ class Mapper extends AbstractMapper
         if ($pairs) {
             $sql = 'UPDATE ' . $this->map . ' SET ' . $pairs . $filter;
             $this->db->exec($sql, $args);
-            $pkeys = $this->getPkeys();
+            $pkeys = $this->getPkeysValue();
         }
 
         if ($this->trigger(MapperInterface::EVENT_AFTERUPDATE, [$this, $pkeys])) {
@@ -436,7 +486,7 @@ class Mapper extends AbstractMapper
         $args = [];
         $ctr = 0;
         $filter = '';
-        $pkeys = $this->getPkeys('initial');
+        $pkeys = $this->getPkeysValue('initial');
 
         foreach ($this->fields as $key => &$field) {
             if ($field['pkey']) {
@@ -627,7 +677,7 @@ class Mapper extends AbstractMapper
      *
      * @return array
      */
-    protected function getPkeys(string $field = 'value'): array
+    protected function getPkeysValue(string $field = 'value'): array
     {
         $res = [];
 
@@ -658,6 +708,8 @@ class Mapper extends AbstractMapper
             } elseif (array_key_exists($key, $this->adhoc)) {
                 $mapper->adhoc[$key]['value'] = $val;
                 $mapper->adhoc[$key]['initial'] = $val;
+            } else {
+                $mapper->props[$key] = ['self' => true, 'value' => $val];
             }
         }
 
@@ -683,10 +735,15 @@ class Mapper extends AbstractMapper
             'order' => null,
             'limit' => 0,
             'offset' => 0,
+            'joinFields' => null,
+            'joinClause' => null,
         ];
 
         $arg = [];
-        $sql = 'SELECT ' . $fields . ' FROM ' . $this->map;
+        $sql = 'SELECT ' . $fields .
+                ($option['joinFields'] ? ',' . $option['joinFields'] : '') .
+                ' FROM ' . $this->map . ' ' . $this->db->quotekey($this->alias) .
+                ($option['joinClause'] ? ' JOIN ' . $option['joinClause'] : '');
 
         $f = $this->db->filter($filter);
         if ($f) {

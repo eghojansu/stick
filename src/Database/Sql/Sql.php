@@ -371,6 +371,7 @@ class Sql
             // clear column from comments format
             $ccol = (false === ($pos = strpos($key, '#'))) ? $key : substr($key, 0, $pos);
             $col  = trim($ccol, $mapkeys);
+            $kcol  = str_replace('.', '_', $col);
             $a1   = substr($ccol, 0, 1);
             $a2   = substr($ccol, 0, 2);
             $a3   = substr($ccol, 0, 3);
@@ -396,15 +397,15 @@ class Sql
                         );
                     }
 
-                    $str .= " :{$col}1 AND :{$col}2";
-                    $result[":{$col}1"] = array_shift($expr);
-                    $result[":{$col}2"] = array_shift($expr);
+                    $str .= " :{$kcol}1 AND :{$kcol}2";
+                    $result[":{$kcol}1"] = array_shift($expr);
+                    $result[":{$kcol}2"] = array_shift($expr);
                 } elseif ($b3 === '![]' || $b2 === '[]') {
                     $str .= ' (';
                     $i = 1;
 
                     foreach ((array) $expr as $val) {
-                        $k = ":{$col}{$i}";
+                        $k = ":{$kcol}{$i}";
                         $str .= "$k, ";
                         $result[$k] = $val;
                         $i++;
@@ -418,8 +419,8 @@ class Sql
                         $str .= ' (' . array_shift($cfilter) . ')';
                         $result = array_merge($result, $cfilter);
                     }
-                } elseif ($col) {
-                    $k = ":{$col}";
+                } elseif ($kcol) {
+                    $k = ":{$kcol}";
                     $str .= " $k";
                     $result[$k] = $expr;
                 } else {

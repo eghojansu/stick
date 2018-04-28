@@ -101,7 +101,13 @@ CREATE TABLE `nokey` (
     `id` INTEGER NOT NULL,
     `name` TEXT NOT NULL
 );
-insert into `nokey` (id,name) values(1,"foo"), (2,"bar")
+insert into `nokey` (id,name) values(1,"foo"), (2,"bar");
+CREATE TABLE `tjoin` (
+    `id` INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    `name` TEXT NOT NULL,
+    `user_id` INTEGER NOT NULL
+);
+insert into `tjoin` (`name`,`user_id`) values ('joinfoo',1), ('joinbar',2)
 SQL1
 ,
             ],
@@ -158,6 +164,12 @@ SQL1
         // with adhoc
         $this->mapper->set('foo', 'id + 1');
         $this->assertEquals(3, $this->mapper->count());
+
+        // with join
+        $this->mapper->clear('foo');
+        $this->assertEquals(2, $this->mapper->count(null, [
+            'joinClause' => 'tjoin a ON a.user_id = m.id',
+        ]));
     }
 
     public function testLoad()
@@ -204,6 +216,12 @@ SQL1
         $res = $this->mapper->find();
         $this->assertEquals(3, count($res));
         $this->assertEquals(2, $res[0]->get('foo'));
+
+        // with join
+        $this->mapper->clear('foo');
+        $res = $this->mapper->find(null, ['joinClause'=>'tjoin a on a.user_id = m.id','joinFields'=>'a.name as jcol']);
+        $this->assertEquals(2, count($res));
+        $this->assertEquals('joinfoo', $res[0]->get('jcol'));
     }
 
     public function testFindOption()
@@ -229,6 +247,7 @@ SQL1
 
         $this->mapper->set('first_name', 'quux');
         $this->assertEquals('quux', $this->mapper->insert()->get('first_name'));
+        $this->assertEquals(4, $this->mapper->insert()->get('id'));
         $this->assertEquals(4, $this->mapper->count());
     }
 

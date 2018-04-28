@@ -87,11 +87,12 @@ class Relation implements \Iterator, \Countable, \ArrayAccess
             return $this;
         }
 
+        $alias = $this->target->getAlias() . '.';
         $filter = array_merge(
             $this->option['filter'],
             $this->option['lookup'] ?
-                [$this->targetId . ' []' => $this->getTargetId()] :
-                [$this->targetId => $this->ref->get($this->refId)]
+                [$alias . $this->targetId . ' []' => $this->getTargetId()] :
+                [$alias . $this->targetId => $this->ref->get($this->refId)]
         );
         $this->query = $this->target->find(
             $filter,
@@ -181,7 +182,7 @@ class Relation implements \Iterator, \Countable, \ArrayAccess
      */
     protected function map(): Mapper
     {
-        return $this->skip(0) ?? $this->target;
+        return $this->skip(0) ?? $this->target->set($this->targetId, $this->ref->get($this->refId));
     }
 
     /**

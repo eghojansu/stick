@@ -11,6 +11,8 @@
 
 namespace Fal\Stick;
 
+use Fal\Stick\Database\MapperInterface;
+
 /**
  * Framework main class
  */
@@ -833,15 +835,16 @@ final class App implements \ArrayAccess
      * Get and clear
      *
      * @param  string $key
+     * @param  mixed  $default
      *
      * @return mixed
      */
-    public function flash(string $key)
+    public function flash(string $key, $default = null)
     {
         $val = $this->get($key);
         $this->clear($key);
 
-        return $val;
+        return $val ?? $default;
     }
 
     /**
@@ -1360,7 +1363,7 @@ final class App implements \ArrayAccess
         }
 
         foreach ($this->hive['ROUTES'] as $pattern => $routes) {
-            if (!$this->routeMatch($pattern, $path, $modifier, $args)) {
+            if ($this->doMatching($pattern, $path, $modifier, $args)) {
                 continue;
             } elseif (isset($routes[$type][$method])) {
                 $route = $routes[$type];
@@ -1684,7 +1687,7 @@ final class App implements \ArrayAccess
         $url = preg_replace_callback(
             '/\{(\w+)(?:\:\w+)?\}/',
             function($m) use ($args) {
-                return $args[$m[1]] ?? $m[0];
+                return array_key_exists($m[1], $args) ? $args[$m[1]] : $m[0];
             },
             $this->hive['ALIASES'][$alias]
         );
@@ -2192,20 +2195,20 @@ final class App implements \ArrayAccess
     }
 
     /**
-     * Check pattern against path
+     * Return true if matching false
      *
      * @param string $pattern
      * @param string $path
      * @param string $modifier
-     * @param array  &$match
+     * @param array  &$args
      *
      * @return bool
      */
-    protected function routeMatch(
+    protected function doMatching(
         string $pattern,
         string $path,
         string $modifier,
-        array &$match = null
+        array &$args = null
     ): bool {
         $wild = preg_replace_callback(
             '/\{(\w+)(?:\:(?:(alnum|alpha|digit|lower|upper|word)|(\w+)))?\}/',
@@ -2217,7 +2220,20 @@ final class App implements \ArrayAccess
         );
         $regex = '~^' . $wild. '$~' . $modifier;
 
-        return (bool) preg_match($regex, $path, $match);
+        $res = preg_match($regex, $path, $match);
+
+        $args = [];
+        $prev = null;
+
+        foreach ($match as $key => $value) {
+            if ((is_string($key) || $key === 0) || (is_numeric($key) && !is_string($prev))) {
+                $args[$key] = $value;
+            }
+
+            $prev = $key;
+        }
+
+        return !$res;
     }
 
     /**
@@ -2269,11 +2285,13 @@ final class App implements \ArrayAccess
             return [];
         }
 
-        $result  = [];
+        $result = [];
         $pArgs = array_filter($args, 'is_numeric', ARRAY_FILTER_USE_KEY);
 
         foreach ($ref->getParameters() as $param) {
             $name = $param->name;
+            $refClass = $param->getClass();
+            $classname = $refClass ? $refClass->name : null;
 
             if (isset($args[$name])) {
                 $val = $args[$name];
@@ -2284,9 +2302,10 @@ final class App implements \ArrayAccess
                         $val = $this->service($val);
                     } elseif (preg_match('/(.+)?%(.+)%(.+)?/', $val, $match)) {
                         // assume it does exists in hive
-                        $ref = $this->ref($match[2], false);
-                        if (isset($ref)) {
-                            $val = ($match[1] ?? '') . $ref . ($match[3] ?? '');
+                        $var = $this->ref($match[2], false);
+
+                        if (isset($var)) {
+                            $val = ($match[1] ?? '') . $var . ($match[3] ?? '');
                         } else {
                             // it is a service alias
                             $val = $this->service($match[2]);
@@ -2298,8 +2317,9 @@ final class App implements \ArrayAccess
             } elseif ($param->isVariadic()) {
                 $result = array_merge($result, $pArgs);
             } elseif ($refClass = $param->getClass()) {
-                $found = false;
                 $classname = $refClass->name;
+                $found = false;
+
                 foreach ($pArgs as $pos => $pArg) {
                     if (is_a($pArg, $classname) || is_subclass_of($pArg, $classname)) {
                         $result[] = $pArg;

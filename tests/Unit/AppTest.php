@@ -65,58 +65,46 @@ class AppTest extends TestCase
     protected function registerRoutes()
     {
         $this->app
-            ->route(
-                'GET foo /foo', function () {
-                    echo 'foo';
-                }
-            )
-            ->route(
-                'POST bar /bar', function () {
-                    echo 'bar';
-                }
-            )
-            ->route(
-                'POST qux /qux/{quux}', function ($quux) {
-                    echo 'qux' . $quux;
-                }
-            )
-            ->route(
-                'PUT quux /quux/{corge}/{grault}', function ($corge, $grault) {
-                    echo 'quux' . $corge . $grault;
-                }
-            )
-            ->route(
-                'GET /cli cli', function () {
-                    echo 'cli foo';
-                }
-            )
-            ->route(
-                'GET /sync sync', function () {
-                    echo 'sync foo';
-                }
-            )
+            ->route('GET foo /foo', function () {
+                echo 'foo';
+            })
+            ->route('POST bar /bar', function () {
+                echo 'bar';
+            })
+            ->route('POST qux /qux/{quux}', function ($quux) {
+                echo 'qux' . $quux;
+            })
+            ->route('PUT quux /quux/{corge}/{grault}', function ($corge, $grault) {
+                echo 'quux' . $corge . $grault;
+            })
+            ->route('GET /cli cli', function () {
+                echo 'cli foo';
+            })
+            ->route('GET /sync sync', function () {
+                echo 'sync foo';
+            })
             ->route('GET custom /custom/{custom}', FixController::class . '->{custom}')
             ->route('GET invalidclass /invalidclass', 'InvalidClass->invalid')
             ->route('GET invalidmethod /invalidmethod', FixController::class .'->invalid')
             ->route('GET invalidfunction /invalidfunction', 'invalidfunction')
             ->route('GET emptycallback /emptycallback', null)
-            ->route(
-                'GET /cookie', function (App $app) {
-                    $app->set('COOKIE.foo', 'bar');
+            ->route('GET /cookie', function (App $app) {
+                $app->set('COOKIE.foo', 'bar');
 
-                    echo 'cookie';
-                }
-            )
-            ->route(
-                'GET /throttled', function () {
-                    echo 'throttled';
-                }, 0, 1
-            )
-            ->route(
-                'GET /cached', function () {
-                    echo 'cached'.microtime(true);
-                }, 5
-            );
+                echo 'cookie';
+            })
+            ->route('GET /throttled', function () {
+                echo 'throttled';
+            }, 0, 1)
+            ->route('GET /cached', function () {
+                echo 'cached'.microtime(true);
+            }, 5)
+            ->route('GET /do-matching-test/{foo}', function (App $app, $foo) {
+                $params = ['foo'=>'bar'];
+
+                echo 'expected is ' . var_export(array_slice($app['PARAMS'], 1) === $params, true);
+            })
+        ;
     }
 
     public function testConstruct()
@@ -269,6 +257,8 @@ class AppTest extends TestCase
 
             // with cookie send
             ['GET /cookie', 'cookie', ['RHEADERS.Set-Cookie'=>['foo=bar; Path=/; HttpOnly']]],
+
+            ['GET /do-matching-test/bar', 'expected is true'],
         ];
     }
 
