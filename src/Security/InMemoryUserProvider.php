@@ -11,13 +11,13 @@
 
 namespace Fal\Stick\Security;
 
-class InMemoryUserProvider implements UserProviderInterface
+final class InMemoryUserProvider implements UserProviderInterface
 {
     /** @var array */
-    protected $users;
+    private $users;
 
     /** @var UserTransformerInterface */
-    protected $transformer;
+    private $transformer;
 
     /**
      * Class constructor

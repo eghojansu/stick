@@ -27,15 +27,14 @@ class CacheTest extends TestCase
     {
         $this->cache->reset();
 
-        $cache = TEMP . 'cache/';
-        if (file_exists($cache)) {
-            foreach (glob($cache . '*') as $file) {
+        $dir = TEMP . 'cache/';
+
+        if (file_exists($dir)) {
+            foreach (glob($dir . '*') as $file) {
                 unlink($file);
             }
-            rmdir($cache);
+            rmdir($dir);
         }
-
-        error_clear_last();
     }
 
     public function cacheProvider()
@@ -60,14 +59,6 @@ class CacheTest extends TestCase
             $provider[] = ['redis=127.0.0.1'];
         }
 
-        if (extension_loaded('wincache')) {
-            $provider[] = ['wincache'];
-        }
-
-        if (extension_loaded('xcache')) {
-            $provider[] = ['xcache'];
-        }
-
         return $provider;
     }
 
@@ -89,7 +80,7 @@ class CacheTest extends TestCase
 
     /**
      * @expectedException LogicException
-     * @expectedExceptionRegex /expect at least a hash parameter, none given$/
+     * @expectedExceptionMessageRegExp /expect at least a hash parameter, none given$/
      */
     public function testIsCachedException()
     {

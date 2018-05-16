@@ -12,10 +12,10 @@
 namespace Fal\Stick\Test\Unit\Security;
 
 use Fal\Stick\Cache;
-use Fal\Stick\Database\Sql\Sql;
-use Fal\Stick\Security\SqlUserProvider;
 use Fal\Stick\Security\SimpleUser;
 use Fal\Stick\Security\SimpleUserTransformer;
+use Fal\Stick\Security\SqlUserProvider;
+use Fal\Stick\Sql\Connection;
 use PHPUnit\Framework\TestCase;
 
 class SqlUserProviderTest extends TestCase
@@ -24,15 +24,7 @@ class SqlUserProviderTest extends TestCase
 
     public function setUp()
     {
-        $this->provider = new SqlUserProvider(
-            $this->db(),
-            new SimpleUserTransformer()
-        );
-    }
-
-    public function tearDown()
-    {
-        error_clear_last();
+        $this->provider = new SqlUserProvider($this->db(), new SimpleUserTransformer());
     }
 
     protected function db()
@@ -40,7 +32,7 @@ class SqlUserProviderTest extends TestCase
         $cache = new Cache('', 'test', TEMP . 'cache/');
         $cache->reset();
 
-        return new Sql($cache, [
+        return new Connection($cache, [
             'driver' => 'sqlite',
             'location' => ':memory:',
             'commands' => [

@@ -11,7 +11,7 @@
 
 namespace Fal\Stick\Security;
 
-class PlainPasswordEncoder implements PasswordEncoderInterface
+final class PlainPasswordEncoder implements PasswordEncoderInterface
 {
     /**
      * {@inheritdoc}

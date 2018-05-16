@@ -11,16 +11,21 @@
 
 namespace Fal\Stick\Security;
 
-use function Fal\Stick\picktoargs;
-
-class SimpleUserTransformer implements UserTransformerInterface
+final class SimpleUserTransformer implements UserTransformerInterface
 {
     /**
      * {@inheritdoc}
      */
     public function transform(array $args): UserInterface
     {
-        $use = picktoargs($args, ['id','username','password','roles','expired']);
+        $default = [
+            'id' => '',
+            'username' => '',
+            'password' => '',
+            'roles' => ['ROLE_ANONYMOUS'],
+            'expired' => false,
+        ];
+        $use = array_values(array_replace($default, $args));
 
         return new SimpleUser(...$use);
     }

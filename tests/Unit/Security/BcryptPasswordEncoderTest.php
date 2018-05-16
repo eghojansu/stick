@@ -20,12 +20,7 @@ class BcryptPasswordEncoderTest extends TestCase
 
     public function setUp()
     {
-        $this->encoder = new BcryptPasswordEncoder();
-    }
-
-    public function tearDown()
-    {
-        error_clear_last();
+        $this->encoder = new BcryptPasswordEncoder;
     }
 
     public function testHash()

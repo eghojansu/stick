@@ -11,31 +11,28 @@
 
 namespace Fal\Stick\Security;
 
-use Fal\Stick\Database\Sql\Sql;
+use Fal\Stick\Sql\Connection;
 
-class SqlUserProvider implements UserProviderInterface
+final class SqlUserProvider implements UserProviderInterface
 {
-    /** @var Sql */
-    protected $db;
+    /** @var Connection */
+    private $db;
 
     /** @var UserTransformerInterface */
-    protected $transformer;
+    private $transformer;
 
     /** @var array */
-    protected $option;
+    private $option;
 
     /**
      * Class constructor
      *
-     * @param Sql                      $db
+     * @param Connection               $db
      * @param callable                 $transformer
      * @param UserTransformerInterface $option
      */
-    public function __construct(
-        Sql $db,
-        UserTransformerInterface $transformer,
-        array $option = []
-    ) {
+    public function __construct(Connection $db, UserTransformerInterface $transformer, array $option = [])
+    {
         $this->db = $db;
         $this->transformer = $transformer;
         $this->setOption($option);
@@ -93,7 +90,7 @@ class SqlUserProvider implements UserProviderInterface
      *
      * @return UserInterface|null
      */
-    protected function transform(string $key, $val): ?UserInterface
+    private function transform(string $key, $val): ?UserInterface
     {
         $user = $this->db->exec(
             'SELECT * FROM ' . $this->db->quotekey($this->option['table']) .

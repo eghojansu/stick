@@ -1,0 +1,89 @@
+<?php declare(strict_types=1);
+
+/**
+ * This file is part of the eghojansu/stick library.
+ *
+ * (c) Eko Kurniawan <ekokurniawanbs@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
+namespace Fal\Stick\Test\Unit\Sql;
+
+use Fal\Stick\App;
+use Fal\Stick\Cache;
+use Fal\Stick\Security\Auth;
+use Fal\Stick\Security\AuthValidator;
+use Fal\Stick\Security\PlainPasswordEncoder;
+use Fal\Stick\Security\SimpleUserTransformer;
+use Fal\Stick\Security\SqlUserProvider;
+use Fal\Stick\Sql\Connection;
+use PHPUnit\Framework\TestCase;
+
+class AuthValidatorTest extends TestCase
+{
+    private $app;
+    private $auth;
+    private $validator;
+
+    public function setUp()
+    {
+        $this->app = new App;
+
+        $cache = new Cache('', 'test', TEMP . 'cache/');
+        $cache->reset();
+
+        $db = new Connection($cache, [
+            'driver' => 'sqlite',
+            'location' => ':memory:',
+            'debug' => true,
+            'commands' => [
+                <<<SQL1
+CREATE TABLE `user` (
+    `id` INTEGER NOT null PRIMARY KEY AUTOINCREMENT,
+    `username` TEXT NOT null,
+    `password` TEXT NOT NULL DEFAULT NULL,
+    `roles` TEXT NOT NULL,
+    `expired` INTEGER NOT NULL
+);
+insert into user (username,password,expired,roles)
+    values ("foo","bar",0,"role_foo,role_bar"), ("baz","qux",1,"role_foo")
+SQL1
+,
+            ],
+        ]);
+        $this->auth = new Auth($this->app, new SqlUserProvider($db, new SimpleUserTransformer()), new PlainPasswordEncoder);
+
+        $this->validator = new AuthValidator($this->auth);
+    }
+
+    public function tearDown()
+    {
+        $this->app->mclear(explode('|', App::GLOBALS));
+    }
+
+    public function passwordProvider()
+    {
+        return [
+            [true, null],
+        ];
+    }
+
+    /**
+     * @dataProvider passwordProvider
+     */
+    public function testPassword($expected, $value, $username = null, $password = null)
+    {
+        if ($username && $password) {
+            $this->auth->attempt($username, $password);
+        }
+
+        $this->assertEquals($expected, $this->validator->validate('password', $value));
+    }
+
+    public function testMessage()
+    {
+        $this->assertEquals('This value should be equal to current user password.', $this->validator->message('password'));
+    }
+}

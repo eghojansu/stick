@@ -22,15 +22,7 @@ class InMemoryUserProviderTest extends TestCase
 
     public function setUp()
     {
-        $this->provider = new InMemoryUserProvider(
-            ['foo'=>'bar','baz'=>'qux'],
-            new SimpleUserTransformer()
-        );
-    }
-
-    public function tearDown()
-    {
-        error_clear_last();
+        $this->provider = new InMemoryUserProvider(['foo'=>'bar','baz'=>'qux'], new SimpleUserTransformer());
     }
 
     public function testAddUser()

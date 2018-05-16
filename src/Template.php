@@ -11,29 +11,25 @@
 
 namespace Fal\Stick;
 
-class Template
+final class Template implements \ArrayAccess
 {
     /** @var array */
-    protected $context = [];
+    private $context = [];
 
     /** @var array */
-    protected $dirs = [];
+    private $dirs = [];
 
     /** @var array Macro directory, relative to dirs */
-    protected $macros = [];
+    private $macros = [];
 
     /** @var array Macro aliases */
-    protected $aliases = [];
+    private $aliases = [];
 
     /** @var string */
-    protected $templateExtension = '.php';
+    private $templateExtension = '.php';
 
     /** @var array */
-    protected $funcs = [
-        'upper' => 'strtoupper',
-        'lower' => 'strtolower',
-        'tr' => 'strtr',
-    ];
+    private $funcs;
 
     /**
      * Class constructor
@@ -43,8 +39,13 @@ class Template
      */
     public function __construct(string $template_dir, string $macro_dir = 'macros')
     {
-        $this->dirs = reqarr($template_dir);
-        $this->macros = reqarr($macro_dir);
+        $this->dirs = Helper::reqarr($template_dir);
+        $this->macros = Helper::reqarr($macro_dir);
+        $this->funcs = [
+            'upper' => 'strtoupper',
+            'lower' => 'strtolower',
+            'esc' => [$this, 'e'],
+        ];
     }
 
     /**
@@ -72,117 +73,6 @@ class Template
     public function setMacroAliases(array $aliases): Template
     {
         $this->aliases = $aliases + $this->aliases;
-
-        return $this;
-    }
-
-    /**
-     * Get from context
-     *
-     * @param string $name
-     * @param mixed  $default
-     *
-     * @return mixed
-     */
-    public function get(string $name, $default = null)
-    {
-        return $this->context[$name] ?? $default;
-    }
-
-    /**
-     * Add to context
-     *
-     * @param string $name
-     * @param mixed  $val
-     *
-     * @return Template
-     */
-    public function set(string $name, $val): Template
-    {
-        $this->context[$name] = $val;
-
-        return $this;
-    }
-
-    /**
-     * Push to context
-     *
-     * @param  string $name
-     * @param  mixed $val
-     *
-     * @return Template
-     */
-    public function push(string $name, $val): Template
-    {
-        $ref =& $this->ref($name);
-        $ref = (array) $ref;
-
-        array_push($ref, $val);
-
-        return $this;
-    }
-
-    /**
-     * Pop from context
-     *
-     * @param  string $name
-     *
-     * @return mixed
-     */
-    public function pop(string $name)
-    {
-        $ref =& $this->ref($name);
-        $ref = (array) $ref;
-
-        return array_pop($ref);
-    }
-
-    /**
-     * Unshift to context
-     *
-     * @param  string $name
-     * @param  mixed $val
-     *
-     * @return Template
-     */
-    public function unshift(string $name, $val): Template
-    {
-        $ref =& $this->ref($name);
-        $ref = (array) $ref;
-
-        array_unshift($ref, $val);
-
-        return $this;
-    }
-
-    /**
-     * Shift from context
-     *
-     * @param  string $name
-     *
-     * @return mixed
-     */
-    public function shift(string $name)
-    {
-        $ref =& $this->ref($name);
-        $ref = (array) $ref;
-
-        return array_shift($ref);
-    }
-
-    /**
-     * Merge to context
-     *
-     * @param  string $name
-     * @param  array  $val
-     *
-     * @return Template
-     */
-    public function merge(string $name, array $val): Template
-    {
-        $ref =& $this->ref($name);
-        $ref = (array) $ref;
-        $ref = array_merge($ref, $val);
 
         return $this;
     }
@@ -220,7 +110,7 @@ class Template
      */
     public function filter($val, string $filters)
     {
-        foreach (parse_expr($filters) as $callable => $args) {
+        foreach (Helper::parsexpr($filters) as $callable => $args) {
             array_unshift($args, $val);
 
             $val = $this->$callable(...$args);
@@ -237,24 +127,11 @@ class Template
      *
      * @return string
      */
-    public function esc(string $filter, string $filters = null): string
+    public function e(string $filter, string $filters = null): string
     {
         $rule = $filters . ($filters ? '|' : '') . 'htmlspecialchars';
 
         return $this->filter($filter, $rule);
-    }
-
-    /**
-     * Esc alias
-     *
-     * @param  string      $filter
-     * @param  string|null $filters
-     *
-     * @return string
-     */
-    public function e(string $filter, string $filters = null): string
-    {
-        return $this->esc($filter, $filters);
     }
 
     /**
@@ -348,32 +225,13 @@ class Template
      *
      * @return string
      */
-    protected function sandbox(string $file, array $context = []): string
+    private function sandbox(string $file, array $context = []): string
     {
         extract($this->context);
         extract($context);
         ob_start();
         include $file;
         return ob_get_clean();
-    }
-
-    /**
-     * Get context ref
-     *
-     * @param  string $name
-     * @param  mixed  $default
-     *
-     * @return mixed
-     */
-    protected function &ref(string $name, $default = null)
-    {
-        if (!isset($this->context[$name])) {
-            $this->context[$name] = $default;
-        }
-
-        $ref =& $this->context[$name];
-
-        return $ref;
     }
 
     /**
@@ -391,15 +249,15 @@ class Template
         $custom = $this->funcs[$func] ?? null;
         $lib = __NAMESPACE__ . '\\' . $func;
 
-        if ($custom) {
+        if (isset($this->funcs[$func])) {
             // registered function
-            return $custom(...$args);
-        } elseif (is_callable($lib)) {
-            // try from library namespace
-            return $lib(...$args);
+            return call_user_func_array($this->funcs[$func], $args);
+        } elseif (is_callable($lib = Helper::class . '::' . $func)) {
+            // try from library namespace (helper)
+            return call_user_func_array($lib, $args);
         } elseif (is_callable($func)) {
             // from globals
-            return $func(...$args);
+            return call_user_func_array($func, $args);
         } elseif ($this->macroExists($func, $filepath)) {
             // how use the macro is up to the creator
             // we only treat provided arguments with following logic:
@@ -416,5 +274,32 @@ class Template
         }
 
         throw new \BadFunctionCallException('Call to undefined function ' . $func);
+    }
+
+    public function offsetExists($offset)
+    {
+        return isset($this->context[$offset]);
+    }
+
+    public function &offsetGet($offset)
+    {
+        if (isset($this->context[$offset])) {
+            return $this->context[$offset];
+        }
+
+        $null = null;
+        $ref =& $null;
+
+        return $ref;
+    }
+
+    public function offsetSet($offset, $value)
+    {
+        $this->context[$offset] = $value;
+    }
+
+    public function offsetUnset($offset)
+    {
+        unset($this->context[$offset]);
     }
 }

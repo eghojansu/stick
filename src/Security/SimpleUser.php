@@ -11,24 +11,24 @@
 
 namespace Fal\Stick\Security;
 
-use function Fal\Stick\reqarr;
+use Fal\Stick\Helper;
 
-class SimpleUser implements UserInterface
+final class SimpleUser implements UserInterface
 {
     /** @var string */
-    protected $id;
+    private $id;
 
     /** @var string */
-    protected $username;
+    private $username;
 
     /** @var string */
-    protected $password;
+    private $password;
 
     /** @var array */
-    protected $roles;
+    private $roles;
 
     /** @var bool */
-    protected $expired;
+    private $expired;
 
     /**
      * Class constructor
@@ -39,17 +39,12 @@ class SimpleUser implements UserInterface
      * @param mixed  $roles
      * @param mixed  $expired
      */
-    public function __construct(
-        string $id,
-        string $username,
-        string $password,
-        $roles = ['ROLE_ANONYMOUS'],
-        $expired = false
-    ) {
+    public function __construct(string $id, string $username, string $password, $roles = ['ROLE_ANONYMOUS'], $expired = false)
+    {
         $this->id = $id;
         $this->username = $username;
         $this->password = $password;
-        $this->roles = reqarr($roles);
+        $this->roles = Helper::reqarr($roles);
         $this->expired = (bool) $expired;
     }
 

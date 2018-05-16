@@ -11,32 +11,37 @@
 
 namespace Fal\Stick\Security;
 
-use function Fal\Stick\reqarr;
 use Fal\Stick\App;
+use Fal\Stick\Helper;
 
-class Auth
+final class Auth
 {
     /** Credential message */
     const CREDENTIAL_INVALID = 'Invalid credentials.';
     const CREDENTIAL_EXPIRED = 'Your credentials is expired.';
 
+    /** Event names */
+    const EVENT_LOGIN = 'auth.login';
+    const EVENT_LOGOUT = 'auth.logout';
+    const EVENT_LOADUSER = 'auth.loaduser';
+
     /** @var App */
-    protected $app;
+    private $app;
 
     /** @var UserProviderInterface */
-    protected $provider;
+    private $provider;
 
     /** @var PasswordEncoderInterface */
-    protected $encoder;
+    private $encoder;
 
     /** @var array */
-    protected $option;
+    private $option;
 
     /** @var UserInterface */
-    protected $user;
+    private $user;
 
     /** @var bool */
-    protected $userLoaded;
+    private $userLoaded;
 
     /**
      * Class constructor
@@ -46,12 +51,8 @@ class Auth
      * @param PasswordEncoderInterface $encoder
      * @param array                    $option
      */
-    public function __construct(
-        App $app,
-        UserProviderInterface $provider,
-        PasswordEncoderInterface $encoder,
-        array $option = []
-    ) {
+    public function __construct(App $app, UserProviderInterface $provider, PasswordEncoderInterface $encoder, array $option = [])
+    {
         $this->app = $app;
         $this->provider = $provider;
         $this->encoder = $encoder;
@@ -78,8 +79,9 @@ class Auth
         } elseif ($user->isExpired()) {
             $message = self::CREDENTIAL_EXPIRED;
         } else {
-            $this->login($user);
             $result = true;
+
+            $this->login($user);
         }
 
         return $result;
@@ -92,7 +94,7 @@ class Auth
      */
     public function login(UserInterface $user): void
     {
-        if ($this->app->trigger('LOGIN', [$user, $this])) {
+        if ($this->app->trigger(self::EVENT_LOGIN, [$user, $this])) {
             return;
         }
 
@@ -107,7 +109,7 @@ class Auth
      */
     public function logout(): void
     {
-        if ($this->app->trigger('LOGOUT', [$this->getUser(), $this])) {
+        if ($this->app->trigger(self::EVENT_LOGOUT, [$this->getUser(), $this])) {
             return;
         }
 
@@ -123,7 +125,7 @@ class Auth
      */
     public function getUser(): ?UserInterface
     {
-        if ($this->userLoaded || $this->user || $this->app->trigger('LOADUSER', [$this])) {
+        if ($this->userLoaded || $this->user || $this->app->trigger(self::EVENT_LOADUSER, [$this])) {
             return $this->user;
         }
 
@@ -169,7 +171,7 @@ class Auth
      */
     public function guard(): void
     {
-        $path = $this->app['PATH'];
+        $path = $this->app['REQ.PATH'];
 
         if ($path === $this->option['loginPath']) {
             if ($this->isLogged()) {
@@ -204,20 +206,18 @@ class Auth
             return false;
         }
 
-        $use = reqarr($checkRoles);
+        $use = Helper::reqarr($checkRoles);
 
         if (count(array_intersect($use, $userRoles))) {
             return true;
         }
 
         $roles = [];
+
         foreach ($userRoles as $userRole) {
-            $roles = array_merge(
-                $roles,
-                [$userRole],
-                $this->getHierarchy($userRole)
-            );
+            $roles = array_merge($roles, [$userRole], $this->getHierarchy($userRole));
         }
+
         $roles = array_unique($roles);
 
         return count(array_intersect($use, $roles)) > 0;
@@ -278,7 +278,7 @@ class Auth
      *
      * @return array
      */
-    protected function getHierarchy($role): array
+    private function getHierarchy($role): array
     {
         if (!array_key_exists($role, $this->option['roleHierarchy'])) {
             return [];

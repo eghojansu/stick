@@ -1,0 +1,301 @@
+<?php declare(strict_types=1);
+
+/**
+ * This file is part of the eghojansu/stick library.
+ *
+ * (c) Eko Kurniawan <ekokurniawanbs@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
+namespace Fal\Stick\Test\Unit;
+
+use Fal\Stick\Helper;
+use Fal\Stick\Test\fixture\helper\ConstantPool;
+use PHPUnit\Framework\TestCase;
+
+class HelperTest extends TestCase
+{
+    public function testQuote()
+    {
+        $src = ['foo','bar'];
+        $this->assertEquals('foobar', Helper::quote('foobar'));
+        $this->assertEquals('foobar', Helper::quote($src));
+        $this->assertEquals(':foo:,:bar:', Helper::quote($src, [':',':'], ','));
+        $this->assertEquals(':foo:|:bar:|:qux,:', Helper::quote($src+[2=>'qux,'], [':',':'], '|'));
+        $this->assertEquals(':u_foo,:u_bar', Helper::quote($src, [':u_'], ','));
+        $this->assertEquals('foo_u:,bar_u:', Helper::quote($src, ['','_u:'], ','));
+    }
+
+    public function testInterpolate()
+    {
+        $this->assertEquals('foo', Helper::interpolate('foo'));
+        $this->assertEquals('foo bar', Helper::interpolate('foo baz', ['baz'=>'bar']));
+        $this->assertEquals('foo baz', Helper::interpolate('foo baz', ['bar'=>'bar']));
+        $this->assertEquals('foo bar', Helper::interpolate('foo {baz}', ['baz'=>'bar'], '{}'));
+        $this->assertEquals('foo bar', Helper::interpolate('foo {baz', ['baz'=>'bar'], '{'));
+    }
+
+    public function testClassname()
+    {
+        $this->assertEquals('HelperTest', Helper::classname($this));
+        $this->assertEquals('HelperTest', Helper::classname(self::class));
+    }
+
+    public function testCast()
+    {
+        $this->assertEquals(0, Helper::cast('0'));
+        $this->assertEquals(true, Helper::cast('true'));
+        $this->assertEquals(false, Helper::cast('false'));
+        $this->assertEquals(null, Helper::cast('null'));
+        $this->assertEquals(0.1, Helper::cast('0.1'));
+        $this->assertEquals('foo', Helper::cast('foo'));
+    }
+
+    public function testCamelcase()
+    {
+        $this->assertEquals('camelCase', Helper::camelcase('camel_case'));
+        $this->assertEquals('camelCase', Helper::camelcase('CamelCase'));
+        $this->assertEquals('longRingLongIsland', Helper::camelcase('long_ring_long_island'));
+    }
+
+    public function testSnakecase()
+    {
+        $this->assertEquals('snake_case', Helper::snakecase('SnakeCase'));
+        $this->assertEquals('snake_case', Helper::snakecase('snakeCase'));
+        $this->assertEquals('long_ring_long_island', Helper::snakecase('longRingLongIsland'));
+    }
+
+    public function testToHKey()
+    {
+        $this->assertEquals('Allow', Helper::toHKey('ALLOW'));
+        $this->assertEquals('Content-Type', Helper::toHKey('CONTENT_TYPE'));
+    }
+
+    public function testFromHKey()
+    {
+        $this->assertEquals('ALLOW', Helper::fromHKey('Allow'));
+        $this->assertEquals('CONTENT_TYPE', Helper::fromHKey('Content-Type'));
+    }
+
+    public function testFixslashes()
+    {
+        $this->assertEquals('/root', Helper::fixslashes('\\root'));
+        $this->assertEquals('/root/path', Helper::fixslashes('\\root\\path'));
+    }
+
+    public function testHash()
+    {
+        $one = Helper::hash('foo');
+        $two = Helper::hash('foobar');
+        $three = Helper::hash('foobarbaz');
+
+        $this->assertEquals(13, strlen($one));
+        $this->assertEquals(13, strlen($two));
+        $this->assertEquals(13, strlen($three));
+    }
+
+    public function testStartswith()
+    {
+        $this->assertTrue(Helper::startswith('foo', 'foo'));
+        $this->assertTrue(Helper::startswith('foo', 'foobar'));
+        $this->assertFalse(Helper::startswith('foo', 'bar'));
+        $this->assertFalse(Helper::startswith('foo', 'FOO'));
+    }
+
+    public function testIstartswith()
+    {
+        $this->assertTrue(Helper::istartswith('foo', 'foo'));
+        $this->assertTrue(Helper::istartswith('foo', 'foobar'));
+        $this->assertFalse(Helper::istartswith('foo', 'bar'));
+        $this->assertTrue(Helper::istartswith('foo', 'FOO'));
+        $this->assertTrue(Helper::istartswith('FOO', 'foo'));
+    }
+
+    public function testEndswith()
+    {
+        $this->assertTrue(Helper::endswith('foo', 'foo'));
+        $this->assertTrue(Helper::endswith('foo', 'barfoo'));
+        $this->assertFalse(Helper::endswith('foo', 'bar'));
+        $this->assertFalse(Helper::endswith('foo', 'FOO'));
+    }
+
+    public function testIendswith()
+    {
+        $this->assertTrue(Helper::iendswith('foo', 'foo'));
+        $this->assertTrue(Helper::iendswith('foo', 'barfoo'));
+        $this->assertFalse(Helper::iendswith('foo', 'bar'));
+        $this->assertTrue(Helper::iendswith('foo', 'FOO'));
+        $this->assertTrue(Helper::iendswith('FOO', 'foo'));
+    }
+
+    public function testCutafter()
+    {
+        $this->assertEquals('', Helper::cutafter('foo', 'foo'));
+        $this->assertEquals('bar', Helper::cutafter('foo', 'foobar'));
+        $this->assertEquals('def', Helper::cutafter('foo', 'bar', 'def'));
+    }
+
+    public function testIcutafter()
+    {
+        $this->assertEquals('', Helper::icutafter('foo', 'foo'));
+        $this->assertEquals('BAR', Helper::icutafter('foo', 'FOOBAR'));
+        $this->assertEquals('def', Helper::icutafter('foo', 'bar', 'def'));
+    }
+
+    public function testCutbefore()
+    {
+        $this->assertEquals('', Helper::cutbefore('bar', 'bar'));
+        $this->assertEquals('foo', Helper::cutbefore('bar', 'foobar'));
+        $this->assertEquals('def', Helper::cutbefore('bar', 'foo', 'def'));
+    }
+
+    public function testIcutbefore()
+    {
+        $this->assertEquals('', Helper::icutbefore('bar', 'bar'));
+        $this->assertEquals('FOO', Helper::icutbefore('bar', 'FOOBAR'));
+        $this->assertEquals('def', Helper::icutbefore('bar', 'FOO', 'def'));
+    }
+
+    public function testConstant()
+    {
+        $this->assertEquals('foo', Helper::constant(ConstantPool::class . '::FOO'));
+        $this->assertEquals('none', Helper::constant(ConstantPool::class . '::BAR', 'none'));
+    }
+
+    public function testSplit()
+    {
+        $this->assertEquals(['a','b','c'], Helper::split('a|b|c'));
+        $this->assertEquals(['a','b','c'], Helper::split('a,b,c'));
+        $this->assertEquals(['a','b','c'], Helper::split('a;b;c'));
+        $this->assertEquals(['a','b','c',''], Helper::split('a,b,c,', false));
+    }
+
+    public function testReqarr()
+    {
+        $this->assertEquals(['a','b','c'], Helper::reqarr(['a','b','c']));
+        $this->assertEquals(['a','b','c'], Helper::reqarr('a,b,c'));
+    }
+
+    public function testReqstr()
+    {
+        $this->assertEquals('abc', Helper::reqstr('abc'));
+        $this->assertEquals('abc', Helper::reqstr(['a','b','c'], ''));
+    }
+
+    public function testExinclude()
+    {
+        $this->expectOutputString("Foo\n");
+        Helper::exinclude(FIXTURE . 'helper/foo.php');
+    }
+
+    public function testExrequire()
+    {
+        $this->expectOutputString("Foo\n");
+        Helper::exrequire(FIXTURE . 'helper/foo.php');
+    }
+
+    public function testMkdir()
+    {
+        $path = TEMP.'mktest';
+        $result = Helper::mkdir($path);
+        $this->assertTrue($result);
+        $this->assertTrue(is_dir($path));
+
+        $result = Helper::mkdir($path);
+        $this->assertTrue($result);
+    }
+
+    public function testRead()
+    {
+        $expected = 'foo';
+        $file = FIXTURE . 'helper/foo.txt';
+        $result = Helper::read($file);
+        $this->assertEquals($expected, $result);
+    }
+
+    public function testWrite()
+    {
+        $expected = 3;
+        $file = TEMP . 'foo.txt';
+        $data = 'foo';
+        $result = Helper::write($file, $data);
+        $this->assertEquals($expected, $result);
+    }
+
+    public function testDelete()
+    {
+        $file = TEMP . 'todelete.txt';
+        $this->assertFalse(Helper::delete($file));
+        touch($file);
+        $this->assertFileExists($file);
+        $this->assertTrue(Helper::delete($file));
+        $this->assertFileNotExists($file);
+    }
+
+    public function testCsv()
+    {
+        $this->assertEquals("1,2,'3'", Helper::csv([1,2,'3']));
+    }
+
+    public function testContexttostring()
+    {
+        $this->assertEquals("foo: 'bar'", Helper::contexttostring(['foo'=>'bar']));
+        $this->assertEquals("foo: 'bar'\nbar: 'baz'", Helper::contexttostring(['foo'=>'bar','bar'=>'baz']));
+        $this->assertEquals("foo: array(\n    0 => 'bar',\n)", Helper::contexttostring(['foo'=>['bar']]));
+    }
+
+    public function testStringifyignorescalar()
+    {
+        $this->assertEquals('foo', Helper::stringifyignorescalar('foo'));
+        $this->assertEquals('0', Helper::stringifyignorescalar(0));
+        $this->assertEquals("['foo']", Helper::stringifyignorescalar(['foo']));
+    }
+
+    public function testStringify()
+    {
+        $this->assertEquals("'foo'", Helper::stringify('foo'));
+        $this->assertEquals("['foo']", Helper::stringify(['foo']));
+        $this->assertEquals("stdClass::__set_state([])", Helper::stringify(new \StdClass));
+
+        $std = new \StdClass;
+        $std->foo = "bar";
+        $this->assertEquals("stdClass::__set_state(['foo'=>'bar'])", Helper::stringify($std));
+    }
+
+    public function parseExprProvider()
+    {
+        return [
+            [
+                'foo',
+                [
+                    'foo' => [],
+                ]
+            ],
+            [
+                'foo|bar',
+                [
+                    'foo' => [],
+                    'bar' => [],
+                ]
+            ],
+            [
+                'foo:1|bar:arg|baz:[0,1,2]|qux:{"foo":"bar"}|quux:1,arg,[0,1,2],{"foo":"bar"}',
+                [
+                    'foo' => [1],
+                    'bar' => ['arg'],
+                    'baz' => [[0,1,2]],
+                    'qux' => [['foo'=>'bar']],
+                    'quux' => [1, 'arg', [0,1,2],['foo'=>'bar']],
+                ]
+            ],
+        ];
+    }
+
+    /** @dataProvider parseExprProvider */
+    public function testParsexpr($expr, $expected)
+    {
+        $this->assertEquals($expected, Helper::parsexpr($expr));
+    }
+}

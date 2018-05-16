@@ -16,7 +16,7 @@ namespace Fal\Stick\Security;
  * - https://github.com/bllohar/php-jwt-class-with-RSA-support/blob/master/src/JWToken.php
  * - https://github.com/bastman/php-jwt/blob/master/src/JWT.php
  */
-class Jwt
+final class Jwt
 {
     const ALG_HS256 = 'HS256';
     const ALG_HS384 = 'HS384';
@@ -26,7 +26,7 @@ class Jwt
     const ALG_RS512 = 'RS512';
 
     /** @var array */
-    protected $availableAlgorithms = [
+    private $availableAlgorithms = [
         self::ALG_HS256 => 'SHA256',
         self::ALG_HS384 => 'SHA384',
         self::ALG_HS512 => 'SHA512',
@@ -36,19 +36,19 @@ class Jwt
     ];
 
     /** @var array */
-    protected $supportedAlgorithms;
+    private $supportedAlgorithms;
 
     /** @var string */
-    protected $algorithm;
+    private $algorithm;
 
     /** @var string|resource */
-    protected $encodeKey;
+    private $encodeKey;
 
     /** @var string|resource */
-    protected $decodeKey;
+    private $decodeKey;
 
     /** @var int */
-    protected $leeway = 0;
+    private $leeway = 0;
 
     /**
      * Class constructor
@@ -58,12 +58,8 @@ class Jwt
      * @param string|null     $algorithm
      * @param array|null      $supportedAlgorithms
      */
-    public function __construct(
-        $encodeKey,
-        $decodeKey = null,
-        string $algorithm = null,
-        array $supportedAlgorithms = null
-    ) {
+    public function __construct($encodeKey, $decodeKey = null, string $algorithm = null, array $supportedAlgorithms = null)
+    {
         $this->setKey($encodeKey, $decodeKey);
         $this->setAlgorithm($algorithm);
         $this->setSupportedAlgorithms($supportedAlgorithms);
@@ -195,11 +191,8 @@ class Jwt
             'alg' => $this->algorithm,
         ];
 
-        $token = $this->urlencode(json_encode($header)) . '.' .
-               $this->urlencode(json_encode($payload));
-        $token .= '.' . $this->urlencode(
-            $this->sign($token, $this->algorithm, $this->encodeKey)
-        );
+        $token = $this->urlencode(json_encode($header)) . '.' . $this->urlencode(json_encode($payload));
+        $token .= '.' . $this->urlencode($this->sign($token, $this->algorithm, $this->encodeKey));
 
         return $token;
     }
@@ -283,7 +276,7 @@ class Jwt
      *
      * @throws DomainException Invalid Algorithm is not supported
      */
-    protected function sign(string $msg, string $algorithm, $key): string
+    private function sign(string $msg, string $algorithm, $key): string
     {
         $usedAlgorithm = $this->availableAlgorithms[$algorithm] ?? null;
 
@@ -314,7 +307,7 @@ class Jwt
      *
      * @throws DomainException Invalid Algorithm is not supported
      */
-    protected function verify(string $msg, string $signature, string $algorithm, $key): bool
+    private function verify(string $msg, string $signature, string $algorithm, $key): bool
     {
         switch($algorithm) {
             case self::ALG_HS256:
@@ -342,7 +335,7 @@ class Jwt
      *
      * @return bool
      */
-    protected function verifyRsa(string $signature, string $algorithm, string $msg, $key): bool
+    private function verifyRsa(string $signature, string $algorithm, string $msg, $key): bool
     {
         return openssl_verify($msg, $signature, $key, $algorithm) > 0;
     }
@@ -356,7 +349,7 @@ class Jwt
      *
      * @return string
      */
-    protected function generateRsa(string $algorithm, string $msg, $key): string
+    private function generateRsa(string $algorithm, string $msg, $key): string
     {
         $signature = '';
         openssl_sign($msg, $signature, $key, $algorithm);
@@ -371,7 +364,7 @@ class Jwt
      *
      * @return string A decoded string
      */
-    protected function urldecode(string $str): string
+    private function urldecode(string $str): string
     {
         $remainder = strlen($str) % 4;
 
@@ -389,7 +382,7 @@ class Jwt
      *
      * @return string The base64 encode of what you passed in
      */
-    protected function urlencode(string $str): string
+    private function urlencode(string $str): string
     {
         return str_replace('=', '', strtr(base64_encode($str), '+/', '-_'));
     }

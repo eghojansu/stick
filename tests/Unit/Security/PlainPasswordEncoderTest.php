@@ -20,12 +20,7 @@ class PlainPasswordEncoderTest extends TestCase
 
     public function setUp()
     {
-        $this->encoder = new PlainPasswordEncoder();
-    }
-
-    public function tearDown()
-    {
-        error_clear_last();
+        $this->encoder = new PlainPasswordEncoder;
     }
 
     public function testHash()

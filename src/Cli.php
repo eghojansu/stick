@@ -16,13 +16,13 @@ namespace Fal\Stick;
  *
  * Color output from: https://www.if-not-true-then-false.com/2010/php-class-for-coloring-php-command-line-cli-scripts-output-php-output-colorizing-using-bash-shell-colors/
  */
-class Cli
+final class Cli
 {
     /** @var int Console width */
-    protected $width;
+    private $width;
 
     /** @var array Foreground color */
-    protected $fgColors = [
+    private $fgColors = [
         'black' => '0;30',
         'dark_gray' => '1;30',
         'blue' => '0;34',
@@ -42,7 +42,7 @@ class Cli
     ];
 
     /** @var array Background color */
-    protected $bgColors = [
+    private $bgColors = [
         'black' => '40',
         'red' => '41',
         'green' => '42',
@@ -54,7 +54,7 @@ class Cli
     ];
 
     /** @var array Expression color map */
-    protected $exprColorMap = [
+    private $exprColorMap = [
         'success' => 'green',
         'warning' => 'yellow',
         'danger' => 'red',
@@ -239,7 +239,7 @@ class Cli
      *
      * @return array
      */
-    protected function parseColor(string $color = null): array
+    private function parseColor(string $color = null): array
     {
         if (!$color) {
             return array_fill(0, 3, '');
@@ -264,7 +264,7 @@ class Cli
      *
      * @return array
      */
-    protected function parseLine(string $line, int $width): array
+    private function parseLine(string $line, int $width): array
     {
         return explode("\n", wordwrap(preg_replace('/\r\n|\r/', "\n", $line), $width));
     }

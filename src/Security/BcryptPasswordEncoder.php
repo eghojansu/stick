@@ -11,7 +11,7 @@
 
 namespace Fal\Stick\Security;
 
-class BcryptPasswordEncoder implements PasswordEncoderInterface
+final class BcryptPasswordEncoder implements PasswordEncoderInterface
 {
     /**
      * {@inheritdoc}

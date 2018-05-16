@@ -23,11 +23,6 @@ class TemplateTest extends TestCase
         $this->template = new Template(FIXTURE . 'template/');
     }
 
-    public function tearDown()
-    {
-        error_clear_last();
-    }
-
     public function testAddFunction()
     {
         $this->assertEquals($this->template, $this->template->addFunction('foo', 'trim'));
@@ -38,46 +33,6 @@ class TemplateTest extends TestCase
         $this->template->setMacroAliases(['foo'=>'message']);
         $expected = 'Message content: what message';
         $this->assertEquals($expected, $this->template->foo('what message'));
-    }
-
-    public function testGet()
-    {
-        $this->assertEquals('bar', $this->template->get('foo', 'bar'));
-    }
-
-    public function testSet()
-    {
-        $this->assertEquals('bar', $this->template->set('foo', 'bar')->get('foo'));
-    }
-
-    public function testPush()
-    {
-        $this->assertEquals(['bar'], $this->template->push('foo', 'bar')->get('foo'));
-        $this->assertEquals(['baz','qux'], $this->template->set('bar', 'baz')->push('bar', 'qux')->get('bar'));
-    }
-
-    public function testPop()
-    {
-        $this->assertNull($this->template->pop('foo'));
-        $this->assertEquals('bar', $this->template->push('foo', 'bar')->pop('foo'));
-    }
-
-    public function testUnshift()
-    {
-        $this->assertEquals(['bar'], $this->template->unshift('foo', 'bar')->get('foo'));
-        $this->assertEquals(['qux','baz'], $this->template->set('bar', 'baz')->unshift('bar', 'qux')->get('bar'));
-    }
-
-    public function testShift()
-    {
-        $this->assertNull($this->template->shift('foo'));
-        $this->assertEquals('bar', $this->template->push('foo', 'bar')->shift('foo'));
-    }
-
-    public function testMerge()
-    {
-        $this->assertEquals(['bar'], $this->template->merge('foo', ['bar'])->get('foo'));
-        $this->assertEquals(['bar','baz'], $this->template->merge('foo', ['baz'])->get('foo'));
     }
 
     public function testGetTemplateExtension()
@@ -100,13 +55,9 @@ class TemplateTest extends TestCase
         $this->assertEquals('&lt;span&gt;foo&lt;/span&gt;', $this->template->esc('<span>foo</span>'));
     }
 
-    public function testE()
-    {
-        $this->assertEquals('&lt;span&gt;foo&lt;/span&gt;', $this->template->e('<span>foo</span>'));
-    }
-
     public function testMagicMethodCall()
     {
+        $this->assertEquals('&lt;span&gt;foo&lt;/span&gt;', $this->template->e('<span>foo</span>'));
         $this->assertEquals('FOO', $this->template->upper('foo'));
         $this->assertTrue($this->template->startswith('foo', 'foobar'));
         $this->assertEquals('fOO', $this->template->lcfirst('FOO'));
@@ -181,5 +132,14 @@ class TemplateTest extends TestCase
     {
         $expected = trim(file_get_contents(FIXTURE . 'template/includeme.html'));
         $this->assertEquals($expected, $this->template->include('includeme', null, 3));
+    }
+
+    public function testArrayAccess()
+    {
+        $this->template['foo'] = 'bar';
+        $this->assertEquals('bar', $this->template['foo']);
+        unset($this->template['foo']);
+        $this->assertNull($this->template['foo']);
+        $this->assertFalse(isset($this->template['foo']));
     }
 }

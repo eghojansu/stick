@@ -23,11 +23,6 @@ class JwtTest extends TestCase
         $this->jwt = new Jwt('foo');
     }
 
-    public function tearDown()
-    {
-        error_clear_last();
-    }
-
     public function testGetAlgorithm()
     {
         $this->assertEquals(Jwt::ALG_HS256, $this->jwt->getAlgorithm());

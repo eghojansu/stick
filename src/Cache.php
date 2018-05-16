@@ -11,33 +11,33 @@
 
 namespace Fal\Stick;
 
-class Cache
+final class Cache
 {
     /** @var string */
-    protected $dsn;
+    private $dsn;
 
     /** @var string */
-    protected $prefix;
+    private $prefix;
 
-    /** @var string Fallback dir */
-    protected $temp;
+    /** @var string */
+    private $fallback;
 
     /** @var string Cache id */
-    protected $cache;
+    private $cache;
 
     /** @var Redis|Memcached|string */
-    protected $cacheRef;
+    private $cacheRef;
 
     /**
      * Class constructor
      *
      * @param string $dsn
      * @param string $prefix
-     * @param string $temp
+     * @param string $fallback
      */
-    public function __construct(string $dsn, string $prefix, string $temp)
+    public function __construct(string $dsn, string $prefix, string $fallback)
     {
-        $this->temp = $temp;
+        $this->fallback = $fallback;
         $this->setPrefix($prefix);
         $this->setDsn($dsn);
     }
@@ -52,28 +52,23 @@ class Cache
      *
      * @return bool
      */
-    public function isCached(
-        string &$hash = null,
-        &$cached = null,
-        string $suffix = 'cache',
-        ...$args
-    ): bool {
+    public function isCached(string &$hash = null, &$cached = null, string $suffix = 'cache', ...$args): bool
+    {
         if ($hash === null) {
             if (!$args) {
-                throw new \LogicException(
-                    static::class . '::isCached expect at least a hash parameter, none given'
-                );
+                throw new \LogicException(self::class . '::isCached expect at least a hash parameter, none given');
             }
 
             $str = '';
             foreach ($args as $arg) {
-                $str .= (is_string($arg) ? $arg : stringify($arg)) . '.';
+                $str .= (is_string($arg) ? $arg : Helper::stringify($arg)) . '.';
             }
 
-            $hash = hash(rtrim($str, '.')) . '.' . $suffix;
+            $hash = Helper::hash(rtrim($str, '.')) . '.' . $suffix;
         }
 
         $exists = $this->exists($hash);
+
         if ($exists) {
             $cached = $this->get($hash);
             $exists = $cached !== [];
@@ -101,15 +96,11 @@ class Cache
             case 'apcu':
                 return apcu_exists($ndx);
             case 'folder':
-                return (bool) $this->parse($key, read($this->cacheRef . $ndx));
+                return (bool) $this->parse($key, Helper::read($this->cacheRef . $ndx));
             case 'memcached':
                 return (bool) $this->cacheRef->get($ndx);
             case 'redis':
                 return (bool) $this->cacheRef->exists($ndx);
-            case 'wincache':
-                return wincache_ucache_exists($ndx);
-            case 'xcache':
-                return xcache_exists($ndx);
             default:
                 return false;
         }
@@ -136,19 +127,13 @@ class Cache
                 $raw = apcu_fetch($ndx);
                 break;
             case 'folder':
-                $raw = read($this->cacheRef . $ndx);
+                $raw = Helper::read($this->cacheRef . $ndx);
                 break;
             case 'memcached':
                 $raw = $this->cacheRef->get($ndx);
                 break;
             case 'redis':
                 $raw = $this->cacheRef->get($ndx);
-                break;
-            case 'wincache':
-                $raw = wincache_ucache_get($ndx);
-                break;
-            case 'xcache':
-                $raw = xcache_get($ndx);
                 break;
             default:
                 $raw = null;
@@ -182,19 +167,13 @@ class Cache
                 apcu_store($ndx, $content, $ttl);
                 break;
             case 'folder':
-                write($this->cacheRef . str_replace(['/', '\\'], '', $ndx), $content);
+                Helper::write($this->cacheRef . str_replace(['/', '\\'], '', $ndx), $content);
                 break;
             case 'memcached':
                 $this->cacheRef->set($ndx, $content);
                 break;
             case 'redis':
                 $this->cacheRef->set($ndx, $content, array_filter(['ex'=>$ttl]));
-                break;
-            case 'wincache':
-                wincache_ucache_set($ndx, $content, $ttl);
-                break;
-            case 'xcache':
-                xcache_set($ndx, $content, $ttl);
                 break;
         }
 
@@ -220,15 +199,11 @@ class Cache
             case 'apcu':
                 return apcu_delete($ndx);
             case 'folder':
-                return delete($this->cacheRef . $ndx);
+                return Helper::delete($this->cacheRef . $ndx);
             case 'memcached':
                 return $this->cacheRef->delete($ndx);
             case 'redis':
                 return (bool) $this->cacheRef->del($ndx);
-            case 'wincache':
-                return wincache_ucache_delete($ndx);
-            case 'xcache':
-                return xcache_unset($ndx);
             default:
                 return false;
         }
@@ -291,18 +266,6 @@ class Cache
                 foreach($keys as $key) {
                     $this->cacheRef->del($key);
                 }
-
-                return true;
-            case 'wincache':
-                $info = wincache_ucache_info();
-                $keys = preg_grep($regex, array_column($info['ucache_entries'], 'key_name'));
-                foreach ($keys as $key) {
-                    wincache_ucache_delete($key);
-                }
-
-                return true;
-            case 'xcache':
-                xcache_unset_by_prefix($this->prefix . '.');
 
                 return true;
             default:
@@ -378,7 +341,7 @@ class Cache
      *
      * @return void
      */
-    protected function load(): void
+    private function load(): void
     {
         $dsn = $this->dsn;
 
@@ -387,12 +350,11 @@ class Cache
         }
 
         $parts = array_map('trim', explode('=', $dsn) + [1 => '']);
-        $auto = '/^(apc|apcu|wincache|xcache)/';
+        $auto = '/^(apc|apcu)/';
         $grep = preg_grep($auto, array_map('strtolower', get_loaded_extensions()));
 
         // Fallback to filesystem cache
         $fallback = 'folder';
-        $folder = $this->temp;
 
         if ($parts[0] === 'redis' && $parts[1] && extension_loaded('redis')) {
             list($host, $port, $db) = explode(':', $parts[1]) + [1=>0, 2=>null];
@@ -408,7 +370,6 @@ class Cache
                 }
             } catch(\Throwable $e) {
                 $this->cache = $fallback;
-                $this->cacheRef = $folder;
             }
         } elseif ($parts[0] === 'memcached' && $parts[1] && extension_loaded('memcached')) {
             $servers = explode(';', $parts[1]);
@@ -432,11 +393,10 @@ class Cache
             $this->cacheRef = null;
         } else {
             $this->cache = $fallback;
-            $this->cacheRef = $folder;
         }
 
         if ($fallback === $this->cache) {
-            mkdir($this->cacheRef);
+            Helper::mkdir($this->cacheRef = $this->fallback);
         }
     }
 
@@ -449,7 +409,7 @@ class Cache
      *
      * @return string
      */
-    protected function compact($content, int $time, int $ttl): string
+    private function compact($content, int $time, int $ttl): string
     {
         return serialize([$content, $time, $ttl]);
     }
@@ -462,7 +422,7 @@ class Cache
      *
      * @return void
      */
-    protected function parse(string $key, string $raw): array
+    private function parse(string $key, string $raw): array
     {
         if ($raw) {
             list($val, $time, $ttl) = (array) unserialize($raw);

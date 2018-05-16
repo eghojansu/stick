@@ -13,13 +13,13 @@ namespace Fal\Stick\Test\Unit\Security;
 
 use Fal\Stick\App;
 use Fal\Stick\Cache;
-use Fal\Stick\Database\Sql\Sql;
 use Fal\Stick\Security\Auth;
-use Fal\Stick\Security\SqlUserProvider;
 use Fal\Stick\Security\PlainPasswordEncoder;
 use Fal\Stick\Security\SimpleUser;
 use Fal\Stick\Security\SimpleUserTransformer;
+use Fal\Stick\Security\SqlUserProvider;
 use Fal\Stick\Security\UserInterface;
+use Fal\Stick\Sql\Connection;
 use PHPUnit\Framework\TestCase;
 
 class AuthTest extends TestCase
@@ -30,13 +30,11 @@ class AuthTest extends TestCase
     public function setUp()
     {
         $this->app = new App;
-        $this->app['EVENT.REROUTE'] = function(App $app, $url) {
-            $app['rerouted'] = $url;
-        };
+        $this->app['ON.app.reroute'] = function(App $app, $url) { $app['rerouted'] = $url;};
         $cache = new Cache('', 'test', TEMP . 'cache/');
         $cache->reset();
 
-        $db = new Sql($cache, [
+        $db = new Connection($cache, [
             'driver' => 'sqlite',
             'location' => ':memory:',
             'debug' => true,
@@ -55,16 +53,12 @@ SQL1
 ,
             ],
         ]);
-        $this->auth = new Auth(
-            $this->app,
-            new SqlUserProvider($db, new SimpleUserTransformer()),
-            new PlainPasswordEncoder
-        );
+        $this->auth = new Auth($this->app, new SqlUserProvider($db, new SimpleUserTransformer()), new PlainPasswordEncoder);
     }
 
     public function tearDown()
     {
-        error_clear_last();
+        $this->app->mclear(explode('|', App::GLOBALS));
     }
 
     public function testAttempt()
@@ -100,7 +94,7 @@ SQL1
         $user = $this->auth->getProvider()->findById('1');
         $user2 = $this->auth->getProvider()->findById('2');
 
-        $this->app->set('EVENT.LOGIN', function() {
+        $this->app->set('ON.auth.login', function() {
             return true;
         });
         $this->auth->login($user);
@@ -108,7 +102,7 @@ SQL1
         $this->assertEquals('1', $this->app['SESSION.user_login_id']);
         $this->app->clear('SESSION.user_login_id');
 
-        $this->app->set('EVENT.LOGIN', function($user, Auth $auth) use ($user2) {
+        $this->app->set('ON.auth.login', function($user, Auth $auth) use ($user2) {
             $auth->setUser(clone $user2);
         });
         $this->auth->login($user);
@@ -125,7 +119,7 @@ SQL1
         $this->auth->logout();
         $this->assertNull($this->app['SESSION.user_login_id']);
 
-        $this->app['EVENT.LOGOUT'] = function($user, Auth $auth) {
+        $this->app['ON.auth.logout'] = function($user, Auth $auth) {
             $auth->setUser(null);
         };
         $this->auth->logout();
@@ -143,13 +137,13 @@ SQL1
         $this->assertEquals($user, $this->auth->getUser());
 
         $this->auth->logout();
-        $this->app['EVENT.LOADUSER'] = function(Auth $auth) use ($user2) {
+        $this->app['ON.auth.loaduser'] = function(Auth $auth) use ($user2) {
             $auth->setUser(clone $user2);
         };
         $this->assertEquals($user2, $this->auth->getUser());
 
         $this->auth->logout();
-        $this->app->clear('EVENT.LOADUSER');
+        $this->app->clear('ON.auth.loaduser');
         $this->app['SESSION.user_login_id'] = '1';
         $this->assertEquals($user, $this->auth->getUser());
     }
@@ -181,29 +175,29 @@ SQL1
 
         $user = $this->auth->getProvider()->findById('1');
         $this->auth->setUser($user);
-        $this->app['PATH'] = '/login';
+        $this->app['REQ.PATH'] = '/login';
 
         $this->auth->guard();
         $this->assertEquals($secure, $this->app->flash('rerouted'));
 
         // valid access
-        $this->app['PATH'] = $secure;
+        $this->app['REQ.PATH'] = $secure;
         $this->auth->guard();
         $this->assertNull($this->app->flash('rerouted'));
 
         // on un-protected path
-        $this->app['PATH'] = '/foo';
+        $this->app['REQ.PATH'] = '/foo';
         $this->auth->guard();
         $this->assertNull($this->app->flash('rerouted'));
 
         // reset, access secure
         $this->auth->setUser(null);
-        $this->app['PATH'] = $secure;
+        $this->app['REQ.PATH'] = $secure;
         $this->auth->guard();
         $this->assertEquals('/login', $this->app->flash('rerouted'));
 
         // access login
-        $this->app['PATH'] = '/login';
+        $this->app['REQ.PATH'] = '/login';
         $this->auth->guard();
         $this->assertNull($this->app->flash('rerouted'));
     }

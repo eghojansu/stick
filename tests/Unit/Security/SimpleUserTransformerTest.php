@@ -24,11 +24,6 @@ class SimpleUserTransformerTest extends TestCase
         $this->transfomer = new SimpleUserTransformer();
     }
 
-    public function tearDown()
-    {
-        error_clear_last();
-    }
-
     public function testTransform()
     {
         $expected = new SimpleUser('1','foo','bar');
