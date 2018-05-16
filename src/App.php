@@ -216,7 +216,7 @@ final class App implements \ArrayAccess
         // Sync PHP globals with corresponding hive keys
         array_map([$this, 'sync'], explode('|', self::GLOBALS));
 
-        // register core service
+        // register core services
         $this->mset([
             'cache' => [
                 'class' => Cache::class,

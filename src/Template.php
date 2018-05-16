@@ -34,13 +34,13 @@ final class Template implements \ArrayAccess
     /**
      * Class constructor
      *
-     * @param string $template_dir Comma delimited dirs
-     * @param string $macro_dir Comma delimited macro dirs
+     * @param string $dirs Comma delimited dirs
+     * @param string $macros Comma delimited macro dirs
      */
-    public function __construct(string $template_dir, string $macro_dir = 'macros')
+    public function __construct(string $dirs, string $macros = 'macros')
     {
-        $this->dirs = Helper::reqarr($template_dir);
-        $this->macros = Helper::reqarr($macro_dir);
+        $this->dirs = Helper::reqarr($dirs);
+        $this->macros = Helper::reqarr($macros);
         $this->funcs = [
             'upper' => 'strtoupper',
             'lower' => 'strtolower',
