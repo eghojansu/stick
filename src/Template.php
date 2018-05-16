@@ -23,13 +23,21 @@ final class Template implements \ArrayAccess
     private $macros = [];
 
     /** @var array Macro aliases */
-    private $aliases = [];
+    private $maliases = [];
 
     /** @var string */
     private $templateExtension = '.php';
 
     /** @var array */
-    private $funcs;
+    private $aliases = [
+        'esc' => 'e',
+    ];
+
+    /** @var array */
+    private $funcs = [
+        'upper' => 'strtoupper',
+        'lower' => 'strtolower',
+    ];
 
     /**
      * Class constructor
@@ -41,11 +49,37 @@ final class Template implements \ArrayAccess
     {
         $this->dirs = Helper::reqarr($dirs);
         $this->macros = Helper::reqarr($macros);
-        $this->funcs = [
-            'upper' => 'strtoupper',
-            'lower' => 'strtolower',
-            'esc' => [$this, 'e'],
-        ];
+    }
+
+    public function exists($offset): bool
+    {
+        return isset($this->context[$offset]);
+    }
+
+    public function &get($offset)
+    {
+        if (isset($this->context[$offset])) {
+            return $this->context[$offset];
+        }
+
+        $null = null;
+        $ref =& $null;
+
+        return $ref;
+    }
+
+    public function set($offset, $value): Template
+    {
+        $this->context[$offset] = $value;
+
+        return $this;
+    }
+
+    public function clear($offset): Template
+    {
+        unset($this->context[$offset]);
+
+        return $this;
     }
 
     /**
@@ -72,7 +106,7 @@ final class Template implements \ArrayAccess
      */
     public function setMacroAliases(array $aliases): Template
     {
-        $this->aliases = $aliases + $this->aliases;
+        $this->maliases = $aliases + $this->maliases;
 
         return $this;
     }
@@ -111,9 +145,7 @@ final class Template implements \ArrayAccess
     public function filter($val, string $filters)
     {
         foreach (Helper::parsexpr($filters) as $callable => $args) {
-            array_unshift($args, $val);
-
-            $val = $this->$callable(...$args);
+            $val = $this->$callable($val, ...$args);
         }
 
         return $val;
@@ -142,7 +174,7 @@ final class Template implements \ArrayAccess
      *
      * @return bool
      */
-    public function exists(string $file, string &$realpath = null): bool
+    public function viewExists(string $file, string &$realpath = null): bool
     {
         foreach ($this->dirs as $dir) {
             $view = $dir . $file . $this->templateExtension;
@@ -167,10 +199,10 @@ final class Template implements \ArrayAccess
      */
     public function macroExists(string $file, string &$realpath = null): bool
     {
-        $use = $this->aliases[$file] ?? $file;
+        $use = $this->maliases[$file] ?? $file;
 
         foreach ($this->macros as $rel) {
-            if ($this->exists($rel . '/' . $use, $macro)) {
+            if ($this->viewExists($rel . '/' . $use, $macro)) {
                 $realpath = $macro;
 
                 return true;
@@ -192,7 +224,7 @@ final class Template implements \ArrayAccess
      */
     public function render(string $file, array $context = null): string
     {
-        if (file_exists($view = $file) || $this->exists($file, $view)) {
+        if (file_exists($view = $file) || $this->viewExists($file, $view)) {
             return $this->sandbox($view, $context ?? []);
         }
 
@@ -252,6 +284,9 @@ final class Template implements \ArrayAccess
         if (isset($this->funcs[$func])) {
             // registered function
             return call_user_func_array($this->funcs[$func], $args);
+        } elseif (isset($this->aliases[$func])) {
+            // call alias
+            return call_user_func_array([$this, $this->aliases[$func]], $args);
         } elseif (is_callable($lib = Helper::class . '::' . $func)) {
             // try from library namespace (helper)
             return call_user_func_array($lib, $args);
@@ -278,28 +313,23 @@ final class Template implements \ArrayAccess
 
     public function offsetExists($offset)
     {
-        return isset($this->context[$offset]);
+        return $this->exists($offset);
     }
 
     public function &offsetGet($offset)
     {
-        if (isset($this->context[$offset])) {
-            return $this->context[$offset];
-        }
-
-        $null = null;
-        $ref =& $null;
+        $ref =& $this->get($offset);
 
         return $ref;
     }
 
     public function offsetSet($offset, $value)
     {
-        $this->context[$offset] = $value;
+        $this->set($offset, $value);
     }
 
     public function offsetUnset($offset)
     {
-        unset($this->context[$offset]);
+        $this->clear($offset);
     }
 }

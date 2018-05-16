@@ -130,9 +130,28 @@ final class Helper
         return substr(strtolower($str), $cut) === strtolower($suffix) ? substr($str, 0, $cut) : $default;
     }
 
+    public static function extract(array $arr, string $prefix): array
+    {
+        $out = [];
+        $cut = strlen($prefix);
+
+        foreach ($arr as $key => $value) {
+            if (substr($key, 0, $cut) === $prefix) {
+                $out[substr($key, $cut)] = $value;
+            }
+        }
+
+        return $out;
+    }
+
     public static function constant(string $var, $default = null)
     {
         return defined($var) ? \constant($var) : $default;
+    }
+
+    public static function constants($class, string $prefix = ''): array
+    {
+        return self::extract((new \ReflectionClass($class))->getconstants(), $prefix);
     }
 
     public static function split(string $str, bool $noempty = true): array

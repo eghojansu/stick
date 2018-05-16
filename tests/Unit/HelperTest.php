@@ -158,10 +158,20 @@ class HelperTest extends TestCase
         $this->assertEquals('def', Helper::icutbefore('bar', 'FOO', 'def'));
     }
 
+    public function testExtract()
+    {
+        $this->assertEquals(['bar'=>'baz'], Helper::extract(['foobar'=>'baz'], 'foo'));
+    }
+
     public function testConstant()
     {
         $this->assertEquals('foo', Helper::constant(ConstantPool::class . '::FOO'));
         $this->assertEquals('none', Helper::constant(ConstantPool::class . '::BAR', 'none'));
+    }
+
+    public function testConstants()
+    {
+        $this->assertEquals(['OO'=>'foo'], Helper::constants(ConstantPool::class, 'F'));
     }
 
     public function testSplit()

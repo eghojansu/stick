@@ -23,6 +23,26 @@ class TemplateTest extends TestCase
         $this->template = new Template(FIXTURE . 'template/');
     }
 
+    public function testExists()
+    {
+        $this->assertFalse($this->template->exists('foo'));
+    }
+
+    public function testGet()
+    {
+        $this->assertNull($this->template->get('foo'));
+    }
+
+    public function testSet()
+    {
+        $this->assertEquals('bar', $this->template->set('foo', 'bar')->get('foo'));
+    }
+
+    public function testClear()
+    {
+        $this->assertNull($this->template->set('foo', 'bar')->clear('foo')->get('foo'));
+    }
+
     public function testAddFunction()
     {
         $this->assertEquals($this->template, $this->template->addFunction('foo', 'trim'));
@@ -50,14 +70,14 @@ class TemplateTest extends TestCase
         $this->assertEquals('fOO', $this->template->filter('foo', 'upper|lcfirst'));
     }
 
-    public function testEsc()
+    public function testE()
     {
-        $this->assertEquals('&lt;span&gt;foo&lt;/span&gt;', $this->template->esc('<span>foo</span>'));
+        $this->assertEquals('&lt;span&gt;foo&lt;/span&gt;', $this->template->e('<span>foo</span>'));
     }
 
     public function testMagicMethodCall()
     {
-        $this->assertEquals('&lt;span&gt;foo&lt;/span&gt;', $this->template->e('<span>foo</span>'));
+        $this->assertEquals('&lt;span&gt;foo&lt;/span&gt;', $this->template->esc('<span>foo</span>'));
         $this->assertEquals('FOO', $this->template->upper('foo'));
         $this->assertTrue($this->template->startswith('foo', 'foobar'));
         $this->assertEquals('fOO', $this->template->lcfirst('FOO'));
@@ -85,16 +105,16 @@ class TemplateTest extends TestCase
         $this->template->foo();
     }
 
-    public function testExists()
+    public function testViewExists()
     {
-        $this->assertTrue($this->template->exists('include', $a));
+        $this->assertTrue($this->template->viewExists('include', $a));
         $this->assertEquals(FIXTURE.'template/include.php', $a);
 
-        $this->assertFalse($this->template->exists('foo', $b));
+        $this->assertFalse($this->template->viewExists('foo', $b));
         $this->assertNull($b);
     }
 
-    public function testmacroExists()
+    public function testMacroExists()
     {
         $this->assertTrue($this->template->macroExists('input', $a));
         $this->assertEquals(FIXTURE.'template/macros/input.php', $a);
