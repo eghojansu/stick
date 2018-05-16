@@ -326,4 +326,25 @@ final class Helper
 
         return $res;
     }
+
+    public static function &ref(string $key, array &$var, bool $add = true)
+    {
+        $null = null;
+        $parts = explode('.', $key);
+
+        foreach ($parts as $part) {
+            if (!is_array($var)) {
+                $var = [];
+            }
+
+            if ($add || array_key_exists($part, $var)) {
+                $var =& $var[$part];
+            } else {
+                $var =& $null;
+                break;
+            }
+        }
+
+        return $var;
+    }
 }

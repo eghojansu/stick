@@ -26,7 +26,7 @@ abstract class AbstractValidator implements ValidatorInterface
      */
     public function has(string $rule): bool
     {
-        return method_exists($this, '_' . $rule) || is_callable($rule);
+        return method_exists($this, '_' . $rule);
     }
 
     /**
@@ -51,7 +51,7 @@ abstract class AbstractValidator implements ValidatorInterface
         $use = '_' . $rule;
         $this->currentData = ['rule' => $rule, 'field' => $field, 'validated' => $validated, 'raw' => $raw];
 
-        $result = method_exists($this, $use) ? $this->$use($value, ...$args) : $rule($value, ...$args);
+        $result = $this->$use($value, ...$args);
         $this->currentData = null;
 
         return $result;

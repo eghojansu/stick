@@ -293,9 +293,45 @@ class HelperTest extends TestCase
         ];
     }
 
-    /** @dataProvider parseExprProvider */
+    /**
+     * @dataProvider parseExprProvider
+     */
     public function testParsexpr($expr, $expected)
     {
         $this->assertEquals($expected, Helper::parsexpr($expr));
+    }
+
+    public function refProvider()
+    {
+        return [
+            [null, 'foo'],
+            [null, 'foo.bar.baz'],
+            [null, 'foo', [], false],
+            [null, 'foo.bar.baz', [], false],
+            ['bar', 'foo', ['foo'=>'bar']],
+            ['baz', 'foo.bar', ['foo'=>['bar'=>'baz']]],
+        ];
+    }
+
+    /**
+     * @dataProvider refProvider
+     */
+    public function testRef($expected, $key, $data = [], $add = true)
+    {
+        $this->assertEquals($expected, Helper::ref($key, $data, $add));
+    }
+
+    public function testRefRealCase()
+    {
+        $data = ['foo'=>'bar'];
+        $ref =& Helper::ref('foo', $data);
+        $ref = 'baz';
+
+        $this->assertEquals(['foo'=>'baz'], $data);
+
+        $ref =& Helper::ref('baz.qux', $data);
+        $ref = 'quux';
+
+        $this->assertEquals(['foo'=>'baz', 'baz'=>['qux'=>'quux']], $data);
     }
 }

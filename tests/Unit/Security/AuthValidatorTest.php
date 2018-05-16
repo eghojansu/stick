@@ -67,6 +67,10 @@ SQL1
     {
         return [
             [true, null],
+            [true, 'bar', 'foo', 'bar'],
+            [true, 'qux', 'baz', 'qux'],
+            [false, 'quux', 'foo', 'bar'],
+            [false, '', 'foo', 'bar'],
         ];
     }
 
@@ -78,12 +82,39 @@ SQL1
         if ($username && $password) {
             $this->auth->attempt($username, $password);
         }
+        $validator = new AuthValidator($this->auth);
 
-        $this->assertEquals($expected, $this->validator->validate('password', $value));
+        $this->assertEquals($expected, $validator->validate('password', $value));
     }
 
-    public function testMessage()
+    public function hasProvider()
     {
-        $this->assertEquals('This value should be equal to current user password.', $this->validator->message('password'));
+        return [
+            ['password'],
+            ['foo', false],
+        ];
+    }
+
+    /**
+     * @dataProvider hasProvider
+     */
+    public function testHas($rule, $expected = true)
+    {
+        $this->assertEquals($expected, $this->validator->has($rule));
+    }
+
+    public function messageProvider()
+    {
+        return [
+            ['password', 'This value should be equal to current user password.'],
+        ];
+    }
+
+    /**
+     * @dataProvider messageProvider
+     */
+    public function testMessage($rule, $message, $args = [])
+    {
+        $this->assertEquals($message, $this->validator->message($rule, null, $args));
     }
 }

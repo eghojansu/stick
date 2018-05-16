@@ -45,46 +45,59 @@ SQL1
         $this->validator = new MapperValidator($mapper);
     }
 
-    public function existsProvider()
+    public function hasProvider()
     {
         return [
-            [true, 1, 'id'],
-            [true, 'foo', 'username'],
-            [true, 1, 'active'],
-            [false, 'bleh', 'username'],
+            ['exists'],
+            ['unique'],
+            ['foo', false],
         ];
     }
 
     /**
-     * @dataProvider existsProvider
+     * @dataProvider hasProvider
      */
-    public function testExists($expected, $value, $column)
+    public function testHas($rule, $expected = true)
     {
-        $this->assertEquals($expected, $this->validator->validate('exists', $value, ['user', $column]));
+        $this->assertEquals($expected, $this->validator->has($rule));
     }
 
-    public function uniqueProvider()
+    public function validateProvider()
     {
         return [
-            [false, 1, 'id'],
-            [false, 'foo', 'username'],
-            [false, 1, 'active'],
-            [true, 'foo', 'username', 'id', 1],
-            [true, 'bleh', 'username'],
+            ['exists', true, [1, 'user', 'id']],
+            ['exists', true, ['foo', 'user', 'username']],
+            ['exists', true, [1, 'user', 'active']],
+            ['exists', false, ['bleh', 'user', 'username']],
+            ['unique', false, [1, 'user', 'id']],
+            ['unique', false, ['foo', 'user', 'username']],
+            ['unique', false, [1, 'user', 'active']],
+            ['unique', true, ['foo', 'user', 'username', 'id', 1]],
+            ['unique', true, ['bleh', 'user', 'username']],
         ];
     }
 
     /**
-     * @dataProvider uniqueProvider
+     * @dataProvider validateProvider
      */
-    public function testUnique($expected, $value, $column, $fid = null, $id = null)
+    public function testValidate($rule, $expected, $args = [], $validated = [])
     {
-        $this->assertEquals($expected, $this->validator->validate('unique', $value, ['user', $column, $fid, $id]));
+        $this->assertEquals($expected, $this->validator->validate($rule, array_shift($args), $args, '', $validated));
     }
 
-    public function testMessage()
+    public function messageProvider()
     {
-        $this->assertEquals('This value is already used.', $this->validator->message('unique'));
-        $this->assertEquals('This value is not valid.', $this->validator->message('exists'));
+        return [
+            ['unique', 'This value is already used.'],
+            ['exists', 'This value is not valid.'],
+        ];
+    }
+
+    /**
+     * @dataProvider messageProvider
+     */
+    public function testMessage($rule, $message, $args = [])
+    {
+        $this->assertEquals($message, $this->validator->message($rule, null, $args));
     }
 }

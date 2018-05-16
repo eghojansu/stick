@@ -11,13 +11,11 @@
 
 namespace Fal\Stick\Test\Unit\Validation;
 
+use Fal\Stick\Validation\NativeValidator;
 use Fal\Stick\Validation\SimpleValidator;
 use Fal\Stick\Validation\Validator;
 use PHPUnit\Framework\TestCase;
 
-/**
- * This class do test method from AbstractValidator and Simple Validator
- */
 class ValidatorTest extends TestCase
 {
     private $validator;
@@ -26,6 +24,7 @@ class ValidatorTest extends TestCase
     {
         $this->validator = new Validator;
         $this->validator->add(new SimpleValidator);
+        $this->validator->add(new NativeValidator);
     }
 
     public function validateProvider()
