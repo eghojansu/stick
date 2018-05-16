@@ -82,9 +82,8 @@ SQL1
         if ($username && $password) {
             $this->auth->attempt($username, $password);
         }
-        $validator = new AuthValidator($this->auth);
 
-        $this->assertEquals($expected, $validator->validate('password', $value));
+        $this->assertEquals($expected, $this->validator->validate('password', $value));
     }
 
     public function hasProvider()
