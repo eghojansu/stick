@@ -26,8 +26,8 @@ return new Sami($iterator, array(
     'theme'                => 'default',
     'versions'             => $versions,
     'title'                => 'Stick-PHP API',
-    'build_dir'            => __DIR__.'/docs',
-    'cache_dir'            => __DIR__.'/var/sami',
+    'build_dir'            => __DIR__.'/docs/%version%',
+    'cache_dir'            => __DIR__.'/var/docs/%version%',
     // 'remote_repository'    => new GitHubRemoteRepository('username/repository', '/path/to/repository'),
     'default_opened_level' => 2,
 ));
