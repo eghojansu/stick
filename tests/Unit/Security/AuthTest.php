@@ -63,7 +63,7 @@ SQL1
 
     public function testAttempt()
     {
-        $this->auth->setOption(['redirect'=>'/secure']);
+        $this->auth->setOptions(['redirect'=>'/secure']);
 
         $this->assertTrue($this->auth->attempt('foo','bar', $message));
         $this->assertNull($message);
@@ -171,7 +171,7 @@ SQL1
     public function testGuard()
     {
         $secure = '/secure';
-        $this->auth->setOption(['rules'=>[$secure=>'role_bar'],'redirect'=>$secure]);
+        $this->auth->setOptions(['rules'=>[$secure=>'role_bar'],'redirect'=>$secure]);
 
         $user = $this->auth->getProvider()->findById('1');
         $this->auth->setUser($user);
@@ -220,7 +220,7 @@ SQL1
         $user2 = $this->auth->getProvider()->findById('2');
         $this->auth->setUser($user2);
         $this->assertFalse($this->auth->isGranted('role_bar'));
-        $this->auth->setOption(['roleHierarchy'=>['role_foo'=>'role_bar']]);
+        $this->auth->setOptions(['roleHierarchy'=>['role_foo'=>'role_bar']]);
         $this->assertTrue($this->auth->isGranted('role_bar'));
     }
 
@@ -234,7 +234,7 @@ SQL1
         $this->assertInstanceOf(PlainPasswordEncoder::class, $this->auth->getEncoder());
     }
 
-    public function testGetOption()
+    public function testGetOptions()
     {
         $init = [
             'loginPath' => '/login',
@@ -243,11 +243,11 @@ SQL1
             'roleHierarchy' => [],
         ];
 
-        $this->assertEquals($init, $this->auth->getOption());
+        $this->assertEquals($init, $this->auth->getOptions());
     }
 
-    public function testSetOption()
+    public function testSetOptions()
     {
-        $this->assertContains('foo', $this->auth->setOption(['homepage'=>'foo'])->getOption());
+        $this->assertContains('foo', $this->auth->setOptions(['homepage'=>'foo'])->getOptions());
     }
 }

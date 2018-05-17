@@ -11,6 +11,9 @@
 
 namespace Fal\Stick\Security;
 
+/**
+ * Simple user transformer
+ */
 final class SimpleUserTransformer implements UserTransformerInterface
 {
     /**

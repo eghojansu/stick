@@ -12,18 +12,22 @@
 namespace Fal\Stick\Security;
 
 /**
+ * JWT utils
+ *
  * Based on:
  * - https://github.com/bllohar/php-jwt-class-with-RSA-support/blob/master/src/JWToken.php
  * - https://github.com/bastman/php-jwt/blob/master/src/JWT.php
  */
 final class Jwt
 {
-    const ALG_HS256 = 'HS256';
-    const ALG_HS384 = 'HS384';
-    const ALG_HS512 = 'HS512';
-    const ALG_RS256 = 'RS256';
-    const ALG_RS384 = 'RS384';
-    const ALG_RS512 = 'RS512';
+    /** Supported algorithm */
+    const
+        ALG_HS256 = 'HS256',
+        ALG_HS384 = 'HS384',
+        ALG_HS512 = 'HS512',
+        ALG_RS256 = 'RS256',
+        ALG_RS384 = 'RS384',
+        ALG_RS512 = 'RS512';
 
     /** @var array */
     private $availableAlgorithms = [
@@ -79,6 +83,7 @@ final class Jwt
      * Set algorithm
      *
      * @param string|null $algorithm
+     *
      * @return Jwt
      */
     public function setAlgorithm(string $algorithm = null): Jwt
@@ -168,6 +173,7 @@ final class Jwt
      * Set leeway
      *
      * @param int $leeway
+     *
      * @return Jwt
      */
     public function setLeeway(int $leeway): Jwt

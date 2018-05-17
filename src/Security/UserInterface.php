@@ -11,6 +11,9 @@
 
 namespace Fal\Stick\Security;
 
+/**
+ * Interface for User class
+ */
 interface UserInterface
 {
     /**

@@ -13,11 +13,21 @@ namespace Fal\Stick\Validation;
 
 use Fal\Stick\Helper;
 
+/**
+ * Validator wrapper
+ */
 final class Validator
 {
     /** @var array */
     private $validators = [];
 
+    /**
+     * Add validator
+     *
+     * @param ValidatorInterface $validator
+     *
+     * @return Validator
+     */
     public function add(ValidatorInterface $validator): Validator
     {
         $this->validators[] = $validator;
@@ -66,6 +76,13 @@ final class Validator
         ];
     }
 
+    /**
+     * Find validator for rule
+     *
+     * @param  string $rule
+     *
+     * @return ValidatorInterface
+     */
     private function findValidator(string $rule): ValidatorInterface
     {
         foreach ($this->validators as $validator) {

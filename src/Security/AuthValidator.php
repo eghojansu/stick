@@ -13,19 +13,36 @@ namespace Fal\Stick\Security;
 
 use Fal\Stick\Validation\AbstractValidator;
 
+/**
+ * Auth related validator
+ */
 final class AuthValidator extends AbstractValidator
 {
+    /** @var array */
     protected $messages = [
         'password' => 'This value should be equal to current user password.',
     ];
 
+    /** @var Auth */
     private $auth;
 
+    /**
+     * Class constructor
+     *
+     * @param Auth $auth
+     */
     public function __construct(Auth $auth)
     {
         $this->auth = $auth;
     }
 
+    /**
+     * Verify given password is valid current user password
+     *
+     * @param  string $val
+     *
+     * @return bool
+     */
     protected function _password($val): bool
     {
         $user = $this->auth->getUser();

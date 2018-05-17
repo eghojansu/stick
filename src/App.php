@@ -11,12 +11,15 @@
 
 namespace Fal\Stick;
 
+/**
+ * Main framework class
+ */
 final class App implements \ArrayAccess
 {
     /** Framework details */
     const
         PACKAGE = 'Stick-PHP',
-        VERSION = '0.1.0';
+        VERSION = '0.1.0-beta';
 
     /** Request types */
     const
@@ -98,6 +101,9 @@ final class App implements \ArrayAccess
     /** @var array Variables hive */
     private $hive;
 
+    /**
+     * Class constructor
+     */
     public function __construct()
     {
         ini_set('default_charset', 'UTF-8');
@@ -248,6 +254,11 @@ final class App implements \ArrayAccess
         register_shutdown_function([$this, 'unload'], getcwd());
     }
 
+    /**
+     * Return current user agent
+     *
+     * @return string
+     */
     public function agent(): string
     {
         $use = $this->hive['REQ']['HEADERS'];
@@ -255,6 +266,11 @@ final class App implements \ArrayAccess
         return $use['X-Operamini-Phone-Ua'] ?? $use['X-Skyfire-Phone'] ?? $use['User-Agent'] ?? '';
     }
 
+    /**
+     * Return ajax status
+     *
+     * @return bool
+     */
     public function ajax(): bool
     {
         $use = $this->hive['REQ']['HEADERS'];
@@ -262,6 +278,11 @@ final class App implements \ArrayAccess
         return strtolower($use['X-Requested-With'] ?? '') === 'xmlhttprequest';
     }
 
+    /**
+     * Return ip address
+     *
+     * @return string
+     */
     public function ip(): string
     {
         $use = $this->hive['REQ']['HEADERS'];
@@ -269,6 +290,13 @@ final class App implements \ArrayAccess
         return $use['Client-Ip'] ?? (isset($use['X-Forwarded-For']) ? Helper::split($use['X-Forwarded-For'])[0] : $_SERVER['REMOTE_ADDR'] ?? '');
     }
 
+    /**
+     * Check if ip is blacklisted
+     *
+     * @param  string|null $ip
+     *
+     * @return bool
+     */
     public function blacklisted(string $ip = null): bool
     {
         $use = $ip ?? $this->hive['REQ']['IP'];
@@ -292,6 +320,13 @@ final class App implements \ArrayAccess
         return false;
     }
 
+    /**
+     * Mimic composer autoload behaviour, can be used as class autoloader
+     *
+     * @param  string $class
+     *
+     * @return mixed
+     */
     public function autoload($class)
     {
         $logicalPath = Helper::fixslashes($class) . '.php';
@@ -324,6 +359,11 @@ final class App implements \ArrayAccess
         }
     }
 
+    /**
+     * Override request method
+     *
+     * @return App
+     */
     public function overrideRequestMethod(): App
     {
         $method = $this->hive['REQ']['HEADERS']['X-HTTP-Method-Override'] ?? $_SERVER['REQUEST_METHOD'];
@@ -337,6 +377,11 @@ final class App implements \ArrayAccess
         return $this;
     }
 
+    /**
+     * Emulate CLI request
+     *
+     * @return App
+     */
     public function emulateCliRequest(): App
     {
         if (!$this->hive['REQ']['CLI']) {
@@ -385,6 +430,16 @@ final class App implements \ArrayAccess
         return $this;
     }
 
+    /**
+     * Set route
+     *
+     * @param  string           $pattern
+     * @param  string|callback  $callback
+     * @param  int              $ttl
+     * @param  int              $kbps
+     *
+     * @return App
+     */
     public function route(string $pattern, $callback, int $ttl = 0, int $kbps = 0): App
     {
         preg_match('/^([\|\w]+)(?:\h+(\w+))?(?:\h+([^\h]+))(?:\h+(sync|ajax|cli))?$/i', $pattern, $match);
@@ -414,6 +469,16 @@ final class App implements \ArrayAccess
         return $this;
     }
 
+    /**
+     * Register pattern to handle ReST
+     *
+     * @param  string           $pattern
+     * @param  string|object    $class
+     * @param  int              $ttl
+     * @param  int              $kbps
+     *
+     * @return App
+     */
     public function map(string $pattern, $class, int $ttl = 0, int $kbps = 0): App
     {
         $str = is_string($class);
@@ -426,6 +491,15 @@ final class App implements \ArrayAccess
         return $this;
     }
 
+    /**
+     * Redirect pattern to specified url
+     *
+     * @param  string               $pattern
+     * @param  string|array|null    $url
+     * @param  bool                 $permanent
+     *
+     * @return App
+     */
     public function redirect(string $pattern, $url, bool $permanent = true): App
     {
         return $this->route($pattern, function() use ($url, $permanent) {
@@ -433,6 +507,13 @@ final class App implements \ArrayAccess
         });
     }
 
+    /**
+     * Set response status code
+     *
+     * @param  int    $code
+     *
+     * @return App
+     */
     public function status(int $code): App
     {
         $status = Helper::constant(self::class . '::HTTP_' . $code);
@@ -447,6 +528,13 @@ final class App implements \ArrayAccess
         return $this;
     }
 
+    /**
+     * Set expire headers
+     *
+     * @param  int $secs
+     *
+     * @return App
+     */
     public function expire(int $secs = 0): App
     {
         $this->hive['RES']['HEADERS']['X-Powered-By'] = $this->hive['PACKAGE'];
@@ -470,6 +558,14 @@ final class App implements \ArrayAccess
         return $this;
     }
 
+    /**
+     * Build url from given alias
+     *
+     * @param  string     $alias
+     * @param  array|null $args
+     *
+     * @return string
+     */
     public function alias(string $alias, array $args = null): string
     {
         if (!isset($this->hive['SYS']['ALIASES'][$alias])) {
@@ -483,6 +579,13 @@ final class App implements \ArrayAccess
         }, $this->hive['SYS']['ALIASES'][$alias]);
     }
 
+    /**
+     * Build url from string expression, example: @foo#bar(argument=value)
+     *
+     * @param  string $expr
+     *
+     * @return string
+     */
     public function build(string $expr): string
     {
         if (!preg_match('/^(\w+)(#\w+)?(?:\(([^\)]+)\))?$/', $expr, $match)) {
@@ -503,6 +606,14 @@ final class App implements \ArrayAccess
         return $this->alias($route, $args) . $fragment;
     }
 
+    /**
+     * Reroute to given url or alias or do reload current url
+     *
+     * @param  string|array|null    $url
+     * @param  bool                 $permanent
+     *
+     * @return void
+     */
     public function reroute($url = null, bool $permanent = false): void
     {
         $use = $url ? (is_array($url) ? $this->alias(...$url) : $this->build($url)) : $this->hive['REQ']['REALM'];
@@ -526,6 +637,11 @@ final class App implements \ArrayAccess
         $this->status($permanent ? 301 : 302)->sendHeaders();
     }
 
+    /**
+     * Start route matching
+     *
+     * @return void
+     */
     public function run(): void
     {
         $level = ob_get_level();
@@ -541,6 +657,16 @@ final class App implements \ArrayAccess
         }
     }
 
+    /**
+     * Mock request
+     *
+     * @param  string      $pattern
+     * @param  array|null  $args
+     * @param  array|null  $headers
+     * @param  string|null $body
+     *
+     * @return void
+     */
     public function mock(string $pattern, array $args = null, array $headers = null, string $body = null): void
     {
         preg_match('/^([\w]+)(?:\h+([^\h]+))(?:\h+(sync|ajax|cli))?$/i', $pattern, $match);
@@ -589,6 +715,16 @@ final class App implements \ArrayAccess
         $this->run();
     }
 
+    /**
+     * Send error
+     *
+     * @param int       $code
+     * @param string    $message
+     * @param array     $trace
+     * @param string    $level
+     *
+     * @return void
+     */
     public function error(int $code, string $message = null, array $trace = null, string $level = Logger::LEVEL_DEBUG): void
     {
         $this->clear('RES')->status($code);
@@ -678,6 +814,14 @@ final class App implements \ArrayAccess
         }
     }
 
+    /**
+     * Trigger event listener
+     *
+     * @param  string     $event
+     * @param  array|null $args
+     *
+     * @return bool
+     */
     public function trigger(string $event, array $args = null): bool
     {
         $listeners = $this->ref('ON.' . $event, false);
@@ -695,6 +839,14 @@ final class App implements \ArrayAccess
         return true;
     }
 
+    /**
+     * Grab class->method declaration from a string
+     *
+     * @param  string   $def
+     * @param  bool     $create
+     *
+     * @return mixed
+     */
     public function grab(string $def, bool $create = true)
     {
         $obj = explode('->', $def);
@@ -710,6 +862,14 @@ final class App implements \ArrayAccess
         return $grabbed;
     }
 
+    /**
+     * Call method
+     *
+     * @param  mixed      $def
+     * @param  array|null $args
+     *
+     * @return mixed
+     */
     public function call($def, array $args = null)
     {
         $func = is_string($def) ? $this->grab($def) : $def;
@@ -731,6 +891,14 @@ final class App implements \ArrayAccess
         return call_user_func_array($func, $rArgs);
     }
 
+    /**
+     * Create/get instance of a class
+     *
+     * @param  string     $id
+     * @param  array|null $args
+     *
+     * @return mixed
+     */
     public function service(string $id, array $args = null)
     {
         if (in_array($id, ['app', self::class])) {
@@ -748,6 +916,14 @@ final class App implements \ArrayAccess
         return $this->create($id, $args);
     }
 
+    /**
+     * Create instance of a class
+     *
+     * @param  string     $id
+     * @param  array|null $args
+     *
+     * @return mixed
+     */
     public function create(string $id, array $args = null)
     {
         $rule = ($this->hive['RULE'][$id] ?? []) + [
@@ -778,11 +954,23 @@ final class App implements \ArrayAccess
         return $instance;
     }
 
+    /**
+     * Return app hive
+     *
+     * @return array
+     */
     public function hive(): array
     {
         return $this->hive;
     }
 
+    /**
+     * Load configuration from a file
+     *
+     * @param  string $file
+     *
+     * @return App
+     */
     public function config(string $file): App
     {
         foreach (file_exists($file) ? Helper::exrequire($file, []) : [] as $key => $value) {
@@ -810,6 +998,15 @@ final class App implements \ArrayAccess
         return $this;
     }
 
+    /**
+     * Get hive reference
+     *
+     * @param  string       $key
+     * @param  bool         $add
+     * @param  array|null   $var
+     *
+     * @return mixed
+     */
     public function &ref(string $key, bool $add = true, array $var = null)
     {
         $parts = explode('.', $key);
@@ -841,6 +1038,13 @@ final class App implements \ArrayAccess
         return $var;
     }
 
+    /**
+     * Check hive existance
+     *
+     * @param  string $key
+     *
+     * @return bool
+     */
     public function exists(string $key): bool
     {
         $ref = $this->ref($key, false);
@@ -848,6 +1052,13 @@ final class App implements \ArrayAccess
         return isset($ref);
     }
 
+    /**
+     * Get hive value
+     *
+     * @param  string $key
+     *
+     * @return mixed
+     */
     public function &get(string $key)
     {
         $ref =& $this->ref($key);
@@ -855,6 +1066,14 @@ final class App implements \ArrayAccess
         return $ref;
     }
 
+    /**
+     * Set hive value
+     *
+     * @param string $key
+     * @param mixed  $val
+     *
+     * @return App
+     */
     public function set(string $key, $val): App
     {
         $this->beforeSet($key, $val);
@@ -867,6 +1086,13 @@ final class App implements \ArrayAccess
         return $this;
     }
 
+    /**
+     * Clear hive value (reset if initial value exists)
+     *
+     * @param  string $key
+     *
+     * @return App
+     */
     public function clear(string $key): App
     {
         if ($this->beforeClear($key)) {
@@ -886,6 +1112,14 @@ final class App implements \ArrayAccess
         return $this;
     }
 
+    /**
+     * Massive set
+     *
+     * @param  array       $values
+     * @param  string|null $prefix
+     *
+     * @return App
+     */
     public function mset(array $values, string $prefix = null): App
     {
         foreach ($values as $key => $val) {
@@ -895,6 +1129,13 @@ final class App implements \ArrayAccess
         return $this;
     }
 
+    /**
+     * Massive clear
+     *
+     * @param  array  $keys
+     *
+     * @return App
+     */
     public function mclear(array $keys): App
     {
         foreach ($keys as $key) {
@@ -904,6 +1145,13 @@ final class App implements \ArrayAccess
         return $this;
     }
 
+    /**
+     * Get and clear hive
+     *
+     * @param  string $key
+     *
+     * @return mixed
+     */
     public function flash(string $key)
     {
         $res = $this->get($key);
@@ -912,6 +1160,11 @@ final class App implements \ArrayAccess
         return $res;
     }
 
+    /**
+     * Do run
+     *
+     * @return void
+     */
     private function doRun(): void
     {
         if (!$this->hive['SYS']['BOOTED']) {
@@ -1122,6 +1375,15 @@ final class App implements \ArrayAccess
         $this->sendHeaders();
     }
 
+    /**
+     * Perform pattern match, return true if no match
+     *
+     * @param  string     $pattern
+     * @param  string     $modifier
+     * @param  array|null &$args
+     *
+     * @return bool
+     */
     private function noMatch(string $pattern, string $modifier, array &$args = null): bool
     {
         $wild = preg_replace_callback(
@@ -1149,6 +1411,14 @@ final class App implements \ArrayAccess
         return !$res;
     }
 
+    /**
+     * Do throttle output
+     *
+     * @param  string   $content
+     * @param  int      $kbps
+     *
+     * @return void
+     */
     private function throttle(string $content, int $kbps = 0): void
     {
         if ($kbps <= 0) {
@@ -1172,6 +1442,11 @@ final class App implements \ArrayAccess
         }
     }
 
+    /**
+     * Send response headers and cookies
+     *
+     * @return App
+     */
     private function sendHeaders(): App
     {
         if ($this->hive['REQ']['CLI'] || headers_sent()) {
@@ -1191,6 +1466,14 @@ final class App implements \ArrayAccess
         return $this;
     }
 
+    /**
+     * Resolve function/method arguments
+     *
+     * @param  ReflectionFunctionAbstract $ref
+     * @param  array|null                 $args
+     *
+     * @return array
+     */
     private function resolveArgs(\ReflectionFunctionAbstract $ref, array $args = null): array
     {
         if ($ref->getNumberOfParameters() === 0) {
@@ -1216,6 +1499,13 @@ final class App implements \ArrayAccess
         return $resolved;
     }
 
+    /**
+     * Resolve string argument
+     *
+     * @param  string $val
+     *
+     * @return mixed
+     */
     private function resolveArg(string $val)
     {
         if (class_exists($val)) {
@@ -1235,6 +1525,15 @@ final class App implements \ArrayAccess
         return $val;
     }
 
+    /**
+     * Resolve class arguments
+     *
+     * @param  ReflectionParameter $ref
+     * @param  array               &$lookup
+     * @param  array               &$pArgs
+     *
+     * @return mixed
+     */
     private function resolveClassArg(\ReflectionParameter $ref, array &$lookup, array &$pArgs)
     {
         $classname = $ref->getClass()->name;
@@ -1251,6 +1550,14 @@ final class App implements \ArrayAccess
         return is_string($lookup[$ref->name]) ? $this->resolveArg($lookup[$ref->name]) : $lookup[$ref->name];
     }
 
+    /**
+     * Before set procedure
+     *
+     * @param  string $key
+     * @param  mixed  &$val
+     *
+     * @return void
+     */
     private function beforeSet(string $key, &$val): void
     {
         if (Helper::startswith('GET.', $key)) {
@@ -1274,6 +1581,14 @@ final class App implements \ArrayAccess
         }
     }
 
+    /**
+     * After set procedure
+     *
+     * @param  string $key
+     * @param  mixed  $val
+     *
+     * @return void
+     */
     private function afterSet(string $key, $val): void
     {
         if (Helper::cutafter('JAR', $key) && !Helper::endswith('.EXPIRE', $key)) {
@@ -1281,6 +1596,13 @@ final class App implements \ArrayAccess
         }
     }
 
+    /**
+     * Modify cookie set
+     *
+     * @param  mixed $val
+     *
+     * @return array
+     */
     private function modifyCookieSet($val): array
     {
         $jar = [];
@@ -1298,6 +1620,14 @@ final class App implements \ArrayAccess
         return $ujar;
     }
 
+    /**
+     * Modify rule set
+     *
+     * @param  string $id
+     * @param  mixed  $val
+     *
+     * @return array
+     */
     private function modifyRuleSet(string $id, $val): array
     {
         return array_filter(array_replace(self::RULE_DEFAULT, [
@@ -1305,6 +1635,14 @@ final class App implements \ArrayAccess
         ], is_string($val) ? ['class' => $val] : $val));
     }
 
+    /**
+     * Modify listener set
+     *
+     * @param  string $event
+     * @param  mixed  $val
+     *
+     * @return array
+     */
     private function modifyListenerSet(string $event, $val): array
     {
         $listeners = $this->hive['ON'][$event] ?? [];
@@ -1313,6 +1651,13 @@ final class App implements \ArrayAccess
         return $listeners;
     }
 
+    /**
+     * Perform real hive removal
+     *
+     * @param  string $key
+     *
+     * @return void
+     */
     private function doClear(string $key): void
     {
         $parts = explode('.', $key);
@@ -1330,6 +1675,13 @@ final class App implements \ArrayAccess
         unset($var[$last]);
     }
 
+    /**
+     * Before clear procedure
+     *
+     * @param  string $key
+     *
+     * @return bool
+     */
     private function beforeClear(string $key): bool
     {
         if (Helper::startswith('GET.', $key)) {
@@ -1346,6 +1698,13 @@ final class App implements \ArrayAccess
         return false;
     }
 
+    /**
+     * After clear procedure
+     *
+     * @param  string $key
+     *
+     * @return void
+     */
     private function afterClear(string $key): void
     {
         if (Helper::startswith('SESSION', $key)) {
@@ -1353,6 +1712,13 @@ final class App implements \ArrayAccess
         }
     }
 
+    /**
+     * Clear session
+     *
+     * @param  string $name
+     *
+     * @return void
+     */
     private function clearSession(string $name): void
     {
         $this->startSession();
@@ -1371,6 +1737,13 @@ final class App implements \ArrayAccess
         $this->sync('SESSION');
     }
 
+    /**
+     * Start session
+     *
+     * @param  bool $start
+     *
+     * @return void
+     */
     private function startSession(bool $start = true): void
     {
         if ($start && !headers_sent() && session_status() !== PHP_SESSION_ACTIVE) {
@@ -1380,6 +1753,13 @@ final class App implements \ArrayAccess
         $this->sync('SESSION');
     }
 
+    /**
+     * Sync globals to hive
+     *
+     * @param  string $key
+     *
+     * @return array|null
+     */
     private function sync(string $key): ?array
     {
         $this->hive[$key] =& $GLOBALS['_' . $key];
@@ -1387,6 +1767,13 @@ final class App implements \ArrayAccess
         return $this->hive[$key];
     }
 
+    /**
+     * Convert and modify trace as string
+     *
+     * @param  array|null &$trace
+     *
+     * @return string
+     */
     private function trace(array &$trace = null): string
     {
         if (!$trace) {
@@ -1432,11 +1819,25 @@ final class App implements \ArrayAccess
         return $out;
     }
 
+    /**
+     * Convenience method to check hive value
+     *
+     * @param  string $offset
+     *
+     * @return bool
+     */
     public function offsetExists($offset)
     {
         return $this->exists($offset);
     }
 
+    /**
+     * Convenience method to get hive value
+     *
+     * @param  string $offset
+     *
+     * @return mixed
+     */
     public function &offsetGet($offset)
     {
         $ref =& $this->get($offset);
@@ -1444,11 +1845,26 @@ final class App implements \ArrayAccess
         return $ref;
     }
 
+    /**
+     * Convenience method to set hive value
+     *
+     * @param  string $offset
+     * @param  mixed  $value
+     *
+     * @return void
+     */
     public function offsetSet($offset, $value)
     {
         $this->set($offset, $value);
     }
 
+    /**
+     * Convenience method to clear hive value
+     *
+     * @param  string $offset
+     *
+     * @return void
+     */
     public function offsetUnset($offset)
     {
         $this->clear($offset);

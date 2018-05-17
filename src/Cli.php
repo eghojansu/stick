@@ -85,6 +85,7 @@ final class Cli
      * Set width
      *
      * @param int $width
+     *
      * @return Cli
      */
     public function setWidth(int $width): Cli

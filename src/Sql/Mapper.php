@@ -13,22 +13,29 @@ namespace Fal\Stick\Sql;
 
 use Fal\Stick\Helper;
 
+/**
+ * Sql record mapper
+ */
 class Mapper implements \ArrayAccess
 {
     /** Pagination records perpage */
     const PERPAGE = 10;
 
     /** Event names */
-    const EVENT_LOAD = 'load';
-    const EVENT_BEFOREINSERT = 'beforeinsert';
-    const EVENT_AFTERINSERT = 'afterinsert';
-    const EVENT_INSERT = self::EVENT_AFTERINSERT;
-    const EVENT_BEFOREUPDATE = 'beforeupdate';
-    const EVENT_AFTERUPDATE = 'afterupdate';
-    const EVENT_UPDATE = self::EVENT_AFTERUPDATE;
-    const EVENT_BEFOREDELETE = 'beforedelete';
-    const EVENT_AFTERDELETE = 'afterdelete';
-    const EVENT_DELETE = self::EVENT_AFTERDELETE;
+    const
+        EVENT_LOAD = 'load',
+        EVENT_BEFOREINSERT = 'beforeinsert',
+        EVENT_AFTERINSERT = 'afterinsert',
+        EVENT_BEFOREUPDATE = 'beforeupdate',
+        EVENT_AFTERUPDATE = 'afterupdate',
+        EVENT_BEFOREDELETE = 'beforedelete',
+        EVENT_AFTERDELETE = 'afterdelete';
+
+    /** Aliases */
+    const
+        EVENT_INSERT = self::EVENT_AFTERINSERT,
+        EVENT_UPDATE = self::EVENT_AFTERUPDATE,
+        EVENT_DELETE = self::EVENT_AFTERDELETE;
 
     /** @var Connection */
     protected $db;
@@ -45,7 +52,7 @@ class Mapper implements \ArrayAccess
     /** @var array */
     protected $fields;
 
-    /** @var array Primary keys */
+    /** @var array primary keys */
     protected $keys;
 
     /** @var array */
@@ -60,6 +67,14 @@ class Mapper implements \ArrayAccess
     /** @var array */
     protected $triggers = [];
 
+    /**
+     * Class constructor
+     *
+     * @param Connection    $db
+     * @param string|null   $table
+     * @param array|null    $fields
+     * @param int           $ttl
+     */
     public function __construct(Connection $db, string $table = null, array $fields = null, int $ttl = 60)
     {
         $this->db = $db;
@@ -72,11 +87,23 @@ class Mapper implements \ArrayAccess
         $this->setTable($table ?? $this->table ?? Helper::snakecase(Helper::classname($this)));
     }
 
+    /**
+     * Get table name
+     *
+     * @return string
+     */
     public function getTable(): string
     {
         return $this->table;
     }
 
+    /**
+     * Set table name and load its schema
+     *
+     * @param string $table
+     *
+     * @return Mapper
+     */
     public function setTable(string $table): Mapper
     {
         $use = $this->driver === Connection::DB_OCI ? strtoupper($table) : $table;
@@ -100,26 +127,60 @@ class Mapper implements \ArrayAccess
         return $this;
     }
 
+    /**
+     * Create mapper with other table
+     *
+     * @param  string      $table
+     * @param  array|null  $fields
+     * @param  int $ttl
+     *
+     * @return Mapper
+     */
     public function withTable(string $table, array $fields = null, int $ttl = 60): Mapper
     {
         return new self($this->db, $table, $fields, $ttl);
     }
 
+    /**
+     * Get fields name
+     *
+     * @return array
+     */
     public function getFields(): array
     {
         return array_keys($this->fields + $this->adhoc);
     }
 
+    /**
+     * Get table schema
+     *
+     * @return array
+     */
     public function getSchema(): array
     {
         return $this->fields;
     }
 
+    /**
+     * Get connection instance
+     *
+     * @return Connection
+     */
     public function getConnection(): Connection
     {
         return $this->db;
     }
 
+    /**
+     * Set event listener
+     *
+     * Listener should return true to give control back to the caller
+     *
+     * @param  string   $events
+     * @param  callable $trigger
+     *
+     * @return Mapper
+     */
     public function on($events, callable $trigger): Mapper
     {
         foreach (Helper::reqarr($events) as $event) {
@@ -129,6 +190,14 @@ class Mapper implements \ArrayAccess
         return $this;
     }
 
+    /**
+     * Trigger event
+     *
+     * @param  string $event
+     * @param  array  $args
+     *
+     * @return bool
+     */
     public function trigger(string $event, array $args = []): bool
     {
         if (!isset($this->triggers[$event])) {
@@ -144,16 +213,49 @@ class Mapper implements \ArrayAccess
         return true;
     }
 
+    /**
+     * Create has one Relation
+     *
+     * @param  string|Mapper $target   table name, Mapper instance or names
+     * @param  string|null   $targetId
+     * @param  string|null   $refId
+     * @param  array|null    $options
+     *
+     * @return Relation
+     */
     public function hasOne($target = null, string $targetId = null, string $refId = null, array $options = null): Relation
     {
         return $this->createRelation($target, $targetId, $refId, null, null, $options);
     }
 
+    /**
+     * Create has many Relation
+     *
+     * @param  string|Mapper $target
+     * @param  string|null   $targetId
+     * @param  string|null   $refId
+     * @param  string|array  $pivot
+     * @param  array|null    $options
+     *
+     * @return Relation
+     */
     public function hasMany($target = null, string $targetId = null, string $refId = null, $pivot = null, array $options = null): Relation
     {
         return $this->createRelation($target, $targetId, $refId, $pivot, false, $options);
     }
 
+    /**
+     * Create Relation
+     *
+     * @param  string|Mapper $target
+     * @param  string|null   $targetId
+     * @param  string|null   $refId
+     * @param  [type]        $pivot
+     * @param  bool|null     $one
+     * @param  array|null    $options
+     *
+     * @return Relation
+     */
     public function createRelation($target = null, string $targetId = null, string $refId = null, $pivot = null, bool $one = null, array $options = null): Relation
     {
         $use = $target;
@@ -173,11 +275,25 @@ class Mapper implements \ArrayAccess
         return new Relation($this, $use, $targetId, $refId, $pivot, $one, $options);
     }
 
+    /**
+     * Check field existance
+     *
+     * @param  string $key
+     *
+     * @return bool
+     */
     public function exists(string $key): bool
     {
         return array_key_exists($key, $this->fields + $this->adhoc);
     }
 
+    /**
+     * Get value of a field
+     *
+     * @param  string $key
+     *
+     * @return mixed
+     */
     public function &get(string $key)
     {
         if (array_key_exists($key, $this->fields)) {
@@ -197,6 +313,14 @@ class Mapper implements \ArrayAccess
         throw new \LogicException('Undefined field ' . $key);
     }
 
+    /**
+     * Set field value
+     *
+     * @param string $key
+     * @param mixed  $val
+     *
+     * @return Mapper
+     */
     public function set(string $key, $val): Mapper
     {
         if (array_key_exists($key, $this->fields)) {
@@ -216,6 +340,13 @@ class Mapper implements \ArrayAccess
         return $this;
     }
 
+    /**
+     * Clear field value
+     *
+     * @param  string $key
+     *
+     * @return Mapper
+     */
     public function clear(string $key): Mapper
     {
         if (array_key_exists($key, $this->fields)) {
@@ -230,6 +361,11 @@ class Mapper implements \ArrayAccess
         return $this;
     }
 
+    /**
+     * Reset mapper values
+     *
+     * @return Mapper
+     */
     public function reset(): Mapper
     {
         foreach ($this->fields as &$field) {
@@ -254,11 +390,25 @@ class Mapper implements \ArrayAccess
         return $this;
     }
 
+    /**
+     * Check if field is required
+     *
+     * @param  string $key
+     *
+     * @return bool
+     */
     public function required(string $key): bool
     {
         return !($this->fields[$key]['nullable'] ?? true);
     }
 
+    /**
+     * Check if field or mapper is changed
+     *
+     * @param  string|null $key
+     *
+     * @return bool
+     */
     public function changed(string $key = null): bool
     {
         if ($key) {
@@ -274,6 +424,11 @@ class Mapper implements \ArrayAccess
         return false;
     }
 
+    /**
+     * Get primary keys value
+     *
+     * @return array
+     */
     public function keys(): array
     {
         $res = [];
@@ -285,11 +440,23 @@ class Mapper implements \ArrayAccess
         return $res;
     }
 
+    /**
+     * Get primary keys fields
+     *
+     * @return array
+     */
     public function getKeys(): array
     {
         return $this->keys;
     }
 
+    /**
+     * Set primary keys fields
+     *
+     * @param array $keys
+     *
+     * @return Mapper
+     */
     public function setKeys(array $keys): Mapper
     {
         foreach ($keys as $key) {
@@ -303,6 +470,14 @@ class Mapper implements \ArrayAccess
         return $this;
     }
 
+    /**
+     * Set values from array
+     *
+     * @param  array         $source
+     * @param  callable|null $func
+     *
+     * @return Mapper
+     */
     public function fromArray(array $source, callable $func = null): Mapper
     {
         foreach ($func ? call_user_func_array($func, [$source]) : $source as $key => $value) {
@@ -314,6 +489,13 @@ class Mapper implements \ArrayAccess
         return $this;
     }
 
+    /**
+     * Cast mapper to array
+     *
+     * @param  callable|null $func
+     *
+     * @return array
+     */
     public function toArray(callable $func = null): array
     {
         $result = [];
@@ -324,16 +506,36 @@ class Mapper implements \ArrayAccess
         return $func ? call_user_func_array($func, [$result]) : $result;
     }
 
+    /**
+     * Check if mapper is loaded
+     *
+     * @return bool
+     */
     public function valid(): bool
     {
         return $this->hive['loaded'];
     }
 
+    /**
+     * Valid complement
+     *
+     * @return bool
+     */
     public function dry(): bool
     {
         return !$this->hive['loaded'];
     }
 
+    /**
+     * Paginate table content
+     *
+     * @param  int                  $page
+     * @param  string|array|null    $filter  @see Connection::filter
+     * @param  array|null           $options
+     * @param  int                  $ttl
+     *
+     * @return array
+     */
     public function paginate(int $page = 1, $filter = null, array $options = null, int $ttl = 0): array
     {
         $use = (array) $options;
@@ -356,6 +558,15 @@ class Mapper implements \ArrayAccess
         return compact('subset', 'total', 'count', 'pages', 'page', 'start', 'end');
     }
 
+    /**
+     * Count table records
+     *
+     * @param  string|array|null    $filter  @see Connection::filter
+     * @param  array|null           $options
+     * @param  int                  $ttl
+     *
+     * @return int
+     */
     public function count($filter = null, array $options = null, int $ttl = 0): int
     {
         $fields = (in_array($this->driver, [Connection::DB_MSSQL, Connection::DB_DBLIB, Connection::DB_SQLSRV]) ? 'TOP 100 PERCENT ' : '') . '*' . $this->stringifyAdhoc();
@@ -368,6 +579,15 @@ class Mapper implements \ArrayAccess
         return (int) $res[0]['_rows'];
     }
 
+    /**
+     * Load mapper
+     *
+     * @param  string|array|null    $filter  @see Connection::filter
+     * @param  array|null           $options
+     * @param  int                  $ttl
+     *
+     * @return Mapper
+     */
     public function load($filter = null, array $options = null, int $ttl = 0): Mapper
     {
         $found = $this->reset()->findAll($filter, ['limit'=>1] + (array) $options, $ttl);
@@ -382,6 +602,13 @@ class Mapper implements \ArrayAccess
         return $this;
     }
 
+    /**
+     * Load mapper filtered by given primary keys value
+     *
+     * @param  mixed $ids
+     *
+     * @return Mapper
+     */
     public function find(...$ids): Mapper
     {
         $vcount = count($ids);
@@ -394,6 +621,15 @@ class Mapper implements \ArrayAccess
         return $this->load(array_combine($this->keys, $ids));
     }
 
+    /**
+     * Find records
+     *
+     * @param  string|array|null    $filter  @see Connection::filter
+     * @param  array|null           $options
+     * @param  int                  $ttl
+     *
+     * @return array
+     */
     public function findAll($filter = null, array $options = null, int $ttl = 0): array
     {
         $fields = isset($options['group']) && !in_array($this->driver, [Connection::DB_MYSQL, Connection::DB_SQLITE]) ? $options['group'] : implode(',', array_map([$this->db, 'quotekey'], array_keys($this->fields)));
@@ -402,11 +638,21 @@ class Mapper implements \ArrayAccess
         return array_map([$this, 'factory'], $this->db->exec($sql, $args, $ttl));
     }
 
+    /**
+     * Decide insert or update
+     *
+     * @return Mapper
+     */
     public function save(): Mapper
     {
         return $this->hive['loaded'] ? $this->update() : $this->insert();
     }
 
+    /**
+     * Insert record to database
+     *
+     * @return Mapper
+     */
     public function insert(): Mapper
     {
         $args = [];
@@ -459,6 +705,11 @@ class Mapper implements \ArrayAccess
         return $this;
     }
 
+    /**
+     * Update record changes to database
+     *
+     * @return Mapper
+     */
     public function update(): Mapper
     {
         $args = [];
@@ -502,6 +753,14 @@ class Mapper implements \ArrayAccess
         return $this;
     }
 
+    /**
+     * Delete record to database
+     *
+     * @param  string|array|null    $filter @see Connection::filter
+     * @param  bool                 $hayati delete slowly
+     *
+     * @return int
+     */
     public function delete($filter = null, bool $hayati = false): int
     {
         if ($filter) {
@@ -544,6 +803,15 @@ class Mapper implements \ArrayAccess
         return $out;
     }
 
+    /**
+     * Build select query
+     *
+     * @param  string               $fields
+     * @param  string|array|null    $filter  @see Connection::filter
+     * @param  array|null           $options
+     *
+     * @return array
+     */
     protected function stringify(string $fields, $filter = null, array $options = null): array
     {
         $use = ($options ?? []) + [
@@ -622,6 +890,11 @@ class Mapper implements \ArrayAccess
         return [$sql, $args];
     }
 
+    /**
+     * Convert adhoc as select column
+     *
+     * @return string
+     */
     protected function stringifyAdhoc(): string
     {
         $res = '';
@@ -633,6 +906,13 @@ class Mapper implements \ArrayAccess
         return $res;
     }
 
+    /**
+     * Build mapper from record
+     *
+     * @param  array  $row
+     *
+     * @return Mapper
+     */
     protected function factory(array $row): Mapper
     {
         $mapper = clone $this;
@@ -652,6 +932,14 @@ class Mapper implements \ArrayAccess
         return $mapper;
     }
 
+    /**
+     * Return modified field arg (@see self::__call)
+     *
+     * @param  string $field
+     * @param  array  $args
+     *
+     * @return array
+     */
     protected function fieldArgs(string $field, array $args): array
     {
         if ($args) {
@@ -662,11 +950,25 @@ class Mapper implements \ArrayAccess
         return $args;
     }
 
+    /**
+     * Convenience method to check field existance
+     *
+     * @param  string $offset
+     *
+     * @return bool
+     */
     public function offsetExists($offset)
     {
         return $this->exists($offset);
     }
 
+    /**
+     * Convenience method to get field value
+     *
+     * @param  string $offset
+     *
+     * @return mixed
+     */
     public function &offsetGet($offset)
     {
         $ref =& $this->get($offset);
@@ -674,16 +976,44 @@ class Mapper implements \ArrayAccess
         return $ref;
     }
 
+    /**
+     * Convenience method to set field value
+     *
+     * @param  string $offset
+     * @param  mixed  $value
+     *
+     * @return void
+     */
     public function offsetSet($offset, $value)
     {
         $this->set($offset, $value);
     }
 
+    /**
+     * Convenience method to clear field value
+     *
+     * @param  string $offset
+     *
+     * @return void
+     */
     public function offsetUnset($offset)
     {
         $this->clear($offset);
     }
 
+    /**
+     * Magic method proxy
+     *
+     * Example:
+     *     getName      get('name')
+     *     findByName   findAll(['name'=>'value'])
+     *     loadByName   load(['name'=>'value'])
+     *
+     * @param  string $method
+     * @param  array  $args
+     *
+     * @return mixed
+     */
     public function __call($method, array $args)
     {
         if (Helper::istartswith('get', $method)) {

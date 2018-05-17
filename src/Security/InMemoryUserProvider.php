@@ -11,6 +11,9 @@
 
 namespace Fal\Stick\Security;
 
+/**
+ * Simple user provider that holds users as its data
+ */
 final class InMemoryUserProvider implements UserProviderInterface
 {
     /** @var array */

@@ -11,6 +11,9 @@
 
 namespace Fal\Stick;
 
+/**
+ * Cache utils
+ */
 final class Cache
 {
     /** @var string */
@@ -146,9 +149,9 @@ final class Cache
     /**
      * Set cache item content
      *
-     * @param  string $key
-     * @param  mixed $val
-     * @param  int $ttl
+     * @param  string   $key
+     * @param  mixed    $val
+     * @param  int      $ttl
      *
      * @return Cache
      */
@@ -300,6 +303,7 @@ final class Cache
      * Set prefix
      *
      * @param string $prefix
+     *
      * @return Cache
      */
     public function setPrefix(string $prefix): Cache
@@ -325,6 +329,7 @@ final class Cache
      * Set dsn
      *
      * @param string $dsn
+     *
      * @return $this
      */
     public function setDsn(string $dsn): Cache
@@ -403,9 +408,9 @@ final class Cache
     /**
      * Compact cache content and time
      *
-     * @param  mixed $content
-     * @param  int    $time
-     * @param  int    $ttl
+     * @param  mixed    $content
+     * @param  int      $time
+     * @param  int      $ttl
      *
      * @return string
      */

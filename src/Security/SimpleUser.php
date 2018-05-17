@@ -13,6 +13,9 @@ namespace Fal\Stick\Security;
 
 use Fal\Stick\Helper;
 
+/**
+ * Simple user class
+ */
 final class SimpleUser implements UserInterface
 {
     /** @var string */
@@ -52,6 +55,7 @@ final class SimpleUser implements UserInterface
      * Set id
      *
      * @param string $id
+     *
      * @return SimpleUser
      */
     public function setId(string $id): SimpleUser
@@ -73,6 +77,7 @@ final class SimpleUser implements UserInterface
      * Set username
      *
      * @param string $username
+     *
      * @return SimpleUser
      */
     public function setUsername(string $username): SimpleUser
@@ -94,6 +99,7 @@ final class SimpleUser implements UserInterface
      * Set password
      *
      * @param string $password
+     *
      * @return SimpleUser
      */
     public function setPassword(string $password): SimpleUser
@@ -115,6 +121,7 @@ final class SimpleUser implements UserInterface
      * Set roles
      *
      * @param array $roles
+     *
      * @return SimpleUser
      */
     public function setRoles(array $roles): SimpleUser
@@ -136,6 +143,7 @@ final class SimpleUser implements UserInterface
      * Set expired
      *
      * @param bool $expired
+     *
      * @return SimpleUser
      */
     public function setExpired(bool $expired): SimpleUser

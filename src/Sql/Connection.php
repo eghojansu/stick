@@ -21,16 +21,17 @@ use Fal\Stick\Logger;
 final class Connection
 {
     /** Supported database engine name */
-    const DB_SQLITE = 'sqlite';
-    const DB_SQLITE2 = 'sqlite2';
-    const DB_MYSQL = 'mysql';
-    const DB_PGSQL = 'pgsql';
-    const DB_OCI = 'oci';
-    const DB_MSSQL = 'mssql';
-    const DB_SQLSRV = 'sqlsrv';
-    const DB_ODBC = 'odbc';
-    const DB_SYBASE = 'sybase';
-    const DB_DBLIB = 'dblib';
+    const
+        DB_SQLITE = 'sqlite',
+        DB_SQLITE2 = 'sqlite2',
+        DB_MYSQL = 'mysql',
+        DB_PGSQL = 'pgsql',
+        DB_OCI = 'oci',
+        DB_MSSQL = 'mssql',
+        DB_SQLSRV = 'sqlsrv',
+        DB_ODBC = 'odbc',
+        DB_SYBASE = 'sybase',
+        DB_DBLIB = 'dblib';
 
     /** Special data type */
     const PARAM_FLOAT = 'float';
@@ -38,7 +39,7 @@ final class Connection
     /** @var string */
     private $encoding;
 
-    /** @var array Original options */
+    /** @var array original options */
     private $original;
 
     /** @var array */
@@ -53,10 +54,10 @@ final class Connection
     /** @var string */
     private $log = '';
 
-    /** @var string Driver name */
+    /** @var string driver name */
     private $driver;
 
-    /** @var string Driver version */
+    /** @var string driver version */
     private $version;
 
     /** @var bool */
@@ -133,6 +134,7 @@ final class Connection
      * Set encoding
      *
      * @param string $encoding
+     *
      * @return Connection
      */
     public function setEncoding(string $encoding): Connection
@@ -154,22 +156,25 @@ final class Connection
     }
 
     /**
-     * Set options, available option (and its default value):
-     *     debug: bool       = false (enable debug mode)
-     *     log: bool         = false (log query)
-     *     driver: string    = void|unknown (database driver name, eg: mysql, sqlite)
-     *     dsn: string       = void (valid dsn)
-     *     server: string    = 127.0.0.1
-     *     port: int         = 3306
-     *     password: string  = null
-     *     username: string  = null
-     *     dbname: string    = void
-     *     location: string  = void (for sqlite driver)
-     *     options: array     = [] (A key=>value array of driver-specific connection options)
-     *     commands: array   = void (Commands to be executed)
-     *     defaults: array   = void (defaults configuration)
+     * Set options
      *
-     * @param array $option
+     * Available options (and its default value):
+     *     debug    bool    false           enable debug mode
+     *     log      bool    false           log query
+     *     driver   string  void|unknown    database driver name, eg: mysql, sqlite
+     *     dsn      string  void            valid dsn
+     *     server   string  127.0.0.1
+     *     port     int     3306
+     *     password string  null
+     *     username string  null
+     *     dbname   string  void
+     *     location string  void            for sqlite driver
+     *     options  array   []              A key=>value array of driver-specific connection options
+     *     commands array   void            Commands to be executed
+     *     defaults array   void            defaults configuration
+     *
+     * @param array $options
+     *
      * @return Connection
      */
     public function setOptions(array $options): Connection
@@ -519,8 +524,8 @@ final class Connection
     /**
      * Return quoted identifier name
      *
-     * @param  string  $key
-     * @param  boolean $split
+     * @param  string   $key
+     * @param  bool     $split
      *
      * @return string
      */
@@ -951,6 +956,13 @@ final class Connection
         throw new \DomainException('Driver ' . $driver . ' is not supported');
     }
 
+    /**
+     * Cast SQL-default-value to PHP-value
+     *
+     * @param  string $value
+     *
+     * @return mixed
+     */
     private function schemaDefaultValue(string $value)
     {
         return Helper::cast(preg_replace('/^\s*([\'"])(.*)\1\s*/', '\2', $value));

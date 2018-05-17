@@ -161,6 +161,7 @@ class HelperTest extends TestCase
     public function testExtract()
     {
         $this->assertEquals(['bar'=>'baz'], Helper::extract(['foobar'=>'baz'], 'foo'));
+        $this->assertEquals(['foobar'=>'baz'], Helper::extract(['foobar'=>'baz'], ''));
     }
 
     public function testConstant()

@@ -13,6 +13,9 @@ namespace Fal\Stick\Security;
 
 use Fal\Stick\Sql\Connection;
 
+/**
+ * User provider that utilize Sql Connection
+ */
 final class SqlUserProvider implements UserProviderInterface
 {
     /** @var Connection */

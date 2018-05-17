@@ -11,6 +11,9 @@
 
 namespace Fal\Stick;
 
+/**
+ * Simple template engine
+ */
 final class Template implements \ArrayAccess
 {
     /** @var array */
@@ -42,8 +45,8 @@ final class Template implements \ArrayAccess
     /**
      * Class constructor
      *
-     * @param string $dirs Comma delimited dirs
-     * @param string $macros Comma delimited macro dirs
+     * @param string $dirs      template dirs
+     * @param string $macros    macro dirs
      */
     public function __construct(string $dirs, string $macros = 'macros')
     {
@@ -51,12 +54,26 @@ final class Template implements \ArrayAccess
         $this->macros = Helper::reqarr($macros);
     }
 
-    public function exists($offset): bool
+    /**
+     * Check context value
+     *
+     * @param  string $offset
+     *
+     * @return bool
+     */
+    public function exists(string $offset): bool
     {
         return isset($this->context[$offset]);
     }
 
-    public function &get($offset)
+    /**
+     * Get context value
+     *
+     * @param  string $offset
+     *
+     * @return mixed
+     */
+    public function &get(string $offset)
     {
         if (isset($this->context[$offset])) {
             return $this->context[$offset];
@@ -68,14 +85,29 @@ final class Template implements \ArrayAccess
         return $ref;
     }
 
-    public function set($offset, $value): Template
+    /**
+     * Set context value
+     *
+     * @param string $offset
+     * @param mixed  $value
+     *
+     * @return Template
+     */
+    public function set(string $offset, $value): Template
     {
         $this->context[$offset] = $value;
 
         return $this;
     }
 
-    public function clear($offset): Template
+    /**
+     * Clear context value
+     *
+     * @param  string $offset
+     *
+     * @return Template
+     */
+    public function clear(string $offset): Template
     {
         unset($this->context[$offset]);
 
@@ -125,6 +157,7 @@ final class Template implements \ArrayAccess
      * Set templateExtension
      *
      * @param string $templateExtension
+     *
      * @return Template
      */
     public function setTemplateExtension(string $templateExtension): Template
@@ -167,7 +200,7 @@ final class Template implements \ArrayAccess
     }
 
     /**
-     * Check if view file is exists
+     * Check if view file exists
      *
      * @param  string      $file
      * @param  string|null &$realpath
@@ -190,7 +223,7 @@ final class Template implements \ArrayAccess
     }
 
     /**
-     * Check if macro file is exists
+     * Check if macro file exists
      *
      * @param  string      $file
      * @param  string|null &$realpath
@@ -311,11 +344,25 @@ final class Template implements \ArrayAccess
         throw new \BadFunctionCallException('Call to undefined function ' . $func);
     }
 
+    /**
+     * Convenience method to check context value
+     *
+     * @param  string $offset
+     *
+     * @return bool
+     */
     public function offsetExists($offset)
     {
         return $this->exists($offset);
     }
 
+    /**
+     * Convenience method to get context value
+     *
+     * @param  string $offset
+     *
+     * @return mixed
+     */
     public function &offsetGet($offset)
     {
         $ref =& $this->get($offset);
@@ -323,11 +370,26 @@ final class Template implements \ArrayAccess
         return $ref;
     }
 
+    /**
+     * Convenience method to set context value
+     *
+     * @param  string $offset
+     * @param  mixed  $value
+     *
+     * @return void
+     */
     public function offsetSet($offset, $value)
     {
         $this->set($offset, $value);
     }
 
+    /**
+     * Convenience method to clear context value
+     *
+     * @param  string $offset
+     *
+     * @return void
+     */
     public function offsetUnset($offset)
     {
         $this->clear($offset);

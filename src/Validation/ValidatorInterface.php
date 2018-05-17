@@ -11,6 +11,9 @@
 
 namespace Fal\Stick\Validation;
 
+/**
+ * Interface for validator
+ */
 interface ValidatorInterface
 {
     /**
@@ -38,7 +41,7 @@ interface ValidatorInterface
     /**
      * Get real validator rule
      *
-     * @param  string  $rule
+     * @param  string $rule
      * @param  mixed  $value
      * @param  array  $args
      * @param  string $field

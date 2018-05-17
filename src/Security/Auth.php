@@ -14,9 +14,12 @@ namespace Fal\Stick\Security;
 use Fal\Stick\App;
 use Fal\Stick\Helper;
 
+/**
+ * Authentication utils
+ */
 final class Auth
 {
-    /** Credential message */
+    /** Credential messages */
     const CREDENTIAL_INVALID = 'Invalid credentials.';
     const CREDENTIAL_EXPIRED = 'Your credentials is expired.';
 
@@ -35,7 +38,7 @@ final class Auth
     private $encoder;
 
     /** @var array */
-    private $option;
+    private $options;
 
     /** @var UserInterface */
     private $user;
@@ -49,19 +52,19 @@ final class Auth
      * @param App                      $app
      * @param UserProviderInterface    $provider
      * @param PasswordEncoderInterface $encoder
-     * @param array                    $option
+     * @param array                    $options   @see self::setOption
      */
-    public function __construct(App $app, UserProviderInterface $provider, PasswordEncoderInterface $encoder, array $option = [])
+    public function __construct(App $app, UserProviderInterface $provider, PasswordEncoderInterface $encoder, array $options = [])
     {
         $this->app = $app;
         $this->provider = $provider;
         $this->encoder = $encoder;
-        $this->setOption($option);
+        $this->setOptions($options);
         $this->getUser();
     }
 
     /**
-     * Attempt login
+     * Try login with username and password
      *
      * @param  string $username
      * @param  string $password
@@ -88,7 +91,7 @@ final class Auth
     }
 
     /**
-     * Login user
+     * Set current user
      *
      * @return void
      */
@@ -145,6 +148,7 @@ final class Auth
      * Set user
      *
      * @param UserInterface|null $user
+     *
      * @return Auth
      */
     public function setUser(UserInterface $user = null): Auth
@@ -173,17 +177,17 @@ final class Auth
     {
         $path = $this->app['REQ.PATH'];
 
-        if ($path === $this->option['loginPath']) {
+        if ($path === $this->options['loginPath']) {
             if ($this->isLogged()) {
-                $this->app->reroute($this->option['redirect']);
+                $this->app->reroute($this->options['redirect']);
             }
 
             return;
         }
 
-        foreach ($this->option['rules'] as $check => $roles) {
+        foreach ($this->options['rules'] as $check => $roles) {
             if (preg_match('#' . $check . '#', $path) && !$this->isGranted($roles)) {
-                $this->app->reroute($this->option['loginPath']);
+                $this->app->reroute($this->options['loginPath']);
 
                 return;
             }
@@ -224,7 +228,7 @@ final class Auth
     }
 
     /**
-     * Get provider
+     * Get user provider
      *
      * @return UserProviderInterface
      */
@@ -234,7 +238,7 @@ final class Auth
     }
 
     /**
-     * Get encoder
+     * Get password encoder
      *
      * @return PasswordEncoderInterface
      */
@@ -244,24 +248,31 @@ final class Auth
     }
 
     /**
-     * Get option
+     * Get options
      *
      * @return array
      */
-    public function getOption(): array
+    public function getOptions(): array
     {
-        return $this->option;
+        return $this->options;
     }
 
     /**
-     * Set option
+     * Set options
      *
-     * @param array $option
+     * Valid options:
+     *  loginPath       string|array route/path to redirect if user anonymous
+     *  redirect        string|array route/path to redirect if user has been login
+     *  rules           array        path with valid roles, example: /secure => ROLE_USER,ROLE_ADMIN
+     *  roleHierarchy   array        like in symfony roles, example: ROLE_ADMIN => ROLE_USER
+     *
+     * @param array $options
+     *
      * @return Auth
      */
-    public function setOption(array $option): Auth
+    public function setOptions(array $options): Auth
     {
-        $this->option = $option + [
+        $this->options = $options + [
             'loginPath' => '/login',
             'redirect' => '/',
             'rules' => [],
@@ -272,7 +283,7 @@ final class Auth
     }
 
     /**
-     * Get hierarchy for role
+     * Get hierarchy for specific role
      *
      * @param  string $role
      *
@@ -280,12 +291,12 @@ final class Auth
      */
     private function getHierarchy($role): array
     {
-        if (!array_key_exists($role, $this->option['roleHierarchy'])) {
+        if (!array_key_exists($role, $this->options['roleHierarchy'])) {
             return [];
         }
 
         $roles = [];
-        $children = (array) $this->option['roleHierarchy'][$role];
+        $children = (array) $this->options['roleHierarchy'][$role];
 
         foreach ($children as $child) {
             $roles = array_merge($roles, $this->getHierarchy($child));

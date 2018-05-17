@@ -11,6 +11,9 @@
 
 namespace Fal\Stick;
 
+/**
+ * Simple translator class
+ */
 final class Translator
 {
     /** @var array */
@@ -28,6 +31,13 @@ final class Translator
     /** @var bool */
     private $loaded;
 
+    /**
+     * Class constructor
+     *
+     * @param string      $locales
+     * @param string|null $languages
+     * @param string      $fallback
+     */
     public function __construct($locales = './', string $languages = null, string $fallback = 'en')
     {
         $this->setLocales($locales);
@@ -35,11 +45,28 @@ final class Translator
         $this->setLanguages($languages ?? '');
     }
 
+    /**
+     * Trans message
+     *
+     * @param  string $key
+     * @param  array  $args
+     *
+     * @return string
+     */
     public function trans(string $key, array $args = []): string
     {
         return strtr($this->ref($key) ?? $key, $args);
     }
 
+    /**
+     * Trans plural message
+     *
+     * @param  string   $key
+     * @param  numeric  $count
+     * @param  array    $args
+     *
+     * @return string
+     */
     public function choice(string $key, $count, array $args = []): string
     {
         $args['#'] = $count;
@@ -63,6 +90,14 @@ final class Translator
         return $this->dict;
     }
 
+    /**
+     * Add message
+     *
+     * @param string $key
+     * @param string $message
+     *
+     * @return Translator
+     */
     public function add(string $key, string $message): Translator
     {
         $ref =& $this->ref($key, true);
@@ -85,6 +120,7 @@ final class Translator
      * Set locales
      *
      * @param string|array $locales
+     *
      * @return Translator
      */
     public function setLocales($locales): Translator
@@ -109,6 +145,7 @@ final class Translator
      * Set languages
      *
      * @param string $code
+     *
      * @return Translator
      */
     public function setLanguages(string $code): Translator
@@ -149,6 +186,7 @@ final class Translator
      * Set fallback
      *
      * @param string $fallback
+     *
      * @return Translator
      */
     public function setFallback(string $fallback): Translator
@@ -159,12 +197,25 @@ final class Translator
         return $this;
     }
 
+    /**
+     * Reset dict
+     *
+     * @return void
+     */
     private function reset(): void
     {
         $this->loaded = false;
         $this->dict = [];
     }
 
+    /**
+     * Get message reference
+     *
+     * @param  string   $key
+     * @param  bool     $add
+     *
+     * @return void
+     */
     private function &ref(string $key, bool $add = false)
     {
         $this->load();
@@ -184,6 +235,11 @@ final class Translator
         return $ref;
     }
 
+    /**
+     * Load languages
+     *
+     * @return Translator
+     */
     private function load(): Translator
     {
         if ($this->loaded) {

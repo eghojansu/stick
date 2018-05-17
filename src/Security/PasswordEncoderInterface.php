@@ -11,6 +11,9 @@
 
 namespace Fal\Stick\Security;
 
+/**
+ * Interface for password encoder
+ */
 interface PasswordEncoderInterface
 {
     /**

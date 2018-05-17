@@ -13,6 +13,9 @@ namespace Fal\Stick\Validation;
 
 use Fal\Stick\Helper;
 
+/**
+ * Simplify validator implementation
+ */
 abstract class AbstractValidator implements ValidatorInterface
 {
     /** @var array Rule message */

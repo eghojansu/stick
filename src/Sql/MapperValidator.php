@@ -13,25 +13,55 @@ namespace Fal\Stick\Sql;
 
 use Fal\Stick\Validation\AbstractValidator;
 
+/**
+ * Mapper related validator
+ */
 final class MapperValidator extends AbstractValidator
 {
+    /** @var array */
     protected $messages = [
         'exists' => null,
         'unique' => 'This value is already used.',
     ];
 
+    /** @var Mapper */
     private $mapper;
 
+    /**
+     * Class constructor
+     *
+     * @param Mapper $mapper
+     */
     public function __construct(Mapper $mapper)
     {
         $this->mapper = $mapper;
     }
 
+    /**
+     * Check if given value exists
+     *
+     * @param  mixed  $val
+     * @param  string $table
+     * @param  string $column
+     *
+     * @return bool
+     */
     protected function _exists($val, string $table, string $column): bool
     {
         return $this->mapper->withTable($table)->load([$column=>$val])->valid();
     }
 
+    /**
+     * Check if given value is unique
+     *
+     * @param  mixed       $val
+     * @param  string      $table
+     * @param  string      $column
+     * @param  string|null $fid
+     * @param  mixed       $id
+     *
+     * @return bool
+     */
     protected function _unique($val, string $table, string $column, string $fid = null, $id = null): bool
     {
         $mapper = $this->mapper->withTable($table)->load([$column=>$val]);

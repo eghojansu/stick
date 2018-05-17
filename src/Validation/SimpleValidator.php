@@ -11,6 +11,9 @@
 
 namespace Fal\Stick\Validation;
 
+/**
+ * Simple validator rules
+ */
 final class SimpleValidator extends AbstractValidator
 {
     /** @var array Rule message */
@@ -417,7 +420,7 @@ final class SimpleValidator extends AbstractValidator
      * Check DNS MX records if specified
      *
      * @param  string  $str
-     * @param  boolean $mx
+     * @param  bool $mx
      *
      * @return bool
      */

@@ -11,6 +11,9 @@
 
 namespace Fal\Stick\Security;
 
+/**
+ * Interface for user transformer
+ */
 interface UserTransformerInterface
 {
     /**

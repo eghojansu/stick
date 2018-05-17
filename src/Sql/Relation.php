@@ -11,6 +11,9 @@
 
 namespace Fal\Stick\Sql;
 
+/**
+ * Mapper Relation, simple class which act like array, proxy to Mapper
+ */
 final class Relation implements \Iterator, \Countable, \ArrayAccess
 {
     /** @var Mapper */
@@ -46,13 +49,13 @@ final class Relation implements \Iterator, \Countable, \ArrayAccess
     /**
      * Class constructor
      *
-     * @param Mapper $ref
-     * @param Mapper $target
-     * @param string $targetId
-     * @param string $refId
-     * @param string|array $pivot
-     * @param bool   $one
-     * @param array  $options
+     * @param Mapper        $ref
+     * @param Mapper        $target
+     * @param string        $targetId
+     * @param string        $refId
+     * @param string|array  $pivot
+     * @param bool          $one
+     * @param array         $options
      */
     public function __construct(Mapper $ref, Mapper $target = null, string $targetId = null, string $refId = null, $pivot = null, bool $one = null, array $options = null)
     {
@@ -140,6 +143,11 @@ final class Relation implements \Iterator, \Countable, \ArrayAccess
         return $this;
     }
 
+    /**
+     * Build filter based on current options
+     *
+     * @return array
+     */
     private function buildFilter(): array
     {
         if (!$this->pivot) {
@@ -160,7 +168,7 @@ final class Relation implements \Iterator, \Countable, \ArrayAccess
     }
 
     /**
-     * Ensure used mapper
+     * Ensure mapper is used
      *
      * @return Mapper
      */
