@@ -1022,6 +1022,7 @@ class AppTest extends TestCase
     public function testConfig()
     {
         $this->app->config(FIXTURE . 'config.php');
+        $this->app->set('QUIET', true);
 
         $this->assertEquals('bar', $this->app->get('foo'));
         $this->assertEquals('baz', $this->app->get('bar'));
@@ -1029,29 +1030,17 @@ class AppTest extends TestCase
         $this->assertEquals(range(1, 3), $this->app->get('arr'));
         $this->assertEquals('config', $this->app->get('sub'));
 
-        $this->assertCount(3, $this->app->get('SYS.ROUTES'));
+        $this->app->mock('GET /');
+        $this->assertEquals('registered from config', $this->app->get('RES.CONTENT'));
 
-        $this->expectOutputString('registered from config');
-        $this->app->run();
-    }
+        $this->app->mock('GET /foo');
+        $this->assertStringEndsWith('/', $this->app->get('RES.HEADERS.Location'));
 
-    public function configExceptionProvider()
-    {
-        return [
-            ['invalidroutes.php'],
-            ['invalidroutes2.php'],
-            ['invalidroutes3.php'],
-        ];
-    }
+        $this->app->mock('GET /bar');
+        $this->assertEquals('foo', $this->app->get('RES.CONTENT'));
 
-    /**
-     * @dataProvider configExceptionProvider
-     * @expectedException UnexpectedValueException
-     * @expectedExceptionMessageRegExp /value is invalid$/
-     */
-    public function testConfigException($file)
-    {
-        $this->app->config(FIXTURE . $file);
+        $this->assertTrue($this->app->trigger('foo'));
+        $this->assertInstanceOf(NoConstructorClass::class, $this->app->service('foo'));
     }
 
     public function testRef()

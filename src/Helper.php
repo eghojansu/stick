@@ -112,7 +112,7 @@ final class Helper
     }
 
     /**
-     * Convert HTTP_HEADER_KEY to Header-Key
+     * Convert HEADER_KEY to Header-Key
      *
      * @param  string $str
      *
@@ -124,7 +124,7 @@ final class Helper
     }
 
     /**
-     * Convert Header-Key to HTTP_HEADER_KEY
+     * Convert Header-Key to HEADER_KEY
      *
      * @param  string $str
      *

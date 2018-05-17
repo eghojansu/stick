@@ -1052,25 +1052,19 @@ final class App implements \ArrayAccess
      */
     public function config(string $file): App
     {
-        foreach (file_exists($file) ? Helper::exrequire($file, []) : [] as $key => $value) {
+        foreach (file_exists($file) ? Helper::exrequire($file, []) : [] as $key => $val) {
             $lkey = strtolower($key);
 
-            if ($lkey === 'configs') {
-                array_map([$this, 'config'], (array) $value);
-            } elseif (in_array($lkey, ['routes','maps','redirects'])) {
-                if (!$value || !is_array($value) || !isset($value[0]) || !is_array($value[0])) {
-                    throw new \UnexpectedValueException($key . ' value is invalid');
-                }
+            if (in_array($lkey, ['configs', 'routes', 'maps', 'redirects', 'rules', 'listeners'])) {
+                $call = $lkey === 'listeners' ? 'on' : substr($lkey, 0, -1);
 
-                $call = substr($lkey, 0, -1);
+                foreach ((array) $val as $arg) {
+                    $args = array_values((array) $arg);
 
-                foreach ($value as $args) {
-                    $use = array_values($args);
-
-                    $this->$call(...$use);
+                    $this->$call(...$args);
                 }
             } else {
-                $this->set($key, $value);
+                $this->set($key, $val);
             }
         }
 
