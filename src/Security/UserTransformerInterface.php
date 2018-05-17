@@ -1,4 +1,6 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 
 /**
  * This file is part of the eghojansu/stick library.
@@ -12,14 +14,14 @@
 namespace Fal\Stick\Security;
 
 /**
- * Interface for user transformer
+ * Interface for user transformer.
  */
 interface UserTransformerInterface
 {
     /**
-     * Transform assocation array to UserInterface
+     * Transform assocation array to UserInterface.
      *
-     * @param  array  $args
+     * @param array $args
      *
      * @return UserInterface
      */

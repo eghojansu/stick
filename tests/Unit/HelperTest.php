@@ -1,4 +1,6 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 
 /**
  * This file is part of the eghojansu/stick library.
@@ -19,22 +21,22 @@ class HelperTest extends TestCase
 {
     public function testQuote()
     {
-        $src = ['foo','bar'];
+        $src = ['foo', 'bar'];
         $this->assertEquals('foobar', Helper::quote('foobar'));
         $this->assertEquals('foobar', Helper::quote($src));
-        $this->assertEquals(':foo:,:bar:', Helper::quote($src, [':',':'], ','));
-        $this->assertEquals(':foo:|:bar:|:qux,:', Helper::quote($src+[2=>'qux,'], [':',':'], '|'));
+        $this->assertEquals(':foo:,:bar:', Helper::quote($src, [':', ':'], ','));
+        $this->assertEquals(':foo:|:bar:|:qux,:', Helper::quote($src + [2 => 'qux,'], [':', ':'], '|'));
         $this->assertEquals(':u_foo,:u_bar', Helper::quote($src, [':u_'], ','));
-        $this->assertEquals('foo_u:,bar_u:', Helper::quote($src, ['','_u:'], ','));
+        $this->assertEquals('foo_u:,bar_u:', Helper::quote($src, ['', '_u:'], ','));
     }
 
     public function testInterpolate()
     {
         $this->assertEquals('foo', Helper::interpolate('foo'));
-        $this->assertEquals('foo bar', Helper::interpolate('foo baz', ['baz'=>'bar']));
-        $this->assertEquals('foo baz', Helper::interpolate('foo baz', ['bar'=>'bar']));
-        $this->assertEquals('foo bar', Helper::interpolate('foo {baz}', ['baz'=>'bar'], '{}'));
-        $this->assertEquals('foo bar', Helper::interpolate('foo {baz', ['baz'=>'bar'], '{'));
+        $this->assertEquals('foo bar', Helper::interpolate('foo baz', ['baz' => 'bar']));
+        $this->assertEquals('foo baz', Helper::interpolate('foo baz', ['bar' => 'bar']));
+        $this->assertEquals('foo bar', Helper::interpolate('foo {baz}', ['baz' => 'bar'], '{}'));
+        $this->assertEquals('foo bar', Helper::interpolate('foo {baz', ['baz' => 'bar'], '{'));
     }
 
     public function testClassname()
@@ -160,51 +162,51 @@ class HelperTest extends TestCase
 
     public function testExtract()
     {
-        $this->assertEquals(['bar'=>'baz'], Helper::extract(['foobar'=>'baz'], 'foo'));
-        $this->assertEquals(['foobar'=>'baz'], Helper::extract(['foobar'=>'baz'], ''));
+        $this->assertEquals(['bar' => 'baz'], Helper::extract(['foobar' => 'baz'], 'foo'));
+        $this->assertEquals(['foobar' => 'baz'], Helper::extract(['foobar' => 'baz'], ''));
     }
 
     public function testConstant()
     {
-        $this->assertEquals('foo', Helper::constant(ConstantPool::class . '::FOO'));
-        $this->assertEquals('none', Helper::constant(ConstantPool::class . '::BAR', 'none'));
+        $this->assertEquals('foo', Helper::constant(ConstantPool::class.'::FOO'));
+        $this->assertEquals('none', Helper::constant(ConstantPool::class.'::BAR', 'none'));
     }
 
     public function testConstants()
     {
-        $this->assertEquals(['OO'=>'foo'], Helper::constants(ConstantPool::class, 'F'));
+        $this->assertEquals(['OO' => 'foo'], Helper::constants(ConstantPool::class, 'F'));
     }
 
     public function testSplit()
     {
-        $this->assertEquals(['a','b','c'], Helper::split('a|b|c'));
-        $this->assertEquals(['a','b','c'], Helper::split('a,b,c'));
-        $this->assertEquals(['a','b','c'], Helper::split('a;b;c'));
-        $this->assertEquals(['a','b','c',''], Helper::split('a,b,c,', false));
+        $this->assertEquals(['a', 'b', 'c'], Helper::split('a|b|c'));
+        $this->assertEquals(['a', 'b', 'c'], Helper::split('a,b,c'));
+        $this->assertEquals(['a', 'b', 'c'], Helper::split('a;b;c'));
+        $this->assertEquals(['a', 'b', 'c', ''], Helper::split('a,b,c,', false));
     }
 
     public function testReqarr()
     {
-        $this->assertEquals(['a','b','c'], Helper::reqarr(['a','b','c']));
-        $this->assertEquals(['a','b','c'], Helper::reqarr('a,b,c'));
+        $this->assertEquals(['a', 'b', 'c'], Helper::reqarr(['a', 'b', 'c']));
+        $this->assertEquals(['a', 'b', 'c'], Helper::reqarr('a,b,c'));
     }
 
     public function testReqstr()
     {
         $this->assertEquals('abc', Helper::reqstr('abc'));
-        $this->assertEquals('abc', Helper::reqstr(['a','b','c'], ''));
+        $this->assertEquals('abc', Helper::reqstr(['a', 'b', 'c'], ''));
     }
 
     public function testExinclude()
     {
         $this->expectOutputString("Foo\n");
-        Helper::exinclude(FIXTURE . 'helper/foo.php');
+        Helper::exinclude(FIXTURE.'helper/foo.php');
     }
 
     public function testExrequire()
     {
         $this->expectOutputString("Foo\n");
-        Helper::exrequire(FIXTURE . 'helper/foo.php');
+        Helper::exrequire(FIXTURE.'helper/foo.php');
     }
 
     public function testMkdir()
@@ -221,7 +223,7 @@ class HelperTest extends TestCase
     public function testRead()
     {
         $expected = 'foo';
-        $file = FIXTURE . 'helper/foo.txt';
+        $file = FIXTURE.'helper/foo.txt';
         $result = Helper::read($file);
         $this->assertEquals($expected, $result);
     }
@@ -229,7 +231,7 @@ class HelperTest extends TestCase
     public function testWrite()
     {
         $expected = 3;
-        $file = TEMP . 'foo.txt';
+        $file = TEMP.'foo.txt';
         $data = 'foo';
         $result = Helper::write($file, $data);
         $this->assertEquals($expected, $result);
@@ -237,7 +239,7 @@ class HelperTest extends TestCase
 
     public function testDelete()
     {
-        $file = TEMP . 'todelete.txt';
+        $file = TEMP.'todelete.txt';
         $this->assertFalse(Helper::delete($file));
         touch($file);
         $this->assertFileExists($file);
@@ -247,14 +249,14 @@ class HelperTest extends TestCase
 
     public function testCsv()
     {
-        $this->assertEquals("1,2,'3'", Helper::csv([1,2,'3']));
+        $this->assertEquals("1,2,'3'", Helper::csv([1, 2, '3']));
     }
 
     public function testContexttostring()
     {
-        $this->assertEquals("foo: 'bar'", Helper::contexttostring(['foo'=>'bar']));
-        $this->assertEquals("foo: 'bar'\nbar: 'baz'", Helper::contexttostring(['foo'=>'bar','bar'=>'baz']));
-        $this->assertEquals("foo: array(\n    0 => 'bar',\n)", Helper::contexttostring(['foo'=>['bar']]));
+        $this->assertEquals("foo: 'bar'", Helper::contexttostring(['foo' => 'bar']));
+        $this->assertEquals("foo: 'bar'\nbar: 'baz'", Helper::contexttostring(['foo' => 'bar', 'bar' => 'baz']));
+        $this->assertEquals("foo: array(\n    0 => 'bar',\n)", Helper::contexttostring(['foo' => ['bar']]));
     }
 
     public function testStringifyignorescalar()
@@ -268,10 +270,10 @@ class HelperTest extends TestCase
     {
         $this->assertEquals("'foo'", Helper::stringify('foo'));
         $this->assertEquals("['foo']", Helper::stringify(['foo']));
-        $this->assertEquals("stdClass::__set_state([])", Helper::stringify(new \StdClass));
+        $this->assertEquals('stdClass::__set_state([])', Helper::stringify(new \StdClass()));
 
-        $std = new \StdClass;
-        $std->foo = "bar";
+        $std = new \StdClass();
+        $std->foo = 'bar';
         $this->assertEquals("stdClass::__set_state(['foo'=>'bar'])", Helper::stringify($std));
     }
 
@@ -282,24 +284,24 @@ class HelperTest extends TestCase
                 'foo',
                 [
                     'foo' => [],
-                ]
+                ],
             ],
             [
                 'foo|bar',
                 [
                     'foo' => [],
                     'bar' => [],
-                ]
+                ],
             ],
             [
                 'foo:1|bar:arg|baz:[0,1,2]|qux:{"foo":"bar"}|quux:1,arg,[0,1,2],{"foo":"bar"}',
                 [
                     'foo' => [1],
                     'bar' => ['arg'],
-                    'baz' => [[0,1,2]],
-                    'qux' => [['foo'=>'bar']],
-                    'quux' => [1, 'arg', [0,1,2],['foo'=>'bar']],
-                ]
+                    'baz' => [[0, 1, 2]],
+                    'qux' => [['foo' => 'bar']],
+                    'quux' => [1, 'arg', [0, 1, 2], ['foo' => 'bar']],
+                ],
             ],
         ];
     }
@@ -319,8 +321,8 @@ class HelperTest extends TestCase
             [null, 'foo.bar.baz'],
             [null, 'foo', [], false],
             [null, 'foo.bar.baz', [], false],
-            ['bar', 'foo', ['foo'=>'bar']],
-            ['baz', 'foo.bar', ['foo'=>['bar'=>'baz']]],
+            ['bar', 'foo', ['foo' => 'bar']],
+            ['baz', 'foo.bar', ['foo' => ['bar' => 'baz']]],
         ];
     }
 
@@ -334,15 +336,15 @@ class HelperTest extends TestCase
 
     public function testRefRealCase()
     {
-        $data = ['foo'=>'bar'];
-        $ref =& Helper::ref('foo', $data);
+        $data = ['foo' => 'bar'];
+        $ref = &Helper::ref('foo', $data);
         $ref = 'baz';
 
-        $this->assertEquals(['foo'=>'baz'], $data);
+        $this->assertEquals(['foo' => 'baz'], $data);
 
-        $ref =& Helper::ref('baz.qux', $data);
+        $ref = &Helper::ref('baz.qux', $data);
         $ref = 'quux';
 
-        $this->assertEquals(['foo'=>'baz', 'baz'=>['qux'=>'quux']], $data);
+        $this->assertEquals(['foo' => 'baz', 'baz' => ['qux' => 'quux']], $data);
     }
 }

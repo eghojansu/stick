@@ -1,4 +1,6 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 
 /**
  * This file is part of the eghojansu/stick library.
@@ -29,9 +31,9 @@ class AuthValidatorTest extends TestCase
 
     public function setUp()
     {
-        $this->app = new App;
+        $this->app = new App();
 
-        $cache = new Cache('', 'test', TEMP . 'cache/');
+        $cache = new Cache('', 'test', TEMP.'cache/');
         $cache->reset();
 
         $db = new Connection($cache, [
@@ -53,7 +55,7 @@ SQL1
 ,
             ],
         ]);
-        $this->auth = new Auth($this->app, new SqlUserProvider($db, new SimpleUserTransformer()), new PlainPasswordEncoder);
+        $this->auth = new Auth($this->app, new SqlUserProvider($db, new SimpleUserTransformer()), new PlainPasswordEncoder());
 
         $this->validator = new AuthValidator($this->auth);
     }

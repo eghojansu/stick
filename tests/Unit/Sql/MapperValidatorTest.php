@@ -1,4 +1,6 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 
 /**
  * This file is part of the eghojansu/stick library.
@@ -23,7 +25,7 @@ class MapperValidatorTest extends TestCase
 
     public function setUp()
     {
-        $cache = new Cache('', 'test', TEMP . 'cache/');
+        $cache = new Cache('', 'test', TEMP.'cache/');
         $cache->reset();
 
         $conn = new Connection($cache, [

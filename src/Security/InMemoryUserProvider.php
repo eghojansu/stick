@@ -1,4 +1,6 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 
 /**
  * This file is part of the eghojansu/stick library.
@@ -12,7 +14,7 @@
 namespace Fal\Stick\Security;
 
 /**
- * Simple user provider that holds users as its data
+ * Simple user provider that holds users as its data.
  */
 final class InMemoryUserProvider implements UserProviderInterface
 {
@@ -23,7 +25,7 @@ final class InMemoryUserProvider implements UserProviderInterface
     private $transformer;
 
     /**
-     * Class constructor
+     * Class constructor.
      *
      * @param array                    $users
      * @param UserTransformerInterface $transformer
@@ -35,10 +37,10 @@ final class InMemoryUserProvider implements UserProviderInterface
     }
 
     /**
-     * Add user
+     * Add user.
      *
-     * @param  string $username
-     * @param  string $password
+     * @param string $username
+     * @param string $password
      *
      * @return InMemoryUserProvider
      */
@@ -58,7 +60,7 @@ final class InMemoryUserProvider implements UserProviderInterface
             $this->transformer->transform([
                 'id' => $username,
                 'username' => $username,
-                'password' => $this->users[$username]
+                'password' => $this->users[$username],
             ]) : null
         ;
     }

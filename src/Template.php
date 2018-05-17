@@ -1,4 +1,6 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 
 /**
  * This file is part of the eghojansu/stick library.
@@ -12,7 +14,7 @@
 namespace Fal\Stick;
 
 /**
- * Simple template engine
+ * Simple template engine.
  */
 final class Template implements \ArrayAccess
 {
@@ -43,10 +45,10 @@ final class Template implements \ArrayAccess
     ];
 
     /**
-     * Class constructor
+     * Class constructor.
      *
-     * @param string $dirs      template dirs
-     * @param string $macros    macro dirs
+     * @param string $dirs   template dirs
+     * @param string $macros macro dirs
      */
     public function __construct(string $dirs, string $macros = 'macros')
     {
@@ -55,9 +57,9 @@ final class Template implements \ArrayAccess
     }
 
     /**
-     * Check context value
+     * Check context value.
      *
-     * @param  string $offset
+     * @param string $offset
      *
      * @return bool
      */
@@ -67,9 +69,9 @@ final class Template implements \ArrayAccess
     }
 
     /**
-     * Get context value
+     * Get context value.
      *
-     * @param  string $offset
+     * @param string $offset
      *
      * @return mixed
      */
@@ -80,13 +82,13 @@ final class Template implements \ArrayAccess
         }
 
         $null = null;
-        $ref =& $null;
+        $ref = &$null;
 
         return $ref;
     }
 
     /**
-     * Set context value
+     * Set context value.
      *
      * @param string $offset
      * @param mixed  $value
@@ -101,9 +103,9 @@ final class Template implements \ArrayAccess
     }
 
     /**
-     * Clear context value
+     * Clear context value.
      *
-     * @param  string $offset
+     * @param string $offset
      *
      * @return Template
      */
@@ -115,7 +117,7 @@ final class Template implements \ArrayAccess
     }
 
     /**
-     * Add function alias
+     * Add function alias.
      *
      * @param string   $name
      * @param callable $callback
@@ -130,7 +132,7 @@ final class Template implements \ArrayAccess
     }
 
     /**
-     * Set macro aliases
+     * Set macro aliases.
      *
      * @param array $aliases
      *
@@ -144,7 +146,7 @@ final class Template implements \ArrayAccess
     }
 
     /**
-     * Get templateExtension
+     * Get templateExtension.
      *
      * @return string
      */
@@ -154,7 +156,7 @@ final class Template implements \ArrayAccess
     }
 
     /**
-     * Set templateExtension
+     * Set templateExtension.
      *
      * @param string $templateExtension
      *
@@ -168,10 +170,10 @@ final class Template implements \ArrayAccess
     }
 
     /**
-     * Call function in sequences
+     * Call function in sequences.
      *
-     * @param  mixed  $val
-     * @param  string $filters
+     * @param mixed  $val
+     * @param string $filters
      *
      * @return mixed
      */
@@ -185,32 +187,32 @@ final class Template implements \ArrayAccess
     }
 
     /**
-     * Escape variable
+     * Escape variable.
      *
-     * @param  string      $filter
-     * @param  string|null $filters
+     * @param string      $filter
+     * @param string|null $filters
      *
      * @return string
      */
     public function e(string $filter, string $filters = null): string
     {
-        $rule = $filters . ($filters ? '|' : '') . 'htmlspecialchars';
+        $rule = $filters.($filters ? '|' : '').'htmlspecialchars';
 
         return $this->filter($filter, $rule);
     }
 
     /**
-     * Check if view file exists
+     * Check if view file exists.
      *
-     * @param  string      $file
-     * @param  string|null &$realpath
+     * @param string      $file
+     * @param string|null &$realpath
      *
      * @return bool
      */
     public function viewExists(string $file, string &$realpath = null): bool
     {
         foreach ($this->dirs as $dir) {
-            $view = $dir . $file . $this->templateExtension;
+            $view = $dir.$file.$this->templateExtension;
 
             if (file_exists($view)) {
                 $realpath = $view;
@@ -223,10 +225,10 @@ final class Template implements \ArrayAccess
     }
 
     /**
-     * Check if macro file exists
+     * Check if macro file exists.
      *
-     * @param  string      $file
-     * @param  string|null &$realpath
+     * @param string      $file
+     * @param string|null &$realpath
      *
      * @return bool
      */
@@ -235,7 +237,7 @@ final class Template implements \ArrayAccess
         $use = $this->maliases[$file] ?? $file;
 
         foreach ($this->macros as $rel) {
-            if ($this->viewExists($rel . '/' . $use, $macro)) {
+            if ($this->viewExists($rel.'/'.$use, $macro)) {
                 $realpath = $macro;
 
                 return true;
@@ -246,10 +248,10 @@ final class Template implements \ArrayAccess
     }
 
     /**
-     * Render template
+     * Render template.
      *
-     * @param  string      $file    Relative or realpath
-     * @param  array|null  $context
+     * @param string     $file    Relative or realpath
+     * @param array|null $context
      *
      * @return string
      *
@@ -261,15 +263,15 @@ final class Template implements \ArrayAccess
             return $this->sandbox($view, $context ?? []);
         }
 
-        throw new \LogicException('View file does not exists: ' . $file);
+        throw new \LogicException('View file does not exists: '.$file);
     }
 
     /**
-     * Render file with trim option
+     * Render file with trim option.
      *
-     * @param  string     $file
-     * @param  array|null $context
-     * @param  int        $mode
+     * @param string     $file
+     * @param array|null $context
+     * @param int        $mode
      *
      * @return string
      */
@@ -283,10 +285,10 @@ final class Template implements \ArrayAccess
     }
 
     /**
-     * Include file in this box
+     * Include file in this box.
      *
-     * @param  string $file
-     * @param  array  $context
+     * @param string $file
+     * @param array  $context
      *
      * @return string
      */
@@ -296,14 +298,15 @@ final class Template implements \ArrayAccess
         extract($context);
         ob_start();
         include $file;
+
         return ob_get_clean();
     }
 
     /**
-     * Call registered function
+     * Call registered function.
      *
-     * @param  string $func
-     * @param  mixed $args
+     * @param string $func
+     * @param mixed  $args
      *
      * @return mixed
      *
@@ -312,7 +315,7 @@ final class Template implements \ArrayAccess
     public function __call($func, $args)
     {
         $custom = $this->funcs[$func] ?? null;
-        $lib = __NAMESPACE__ . '\\' . $func;
+        $lib = __NAMESPACE__.'\\'.$func;
 
         if (isset($this->funcs[$func])) {
             // registered function
@@ -320,7 +323,7 @@ final class Template implements \ArrayAccess
         } elseif (isset($this->aliases[$func])) {
             // call alias
             return call_user_func_array([$this, $this->aliases[$func]], $args);
-        } elseif (is_callable($lib = Helper::class . '::' . $func)) {
+        } elseif (is_callable($lib = Helper::class.'::'.$func)) {
             // try from library namespace (helper)
             return call_user_func_array($lib, $args);
         } elseif (is_callable($func)) {
@@ -334,20 +337,20 @@ final class Template implements \ArrayAccess
             //   (the "arg" will be constant)
 
             if ($args) {
-                $keys = explode('|', 'arg' . implode('|arg', range(1, count($args))));
+                $keys = explode('|', 'arg'.implode('|arg', range(1, count($args))));
                 $args = array_combine($keys, $args);
             }
 
             return trim($this->render($filepath, $args));
         }
 
-        throw new \BadFunctionCallException('Call to undefined function ' . $func);
+        throw new \BadFunctionCallException('Call to undefined function '.$func);
     }
 
     /**
-     * Convenience method to check context value
+     * Convenience method to check context value.
      *
-     * @param  string $offset
+     * @param string $offset
      *
      * @return bool
      */
@@ -357,26 +360,24 @@ final class Template implements \ArrayAccess
     }
 
     /**
-     * Convenience method to get context value
+     * Convenience method to get context value.
      *
-     * @param  string $offset
+     * @param string $offset
      *
      * @return mixed
      */
     public function &offsetGet($offset)
     {
-        $ref =& $this->get($offset);
+        $ref = &$this->get($offset);
 
         return $ref;
     }
 
     /**
-     * Convenience method to set context value
+     * Convenience method to set context value.
      *
-     * @param  string $offset
-     * @param  mixed  $value
-     *
-     * @return void
+     * @param string $offset
+     * @param mixed  $value
      */
     public function offsetSet($offset, $value)
     {
@@ -384,11 +385,9 @@ final class Template implements \ArrayAccess
     }
 
     /**
-     * Convenience method to clear context value
+     * Convenience method to clear context value.
      *
-     * @param  string $offset
-     *
-     * @return void
+     * @param string $offset
      */
     public function offsetUnset($offset)
     {

@@ -1,4 +1,6 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 
 /**
  * This file is part of the eghojansu/stick library.
@@ -22,7 +24,7 @@ class InMemoryUserProviderTest extends TestCase
 
     public function setUp()
     {
-        $this->provider = new InMemoryUserProvider(['foo'=>'bar','baz'=>'qux'], new SimpleUserTransformer());
+        $this->provider = new InMemoryUserProvider(['foo' => 'bar', 'baz' => 'qux'], new SimpleUserTransformer());
     }
 
     public function testAddUser()

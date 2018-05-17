@@ -1,4 +1,6 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 
 /**
  * This file is part of the eghojansu/stick library.
@@ -20,8 +22,6 @@ use Fal\Stick\Test\fixture\services\ImplementNoMethodInterface;
 use Fal\Stick\Test\fixture\services\NoConstructorClass;
 use Fal\Stick\Test\fixture\services\NoMethodInterface;
 use Fal\Stick\Test\fixture\services\ReqDateTimeClass;
-use Fal\Stick\Test\fixture\services\ReqNoConstructorClass;
-use Fal\Stick\Test\fixture\services\ReqReqDateTimeClass;
 use Fal\Stick\Test\fixture\services\VariadicArgClass;
 use Fal\Stick\Test\fixture\services\WithConstructorArgClass;
 use Fal\Stick\Test\fixture\services\WithConstructorClass;
@@ -37,11 +37,11 @@ class AppTest extends TestCase
     public function setUp()
     {
         foreach (explode('|', App::GLOBALS) as $global) {
-            $this->init['globals'][$global] = $GLOBALS['_' . $global] ?? null;
+            $this->init['globals'][$global] = $GLOBALS['_'.$global] ?? null;
         }
         $this->init['tz'] = date_default_timezone_get();
 
-        $this->app = new App;
+        $this->app = new App();
     }
 
     public function tearDown()
@@ -49,7 +49,7 @@ class AppTest extends TestCase
         header_remove();
 
         foreach ($this->init['globals'] as $global => $value) {
-            $GLOBALS['_' . $global] = $value;
+            $GLOBALS['_'.$global] = $value;
         }
         date_default_timezone_set($this->init['tz']);
     }
@@ -121,7 +121,7 @@ class AppTest extends TestCase
                 true,
                 ['foo', 'bar', '-opt', '-uvw=baz', '--qux=quux'],
                 '/foo/bar',
-                'o=&p=&t=&u=&v=&w=baz&qux=quux'
+                'o=&p=&t=&u=&v=&w=baz&qux=quux',
             ],
             [
                 true,
@@ -192,7 +192,7 @@ class AppTest extends TestCase
     }
 
     /**
-     * @expectedException LogicException
+     * @expectedException \LogicException
      * @expectedExceptionMessage Route pattern should contain at least request method and path, given "foo"
      */
     public function testRouteException()
@@ -205,7 +205,7 @@ class AppTest extends TestCase
         return [
             [
                 null, '/', 0, '/', 'FakeController',
-                null, '/', App::REQ_AJAX, '/ ajax', new MapGetController, 'map',
+                null, '/', App::REQ_AJAX, '/ ajax', new MapGetController(), 'map',
             ],
         ];
     }
@@ -218,7 +218,7 @@ class AppTest extends TestCase
         $str = is_string($class);
         $expected = [];
         foreach (explode('|', App::VERBS) as $verb) {
-            $callback = $str ? $class . '->' . $prefix . $verb : [$class, $prefix . $verb];
+            $callback = $str ? $class.'->'.$prefix.$verb : [$class, $prefix.$verb];
             $expected[$path][0][$verb] = [$callback, 0, 0, $alias];
         }
 
@@ -242,7 +242,7 @@ class AppTest extends TestCase
      */
     public function testRedirect($verb, $alias, $path, $type, $pattern, $url, $permanent)
     {
-        $set = $this->app->redirect($pattern, $url, $permanent)->get('SYS.ROUTES.' . $path . '.' . $type . '.' . $verb);
+        $set = $this->app->redirect($pattern, $url, $permanent)->get('SYS.ROUTES.'.$path.'.'.$type.'.'.$verb);
 
         $this->assertNotEmpty($set);
     }
@@ -250,7 +250,9 @@ class AppTest extends TestCase
     public function testRedirectOnAction()
     {
         $this->app->redirect('GET /', '/foo');
-        $this->app->route('GET /foo', function() { return 'redirected'; });
+        $this->app->route('GET /foo', function () {
+            return 'redirected';
+        });
 
         $this->expectOutputString('redirected');
         $this->app->mock('GET / cli');
@@ -264,7 +266,7 @@ class AppTest extends TestCase
     }
 
     /**
-     * @expectedException DomainException
+     * @expectedException \DomainException
      * @expectedExceptionMessage Unsupported http code: 600
      */
     public function testStatusException()
@@ -298,7 +300,7 @@ class AppTest extends TestCase
         $this->app->expire($secs);
 
         foreach ($checks as $key => $value) {
-            $this->assertEquals($value, $this->app->get('RES.HEADERS.' . $key));
+            $this->assertEquals($value, $this->app->get('RES.HEADERS.'.$key));
         }
     }
 
@@ -306,8 +308,8 @@ class AppTest extends TestCase
     {
         return [
             ['/', 'foo', null, 'GET foo /'],
-            ['/bar', 'foo', ['foo'=>'bar'], 'GET foo /{foo}'],
-            ['/foo/1', 'foo', ['id'=>'1'], 'GET foo /foo/{id:digit}'],
+            ['/bar', 'foo', ['foo' => 'bar'], 'GET foo /{foo}'],
+            ['/foo/1', 'foo', ['id' => '1'], 'GET foo /foo/{id:digit}'],
         ];
     }
 
@@ -322,7 +324,7 @@ class AppTest extends TestCase
     }
 
     /**
-     * @expectedException LogicException
+     * @expectedException \LogicException
      * @expectedExceptionMessage Route "foo" does not exists
      */
     public function testAliasException()
@@ -365,7 +367,10 @@ class AppTest extends TestCase
 
     public function testOn()
     {
-        $this->app->on('foo', function() {})->on('foo', function() {})->on('bar', function() {});
+        $this->app->on('foo', function () {
+        })->on('foo', function () {
+        })->on('bar', function () {
+        });
         $this->assertCount(2, $this->app->get('SYS.LISTENERS'));
         $this->assertCount(2, $this->app->get('SYS.LISTENERS.foo'));
         $this->assertCount(1, $this->app->get('SYS.LISTENERS.bar'));
@@ -375,30 +380,49 @@ class AppTest extends TestCase
     {
         return [
             [
-                false, 'foo'
+                false, 'foo',
             ],
             [
-                true, 'foo', null, ['foo' => function() {}],
+                true, 'foo', null, ['foo' => function () {
+                }],
             ],
             [
-                false, 'foo', null, ['foo' => function() { return true; }],
+                false, 'foo', null, ['foo' => function () {
+                    return true;
+                }],
             ],
             [
-                true, 'foo', null, ['foo' => function() { return false; }],
+                true, 'foo', null, ['foo' => function () {
+                    return false;
+                }],
             ],
             [
                 true, 'foo', null, [
-                    'foo' => function(App $app) { $app->set('foo.0', 1); },
-                    'foo.' => function(App $app) { $app->set('foo.1', 2); },
-                    'foo..' => function(App $app) { $app->set('foo.2', 3); },
-                ], ['foo', [1,2,3]],
+                    'foo' => function (App $app) {
+                        $app->set('foo.0', 1);
+                    },
+                    'foo.' => function (App $app) {
+                        $app->set('foo.1', 2);
+                    },
+                    'foo..' => function (App $app) {
+                        $app->set('foo.2', 3);
+                    },
+                ], ['foo', [1, 2, 3]],
             ],
             [
                 false, 'foo', null, [
-                    'foo' => function(App $app) { $app->set('foo.0', 1); },
-                    'foo.' => function(App $app) { $app->set('foo.1', 2); return true; },
-                    'foo..' => function(App $app) { $app->set('foo.2', 3); },
-                ], ['foo', [1,2]],
+                    'foo' => function (App $app) {
+                        $app->set('foo.0', 1);
+                    },
+                    'foo.' => function (App $app) {
+                        $app->set('foo.1', 2);
+
+                        return true;
+                    },
+                    'foo..' => function (App $app) {
+                        $app->set('foo.2', 3);
+                    },
+                ], ['foo', [1, 2]],
             ],
         ];
     }
@@ -425,19 +449,31 @@ class AppTest extends TestCase
     {
         return [
             [
-                '/', true, true, [['GET /', function() { return 'foo'; }]], '/foo/',
+                '/', true, true, [['GET /', function () {
+                    return 'foo';
+                }]], '/foo/',
             ],
             [
-                '/', true, true, [['GET /', function(App $app) { $app->reroute('/bar'); }],['GET /bar', function() { return 'bar'; }]], '/bar/',
+                '/', true, true, [['GET /', function (App $app) {
+                    $app->reroute('/bar');
+                }], ['GET /bar', function () {
+                    return 'bar';
+                }]], '/bar/',
             ],
             [
-                null, true, true, [['GET /', function() { return 'foo'; }]], '/foo/',
+                null, true, true, [['GET /', function () {
+                    return 'foo';
+                }]], '/foo/',
             ],
             [
-                ['home', ['foo'=>'bar']], true, true, [['GET home /{foo}', function($foo) { return $foo; }]], '/bar/',
+                ['home', ['foo' => 'bar']], true, true, [['GET home /{foo}', function ($foo) {
+                    return $foo;
+                }]], '/bar/',
             ],
             [
-                '/foo', true, false, [['GET /foo', function() { return 'foo'; }]],
+                '/foo', true, false, [['GET /foo', function () {
+                    return 'foo';
+                }]],
             ],
         ];
     }
@@ -463,7 +499,7 @@ class AppTest extends TestCase
 
     public function testRerouteInterception()
     {
-        $this->app->on(App::EVENT_REROUTE, function(App $app, $url, $permanent) {
+        $this->app->on(App::EVENT_REROUTE, function (App $app, $url, $permanent) {
             $app->set('rerouted', $url);
             $app->set('permanent', $permanent);
         });
@@ -477,67 +513,109 @@ class AppTest extends TestCase
     {
         return [
             [
-                'foo', [], [['GET /', function() { return 'foo'; }]],
+                'foo', [], [['GET /', function () {
+                    return 'foo';
+                }]],
             ],
             [
-                '{"foo":"bar"}', [], [['GET /', function() { return ['foo'=>'bar']; }]],
+                '{"foo":"bar"}', [], [['GET /', function () {
+                    return ['foo' => 'bar'];
+                }]],
             ],
             [
-                'foo', [], [['GET /', function() { return function() { echo 'foo'; }; }]],
+                'foo', [], [['GET /', function () {
+                    return function () {
+                        echo 'foo';
+                    };
+                }]],
             ],
             [
-                'foo', ['REQ.CLI'=>false], [['GET /', function(App $app) { $app->set('RES.HEADERS.Content-Type', 'text/plain'); $app->set('COOKIE.foo', 'bar'); return 'foo'; }]],
+                'foo', ['REQ.CLI' => false], [['GET /', function (App $app) {
+                    $app->set('RES.HEADERS.Content-Type', 'text/plain');
+                    $app->set('COOKIE.foo', 'bar');
+
+                    return 'foo';
+                }]],
             ],
             [
-                'foo', [], [['GET /', function() { return 'foo'; }, 0, 5]],
+                'foo', [], [['GET /', function () {
+                    return 'foo';
+                }, 0, 5]],
             ],
             [
-                'foo', ['REQ.CLI'=>false], [['GET / sync', function() { return 'foo'; }]],
+                'foo', ['REQ.CLI' => false], [['GET / sync', function () {
+                    return 'foo';
+                }]],
             ],
             [
-                'bar', ['REQ.PATH'=>'/bar'], [
-                    ['GET /foo', function() { return 'foo'; }],
-                    ['GET /bar', function() { return 'bar'; }],
+                'bar', ['REQ.PATH' => '/bar'], [
+                    ['GET /foo', function () {
+                        return 'foo';
+                    }],
+                    ['GET /bar', function () {
+                        return 'bar';
+                    }],
                 ],
             ],
             [
-                'foo', ['REQ.PATH'=>'/foo'], [['GET /foo', function() { return 'foo'; }]],
+                'foo', ['REQ.PATH' => '/foo'], [['GET /foo', function () {
+                    return 'foo';
+                }]],
             ],
             [
-                'foobar', ['REQ.PATH'=>'/foo/bar','REQ.METHOD'=>'POST'], [['POST /foo/{bar}', function($bar) { return 'foo' . $bar; }]],
+                'foobar', ['REQ.PATH' => '/foo/bar', 'REQ.METHOD' => 'POST'], [['POST /foo/{bar}', function ($bar) {
+                    return 'foo'.$bar;
+                }]],
             ],
             [
-                'foo1', ['REQ.PATH'=>'/foo/1'], [['GET /foo/{id:digit}', function($id) { return 'foo' . $id; }]],
+                'foo1', ['REQ.PATH' => '/foo/1'], [['GET /foo/{id:digit}', function ($id) {
+                    return 'foo'.$id;
+                }]],
             ],
             [
-                'foo', ['REQ.PATH'=>'/any/foo'], [['GET /{method}/{input}', AnyController::class . '->{method}']],
+                'foo', ['REQ.PATH' => '/any/foo'], [['GET /{method}/{input}', AnyController::class.'->{method}']],
             ],
             [
                 'foo', [], [], '/No route specified/',
             ],
             [
-                'foo', [], [['GET /', function() { throw new \Exception('bar'); }]], '/bar/',
+                'foo', [], [['GET /', function () {
+                    throw new \Exception('bar');
+                }]], '/bar/',
             ],
             [
-                'foo', [], [['GET /', function() { return function() { ob_start(); throw new \Exception('bar'); }; }]], '/bar/',
+                'foo', [], [['GET /', function () {
+                    return function () {
+                        ob_start();
+                        throw new \Exception('bar');
+                    };
+                }]], '/bar/',
             ],
             [ // route do not exists
-                'foo', [], [['GET /foo', function() { return 'foo'; }]], '/Not Found/',
+                'foo', [], [['GET /foo', function () {
+                    return 'foo';
+                }]], '/Not Found/',
             ],
             [ // invalid mode
-                'foo', [], [['GET / sync', function() { return 'foo'; }]], '/Not Found/',
+                'foo', [], [['GET / sync', function () {
+                    return 'foo';
+                }]], '/Not Found/',
             ],
             [ // invalid request method
-                'foo', ['REQ.CLI'=>false], [['POST /', function() { return 'foo'; }]], '/Method Not Allowed/',
+                'foo', ['REQ.CLI' => false], [['POST /', function () {
+                    return 'foo';
+                }]], '/Method Not Allowed/',
             ],
             [ // invalid controller (unable to call)
-                'foo', [], [['GET /', AnyController::class . '->fakeMethod']], '/Method Not Allowed/',
+                'foo', [], [['GET /', AnyController::class.'->fakeMethod']], '/Method Not Allowed/',
             ],
             [ // invalid controller (class does not exists)
                 'foo', [], [['GET /', 'FakeController->method']], '/Not Found/',
             ],
             [ // cached
-                'foo', [], [['GET /', function() { return 'foo'; }, 1]],
+                'foo', [], [['GET /', function () {
+                    return 'foo';
+                }, 1]],
             ],
         ];
     }
@@ -576,7 +654,7 @@ class AppTest extends TestCase
 
     public function testRunHeaders()
     {
-        $this->app->route('GET /', function() {
+        $this->app->route('GET /', function () {
             return 'foo';
         });
         $this->app->mset([
@@ -631,12 +709,12 @@ class AppTest extends TestCase
 
     public function testRunBoot()
     {
-        $this->app->route('GET /', function(App $app) {
+        $this->app->route('GET /', function (App $app) {
             return 'from controller';
         });
-        $this->app->on(App::EVENT_BOOT, function(App $app) {
+        $this->app->on(App::EVENT_BOOT, function (App $app) {
             if (isset($app['booted'])) {
-                $app['booted']++;
+                ++$app['booted'];
             }
 
             $app['booted'] = 1;
@@ -647,7 +725,7 @@ class AppTest extends TestCase
         $this->assertEquals('from controller', $this->app->get('RES.CONTENT'));
         $this->assertEquals(1, $this->app->get('booted'));
 
-        # call once again
+        // call once again
         $this->app->run();
         $this->assertEquals('from controller', $this->app->get('RES.CONTENT'));
         $this->assertEquals(1, $this->app->get('booted'));
@@ -655,8 +733,10 @@ class AppTest extends TestCase
 
     public function testRunPreRoute()
     {
-        $this->app->route('GET /', function() { return 'from controller'; });
-        $this->app->on(App::EVENT_PREROUTE, function(App $app) {
+        $this->app->route('GET /', function () {
+            return 'from controller';
+        });
+        $this->app->on(App::EVENT_PREROUTE, function (App $app) {
             echo 'from event';
         });
 
@@ -666,8 +746,10 @@ class AppTest extends TestCase
 
     public function testRunPostRoute()
     {
-        $this->app->route('GET /', function() { return 'from controller'; });
-        $this->app->on(App::EVENT_POSTROUTE, function(App $app) {
+        $this->app->route('GET /', function () {
+            return 'from controller';
+        });
+        $this->app->on(App::EVENT_POSTROUTE, function (App $app) {
             echo 'from event';
         });
 
@@ -681,7 +763,9 @@ class AppTest extends TestCase
             'QUIET' => true,
             'CACHE' => 'auto',
         ]);
-        $this->app->route('GET /', function() { return 'foo'; }, 10);
+        $this->app->route('GET /', function () {
+            return 'foo';
+        }, 10);
 
         $this->app->run();
 
@@ -702,16 +786,24 @@ class AppTest extends TestCase
     {
         return [
             [
-                '/foo/', [['GET /', function() {return 'foo';}]], 'GET /',
+                '/foo/', [['GET /', function () {
+                    return 'foo';
+                }]], 'GET /',
             ],
             [
-                '/bar/', [['GET home /', function(App $app) {return $app['GET.foo'];}]], 'GET home', ['foo'=>'bar'],
+                '/bar/', [['GET home /', function (App $app) {
+                    return $app['GET.foo'];
+                }]], 'GET home', ['foo' => 'bar'],
             ],
             [
-                '/bar/', [['POST /', function(App $app) {return $app['POST.foo'];}]], 'POST /', ['foo'=>'bar'],
+                '/bar/', [['POST /', function (App $app) {
+                    return $app['POST.foo'];
+                }]], 'POST /', ['foo' => 'bar'],
             ],
             [
-                '/foo/', [['GET /', function(App $app) {return 'foo';}]], 'GET /', null, ['Origin'=>'foo'],
+                '/foo/', [['GET /', function (App $app) {
+                    return 'foo';
+                }]], 'GET /', null, ['Origin' => 'foo'],
             ],
         ];
     }
@@ -730,7 +822,7 @@ class AppTest extends TestCase
     }
 
     /**
-     * @expectedException LogicException
+     * @expectedException \LogicException
      * @expectedExceptionMessage Mock pattern should contain at least request method and path, given "get"
      */
     public function testMockException()
@@ -775,7 +867,7 @@ class AppTest extends TestCase
 
     public function testErrorListener()
     {
-        $this->app->on(App::EVENT_ERROR, function(App $app, $error) {
+        $this->app->on(App::EVENT_ERROR, function (App $app, $error) {
             $app->set('myerror', $error['text']);
         });
         $this->app->error(500, 'Internal server error');
@@ -786,16 +878,16 @@ class AppTest extends TestCase
     {
         return [
             [
-                [new WithConstructorDefaultArgClass, 'foo'],
-                WithConstructorDefaultArgClass::class . '->foo', true,
+                [new WithConstructorDefaultArgClass(), 'foo'],
+                WithConstructorDefaultArgClass::class.'->foo', true,
             ],
             [
                 [WithConstructorDefaultArgClass::class, 'foo'],
-                WithConstructorDefaultArgClass::class . '->foo', false,
+                WithConstructorDefaultArgClass::class.'->foo', false,
             ],
             [
                 [WithConstructorDefaultArgClass::class, 'foo'],
-                WithConstructorDefaultArgClass::class . '::foo', true,
+                WithConstructorDefaultArgClass::class.'::foo', true,
             ],
             [
                 'foo', 'foo', true,
@@ -818,16 +910,16 @@ class AppTest extends TestCase
                 'foo', 'trim', ['  foo  '],
             ],
             [
-                'foo', WithConstructorDefaultArgClass::class . '->getId',
+                'foo', WithConstructorDefaultArgClass::class.'->getId',
             ],
             [
-                'barfoobaz', WithConstructorDefaultArgClass::class . '->getId', ['bar', 'baz'],
+                'barfoobaz', WithConstructorDefaultArgClass::class.'->getId', ['bar', 'baz'],
             ],
             [
-                'barfoobaz', WithConstructorDefaultArgClass::class . '->getId', ['suffix'=>'baz','prefix'=>'bar'],
+                'barfoobaz', WithConstructorDefaultArgClass::class.'->getId', ['suffix' => 'baz', 'prefix' => 'bar'],
             ],
             [
-                'barfoobaz', [new WithConstructorDefaultArgClass, 'getId'], ['suffix'=>'baz','prefix'=>'bar'],
+                'barfoobaz', [new WithConstructorDefaultArgClass(), 'getId'], ['suffix' => 'baz', 'prefix' => 'bar'],
             ],
         ];
     }
@@ -841,16 +933,16 @@ class AppTest extends TestCase
     }
 
     /**
-     * @expectedException BadMethodCallException
+     * @expectedException \BadMethodCallException
      * @expectedExceptionMessage Call to undefined method Fal\Stick\Test\fixture\services\WithConstructorDefaultArgClass::foo
      */
     public function testCallException()
     {
-        $this->app->call(WithConstructorDefaultArgClass::class . '->foo');
+        $this->app->call(WithConstructorDefaultArgClass::class.'->foo');
     }
 
     /**
-     * @expectedException BadFunctionCallException
+     * @expectedException \BadFunctionCallException
      * @expectedExceptionMessage Call to undefined function foo
      */
     public function testCallException2()
@@ -860,7 +952,7 @@ class AppTest extends TestCase
 
     public function testRules()
     {
-        $this->assertCount(3, $this->app->rules(['foo'=>'bar'])->get('SYS.SRULES'));
+        $this->assertCount(3, $this->app->rules(['foo' => 'bar'])->get('SYS.SRULES'));
     }
 
     public function ruleProvider()
@@ -878,17 +970,17 @@ class AppTest extends TestCase
             [
                 ['class' => 'foo', 'use' => 'bar', 'service' => true],
                 'foo',
-                ['use'=>'bar'],
+                ['use' => 'bar'],
             ],
             [
                 ['class' => 'bar', 'boot' => 'baz', 'service' => false],
                 'foo',
-                ['class'=>'bar','boot'=>'baz','service'=>false],
+                ['class' => 'bar', 'boot' => 'baz', 'service' => false],
             ],
             [
                 ['class' => AnyController::class, 'service' => true],
                 'foo',
-                new AnyController,
+                new AnyController(),
             ],
         ];
     }
@@ -898,7 +990,7 @@ class AppTest extends TestCase
      */
     public function testRule($expected, $id, $rule = null)
     {
-        $this->assertEquals($expected, $this->app->rule($id, $rule)->get('SYS.SRULES.' . $id));
+        $this->assertEquals($expected, $this->app->rule($id, $rule)->get('SYS.SRULES.'.$id));
     }
 
     public function testService()
@@ -929,8 +1021,10 @@ class AppTest extends TestCase
             ],
             [
                 NoConstructorClass::class, null, null, [
-                    'boot' => function($obj) { $obj->id = 'booted'; },
-                ]
+                    'boot' => function ($obj) {
+                        $obj->id = 'booted';
+                    },
+                ],
             ],
             [
                 WithConstructorClass::class,
@@ -942,45 +1036,45 @@ class AppTest extends TestCase
                 WithConstructorArgClass::class, 'foo', null, [
                     'class' => WithConstructorArgClass::class,
                     'args' => ['id' => 'foo'],
-                ]
+                ],
             ],
             [
                 WithConstructorArgClass::class, null, null, [
                     'args' => ['id' => '%SEED%'],
-                ]
+                ],
             ],
             [
                 ReqDateTimeClass::class,
             ],
             [
-                ReqDateTimeClass::class, null, ['dt' => new \DateTime]
+                ReqDateTimeClass::class, null, ['dt' => new \DateTime()],
             ],
             [
-                ReqDateTimeClass::class, null, [new \DateTime]
+                ReqDateTimeClass::class, null, [new \DateTime()],
             ],
             [
                 ReqDateTimeClass::class, null, null, [
-                    'args' => ['dt'=>\DateTime::class],
+                    'args' => ['dt' => \DateTime::class],
                 ],
             ],
             [
                 ReqDateTimeClass::class, null, null, [
-                    'args' => ['dt'=>'%mydt%']
+                    'args' => ['dt' => '%mydt%'],
                 ], [
                     'mydt' => [
                         'class' => \DateTime::class,
-                    ]
+                    ],
                 ],
             ],
             [
                 \DateTime::class,
             ],
             [
-                VariadicArgClass::class, null, [1,2,3]
+                VariadicArgClass::class, null, [1, 2, 3],
             ],
             [
                 NoMethodInterface::class, null, null, [
-                    'use' => ImplementNoMethodInterface::class
+                    'use' => ImplementNoMethodInterface::class,
                 ],
             ],
         ];
@@ -1006,7 +1100,7 @@ class AppTest extends TestCase
     }
 
     /**
-     * @expectedException LogicException
+     * @expectedException \LogicException
      * @expectedExceptionMessage Unable to create instance. Please provide instantiable version of Fal\Stick\Test\fixture\services\NoMethodInterface
      */
     public function testCreateException()
@@ -1021,7 +1115,7 @@ class AppTest extends TestCase
 
     public function testConfig()
     {
-        $this->app->config(FIXTURE . 'config.php');
+        $this->app->config(FIXTURE.'config.php');
         $this->app->set('QUIET', true);
 
         $this->assertEquals('bar', $this->app->get('foo'));
@@ -1049,13 +1143,13 @@ class AppTest extends TestCase
         $this->assertNull($this->app->ref('REQ.foo'));
         $this->assertNull($this->app->ref('REQ.foo.bar', false));
 
-        $ref =& $this->app->ref('REQ.METHOD');
+        $ref = &$this->app->ref('REQ.METHOD');
         $this->assertEquals('GET', $ref);
 
         $ref = 'POST';
         $this->assertEquals('POST', $this->app->ref('REQ.METHOD'));
 
-        $var = ['foo'=>['bar'=>'baz']];
+        $var = ['foo' => ['bar' => 'baz']];
         $this->assertEquals('baz', $this->app->ref('foo.bar', false, $var));
 
         $this->assertNull($this->app->ref('SESSION.foo'));
@@ -1069,7 +1163,7 @@ class AppTest extends TestCase
 
     public function testGet()
     {
-        $ref =& $this->app->get('REQ.METHOD');
+        $ref = &$this->app->get('REQ.METHOD');
         $this->assertEquals('GET', $ref);
 
         $ref = 'POST';
@@ -1121,7 +1215,7 @@ class AppTest extends TestCase
                 'foo.bar.qux',
             ],
             [
-                'foo.bar', ['foo', ['bar'=>'baz','qux'=>'quux']], 'foo.qux', 'quux',
+                'foo.bar', ['foo', ['bar' => 'baz', 'qux' => 'quux']], 'foo.qux', 'quux',
             ],
             [
                 'REQ.METHOD', null, null, 'GET',
@@ -1155,7 +1249,7 @@ class AppTest extends TestCase
 
         $value = $this->app->clear($key)->get($get ?? $key);
 
-        if (strstr($get ?? $key, '.', true) === 'COOKIE') {
+        if ('COOKIE' === strstr($get ?? $key, '.', true)) {
             $value = array_shift($value);
         }
 
@@ -1164,13 +1258,13 @@ class AppTest extends TestCase
 
     public function testMset()
     {
-        $this->assertEquals('bar', $this->app->mset(['foo'=>'bar'])->get('foo'));
-        $this->assertEquals('bar', $this->app->mset(['foo'=>'bar'], 'prefix.')->get('prefix.foo'));
+        $this->assertEquals('bar', $this->app->mset(['foo' => 'bar'])->get('foo'));
+        $this->assertEquals('bar', $this->app->mset(['foo' => 'bar'], 'prefix.')->get('prefix.foo'));
     }
 
     public function testMclear()
     {
-        $this->assertNull($this->app->set('foo','bar')->mclear(['foo'])->get('foo'));
+        $this->assertNull($this->app->set('foo', 'bar')->mclear(['foo'])->get('foo'));
     }
 
     public function testFlash()

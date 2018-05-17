@@ -1,4 +1,6 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 
 namespace Fal\Stick\Test\fixture\services;
 
@@ -13,6 +15,6 @@ class WithConstructorDefaultArgClass
 
     public function getId(string $prefix = '', string $suffix = '')
     {
-        return $prefix . $this->id . $suffix;
+        return $prefix.$this->id.$suffix;
     }
 }

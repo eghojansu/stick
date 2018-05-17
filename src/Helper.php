@@ -1,4 +1,6 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 
 /**
  * This file is part of the eghojansu/stick library.
@@ -12,16 +14,16 @@
 namespace Fal\Stick;
 
 /**
- * Common helper
+ * Common helper.
  */
 final class Helper
 {
     /**
-     * Quote data with specified character
+     * Quote data with specified character.
      *
-     * @param  string|array $data
-     * @param  array  $quote
-     * @param  string $delim
+     * @param string|array $data
+     * @param array        $quote
+     * @param string       $delim
      *
      * @return string
      */
@@ -30,30 +32,30 @@ final class Helper
         $open = $quote[0] ?? '';
         $close = $quote[1] ?? '';
 
-        return $open . implode($close . $delim . $open, (array) $data) . $close;
+        return $open.implode($close.$delim.$open, (array) $data).$close;
     }
 
     /**
-     * Interpolate message
+     * Interpolate message.
      *
-     * @param  string $str
-     * @param  array  $args
-     * @param  string $quote
+     * @param string $str
+     * @param array  $args
+     * @param string $quote
      *
      * @return string
      */
     public static function interpolate(string $str, array $args = [], string $quote = ''): string
     {
-        $use = str_split($quote) + [1=>''];
-        $keys = array_filter(explode(',', ($args ? $use[0] : '') . implode($use[1] . ',' . $use[0], array_keys($args)) . ($args ? $use[1] : '')));
+        $use = str_split($quote) + [1 => ''];
+        $keys = array_filter(explode(',', ($args ? $use[0] : '').implode($use[1].','.$use[0], array_keys($args)).($args ? $use[1] : '')));
 
         return strtr($str, array_combine($keys, array_map([self::class, 'stringifyignorescalar'], $args)));
     }
 
     /**
-     * Get class classname
+     * Get class classname.
      *
-     * @param  string|object $class
+     * @param string|object $class
      *
      * @return string
      */
@@ -62,13 +64,13 @@ final class Helper
         $ns = is_object($class) ? get_class($class) : $class;
         $pos = strrpos($ns, '\\');
 
-        return $pos === false ? $ns : substr($ns, $pos + 1);
+        return false === $pos ? $ns : substr($ns, $pos + 1);
     }
 
     /**
-     * Cast to PHP-value
+     * Cast to PHP-value.
      *
-     * @param  mixed $val
+     * @param mixed $val
      *
      * @return mixed
      */
@@ -88,9 +90,9 @@ final class Helper
     }
 
     /**
-     * Convert snake_case to camelCase
+     * Convert snake_case to camelCase.
      *
-     * @param  string $str
+     * @param string $str
      *
      * @return string
      */
@@ -100,9 +102,9 @@ final class Helper
     }
 
     /**
-     * Convert camelCase to snake_case
+     * Convert camelCase to snake_case.
      *
-     * @param  string $str
+     * @param string $str
      *
      * @return string
      */
@@ -112,9 +114,9 @@ final class Helper
     }
 
     /**
-     * Convert HEADER_KEY to Header-Key
+     * Convert HEADER_KEY to Header-Key.
      *
-     * @param  string $str
+     * @param string $str
      *
      * @return string
      */
@@ -124,9 +126,9 @@ final class Helper
     }
 
     /**
-     * Convert Header-Key to HEADER_KEY
+     * Convert Header-Key to HEADER_KEY.
      *
-     * @param  string $str
+     * @param string $str
      *
      * @return string
      */
@@ -136,9 +138,9 @@ final class Helper
     }
 
     /**
-     * Fix path slash
+     * Fix path slash.
      *
-     * @param  string $str
+     * @param string $str
      *
      * @return string
      */
@@ -148,9 +150,9 @@ final class Helper
     }
 
     /**
-     * Hash string to 13-length string
+     * Hash string to 13-length string.
      *
-     * @param  string $str
+     * @param string $str
      *
      * @return string
      */
@@ -160,10 +162,10 @@ final class Helper
     }
 
     /**
-     * Check if string starts with prefix
+     * Check if string starts with prefix.
      *
-     * @param  string $prefix
-     * @param  string $str
+     * @param string $prefix
+     * @param string $str
      *
      * @return bool
      */
@@ -173,10 +175,10 @@ final class Helper
     }
 
     /**
-     * startswith case-insensitive
+     * startswith case-insensitive.
      *
-     * @param  string $prefix
-     * @param  string $str
+     * @param string $prefix
+     * @param string $str
      *
      * @return bool
      */
@@ -186,10 +188,10 @@ final class Helper
     }
 
     /**
-     * Check if string ends with suffix
+     * Check if string ends with suffix.
      *
-     * @param  string $prefix
-     * @param  string $str
+     * @param string $prefix
+     * @param string $str
      *
      * @return bool
      */
@@ -199,10 +201,10 @@ final class Helper
     }
 
     /**
-     * endswith case-insensitive
+     * endswith case-insensitive.
      *
-     * @param  string $prefix
-     * @param  string $str
+     * @param string $prefix
+     * @param string $str
      *
      * @return bool
      */
@@ -212,11 +214,11 @@ final class Helper
     }
 
     /**
-     * Cut string after prefix
+     * Cut string after prefix.
      *
-     * @param  string $prefix
-     * @param  string $str
-     * @param  string $default
+     * @param string $prefix
+     * @param string $str
+     * @param string $default
      *
      * @return string
      */
@@ -228,11 +230,11 @@ final class Helper
     }
 
     /**
-     * cutafter case-insensitive
+     * cutafter case-insensitive.
      *
-     * @param  string $prefix
-     * @param  string $str
-     * @param  string $default
+     * @param string $prefix
+     * @param string $str
+     * @param string $default
      *
      * @return string
      */
@@ -244,11 +246,11 @@ final class Helper
     }
 
     /**
-     * Cut string before suffix
+     * Cut string before suffix.
      *
-     * @param  string $suffix
-     * @param  string $str
-     * @param  string $default
+     * @param string $suffix
+     * @param string $str
+     * @param string $default
      *
      * @return string
      */
@@ -260,11 +262,11 @@ final class Helper
     }
 
     /**
-     * cutbefore case-insensitive
+     * cutbefore case-insensitive.
      *
-     * @param  string $suffix
-     * @param  string $str
-     * @param  string $default
+     * @param string $suffix
+     * @param string $str
+     * @param string $default
      *
      * @return string
      */
@@ -276,10 +278,10 @@ final class Helper
     }
 
     /**
-     * Extract array contents which starts with prefix
+     * Extract array contents which starts with prefix.
      *
-     * @param  array  $arr
-     * @param  string $prefix
+     * @param array  $arr
+     * @param string $prefix
      *
      * @return array
      */
@@ -302,10 +304,10 @@ final class Helper
     }
 
     /**
-     * Get constant value
+     * Get constant value.
      *
-     * @param  string $var
-     * @param  mixed  $default
+     * @param string $var
+     * @param mixed  $default
      *
      * @return mixed
      */
@@ -315,10 +317,10 @@ final class Helper
     }
 
     /**
-     * Get constants
+     * Get constants.
      *
-     * @param  string|object $class
-     * @param  string $prefix
+     * @param string|object $class
+     * @param string        $prefix
      *
      * @return array
      */
@@ -328,10 +330,10 @@ final class Helper
     }
 
     /**
-     * Split string by comma, semicolon or pipe
+     * Split string by comma, semicolon or pipe.
      *
-     * @param  string   $str
-     * @param  bool     $noempty
+     * @param string $str
+     * @param bool   $noempty
      *
      * @return array
      */
@@ -341,10 +343,10 @@ final class Helper
     }
 
     /**
-     * Ensure var is array
+     * Ensure var is array.
      *
-     * @param  mixed    $var
-     * @param  bool     $noempty
+     * @param mixed $var
+     * @param bool  $noempty
      *
      * @return array
      */
@@ -354,10 +356,10 @@ final class Helper
     }
 
     /**
-     * Ensure var is string
+     * Ensure var is string.
      *
-     * @param  mixed  $var
-     * @param  string $glue
+     * @param mixed  $var
+     * @param string $glue
      *
      * @return string
      */
@@ -367,11 +369,9 @@ final class Helper
     }
 
     /**
-     * Exclusive include
+     * Exclusive include.
      *
-     * @param  string $file
-     *
-     * @return void
+     * @param string $file
      */
     public static function exinclude(string $file): void
     {
@@ -379,26 +379,26 @@ final class Helper
     }
 
     /**
-     * Exclusive require
+     * Exclusive require.
      *
-     * @param  string $file
-     * @param  mixed  $default
+     * @param string $file
+     * @param mixed  $default
      *
      * @return mixed
      */
     public static function exrequire(string $file, $default = null)
     {
-        $result = require($file);
+        $result = require $file;
 
         return $result ?: $default;
     }
 
     /**
-     * Mkdir if not exists
+     * Mkdir if not exists.
      *
-     * @param  string   $path
-     * @param  int      $mode
-     * @param  bool     $recursive
+     * @param string $path
+     * @param int    $mode
+     * @param bool   $recursive
      *
      * @return bool
      */
@@ -408,10 +408,10 @@ final class Helper
     }
 
     /**
-     * Read file content
+     * Read file content.
      *
-     * @param  string   $file
-     * @param  bool     $lf
+     * @param string $file
+     * @param bool   $lf
      *
      * @return string
      */
@@ -423,23 +423,23 @@ final class Helper
     }
 
     /**
-     * Write to file
+     * Write to file.
      *
-     * @param  string   $file
-     * @param  string   $data
-     * @param  bool     $append
+     * @param string $file
+     * @param string $data
+     * @param bool   $append
      *
      * @return mixed
      */
     public static function write(string $file, string $data, bool $append = false)
     {
-        return file_put_contents($file, $data, LOCK_EX|($append ? FILE_APPEND : 0));
+        return file_put_contents($file, $data, LOCK_EX | ($append ? FILE_APPEND : 0));
     }
 
     /**
-     * Delete file if exists
+     * Delete file if exists.
      *
-     * @param  string $file
+     * @param string $file
      *
      * @return bool
      */
@@ -449,9 +449,9 @@ final class Helper
     }
 
     /**
-     * Convert array to string
+     * Convert array to string.
      *
-     * @param  array  $args
+     * @param array $args
      *
      * @return string
      */
@@ -461,9 +461,9 @@ final class Helper
     }
 
     /**
-     * Context to string
+     * Context to string.
      *
-     * @param  array  $context
+     * @param array $context
      *
      * @return string
      */
@@ -476,11 +476,11 @@ final class Helper
             $export .= preg_replace([
                 '/=>\s+([a-zA-Z])/im',
                 '/array\(\s+\)/im',
-                '/^  |\G  /m'
+                '/^  |\G  /m',
             ], [
                 '=> $1',
                 'array()',
-                '    '
+                '    ',
             ], str_replace('array (', 'array(', var_export($value, true)));
             $export .= PHP_EOL;
         }
@@ -489,9 +489,9 @@ final class Helper
     }
 
     /**
-     * Stringify if not scalar
+     * Stringify if not scalar.
      *
-     * @param  mixed $arg
+     * @param mixed $arg
      *
      * @return mixed
      */
@@ -501,10 +501,10 @@ final class Helper
     }
 
     /**
-     * Stringify PHP-value
+     * Stringify PHP-value.
      *
-     * @param  mixed  $arg
-     * @param  array  $stack
+     * @param mixed $arg
+     * @param array $stack
      *
      * @return string
      */
@@ -519,17 +519,17 @@ final class Helper
         switch (gettype($arg)) {
             case 'object':
                 $str = '';
-                foreach (get_object_vars($arg) as $key=>$val) {
-                    $str .= ',' . var_export($key, true) . '=>' . self::stringify($val, array_merge($stack, [$arg]));
+                foreach (get_object_vars($arg) as $key => $val) {
+                    $str .= ','.var_export($key, true).'=>'.self::stringify($val, array_merge($stack, [$arg]));
                 }
                 $str = ltrim($str, ',');
 
-                return addslashes(get_class($arg)) . '::__set_state([' . $str . '])';
+                return addslashes(get_class($arg)).'::__set_state(['.$str.'])';
             case 'array':
                 $str = '';
                 $num = isset($arg[0]) && ctype_digit(implode('', array_keys($arg)));
-                foreach ($arg as $key=>$val) {
-                    $str .= ',' . ($num ? '' : (var_export($key, true) . '=>')) . self::stringify($val, array_merge($stack, [$arg]));
+                foreach ($arg as $key => $val) {
+                    $str .= ','.($num ? '' : (var_export($key, true).'=>')).self::stringify($val, array_merge($stack, [$arg]));
                 }
                 $str = ltrim($str, ',');
 
@@ -540,12 +540,12 @@ final class Helper
     }
 
     /**
-     * Parse string expression
+     * Parse string expression.
      *
      * Example:
      *     foo:arg,arg2|bar:arg|baz:["array arg"]|qux:{"arg":"foo"}
      *
-     * @param  string $expr
+     * @param string $expr
      *
      * @return array
      */
@@ -560,11 +560,11 @@ final class Helper
         $astate = 0;
         $jstate = 0;
 
-        for ($ptr = 0; $ptr < $len; $ptr++) {
+        for ($ptr = 0; $ptr < $len; ++$ptr) {
             $char = $expr[$ptr];
             $prev = $expr[$ptr - 1] ?? null;
 
-            if (($char === '"' || $char === "'") && $prev !== '\\') {
+            if (('"' === $char || "'" === $char) && '\\' !== $prev) {
                 if ($quote) {
                     $quote = $quote === $char ? null : $quote;
                 } else {
@@ -572,39 +572,39 @@ final class Helper
                 }
                 $tmp .= $char;
             } elseif (!$quote) {
-                if ($char === ':' && $jstate === 0) {
+                if (':' === $char && 0 === $jstate) {
                     // next chars is arg
                     $args[] = self::cast($tmp);
                     $tmp = '';
-                } elseif ($char === ',' && $astate === 0 && $jstate === 0) {
+                } elseif (',' === $char && 0 === $astate && 0 === $jstate) {
                     if ($tmp) {
                         $args[] = self::cast($tmp);
                         $tmp = '';
                     }
-                } elseif ($char === '|') {
+                } elseif ('|' === $char) {
                     $process = true;
                     if ($tmp) {
                         $args[] = self::cast($tmp);
                         $tmp = '';
                     }
-                } elseif ($char === '[') {
+                } elseif ('[' === $char) {
                     $astate = 1;
                     $tmp .= $char;
-                } elseif ($char === ']' && $astate === 1 && $jstate === 0) {
+                } elseif (']' === $char && 1 === $astate && 0 === $jstate) {
                     $astate = 0;
-                    $args[] = json_decode($tmp . $char, true);
+                    $args[] = json_decode($tmp.$char, true);
                     $tmp = '';
-                } elseif ($char === '{') {
+                } elseif ('{' === $char) {
                     $jstate = 1;
                     $tmp .= $char;
-                } elseif ($char === '}' && $jstate === 1 && $astate === 0) {
+                } elseif ('}' === $char && 1 === $jstate && 0 === $astate) {
                     $jstate = 0;
-                    $args[] = json_decode($tmp . $char, true);
+                    $args[] = json_decode($tmp.$char, true);
                     $tmp = '';
                 } else {
                     $tmp .= $char;
-                    $astate += $char === '[' ? 1 : ($char === ']' ? -1 : 0);
-                    $jstate += $char === '{' ? 1 : ($char === '}' ? -1 : 0);
+                    $astate += '[' === $char ? 1 : (']' === $char ? -1 : 0);
+                    $jstate += '{' === $char ? 1 : ('}' === $char ? -1 : 0);
                 }
             } else {
                 $tmp .= $char;
@@ -612,7 +612,7 @@ final class Helper
 
             if (!$process && $ptr === $len - 1) {
                 $process = true;
-                if ($tmp !== '') {
+                if ('' !== $tmp) {
                     $args[] = self::cast($tmp);
                     $tmp = '';
                 }
@@ -631,11 +631,11 @@ final class Helper
     }
 
     /**
-     * Get ref from var, provide dot access notation
+     * Get ref from var, provide dot access notation.
      *
-     * @param  string   $key
-     * @param  array    &$var
-     * @param  bool     $add
+     * @param string $key
+     * @param array  &$var
+     * @param bool   $add
      *
      * @return mixed
      */
@@ -650,9 +650,9 @@ final class Helper
             }
 
             if ($add || array_key_exists($part, $var)) {
-                $var =& $var[$part];
+                $var = &$var[$part];
             } else {
-                $var =& $null;
+                $var = &$null;
                 break;
             }
         }

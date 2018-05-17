@@ -1,4 +1,6 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 
 /**
  * This file is part of the eghojansu/stick library.
@@ -18,9 +20,9 @@ use PHPUnit\Framework\TestCase;
 class ConnectionTest extends TestCase
 {
     private $expected = [
-        'r1' => ['id'=>'1','username'=>'foo','password'=>null,'active'=>'1'],
-        'r2' => ['id'=>'2','username'=>'bar','password'=>null,'active'=>'1'],
-        'r3' => ['id'=>'3','username'=>'baz','password'=>null,'active'=>'1'],
+        'r1' => ['id' => '1', 'username' => 'foo', 'password' => null, 'active' => '1'],
+        'r2' => ['id' => '2', 'username' => 'bar', 'password' => null, 'active' => '1'],
+        'r3' => ['id' => '3', 'username' => 'baz', 'password' => null, 'active' => '1'],
     ];
     private $conn;
 
@@ -31,7 +33,7 @@ class ConnectionTest extends TestCase
 
     private function build(string $dsn = '')
     {
-        $cache = new Cache($dsn, 'test', TEMP . 'cache/');
+        $cache = new Cache($dsn, 'test', TEMP.'cache/');
         $cache->reset();
 
         $this->conn = new Connection($cache, [
@@ -60,12 +62,12 @@ SQL1
 
     private function enableDebug()
     {
-        $this->conn->setOptions(['debug'=>true] + $this->conn->getOptions());
+        $this->conn->setOptions(['debug' => true] + $this->conn->getOptions());
     }
 
     private function enableLog()
     {
-        $this->conn->setOptions(['log'=>true] + $this->conn->getOptions());
+        $this->conn->setOptions(['log' => true] + $this->conn->getOptions());
     }
 
     private function changeDriver(string $driver)
@@ -107,12 +109,12 @@ SQL1
 
     public function testSetOptionDsn()
     {
-        $this->conn->setOptions(['dsn'=>'mysql:host=localhost;dbname=foo']);
+        $this->conn->setOptions(['dsn' => 'mysql:host=localhost;dbname=foo']);
         $this->assertContains('foo', $this->conn->getOptions());
     }
 
     /**
-     * @expectedException LogicException
+     * @expectedException \LogicException
      * @expectedExceptionMessage There is no logic for unknown DSN creation, please provide a valid one
      */
     public function testSetOptionsException1()
@@ -121,7 +123,7 @@ SQL1
     }
 
     /**
-     * @expectedException LogicException
+     * @expectedException \LogicException
      * @expectedExceptionMessage Invalid mysql driver configuration
      */
     public function testSetOptionsException2()
@@ -132,7 +134,7 @@ SQL1
     }
 
     /**
-     * @expectedException LogicException
+     * @expectedException \LogicException
      * @expectedExceptionMessage Invalid sqlite driver configuration
      */
     public function testSetOptionsException3()
@@ -155,7 +157,7 @@ SQL1
     }
 
     /**
-     * @expectedException LogicException
+     * @expectedException \LogicException
      * @expectedExceptionMessage Invalid database configuration
      */
     public function testPdoException1()
@@ -171,7 +173,7 @@ SQL1
     }
 
     /**
-     * @expectedException PDOException
+     * @expectedException \PDOException
      * @expectedExceptionMessageRegExp /^SQLSTATE\[HY000\]/
      */
     public function testPdoException2()
@@ -224,10 +226,9 @@ SQL1
         $this->conn->exec('insert into user (username) values (?)', ['quux']);
         $this->assertContains("insert into user (username) values ('quux')", $this->conn->getLog());
 
-        $this->conn->exec('insert into user (id,username) values (?,?)', [['5',\PDO::PARAM_INT],'bleh']);
+        $this->conn->exec('insert into user (id,username) values (?,?)', [['5', \PDO::PARAM_INT], 'bleh']);
         $this->assertContains("insert into user (id,username) values (5,'bleh')", $this->conn->getLog());
     }
-
 
     public function testSchema()
     {
@@ -266,12 +267,12 @@ SQL1
 
         // second schema
         $schema = $this->conn->schema('profile');
-        $this->assertEquals(['id','fullname','user_id'], array_keys($schema));
+        $this->assertEquals(['id', 'fullname', 'user_id'], array_keys($schema));
     }
 
     public function testSchemaWithFields()
     {
-        $schema = $this->conn->schema('user', ['username','password']);
+        $schema = $this->conn->schema('user', ['username', 'password']);
         $this->assertCount(2, $schema);
     }
 
@@ -286,7 +287,7 @@ SQL1
     }
 
     /**
-     * @expectedException LogicException
+     * @expectedException \LogicException
      * @expectedExceptionMessage Driver unknown is not supported
      */
     public function testSchemaException()
@@ -297,10 +298,10 @@ SQL1
 
     public function testGetQuote()
     {
-        $this->assertEquals(['`','`'], $this->conn->getQuote());
+        $this->assertEquals(['`', '`'], $this->conn->getQuote());
 
         $this->changeDriver('odbc');
-        $this->assertEquals(['[',']'], $this->conn->getQuote());
+        $this->assertEquals(['[', ']'], $this->conn->getQuote());
     }
 
     public function testQuotekey()
@@ -342,7 +343,7 @@ SQL1
             [
                 'select * from user',
                 null,
-                [$r1,$r2,$r3],
+                [$r1, $r2, $r3],
             ],
             [
                 'select * from user where id = ?',
@@ -351,7 +352,7 @@ SQL1
             ],
             [
                 'select * from user where id = :id',
-                [':id'=>1],
+                [':id' => 1],
                 [$r1],
             ],
             [
@@ -375,13 +376,13 @@ SQL1
                     'select * from user where id = ?',
                 ],
                 1,
-                [[$r1],[$r1]]
+                [[$r1], [$r1]],
             ],
             [
                 '',
                 null,
-                null
-            ]
+                null,
+            ],
         ];
     }
 
@@ -404,7 +405,7 @@ SQL1
     }
 
     /**
-     * @expectedException LogicException
+     * @expectedException \LogicException
      * @expectedExceptionMessage PDO: no such table: muser
      */
     public function testExecException()
@@ -414,13 +415,13 @@ SQL1
     }
 
     /**
-     * @expectedException LogicException
+     * @expectedException \LogicException
      * @expectedExceptionMessage PDOStatement: bind or column index out of range
      */
     public function testExecException2()
     {
         $this->conn->begin();
-        $this->conn->exec('select * from user where id = ?', [1,2]);
+        $this->conn->exec('select * from user where id = ?', [1, 2]);
     }
 
     public function filterProvider()
@@ -429,75 +430,75 @@ SQL1
 
         $filter[] = [
             ['`foo` = :foo', ':foo' => 'bar'],
-            ['foo'=>'bar'],
+            ['foo' => 'bar'],
         ];
         $filter[] = [
             ['`foo` = :foo AND (`bar` = :bar)', ':foo' => 'bar', ':bar' => 'baz'],
-            ['foo'=>'bar', ['bar'=>'baz']],
+            ['foo' => 'bar', ['bar' => 'baz']],
         ];
         $filter[] = [
             ['`foo` = :foo AND (`bar` = :bar) OR baz = 2', ':foo' => 'bar', ':bar' => 'baz'],
-            ['foo'=>'bar', ['bar'=>'baz'], '|'=>'baz = 2'],
+            ['foo' => 'bar', ['bar' => 'baz'], '|' => 'baz = 2'],
         ];
         $filter[] = [
             ['`foo` = :foo AND (`bar` = :bar) OR baz = 2 OR qux = 3', ':foo' => 'bar', ':bar' => 'baz'],
-            ['foo'=>'bar', ['bar'=>'baz'], '|'=>'baz = 2', '| #qux'=>'qux = 3'],
+            ['foo' => 'bar', ['bar' => 'baz'], '|' => 'baz = 2', '| #qux' => 'qux = 3'],
         ];
         $filter[] = [
             ['`foo` = :foo AND (`bar` = :bar)', ':foo' => 'bar', ':bar' => 'baz'],
-            ['foo'=>'bar', '&' => ['bar'=>'baz']],
+            ['foo' => 'bar', '&' => ['bar' => 'baz']],
         ];
         $filter[] = [
-            ['`foo` = :foo AND (`bar` = :bar OR `baz` = :baz)', ':foo' => 'bar', ':bar' => 'baz',':baz'=>'qux'],
-            ['foo'=>'bar', '&' => ['bar'=>'baz','| baz'=>'qux']],
+            ['`foo` = :foo AND (`bar` = :bar OR `baz` = :baz)', ':foo' => 'bar', ':bar' => 'baz', ':baz' => 'qux'],
+            ['foo' => 'bar', '&' => ['bar' => 'baz', '| baz' => 'qux']],
         ];
         $filter[] = [
-            ['foo = 1 OR `bar` != :bar', ':bar'=>'baz'],
+            ['foo = 1 OR `bar` != :bar', ':bar' => 'baz'],
             ['foo = 1', '| bar !=' => 'baz'],
         ];
         $filter[] = [
-            ['foo = 1 OR `bar` != :bar AND (baz = 2)', ':bar'=>'baz'],
+            ['foo = 1 OR `bar` != :bar AND (baz = 2)', ':bar' => 'baz'],
             ['foo = 1', '| bar !=' => 'baz', ['baz = 2']],
         ];
         $filter[] = [
-            ['`foo` = :foo AND `bar` = :bar', ':foo' => 'bar', ':bar'=>'baz'],
-            ['foo'=>'bar', 'bar'=>'baz'],
+            ['`foo` = :foo AND `bar` = :bar', ':foo' => 'bar', ':bar' => 'baz'],
+            ['foo' => 'bar', 'bar' => 'baz'],
         ];
         $filter[] = [
-            ['`foo` = :foo AND `bar` <> :bar', ':foo' => 'bar', ':bar'=>'baz'],
-            ['foo'=>'bar', 'bar <>'=>'baz'],
+            ['`foo` = :foo AND `bar` <> :bar', ':foo' => 'bar', ':bar' => 'baz'],
+            ['foo' => 'bar', 'bar <>' => 'baz'],
         ];
         $filter[] = [
             ['`foo` LIKE :foo', ':foo' => 'bar'],
-            ['foo ~'=>'bar'],
+            ['foo ~' => 'bar'],
         ];
         $filter[] = [
             ['`foo` NOT LIKE :foo', ':foo' => 'bar'],
-            ['foo !~'=>'bar'],
+            ['foo !~' => 'bar'],
         ];
         $filter[] = [
             ['`foo` SOUNDS LIKE :foo', ':foo' => 'bar'],
-            ['foo @'=>'bar'],
+            ['foo @' => 'bar'],
         ];
         $filter[] = [
-            ['`foo` BETWEEN :foo1 AND :foo2', ':foo1' => 1, ':foo2'=>3],
-            ['foo ><'=>[1,3]],
+            ['`foo` BETWEEN :foo1 AND :foo2', ':foo1' => 1, ':foo2' => 3],
+            ['foo ><' => [1, 3]],
         ];
         $filter[] = [
-            ['`foo` NOT BETWEEN :foo1 AND :foo2', ':foo1' => 1, ':foo2'=>3],
-            ['foo !><'=>[1,3]],
+            ['`foo` NOT BETWEEN :foo1 AND :foo2', ':foo1' => 1, ':foo2' => 3],
+            ['foo !><' => [1, 3]],
         ];
         $filter[] = [
-            ['`foo` IN (:foo1, :foo2, :foo3)', ':foo1' => 'foo', ':foo2'=>'bar',':foo3'=>'baz'],
-            ['foo []'=>['foo','bar','baz']],
+            ['`foo` IN (:foo1, :foo2, :foo3)', ':foo1' => 'foo', ':foo2' => 'bar', ':foo3' => 'baz'],
+            ['foo []' => ['foo', 'bar', 'baz']],
         ];
         $filter[] = [
-            ['`foo` NOT IN (:foo1, :foo2, :foo3)', ':foo1' => 'foo', ':foo2'=>'bar',':foo3'=>'baz'],
-            ['foo ![]'=>['foo','bar','baz']],
+            ['`foo` NOT IN (:foo1, :foo2, :foo3)', ':foo1' => 'foo', ':foo2' => 'bar', ':foo3' => 'baz'],
+            ['foo ![]' => ['foo', 'bar', 'baz']],
         ];
         $filter[] = [
             ['`foo` = bar + 1'],
-            ['foo'=>'```bar + 1'],
+            ['foo' => '```bar + 1'],
         ];
 
         return $filter;
@@ -515,12 +516,12 @@ SQL1
     }
 
     /**
-     * @expectedException LogicException
+     * @expectedException \LogicException
      * @expectedExceptionMessage BETWEEN operator needs an array operand, string given
      */
     public function testFilterException1()
     {
-        $this->conn->filter(['foo ><'=>'str']);
+        $this->conn->filter(['foo ><' => 'str']);
     }
 
     public function testGetName()
@@ -545,7 +546,7 @@ SQL1
         $this->assertEquals(\PDO::PARAM_INT, $this->conn->type(1));
         $this->assertEquals(Connection::PARAM_FLOAT, $this->conn->type(0.0));
         $this->assertEquals(\PDO::PARAM_STR, $this->conn->type('foo'));
-        $fp = fopen(FIXTURE . 'long.txt', 'rb');
+        $fp = fopen(FIXTURE.'long.txt', 'rb');
         $this->assertEquals(\PDO::PARAM_LOB, $this->conn->type($fp));
     }
 
@@ -563,7 +564,7 @@ SQL1
         $this->assertEquals(1, $this->conn->value(\PDO::PARAM_INT, '1'));
         $this->assertEquals('1', $this->conn->value(\PDO::PARAM_STR, '1'));
         $this->assertEquals('1', $this->conn->value('foo', '1'));
-        $fp = fopen(FIXTURE . 'long.txt', 'rb');
+        $fp = fopen(FIXTURE.'long.txt', 'rb');
         $this->assertEquals((binary) $fp, $this->conn->value(\PDO::PARAM_LOB, $fp));
     }
 

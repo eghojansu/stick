@@ -1,4 +1,6 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 
 /**
  * This file is part of the eghojansu/stick library.
@@ -12,24 +14,24 @@
 namespace Fal\Stick\Security;
 
 /**
- * Interface for password encoder
+ * Interface for password encoder.
  */
 interface PasswordEncoderInterface
 {
     /**
-     * Hash password
+     * Hash password.
      *
-     * @param  string $plain
+     * @param string $plain
      *
      * @return string
      */
     public function hash(string $plain): string;
 
     /**
-     * Verify password
+     * Verify password.
      *
-     * @param  string $plain
-     * @param  string $hash
+     * @param string $plain
+     * @param string $hash
      *
      * @return bool
      */

@@ -1,4 +1,6 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 
 /**
  * This file is part of the eghojansu/stick library.
@@ -12,40 +14,40 @@
 namespace Fal\Stick\Security;
 
 /**
- * Interface for User class
+ * Interface for User class.
  */
 interface UserInterface
 {
     /**
-     * Get id
+     * Get id.
      *
      * @return string
      */
     public function getId(): string;
 
     /**
-     * Get username
+     * Get username.
      *
      * @return string
      */
     public function getUsername(): string;
 
     /**
-     * Get password
+     * Get password.
      *
      * @return string
      */
     public function getPassword(): string;
 
     /**
-     * Get roles
+     * Get roles.
      *
      * @return array
      */
     public function getRoles(): array;
 
     /**
-     * Is expired
+     * Is expired.
      *
      * @return bool
      */

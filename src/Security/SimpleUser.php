@@ -1,4 +1,6 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 
 /**
  * This file is part of the eghojansu/stick library.
@@ -14,7 +16,7 @@ namespace Fal\Stick\Security;
 use Fal\Stick\Helper;
 
 /**
- * Simple user class
+ * Simple user class.
  */
 final class SimpleUser implements UserInterface
 {
@@ -34,7 +36,7 @@ final class SimpleUser implements UserInterface
     private $expired;
 
     /**
-     * Class constructor
+     * Class constructor.
      *
      * @param string $id
      * @param string $username
@@ -52,7 +54,7 @@ final class SimpleUser implements UserInterface
     }
 
     /**
-     * Set id
+     * Set id.
      *
      * @param string $id
      *
@@ -74,7 +76,7 @@ final class SimpleUser implements UserInterface
     }
 
     /**
-     * Set username
+     * Set username.
      *
      * @param string $username
      *
@@ -96,7 +98,7 @@ final class SimpleUser implements UserInterface
     }
 
     /**
-     * Set password
+     * Set password.
      *
      * @param string $password
      *
@@ -118,7 +120,7 @@ final class SimpleUser implements UserInterface
     }
 
     /**
-     * Set roles
+     * Set roles.
      *
      * @param array $roles
      *
@@ -140,7 +142,7 @@ final class SimpleUser implements UserInterface
     }
 
     /**
-     * Set expired
+     * Set expired.
      *
      * @param bool $expired
      *

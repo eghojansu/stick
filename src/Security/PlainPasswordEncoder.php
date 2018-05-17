@@ -1,4 +1,6 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 
 /**
  * This file is part of the eghojansu/stick library.
@@ -12,7 +14,7 @@
 namespace Fal\Stick\Security;
 
 /**
- * Plain password encoder
+ * Plain password encoder.
  */
 final class PlainPasswordEncoder implements PasswordEncoderInterface
 {

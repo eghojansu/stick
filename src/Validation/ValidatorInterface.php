@@ -1,4 +1,6 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 
 /**
  * This file is part of the eghojansu/stick library.
@@ -12,41 +14,41 @@
 namespace Fal\Stick\Validation;
 
 /**
- * Interface for validator
+ * Interface for validator.
  */
 interface ValidatorInterface
 {
     /**
-     * Check if validator exists
+     * Check if validator exists.
      *
-     * @param  string  $rule
+     * @param string $rule
      *
      * @return bool
      */
     public function has(string $rule): bool;
 
     /**
-     * Get message for rule
+     * Get message for rule.
      *
-     * @param  string $rule
-     * @param  mixed  $value
-     * @param  array  $args
-     * @param  string $field
-     * @param  string $message
+     * @param string $rule
+     * @param mixed  $value
+     * @param array  $args
+     * @param string $field
+     * @param string $message
      *
      * @return string
      */
     public function message(string $rule, $value = null, array $args = [], string $field = '', string $message = null): string;
 
     /**
-     * Get real validator rule
+     * Get real validator rule.
      *
-     * @param  string $rule
-     * @param  mixed  $value
-     * @param  array  $args
-     * @param  string $field
-     * @param  array  $validated
-     * @param  array  $raw
+     * @param string $rule
+     * @param mixed  $value
+     * @param array  $args
+     * @param string $field
+     * @param array  $validated
+     * @param array  $raw
      *
      * @return mixed
      */

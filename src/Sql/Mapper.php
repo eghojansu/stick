@@ -1,4 +1,6 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 
 /**
  * This file is part of the eghojansu/stick library.
@@ -14,7 +16,7 @@ namespace Fal\Stick\Sql;
 use Fal\Stick\Helper;
 
 /**
- * Sql record mapper
+ * Sql record mapper.
  */
 class Mapper implements \ArrayAccess
 {
@@ -22,20 +24,18 @@ class Mapper implements \ArrayAccess
     const PERPAGE = 10;
 
     /** Event names */
-    const
-        EVENT_LOAD = 'load',
-        EVENT_BEFOREINSERT = 'beforeinsert',
-        EVENT_AFTERINSERT = 'afterinsert',
-        EVENT_BEFOREUPDATE = 'beforeupdate',
-        EVENT_AFTERUPDATE = 'afterupdate',
-        EVENT_BEFOREDELETE = 'beforedelete',
-        EVENT_AFTERDELETE = 'afterdelete';
+    const EVENT_LOAD = 'load';
+    const EVENT_BEFOREINSERT = 'beforeinsert';
+    const EVENT_AFTERINSERT = 'afterinsert';
+    const EVENT_BEFOREUPDATE = 'beforeupdate';
+    const EVENT_AFTERUPDATE = 'afterupdate';
+    const EVENT_BEFOREDELETE = 'beforedelete';
+    const EVENT_AFTERDELETE = 'afterdelete';
 
     /** Aliases */
-    const
-        EVENT_INSERT = self::EVENT_AFTERINSERT,
-        EVENT_UPDATE = self::EVENT_AFTERUPDATE,
-        EVENT_DELETE = self::EVENT_AFTERDELETE;
+    const EVENT_INSERT = self::EVENT_AFTERINSERT;
+    const EVENT_UPDATE = self::EVENT_AFTERUPDATE;
+    const EVENT_DELETE = self::EVENT_AFTERDELETE;
 
     /** @var Connection */
     protected $db;
@@ -68,12 +68,12 @@ class Mapper implements \ArrayAccess
     protected $triggers = [];
 
     /**
-     * Class constructor
+     * Class constructor.
      *
-     * @param Connection    $db
-     * @param string|null   $table
-     * @param array|null    $fields
-     * @param int           $ttl
+     * @param Connection  $db
+     * @param string|null $table
+     * @param array|null  $fields
+     * @param int         $ttl
      */
     public function __construct(Connection $db, string $table = null, array $fields = null, int $ttl = 60)
     {
@@ -88,7 +88,7 @@ class Mapper implements \ArrayAccess
     }
 
     /**
-     * Get table name
+     * Get table name.
      *
      * @return string
      */
@@ -98,7 +98,7 @@ class Mapper implements \ArrayAccess
     }
 
     /**
-     * Set table name and load its schema
+     * Set table name and load its schema.
      *
      * @param string $table
      *
@@ -106,7 +106,7 @@ class Mapper implements \ArrayAccess
      */
     public function setTable(string $table): Mapper
     {
-        $use = $this->driver === Connection::DB_OCI ? strtoupper($table) : $table;
+        $use = Connection::DB_OCI === $this->driver ? strtoupper($table) : $table;
         $prev = $this->table;
 
         $this->table = $use;
@@ -128,11 +128,11 @@ class Mapper implements \ArrayAccess
     }
 
     /**
-     * Create mapper with other table
+     * Create mapper with other table.
      *
-     * @param  string      $table
-     * @param  array|null  $fields
-     * @param  int $ttl
+     * @param string     $table
+     * @param array|null $fields
+     * @param int        $ttl
      *
      * @return Mapper
      */
@@ -142,7 +142,7 @@ class Mapper implements \ArrayAccess
     }
 
     /**
-     * Get fields name
+     * Get fields name.
      *
      * @return array
      */
@@ -152,7 +152,7 @@ class Mapper implements \ArrayAccess
     }
 
     /**
-     * Get table schema
+     * Get table schema.
      *
      * @return array
      */
@@ -162,7 +162,7 @@ class Mapper implements \ArrayAccess
     }
 
     /**
-     * Get connection instance
+     * Get connection instance.
      *
      * @return Connection
      */
@@ -172,12 +172,12 @@ class Mapper implements \ArrayAccess
     }
 
     /**
-     * Set event listener
+     * Set event listener.
      *
      * Listener should return true to give control back to the caller
      *
-     * @param  string|array     $events
-     * @param  callable         $trigger
+     * @param string|array $events
+     * @param callable     $trigger
      *
      * @return Mapper
      */
@@ -191,10 +191,10 @@ class Mapper implements \ArrayAccess
     }
 
     /**
-     * Trigger event
+     * Trigger event.
      *
-     * @param  string $event
-     * @param  array  $args
+     * @param string $event
+     * @param array  $args
      *
      * @return bool
      */
@@ -205,7 +205,7 @@ class Mapper implements \ArrayAccess
         }
 
         foreach ($this->triggers[$event] as $func) {
-            if (call_user_func_array($func, $args) === true) {
+            if (true === call_user_func_array($func, $args)) {
                 return false;
             }
         }
@@ -214,12 +214,12 @@ class Mapper implements \ArrayAccess
     }
 
     /**
-     * Create has one Relation
+     * Create has one Relation.
      *
-     * @param  string|Mapper $target   table name, Mapper instance or names
-     * @param  string|null   $targetId
-     * @param  string|null   $refId
-     * @param  array|null    $options
+     * @param string|Mapper $target   table name, Mapper instance or names
+     * @param string|null   $targetId
+     * @param string|null   $refId
+     * @param array|null    $options
      *
      * @return Relation
      */
@@ -229,13 +229,13 @@ class Mapper implements \ArrayAccess
     }
 
     /**
-     * Create has many Relation
+     * Create has many Relation.
      *
-     * @param  string|Mapper $target
-     * @param  string|null   $targetId
-     * @param  string|null   $refId
-     * @param  string|array  $pivot
-     * @param  array|null    $options
+     * @param string|Mapper $target
+     * @param string|null   $targetId
+     * @param string|null   $refId
+     * @param string|array  $pivot
+     * @param array|null    $options
      *
      * @return Relation
      */
@@ -245,14 +245,14 @@ class Mapper implements \ArrayAccess
     }
 
     /**
-     * Create Relation
+     * Create Relation.
      *
-     * @param  string|Mapper $target
-     * @param  string|null   $targetId
-     * @param  string|null   $refId
-     * @param  [type]        $pivot
-     * @param  bool|null     $one
-     * @param  array|null    $options
+     * @param string|Mapper $target
+     * @param string|null   $targetId
+     * @param string|null   $refId
+     * @param [type]        $pivot
+     * @param bool|null     $one
+     * @param array|null    $options
      *
      * @return Relation
      */
@@ -264,21 +264,21 @@ class Mapper implements \ArrayAccess
             if (is_a($target, self::class, true) || is_subclass_of($target, self::class)) {
                 $use = new $target($this->db);
             } elseif (class_exists($target)) {
-                throw new \UnexpectedValueException('Target must be instance of ' . self::class . ' or a name of valid table, given ' . $target);
+                throw new \UnexpectedValueException('Target must be instance of '.self::class.' or a name of valid table, given '.$target);
             } else {
                 $use = $this->withTable($target);
             }
         } elseif ($target && !$target instanceof $this) {
-            throw new \UnexpectedValueException('Target must be instance of ' . self::class . ' or a name of valid table, given ' . get_class($target));
+            throw new \UnexpectedValueException('Target must be instance of '.self::class.' or a name of valid table, given '.get_class($target));
         }
 
         return new Relation($this, $use, $targetId, $refId, $pivot, $one, $options);
     }
 
     /**
-     * Check field existance
+     * Check field existance.
      *
-     * @param  string $key
+     * @param string $key
      *
      * @return bool
      */
@@ -288,9 +288,9 @@ class Mapper implements \ArrayAccess
     }
 
     /**
-     * Get value of a field
+     * Get value of a field.
      *
-     * @param  string $key
+     * @param string $key
      *
      * @return mixed
      */
@@ -305,16 +305,16 @@ class Mapper implements \ArrayAccess
         } elseif (method_exists($this, $key)) {
             $res = $this->$key();
             $this->props[$key]['self'] = true;
-            $this->props[$key]['value'] =& $res;
+            $this->props[$key]['value'] = &$res;
 
             return $this->props[$key]['value'];
         }
 
-        throw new \LogicException('Undefined field ' . $key);
+        throw new \LogicException('Undefined field '.$key);
     }
 
     /**
-     * Set field value
+     * Set field value.
      *
      * @param string $key
      * @param mixed  $val
@@ -332,7 +332,7 @@ class Mapper implements \ArrayAccess
             $this->adhoc[$key]['value'] = $val;
         } elseif (is_string($val)) {
             // Parenthesize expression in case it's a subquery
-            $this->adhoc[$key] = ['expr' => '(' . $val . ')', 'value' => null];
+            $this->adhoc[$key] = ['expr' => '('.$val.')', 'value' => null];
         } else {
             $this->props[$key] = ['self' => false, 'value' => $val];
         }
@@ -341,9 +341,9 @@ class Mapper implements \ArrayAccess
     }
 
     /**
-     * Clear field value
+     * Clear field value.
      *
-     * @param  string $key
+     * @param string $key
      *
      * @return Mapper
      */
@@ -362,7 +362,7 @@ class Mapper implements \ArrayAccess
     }
 
     /**
-     * Reset mapper values
+     * Reset mapper values.
      *
      * @return Mapper
      */
@@ -391,9 +391,9 @@ class Mapper implements \ArrayAccess
     }
 
     /**
-     * Check if field is required
+     * Check if field is required.
      *
-     * @param  string $key
+     * @param string $key
      *
      * @return bool
      */
@@ -403,9 +403,9 @@ class Mapper implements \ArrayAccess
     }
 
     /**
-     * Check if field or mapper is changed
+     * Check if field or mapper is changed.
      *
-     * @param  string|null $key
+     * @param string|null $key
      *
      * @return bool
      */
@@ -425,7 +425,7 @@ class Mapper implements \ArrayAccess
     }
 
     /**
-     * Get primary keys value
+     * Get primary keys value.
      *
      * @return array
      */
@@ -441,7 +441,7 @@ class Mapper implements \ArrayAccess
     }
 
     /**
-     * Get primary keys fields
+     * Get primary keys fields.
      *
      * @return array
      */
@@ -451,7 +451,7 @@ class Mapper implements \ArrayAccess
     }
 
     /**
-     * Set primary keys fields
+     * Set primary keys fields.
      *
      * @param array $keys
      *
@@ -461,7 +461,7 @@ class Mapper implements \ArrayAccess
     {
         foreach ($keys as $key) {
             if (!isset($this->fields[$key])) {
-                throw new \LogicException('Invalid key ' . $key);
+                throw new \LogicException('Invalid key '.$key);
             }
         }
 
@@ -471,10 +471,10 @@ class Mapper implements \ArrayAccess
     }
 
     /**
-     * Set values from array
+     * Set values from array.
      *
-     * @param  array         $source
-     * @param  callable|null $func
+     * @param array         $source
+     * @param callable|null $func
      *
      * @return Mapper
      */
@@ -490,9 +490,9 @@ class Mapper implements \ArrayAccess
     }
 
     /**
-     * Cast mapper to array
+     * Cast mapper to array.
      *
-     * @param  callable|null $func
+     * @param callable|null $func
      *
      * @return array
      */
@@ -507,7 +507,7 @@ class Mapper implements \ArrayAccess
     }
 
     /**
-     * Check if mapper is loaded
+     * Check if mapper is loaded.
      *
      * @return bool
      */
@@ -517,7 +517,7 @@ class Mapper implements \ArrayAccess
     }
 
     /**
-     * Valid complement
+     * Valid complement.
      *
      * @return bool
      */
@@ -527,12 +527,12 @@ class Mapper implements \ArrayAccess
     }
 
     /**
-     * Paginate table content
+     * Paginate table content.
      *
-     * @param  int                  $page
-     * @param  string|array|null    $filter  @see Connection::filter
-     * @param  array|null           $options
-     * @param  int                  $ttl
+     * @param int               $page
+     * @param string|array|null $filter  @see Connection::filter
+     * @param array|null        $options
+     * @param int               $ttl
      *
      * @return array
      */
@@ -559,38 +559,38 @@ class Mapper implements \ArrayAccess
     }
 
     /**
-     * Count table records
+     * Count table records.
      *
-     * @param  string|array|null    $filter  @see Connection::filter
-     * @param  array|null           $options
-     * @param  int                  $ttl
+     * @param string|array|null $filter  @see Connection::filter
+     * @param array|null        $options
+     * @param int               $ttl
      *
      * @return int
      */
     public function count($filter = null, array $options = null, int $ttl = 0): int
     {
-        $fields = (in_array($this->driver, [Connection::DB_MSSQL, Connection::DB_DBLIB, Connection::DB_SQLSRV]) ? 'TOP 100 PERCENT ' : '') . '*' . $this->stringifyAdhoc();
+        $fields = (in_array($this->driver, [Connection::DB_MSSQL, Connection::DB_DBLIB, Connection::DB_SQLSRV]) ? 'TOP 100 PERCENT ' : '').'*'.$this->stringifyAdhoc();
         list($sql, $args) = $this->stringify($fields, $filter, $options);
 
-        $sql = 'SELECT COUNT(*) AS ' . $this->db->quotekey('_rows') .
-            ' FROM (' . $sql . ') AS ' . $this->db->quotekey('_temp');
+        $sql = 'SELECT COUNT(*) AS '.$this->db->quotekey('_rows').
+            ' FROM ('.$sql.') AS '.$this->db->quotekey('_temp');
         $res = $this->db->exec($sql, $args, $ttl);
 
         return (int) $res[0]['_rows'];
     }
 
     /**
-     * Load mapper
+     * Load mapper.
      *
-     * @param  string|array|null    $filter  @see Connection::filter
-     * @param  array|null           $options
-     * @param  int                  $ttl
+     * @param string|array|null $filter  @see Connection::filter
+     * @param array|null        $options
+     * @param int               $ttl
      *
      * @return Mapper
      */
     public function load($filter = null, array $options = null, int $ttl = 0): Mapper
     {
-        $found = $this->reset()->findAll($filter, ['limit'=>1] + (array) $options, $ttl);
+        $found = $this->reset()->findAll($filter, ['limit' => 1] + (array) $options, $ttl);
 
         if ($found) {
             $this->fields = $found[0]->fields;
@@ -603,9 +603,9 @@ class Mapper implements \ArrayAccess
     }
 
     /**
-     * Load mapper filtered by given primary keys value
+     * Load mapper filtered by given primary keys value.
      *
-     * @param  mixed $ids
+     * @param mixed $ids
      *
      * @return Mapper
      */
@@ -615,31 +615,31 @@ class Mapper implements \ArrayAccess
         $pcount = count($this->keys);
 
         if ($vcount !== $pcount) {
-            throw new \ArgumentCountError(__METHOD__ . ' expect exactly ' . $pcount . ' arguments, ' . $vcount . ' given');
+            throw new \ArgumentCountError(__METHOD__.' expect exactly '.$pcount.' arguments, '.$vcount.' given');
         }
 
         return $this->load(array_combine($this->keys, $ids));
     }
 
     /**
-     * Find records
+     * Find records.
      *
-     * @param  string|array|null    $filter  @see Connection::filter
-     * @param  array|null           $options
-     * @param  int                  $ttl
+     * @param string|array|null $filter  @see Connection::filter
+     * @param array|null        $options
+     * @param int               $ttl
      *
      * @return array
      */
     public function findAll($filter = null, array $options = null, int $ttl = 0): array
     {
         $fields = isset($options['group']) && !in_array($this->driver, [Connection::DB_MYSQL, Connection::DB_SQLITE]) ? $options['group'] : implode(',', array_map([$this->db, 'quotekey'], array_keys($this->fields)));
-        list($sql, $args) = $this->stringify($fields . $this->stringifyAdhoc(), $filter, $options);
+        list($sql, $args) = $this->stringify($fields.$this->stringifyAdhoc(), $filter, $options);
 
         return array_map([$this, 'factory'], $this->db->exec($sql, $args, $ttl));
     }
 
     /**
-     * Decide insert or update
+     * Decide insert or update.
      *
      * @return Mapper
      */
@@ -649,7 +649,7 @@ class Mapper implements \ArrayAccess
     }
 
     /**
-     * Insert record to database
+     * Insert record to database.
      *
      * @return Mapper
      */
@@ -669,7 +669,7 @@ class Mapper implements \ArrayAccess
 
         foreach ($this->fields as $key => $field) {
             if ($field['pkey']) {
-                if (!$inc && $field['pdo_type'] == \PDO::PARAM_INT && empty($field['value']) && !$field['nullable']) {
+                if (!$inc && \PDO::PARAM_INT == $field['pdo_type'] && empty($field['value']) && !$field['nullable']) {
                     $inc = $key;
                 }
 
@@ -677,8 +677,8 @@ class Mapper implements \ArrayAccess
             }
 
             if ($field['changed'] && $key !== $inc) {
-                $fields .= ',' . $this->db->quotekey($key);
-                $values .= ',' . '?';
+                $fields .= ','.$this->db->quotekey($key);
+                $values .= ','.'?';
                 $args[++$ctr] = [$field['value'], $field['pdo_type']];
                 $ckeys[] = $key;
             }
@@ -688,12 +688,12 @@ class Mapper implements \ArrayAccess
             return $this;
         }
 
-        $sql = 'INSERT INTO ' . $this->map . ' (' . ltrim($fields, ',') . ') ' . 'VALUES (' . ltrim($values, ',') . ')';
-        $prefix = in_array($this->driver, [Connection::DB_MSSQL, Connection::DB_DBLIB, Connection::DB_SQLSRV]) && array_intersect($this->keys, $ckeys)? 'SET IDENTITY_INSERT ' . $this->map . ' ON;' : '';
-        $suffix = $this->driver === Connection::DB_PGSQL ? ' RETURNING ' . $this->db->quotekey(reset($this->keys)) : '';
+        $sql = 'INSERT INTO '.$this->map.' ('.ltrim($fields, ',').') '.'VALUES ('.ltrim($values, ',').')';
+        $prefix = in_array($this->driver, [Connection::DB_MSSQL, Connection::DB_DBLIB, Connection::DB_SQLSRV]) && array_intersect($this->keys, $ckeys) ? 'SET IDENTITY_INSERT '.$this->map.' ON;' : '';
+        $suffix = Connection::DB_PGSQL === $this->driver ? ' RETURNING '.$this->db->quotekey(reset($this->keys)) : '';
 
-        $lID = $this->db->exec($prefix . $sql . $suffix, $args);
-        $id = $this->driver === Connection::DB_PGSQL && $lID ? $lID[0][reset($this->keys)] : $this->db->pdo()->lastinsertid();
+        $lID = $this->db->exec($prefix.$sql.$suffix, $args);
+        $id = Connection::DB_PGSQL === $this->driver && $lID ? $lID[0][reset($this->keys)] : $this->db->pdo()->lastinsertid();
 
         // Reload to obtain default and auto-increment field values
         if ($inc || $filter) {
@@ -706,7 +706,7 @@ class Mapper implements \ArrayAccess
     }
 
     /**
-     * Update record changes to database
+     * Update record changes to database.
      *
      * @return Mapper
      */
@@ -723,18 +723,18 @@ class Mapper implements \ArrayAccess
 
         foreach ($this->fields as $key => $field) {
             if ($field['changed']) {
-                $pairs .= ($pairs ? ',' : '') . $this->db->quotekey($key) . '=?';
+                $pairs .= ($pairs ? ',' : '').$this->db->quotekey($key).'=?';
                 $args[++$ctr] = [$field['value'], $field['pdo_type']];
             }
         }
 
         foreach ($this->keys as $key) {
-            $filter .= ($filter ? ' AND ' : ' WHERE ') . $this->db->quotekey($key) . '=?';
+            $filter .= ($filter ? ' AND ' : ' WHERE ').$this->db->quotekey($key).'=?';
             $args[++$ctr] = [$this->fields[$key]['initial'], $this->fields[$key]['pdo_type']];
         }
 
         if ($pairs) {
-            $sql = 'UPDATE ' . $this->map . ' SET ' . $pairs . $filter;
+            $sql = 'UPDATE '.$this->map.' SET '.$pairs.$filter;
 
             $this->db->exec($sql, $args);
         }
@@ -754,10 +754,10 @@ class Mapper implements \ArrayAccess
     }
 
     /**
-     * Delete record to database
+     * Delete record to database.
      *
-     * @param  string|array|null    $filter @see Connection::filter
-     * @param  bool                 $hayati delete slowly
+     * @param string|array|null $filter @see Connection::filter
+     * @param bool              $hayati delete slowly
      *
      * @return int
      */
@@ -775,7 +775,7 @@ class Mapper implements \ArrayAccess
             }
 
             $args = $this->db->filter($filter);
-            $sql = 'DELETE FROM ' . $this->map . ($args ? ' WHERE ' . array_shift($args) : '');
+            $sql = 'DELETE FROM '.$this->map.($args ? ' WHERE '.array_shift($args) : '');
 
             return (int) $this->db->exec($sql, $args);
         }
@@ -785,7 +785,7 @@ class Mapper implements \ArrayAccess
         $out = 0;
 
         foreach ($this->keys as $key) {
-            $filter .= ($filter ? ' AND ' : '') . $this->db->quotekey($key) . '=?';
+            $filter .= ($filter ? ' AND ' : '').$this->db->quotekey($key).'=?';
             $args[++$ctr] = [$this->fields[$key]['initial'], $this->fields[$key]['pdo_type']];
         }
 
@@ -794,7 +794,7 @@ class Mapper implements \ArrayAccess
         }
 
         if ($filter) {
-            $out = (int) $this->db->exec('DELETE FROM ' . $this->map . ' WHERE ' . $filter, $args);
+            $out = (int) $this->db->exec('DELETE FROM '.$this->map.' WHERE '.$filter, $args);
         }
 
         $this->trigger(self::EVENT_BEFOREDELETE, [$this, $this->keys()]);
@@ -804,11 +804,11 @@ class Mapper implements \ArrayAccess
     }
 
     /**
-     * Build select query
+     * Build select query.
      *
-     * @param  string               $fields
-     * @param  string|array|null    $filter  @see Connection::filter
-     * @param  array|null           $options
+     * @param string            $fields
+     * @param string|array|null $filter  @see Connection::filter
+     * @param array|null        $options
      *
      * @return array
      */
@@ -823,26 +823,26 @@ class Mapper implements \ArrayAccess
         ];
 
         $args = [];
-        $sql = 'SELECT ' . $fields . ' FROM ' . $this->map;
+        $sql = 'SELECT '.$fields.' FROM '.$this->map;
 
         $f = $this->db->filter($filter);
         if ($f) {
-            $sql .= ' WHERE ' . array_shift($f);
+            $sql .= ' WHERE '.array_shift($f);
             $args = array_merge($args, $f);
         }
 
         if ($use['group']) {
-            $sql .= ' GROUP BY ' . $use['group'];
+            $sql .= ' GROUP BY '.$use['group'];
         }
 
         $f = $this->db->filter($use['having']);
         if ($f) {
-            $sql .= ' HAVING ' . array_shift($f);
+            $sql .= ' HAVING '.array_shift($f);
             $args = array_merge($args, $f);
         }
 
         if ($use['order']) {
-            $order = ' ORDER BY ' . $use['order'];
+            $order = ' ORDER BY '.$use['order'];
         }
 
         // SQL Server fixes
@@ -851,7 +851,7 @@ class Mapper implements \ArrayAccess
         if (in_array($this->driver, [Connection::DB_MSSQL, Connection::DB_SQLSRV, Connection::DB_ODBC]) && ($use['limit'] || $use['offset'])) {
             // order by pkey when no ordering option was given
             if (!$use['order'] && $this->keys) {
-                $order = ' ORDER BY ' . implode(',', array_map([$this->db, 'quotekey'], $this->keys));
+                $order = ' ORDER BY '.implode(',', array_map([$this->db, 'quotekey'], $this->keys));
             }
 
             $ofs = (int) $use['offset'];
@@ -859,10 +859,10 @@ class Mapper implements \ArrayAccess
 
             if (strncmp($this->db->getVersion(), '11', 2) >= 0) {
                 // SQL Server >= 2012
-                $sql .= $order . ' OFFSET ' . $ofs . ' ROWS';
+                $sql .= $order.' OFFSET '.$ofs.' ROWS';
 
                 if ($lmt) {
-                    $sql .= ' FETCH NEXT ' . $lmt . ' ROWS ONLY';
+                    $sql .= ' FETCH NEXT '.$lmt.' ROWS ONLY';
                 }
             } else {
                 // Require primary keys or order clause
@@ -870,22 +870,22 @@ class Mapper implements \ArrayAccess
                 $sql = preg_replace(
                     '/SELECT/',
                     'SELECT '.
-                    ($lmt > 0 ? 'TOP ' . ($ofs+$lmt) : '') . ' ROW_NUMBER() '.
-                    'OVER (' . $order . ') AS rnum,',
-                    $sql . $order,
+                    ($lmt > 0 ? 'TOP '.($ofs + $lmt) : '').' ROW_NUMBER() '.
+                    'OVER ('.$order.') AS rnum,',
+                    $sql.$order,
                     1
                 );
-                $sql = 'SELECT * FROM (' . $sql . ') x WHERE rnum > ' . $ofs;
+                $sql = 'SELECT * FROM ('.$sql.') x WHERE rnum > '.$ofs;
             }
         } else {
             $sql .= ($order ?? '');
 
             if ($use['limit']) {
-                $sql .= ' LIMIT ' . (int) $use['limit'];
+                $sql .= ' LIMIT '.(int) $use['limit'];
             }
 
             if ($use['offset']) {
-                $sql .= ' OFFSET ' . (int) $use['offset'];
+                $sql .= ' OFFSET '.(int) $use['offset'];
             }
         }
         // @codeCoverageIgnoreEnd
@@ -894,7 +894,7 @@ class Mapper implements \ArrayAccess
     }
 
     /**
-     * Convert adhoc as select column
+     * Convert adhoc as select column.
      *
      * @return string
      */
@@ -903,16 +903,16 @@ class Mapper implements \ArrayAccess
         $res = '';
 
         foreach ($this->adhoc as $key => $field) {
-            $res .= ',' . $field['expr'] . ' AS ' . $this->db->quotekey($key);
+            $res .= ','.$field['expr'].' AS '.$this->db->quotekey($key);
         }
 
         return $res;
     }
 
     /**
-     * Build mapper from record
+     * Build mapper from record.
      *
-     * @param  array  $row
+     * @param array $row
      *
      * @return Mapper
      */
@@ -936,10 +936,10 @@ class Mapper implements \ArrayAccess
     }
 
     /**
-     * Return modified field arg (@see self::__call)
+     * Return modified field arg (@see self::__call).
      *
-     * @param  string $field
-     * @param  array  $args
+     * @param string $field
+     * @param array  $args
      *
      * @return array
      */
@@ -954,9 +954,9 @@ class Mapper implements \ArrayAccess
     }
 
     /**
-     * Convenience method to check field existance
+     * Convenience method to check field existance.
      *
-     * @param  string $offset
+     * @param string $offset
      *
      * @return bool
      */
@@ -966,26 +966,24 @@ class Mapper implements \ArrayAccess
     }
 
     /**
-     * Convenience method to get field value
+     * Convenience method to get field value.
      *
-     * @param  string $offset
+     * @param string $offset
      *
      * @return mixed
      */
     public function &offsetGet($offset)
     {
-        $ref =& $this->get($offset);
+        $ref = &$this->get($offset);
 
         return $ref;
     }
 
     /**
-     * Convenience method to set field value
+     * Convenience method to set field value.
      *
-     * @param  string $offset
-     * @param  mixed  $value
-     *
-     * @return void
+     * @param string $offset
+     * @param mixed  $value
      */
     public function offsetSet($offset, $value)
     {
@@ -993,11 +991,9 @@ class Mapper implements \ArrayAccess
     }
 
     /**
-     * Convenience method to clear field value
+     * Convenience method to clear field value.
      *
-     * @param  string $offset
-     *
-     * @return void
+     * @param string $offset
      */
     public function offsetUnset($offset)
     {
@@ -1005,15 +1001,15 @@ class Mapper implements \ArrayAccess
     }
 
     /**
-     * Magic method proxy
+     * Magic method proxy.
      *
      * Example:
      *     getName      get('name')
      *     findByName   findAll(['name'=>'value'])
      *     loadByName   load(['name'=>'value'])
      *
-     * @param  string $method
-     * @param  array  $args
+     * @param string $method
+     * @param array  $args
      *
      * @return mixed
      */
@@ -1036,6 +1032,6 @@ class Mapper implements \ArrayAccess
             return $this->load(...$args);
         }
 
-        throw new \BadMethodCallException('Call to undefined method ' . static::class . '::' . $method);
+        throw new \BadMethodCallException('Call to undefined method '.static::class.'::'.$method);
     }
 }

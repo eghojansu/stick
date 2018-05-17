@@ -1,4 +1,6 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 
 /**
  * This file is part of the eghojansu/stick library.
@@ -57,13 +59,13 @@ class JwtTest extends TestCase
 
     public function testSetKey()
     {
-        $this->jwt->setKey('bar','baz');
+        $this->jwt->setKey('bar', 'baz');
         $this->assertEquals('bar', $this->jwt->getEncodeKey());
         $this->assertEquals('baz', $this->jwt->getDecodeKey());
     }
 
     /**
-     * @expectedException InvalidArgumentException
+     * @expectedException \InvalidArgumentException
      * @expectedExceptionMessage Key may not be empty
      */
     public function testSetKeyException()
@@ -85,45 +87,45 @@ class JwtTest extends TestCase
     {
         return [
             [
-                ['foo'=>'bar'],
+                ['foo' => 'bar'],
                 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJmb28iOiJiYXIifQ.MekmeDm4rnoablDhbHYq06RqWmaRcjNsdGfHAkXqOk4',
                 'foo',
                 null,
                 Jwt::ALG_HS256,
             ],
             [
-                ['foo'=>'bar'],
+                ['foo' => 'bar'],
                 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzM4NCJ9.eyJmb28iOiJiYXIifQ.9SHQiEMFss4OWYjjDe4dZSK3i9W_S4UTlZp9uv2cyWmck6o7XIEHmriwuQLAk8-o',
                 'foo',
                 null,
                 Jwt::ALG_HS384,
             ],
             [
-                ['foo'=>'bar'],
+                ['foo' => 'bar'],
                 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJmb28iOiJiYXIifQ.QDZd0vch2-eMuIUc9q3FnfNHwk8aYarxDEJwkKRpkh8l4Nk2Xn3F7x2swe52jO8MO7M39e-Phgqo_WuE8adj9Q',
                 'foo',
                 null,
                 Jwt::ALG_HS512,
             ],
             [
-                ['foo'=>'bar'],
+                ['foo' => 'bar'],
                 'eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJmb28iOiJiYXIifQ.MrO2rlSt5l1T8kgilGJh41Dv7ETUUmztYjOsjXx2q-cSWRhbv3ciWwhF_vyzvn7GEBUlTjWIIUQapl2dSicTcc_6MkDsIJl9MNTq6-ueeng4ACfX1ehy1rZ2lo3ql3zUEuSdLom9_0p3SXBJrw1xFAGGMW4ymXyRnjnN-qEQA0o',
-                openssl_get_privatekey('file:///' . FIXTURE . 'key/private.key'),
-                openssl_get_publickey('file:///' . FIXTURE . 'key/public.pem'),
+                openssl_get_privatekey('file:///'.FIXTURE.'key/private.key'),
+                openssl_get_publickey('file:///'.FIXTURE.'key/public.pem'),
                 Jwt::ALG_RS256,
             ],
             [
-                ['foo'=>'bar'],
+                ['foo' => 'bar'],
                 'eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzM4NCJ9.eyJmb28iOiJiYXIifQ.T0aslk80zM0VGKWb-ngtx86-67v1LczPRAX-BRqgy1igduj4rwueIxX4Zp4zfZmOGCc43vzE9Codj4JnfokIxlQnnfiRMAOtFeSuGsZZy_s9oYZ6QppBe5RHKivpurlMpWkNwD_c-i0laf4TuSKGjJqaPaESL1kCbSxvmBt2byw',
-                openssl_get_privatekey('file:///' . FIXTURE . 'key/private.key'),
-                openssl_get_publickey('file:///' . FIXTURE . 'key/public.pem'),
+                openssl_get_privatekey('file:///'.FIXTURE.'key/private.key'),
+                openssl_get_publickey('file:///'.FIXTURE.'key/public.pem'),
                 Jwt::ALG_RS384,
             ],
             [
-                ['foo'=>'bar'],
+                ['foo' => 'bar'],
                 'eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzUxMiJ9.eyJmb28iOiJiYXIifQ.IN0N6Ehp6x89V2Pl4hKuIxJZvr_-Rh_RZPnbEcsZoBiDh3Wp8wehLteecqlE_RNzaaU9GaU9JrzVpyic9ybP1RK1XdxXPoHxokgRMatr-NHpxLks9TnXAnfkt51lqbHUQTVZsui-z15z2_-LlpTatattZL6qzjqTmZvZHoqMkuM',
-                openssl_get_privatekey('file:///' . FIXTURE . 'key/private.key'),
-                openssl_get_publickey('file:///' . FIXTURE . 'key/public.pem'),
+                openssl_get_privatekey('file:///'.FIXTURE.'key/private.key'),
+                openssl_get_publickey('file:///'.FIXTURE.'key/public.pem'),
                 Jwt::ALG_RS512,
             ],
         ];
@@ -152,17 +154,17 @@ class JwtTest extends TestCase
     }
 
     /**
-     * @expectedException DomainException
+     * @expectedException \DomainException
      * @expectedExceptionMessage Algorithm is not supported
      */
     public function testEncodeException()
     {
         $this->jwt->setAlgorithm('foo');
-        $this->jwt->encode(['foo'=>'bar']);
+        $this->jwt->encode(['foo' => 'bar']);
     }
 
     /**
-     * @expectedException UnexpectedValueException
+     * @expectedException \UnexpectedValueException
      * @expectedExceptionMessage Wrong number of segments
      */
     public function testDecodeException()
@@ -171,43 +173,43 @@ class JwtTest extends TestCase
     }
 
     /**
-     * @expectedException UnexpectedValueException
+     * @expectedException \UnexpectedValueException
      * @expectedExceptionMessage Invalid header encoding
      */
     public function testDecodeException2()
     {
-        $token = base64_encode(json_encode(null)) . '.' .
-               base64_encode(json_encode([])) . '.' . 'foo';
+        $token = base64_encode(json_encode(null)).'.'.
+               base64_encode(json_encode([])).'.'.'foo';
 
         $this->jwt->decode($token);
     }
 
     /**
-     * @expectedException UnexpectedValueException
+     * @expectedException \UnexpectedValueException
      * @expectedExceptionMessage Invalid claims encoding
      */
     public function testDecodeException3()
     {
-        $token = base64_encode(json_encode([])) . '.' .
-               base64_encode(json_encode(null)) . '.' . 'foo';
+        $token = base64_encode(json_encode([])).'.'.
+               base64_encode(json_encode(null)).'.'.'foo';
 
         $this->jwt->decode($token);
     }
 
     /**
-     * @expectedException DomainException
+     * @expectedException \DomainException
      * @expectedExceptionMessage Empty algorithm
      */
     public function testDecodeException4()
     {
-        $token = base64_encode(json_encode([])) . '.' .
-               base64_encode(json_encode([])) . '.' . 'foo';
+        $token = base64_encode(json_encode([])).'.'.
+               base64_encode(json_encode([])).'.'.'foo';
 
         $this->jwt->decode($token);
     }
 
     /**
-     * @expectedException DomainException
+     * @expectedException \DomainException
      * @expectedExceptionMessage Algorithm not allowed
      */
     public function testDecodeException5()
@@ -219,19 +221,19 @@ class JwtTest extends TestCase
     }
 
     /**
-     * @expectedException UnexpectedValueException
+     * @expectedException \UnexpectedValueException
      * @expectedExceptionMessage Signature verification failed
      */
     public function testDecodeException6()
     {
         $token = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJmb28iOiJiYXIifQ.MekmeDm4rnoablDhbHYq06RqWmaRcjNsdGfHAkXqOk4';
 
-        $this->jwt->setKey('foo','bar');
+        $this->jwt->setKey('foo', 'bar');
         $this->jwt->decode($token);
     }
 
     /**
-     * @expectedException RuntimeException
+     * @expectedException \RuntimeException
      * @expectedExceptionRegex /Cannot handle token prior to/
      */
     public function testDecodeException7()
@@ -243,7 +245,7 @@ class JwtTest extends TestCase
     }
 
     /**
-     * @expectedException RuntimeException
+     * @expectedException \RuntimeException
      * @expectedExceptionRegex /Cannot handle token prior to/
      */
     public function testDecodeException8()
@@ -255,7 +257,7 @@ class JwtTest extends TestCase
     }
 
     /**
-     * @expectedException RuntimeException
+     * @expectedException \RuntimeException
      * @expectedExceptionMessage Expired token
      */
     public function testDecodeException9()
@@ -267,7 +269,7 @@ class JwtTest extends TestCase
     }
 
     /**
-     * @expectedException DomainException
+     * @expectedException \DomainException
      * @expectedExceptionMessage Algorithm is not supported
      */
     public function testDecodeException10()

@@ -1,4 +1,6 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 
 /**
  * This file is part of the eghojansu/stick library.
@@ -14,7 +16,7 @@ namespace Fal\Stick\Security;
 use Fal\Stick\Validation\AbstractValidator;
 
 /**
- * Auth related validator
+ * Auth related validator.
  */
 final class AuthValidator extends AbstractValidator
 {
@@ -27,7 +29,7 @@ final class AuthValidator extends AbstractValidator
     private $auth;
 
     /**
-     * Class constructor
+     * Class constructor.
      *
      * @param Auth $auth
      */
@@ -37,9 +39,9 @@ final class AuthValidator extends AbstractValidator
     }
 
     /**
-     * Verify given password is valid current user password
+     * Verify given password is valid current user password.
      *
-     * @param  string $val
+     * @param string $val
      *
      * @return bool
      */

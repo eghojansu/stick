@@ -1,4 +1,6 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 
 /**
  * This file is part of the eghojansu/stick library.
@@ -13,25 +15,23 @@ namespace Fal\Stick\Sql;
 
 use Fal\Stick\Cache;
 use Fal\Stick\Helper;
-use Fal\Stick\Logger;
 
 /**
- * PDO Wrapper
+ * PDO Wrapper.
  */
 final class Connection
 {
     /** Supported database engine name */
-    const
-        DB_SQLITE = 'sqlite',
-        DB_SQLITE2 = 'sqlite2',
-        DB_MYSQL = 'mysql',
-        DB_PGSQL = 'pgsql',
-        DB_OCI = 'oci',
-        DB_MSSQL = 'mssql',
-        DB_SQLSRV = 'sqlsrv',
-        DB_ODBC = 'odbc',
-        DB_SYBASE = 'sybase',
-        DB_DBLIB = 'dblib';
+    const DB_SQLITE = 'sqlite';
+    const DB_SQLITE2 = 'sqlite2';
+    const DB_MYSQL = 'mysql';
+    const DB_PGSQL = 'pgsql';
+    const DB_OCI = 'oci';
+    const DB_MSSQL = 'mssql';
+    const DB_SQLSRV = 'sqlsrv';
+    const DB_ODBC = 'odbc';
+    const DB_SYBASE = 'sybase';
+    const DB_DBLIB = 'dblib';
 
     /** Special data type */
     const PARAM_FLOAT = 'float';
@@ -67,7 +67,7 @@ final class Connection
     private $rows = 0;
 
     /**
-     * Class constructor
+     * Class constructor.
      *
      * @param Cache  $cache
      * @param array  $options
@@ -81,7 +81,7 @@ final class Connection
     }
 
     /**
-     * Get database driver name
+     * Get database driver name.
      *
      * @return string
      */
@@ -91,7 +91,7 @@ final class Connection
     }
 
     /**
-     * Get database driver version
+     * Get database driver version.
      *
      * @return string
      */
@@ -101,7 +101,7 @@ final class Connection
     }
 
     /**
-     * Get current database name
+     * Get current database name.
      *
      * @return string
      */
@@ -111,7 +111,7 @@ final class Connection
     }
 
     /**
-     * Get cache
+     * Get cache.
      *
      * @return Cache
      */
@@ -121,7 +121,7 @@ final class Connection
     }
 
     /**
-     * Get encoding
+     * Get encoding.
      *
      * @return string
      */
@@ -131,7 +131,7 @@ final class Connection
     }
 
     /**
-     * Set encoding
+     * Set encoding.
      *
      * @param string $encoding
      *
@@ -146,7 +146,7 @@ final class Connection
     }
 
     /**
-     * Get options
+     * Get options.
      *
      * @return array
      */
@@ -156,7 +156,7 @@ final class Connection
     }
 
     /**
-     * Set options
+     * Set options.
      *
      * Available options (and its default value):
      *     debug    bool    false           enable debug mode
@@ -195,8 +195,8 @@ final class Connection
         $driver = strtolower($use['driver'] ?? 'unknown');
         $driverDefaults = [
             self::DB_MYSQL => ['options' => [
-                \PDO::MYSQL_ATTR_INIT_COMMAND => 'SET NAMES ' . strtolower(str_replace('-', '', $this->encoding)).';'
-            ]]
+                \PDO::MYSQL_ATTR_INIT_COMMAND => 'SET NAMES '.strtolower(str_replace('-', '', $this->encoding)).';',
+            ]],
         ];
 
         if (empty($dsn)) {
@@ -218,7 +218,7 @@ final class Connection
     }
 
     /**
-     * Get pdo
+     * Get pdo.
      *
      * @return PDO
      *
@@ -251,9 +251,9 @@ final class Connection
     }
 
     /**
-     * Map data type of argument to a PDO constant
+     * Map data type of argument to a PDO constant.
      *
-     * @param  mixed $val
+     * @param mixed $val
      *
      * @return mixed
      */
@@ -273,10 +273,10 @@ final class Connection
     }
 
     /**
-     * Real PDO type
+     * Real PDO type.
      *
-     * @param  mixed $val
-     * @param  mixed &$type
+     * @param mixed $val
+     * @param mixed &$type
      *
      * @return mixed
      */
@@ -284,30 +284,30 @@ final class Connection
     {
         $use = $type ?? $this->type($val);
 
-        return $use === self::PARAM_FLOAT ? \PDO::PARAM_STR : $use;
+        return self::PARAM_FLOAT === $use ? \PDO::PARAM_STR : $use;
     }
 
     /**
-     * Cast value to PHP type
+     * Cast value to PHP type.
      *
-     * @param  mixed $type
-     * @param  mixed $val
+     * @param mixed $type
+     * @param mixed $val
      *
      * @return mixed
      */
     public function value($type, $val)
     {
-        if ($type === self::PARAM_FLOAT) {
+        if (self::PARAM_FLOAT === $type) {
             return is_string($val) ? $val : str_replace(',', '.', $val);
-        } elseif ($type === \PDO::PARAM_NULL) {
+        } elseif (\PDO::PARAM_NULL === $type) {
             return null;
-        } elseif ($type === \PDO::PARAM_INT) {
+        } elseif (\PDO::PARAM_INT === $type) {
             return (int) $val;
-        } elseif ($type === \PDO::PARAM_BOOL) {
+        } elseif (\PDO::PARAM_BOOL === $type) {
             return (bool) $val;
-        } elseif ($type === \PDO::PARAM_STR) {
+        } elseif (\PDO::PARAM_STR === $type) {
             return (string) $val;
-        } elseif ($type === \PDO::PARAM_LOB) {
+        } elseif (\PDO::PARAM_LOB === $type) {
             return (binary) $val;
         } else {
             return $val;
@@ -315,9 +315,9 @@ final class Connection
     }
 
     /**
-     * Build filter with rule below:
+     * Build filter with rule below:.
      *
-     * @param  string|array $filter
+     * @param string|array $filter
      *
      * @return array
      */
@@ -329,76 +329,76 @@ final class Connection
 
         // operator map
         $map = [
-            '='   => '=',
-            '>'   => '>',
-            '<'   => '<',
-            '>='  => '>=',
-            '<='  => '<=',
-            '<>'  => '<>',
-            '!='  => '!=',
-            '&'   => 'AND',
-            '|'   => 'OR',
-            '^'   => 'XOR',
-            '!'   => 'NOT',
-            '~'   => 'LIKE',
-            '!~'  => 'NOT LIKE',
-            '@'   => 'SOUNDS LIKE',
-            '[]'  => 'IN',
+            '=' => '=',
+            '>' => '>',
+            '<' => '<',
+            '>=' => '>=',
+            '<=' => '<=',
+            '<>' => '<>',
+            '!=' => '!=',
+            '&' => 'AND',
+            '|' => 'OR',
+            '^' => 'XOR',
+            '!' => 'NOT',
+            '~' => 'LIKE',
+            '!~' => 'NOT LIKE',
+            '@' => 'SOUNDS LIKE',
+            '[]' => 'IN',
             '![]' => 'NOT IN',
-            '><'  => 'BETWEEN',
+            '><' => 'BETWEEN',
             '!><' => 'NOT BETWEEN',
         ];
         $mapkeys = '=<>&|^!~@[] ';
 
-        $ctr    = 0;
-        $str    = '';
+        $ctr = 0;
+        $str = '';
         $result = [];
 
         foreach ((array) $filter as $key => $value) {
             if (is_numeric($key)) {
                 if (is_string($value)) {
                     // raw
-                    $str   .= ' ' . $value;
+                    $str .= ' '.$value;
                 } elseif ($cfilter = $this->filter((array) $value)) {
-                    $str   .= ' AND (' . array_shift($cfilter) . ')';
+                    $str .= ' AND ('.array_shift($cfilter).')';
                     $result = array_merge($result, $cfilter);
                 }
 
                 continue;
             }
 
-            $raw  = is_string($value) && Helper::startswith('```', $value);
+            $raw = is_string($value) && Helper::startswith('```', $value);
             $expr = $raw ? substr($value, 3) : $value;
             // clear column from comments format
             $ccol = (false === ($pos = strpos($key, '#'))) ? $key : substr($key, 0, $pos);
-            $col  = trim($ccol, $mapkeys);
+            $col = trim($ccol, $mapkeys);
             $kcol = str_replace('.', '_', $col);
-            $a1   = substr($ccol, 0, 1);
-            $a2   = substr($ccol, 0, 2);
-            $a3   = substr($ccol, 0, 3);
-            $b1   = substr($ccol, -1);
-            $b2   = substr($ccol, -2);
-            $b3   = substr($ccol, -3);
+            $a1 = substr($ccol, 0, 1);
+            $a2 = substr($ccol, 0, 2);
+            $a3 = substr($ccol, 0, 3);
+            $b1 = substr($ccol, -1);
+            $b2 = substr($ccol, -2);
+            $b3 = substr($ccol, -3);
 
-            $str .= ' ' . ($map[$a3] ?? $map[$a2] ?? $map[$a1] ?? ($ctr > 0 ? 'AND' : ''));
+            $str .= ' '.($map[$a3] ?? $map[$a2] ?? $map[$a1] ?? ($ctr > 0 ? 'AND' : ''));
 
             if ($col) {
-                $str .= ' ' . $this->quotekey($col);
-                $str .= ' ' . ($map[$b3] ?? $map[$b2] ?? $map[$b1] ?? '=');
+                $str .= ' '.$this->quotekey($col);
+                $str .= ' '.($map[$b3] ?? $map[$b2] ?? $map[$b1] ?? '=');
             }
 
             if ($raw) {
-                $str .= ' ' . $expr;
+                $str .= ' '.$expr;
             } else {
-                if ($b3 === '!><' || $b2 === '><') {
+                if ('!><' === $b3 || '><' === $b2) {
                     if (!is_array($expr)) {
-                        throw new \LogicException('BETWEEN operator needs an array operand, ' . gettype($expr) . ' given');
+                        throw new \LogicException('BETWEEN operator needs an array operand, '.gettype($expr).' given');
                     }
 
                     $str .= " :{$kcol}1 AND :{$kcol}2";
                     $result[":{$kcol}1"] = array_shift($expr);
                     $result[":{$kcol}2"] = array_shift($expr);
-                } elseif ($b3 === '![]' || $b2 === '[]') {
+                } elseif ('![]' === $b3 || '[]' === $b2) {
                     $str .= ' (';
                     $i = 1;
 
@@ -406,15 +406,15 @@ final class Connection
                         $k = ":{$kcol}{$i}";
                         $str .= "$k, ";
                         $result[$k] = $val;
-                        $i++;
+                        ++$i;
                     }
 
-                    $str = rtrim($str, ', ') . ')';
+                    $str = rtrim($str, ', ').')';
                 } elseif (is_array($expr)) {
                     $cfilter = $this->filter((array) $expr);
 
                     if ($cfilter) {
-                        $str .= ' (' . array_shift($cfilter) . ')';
+                        $str .= ' ('.array_shift($cfilter).')';
                         $result = array_merge($result, $cfilter);
                     }
                 } elseif ($kcol) {
@@ -422,11 +422,11 @@ final class Connection
                     $str .= " $k";
                     $result[$k] = $expr;
                 } else {
-                    $str .= ' ' . $expr;
+                    $str .= ' '.$expr;
                 }
             }
 
-            $ctr++;
+            ++$ctr;
         }
 
         array_unshift($result, trim($str));
@@ -435,13 +435,13 @@ final class Connection
     }
 
     /**
-     * Get table schema
+     * Get table schema.
      *
-     * @param  string      $table
-     * @param  array|null  $fields
-     * @param  int         $ttl
+     * @param string     $table
+     * @param array|null $fields
+     * @param int        $ttl
      *
-     * @return array       ['field'=>['type'=>string,'pdo_type'=>string,'default'=>mixed,'nullable'=>bool,'pkey'=>bool]]
+     * @return array ['field'=>['type'=>string,'pdo_type'=>string,'default'=>mixed,'nullable'=>bool,'pkey'=>bool]]
      */
     public function schema(string $table, array $fields = null, int $ttl = 0): array
     {
@@ -481,7 +481,7 @@ final class Connection
     }
 
     /**
-     * Get quote char (open and close)
+     * Get quote char (open and close).
      *
      * @return array
      */
@@ -500,14 +500,14 @@ final class Connection
             }
         }
 
-        return ['',''];
+        return ['', ''];
     }
 
     /**
-     * Quote string
+     * Quote string.
      *
-     * @param  string $val
-     * @param  mixed  $type
+     * @param string $val
+     * @param mixed  $type
      *
      * @return string
      */
@@ -522,10 +522,10 @@ final class Connection
     }
 
     /**
-     * Return quoted identifier name
+     * Return quoted identifier name.
      *
-     * @param  string   $key
-     * @param  bool     $split
+     * @param string $key
+     * @param bool   $split
      *
      * @return string
      */
@@ -535,7 +535,7 @@ final class Connection
     }
 
     /**
-     * Open transaction
+     * Open transaction.
      *
      * @return bool
      */
@@ -548,7 +548,7 @@ final class Connection
     }
 
     /**
-     * Commit and close transaction
+     * Commit and close transaction.
      *
      * @return bool
      */
@@ -561,7 +561,7 @@ final class Connection
     }
 
     /**
-     * Roolback and close transaction
+     * Roolback and close transaction.
      *
      * @return bool
      */
@@ -574,7 +574,7 @@ final class Connection
     }
 
     /**
-     * Get transaction status
+     * Get transaction status.
      *
      * @return bool
      */
@@ -584,11 +584,11 @@ final class Connection
     }
 
     /**
-     * Exec command(s)
+     * Exec command(s).
      *
-     * @param  string|array $cmds
-     * @param  mixed        $args
-     * @param  int          $ttl
+     * @param string|array $cmds
+     * @param mixed        $args
+     * @param int          $ttl
      *
      * @return mixed
      *
@@ -614,7 +614,7 @@ final class Connection
 
         if (is_array($cmds)) {
             $count = count($cmds);
-            $one = $count === 1;
+            $one = 1 === $count;
 
             if (count($args) < $count) {
                 // Apply arguments to SQL commands
@@ -632,7 +632,7 @@ final class Connection
 
         $this->pdo();
 
-        for ($i = 0; $i < $count; $i++) {
+        for ($i = 0; $i < $count; ++$i) {
             $cmd = $cmds[$i];
             $arg = $args[$i];
             $start = microtime(true);
@@ -657,13 +657,13 @@ final class Connection
             $query = $this->pdo->prepare($cmd);
             $error = $this->pdo->errorinfo();
 
-            if (!is_object($query) || ($error && $error[0] !== \PDO::ERR_NONE)) {
+            if (!is_object($query) || ($error && \PDO::ERR_NONE !== $error[0])) {
                 // PDO-level error occurred
                 if ($this->trans) {
                     $this->rollback();
                 }
 
-                throw new \LogicException('PDO: ' . $error[2]);
+                throw new \LogicException('PDO: '.$error[2]);
             }
 
             foreach ($arg as $key => $val) {
@@ -682,13 +682,13 @@ final class Connection
 
             $error = $query->errorinfo();
 
-            if ($error && $error[0] !== \PDO::ERR_NONE) {
+            if ($error && \PDO::ERR_NONE !== $error[0]) {
                 // Statement-level error occurred
                 if ($this->trans) {
                     $this->rollback();
                 }
 
-                throw new \LogicException('PDOStatement: ' . $error[2]);
+                throw new \LogicException('PDOStatement: '.$error[2]);
             }
 
             if (preg_match($fetchPattern[0], $cmd) || (preg_match($fetchPattern[1], $cmd) && $query->columnCount())) {
@@ -727,7 +727,7 @@ final class Connection
     }
 
     /**
-     * Get log
+     * Get log.
      *
      * @return string
      */
@@ -737,7 +737,7 @@ final class Connection
     }
 
     /**
-     * Get affected rows/row count affected by last query
+     * Get affected rows/row count affected by last query.
      *
      * @return int
      */
@@ -747,9 +747,9 @@ final class Connection
     }
 
     /**
-     * Check if table exists
+     * Check if table exists.
      *
-     * @param  string $table
+     * @param string $table
      *
      * @return bool
      */
@@ -757,22 +757,20 @@ final class Connection
     {
         $mode = $this->pdo()->getAttribute(\PDO::ATTR_ERRMODE);
         $this->pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_SILENT);
-        $out = $this->pdo->query('SELECT 1 FROM ' . $this->quotekey($table).' LIMIT 1');
+        $out = $this->pdo->query('SELECT 1 FROM '.$this->quotekey($table).' LIMIT 1');
         $this->pdo->setAttribute(\PDO::ATTR_ERRMODE, $mode);
 
         return is_object($out);
     }
 
     /**
-     * Log sql and arg
+     * Log sql and arg.
      *
-     * @param  string $sql
-     * @param  array  $arg
-     * @param  float  $start
-     * @param  bool   $replace
-     * @param  bool   $cached
-     *
-     * @return void
+     * @param string $sql
+     * @param array  $arg
+     * @param float  $start
+     * @param bool   $replace
+     * @param bool   $cached
      */
     private function log(string $sql, array $arg, float $start = 0, bool $replace = false, bool $cached = false): void
     {
@@ -781,7 +779,7 @@ final class Connection
         }
 
         $keys = $vals = [];
-        $time = '(' . ($start ? sprintf('%.1f', 1e3* (microtime(true) - $start)) : '-0') . 'ms)';
+        $time = '('.($start ? sprintf('%.1f', 1e3 * (microtime(true) - $start)) : '-0').'ms)';
 
         foreach ($arg as $key => $val) {
             if (is_array($val)) {
@@ -790,24 +788,24 @@ final class Connection
             } else {
                 $vals[] = Helper::stringify($cached ? $val : $this->value($this->realType($val), $val));
             }
-            $keys[] = '/' . preg_quote(is_numeric($key) ? chr(0) . '?' : $key) . '/';
+            $keys[] = '/'.preg_quote(is_numeric($key) ? chr(0).'?' : $key).'/';
         }
 
         if ($replace) {
             $this->log = str_replace('(-0ms)', $time, $this->log);
         } else {
-            $this->log .= date('r') . ' ' . $time . ' ' .
-                        ($cached ? '[CACHED] ' : '') .
-                        preg_replace($keys, $vals, str_replace('?', chr(0) . '?', $sql), 1) .
+            $this->log .= date('r').' '.$time.' '.
+                        ($cached ? '[CACHED] ' : '').
+                        preg_replace($keys, $vals, str_replace('?', chr(0).'?', $sql), 1).
                         PHP_EOL;
         }
     }
 
     /**
-     * Create pdo dsn
+     * Create pdo dsn.
      *
-     * @param  string $driver
-     * @param  array  $options
+     * @param string $driver
+     * @param array  $options
      *
      * @return string
      *
@@ -819,10 +817,10 @@ final class Connection
             case self::DB_MYSQL:
                 if (isset($options['server'], $options['username'], $options['dbname'])) {
                     return
-                        $driver .
-                        ':host=' . $options['server'] .
-                        ';port=' . $options['port'] .
-                        ';dbname=' . $options['dbname'];
+                        $driver.
+                        ':host='.$options['server'].
+                        ';port='.$options['port'].
+                        ';dbname='.$options['dbname'];
                 }
 
                 $error = 'Invalid mysql driver configuration';
@@ -832,20 +830,20 @@ final class Connection
             case self::DB_SQLITE2:
                 if (isset($options['location'])) {
                     // location can be full filepath or :memory:
-                    return $driver . ':' . $options['location'];
+                    return $driver.':'.$options['location'];
                 }
 
                 $error = 'Invalid sqlite driver configuration';
                 break;
         }
 
-        throw new \LogicException($error ?? 'There is no logic for ' . $driver . ' DSN creation, please provide a valid one');
+        throw new \LogicException($error ?? 'There is no logic for '.$driver.' DSN creation, please provide a valid one');
     }
 
     /**
-     * String sql data type to PDO data type
+     * String sql data type to PDO data type.
      *
-     * @param  string $type
+     * @param string $type
      *
      * @return mixed
      */
@@ -872,10 +870,10 @@ final class Connection
     }
 
     /**
-     * Get schema command
+     * Get schema command.
      *
-     * @param  string $table
-     * @param  string $dbname
+     * @param string $table
+     * @param string $dbname
      *
      * @return array
      *
@@ -888,60 +886,60 @@ final class Connection
             1 => [self::DB_SQLITE, self::DB_SQLITE2],
             [self::DB_MYSQL],
             [self::DB_MSSQL, self::DB_SQLSRV, self::DB_SYBASE, self::DB_DBLIB, self::DB_PGSQL, self::DB_ODBC],
-            [self::DB_OCI]
+            [self::DB_OCI],
         ];
 
         $tbl = $this->quotekey($table);
         $db = $dbname ? $this->quotekey($dbname) : '';
         $cmds = [
             1 => [
-                'PRAGMA table_info(' . $tbl. ')',
+                'PRAGMA table_info('.$tbl.')',
                 'name', 'type', 'dflt_value', 'notnull', 0, 'pk', true,
             ],
             [
-                'SHOW columns FROM ' . $db . '.' . $tbl,
+                'SHOW columns FROM '.$db.'.'.$tbl,
                 'Field', 'Type', 'Default', 'Null', 'YES', 'Key', 'PRI',
             ],
             [
                 'SELECT '.
-                    'C.COLUMN_NAME AS field,' .
-                    'C.DATA_TYPE AS type,' .
-                    'C.COLUMN_DEFAULT AS defval,' .
-                    'C.IS_NULLABLE AS nullable,' .
-                    'T.CONSTRAINT_TYPE AS pkey ' .
-                'FROM INFORMATION_SCHEMA.COLUMNS AS C ' .
-                'LEFT OUTER JOIN ' .
-                    'INFORMATION_SCHEMA.KEY_COLUMN_USAGE AS K ' .
-                    'ON ' .
-                        'C.TABLE_NAME=K.TABLE_NAME AND ' .
-                        'C.COLUMN_NAME=K.COLUMN_NAME AND ' .
-                        'C.TABLE_SCHEMA=K.TABLE_SCHEMA ' .
+                    'C.COLUMN_NAME AS field,'.
+                    'C.DATA_TYPE AS type,'.
+                    'C.COLUMN_DEFAULT AS defval,'.
+                    'C.IS_NULLABLE AS nullable,'.
+                    'T.CONSTRAINT_TYPE AS pkey '.
+                'FROM INFORMATION_SCHEMA.COLUMNS AS C '.
+                'LEFT OUTER JOIN '.
+                    'INFORMATION_SCHEMA.KEY_COLUMN_USAGE AS K '.
+                    'ON '.
+                        'C.TABLE_NAME=K.TABLE_NAME AND '.
+                        'C.COLUMN_NAME=K.COLUMN_NAME AND '.
+                        'C.TABLE_SCHEMA=K.TABLE_SCHEMA '.
                         ($db ? 'AND C.TABLE_CATALOG=K.TABLE_CATALOG ' : '').
-                'LEFT OUTER JOIN ' .
-                    'INFORMATION_SCHEMA.TABLE_CONSTRAINTS AS T ON ' .
-                        'K.TABLE_NAME=T.TABLE_NAME AND ' .
-                        'K.CONSTRAINT_NAME=T.CONSTRAINT_NAME AND ' .
-                        'K.TABLE_SCHEMA=T.TABLE_SCHEMA ' .
-                        ($db ? 'AND K.TABLE_CATALOG=T.TABLE_CATALOG ' : '') .
-                'WHERE ' .
-                    'C.TABLE_NAME=' . $tbl .
-                    ($db ? ' AND C.TABLE_CATALOG=' . $tbl : ''),
+                'LEFT OUTER JOIN '.
+                    'INFORMATION_SCHEMA.TABLE_CONSTRAINTS AS T ON '.
+                        'K.TABLE_NAME=T.TABLE_NAME AND '.
+                        'K.CONSTRAINT_NAME=T.CONSTRAINT_NAME AND '.
+                        'K.TABLE_SCHEMA=T.TABLE_SCHEMA '.
+                        ($db ? 'AND K.TABLE_CATALOG=T.TABLE_CATALOG ' : '').
+                'WHERE '.
+                    'C.TABLE_NAME='.$tbl.
+                    ($db ? ' AND C.TABLE_CATALOG='.$tbl : ''),
                 'field', 'type', 'defval', 'nullable', 'YES', 'pkey', 'PRIMARY KEY',
             ],
             [
-                'SELECT c.column_name AS field, ' .
-                    'c.data_type AS type, ' .
-                    'c.data_default AS defval, ' .
-                    'c.nullable AS nullable, ' .
-                    '(SELECT t.constraint_type ' .
-                        'FROM all_cons_columns acc' .
-                        ' LEFT OUTER JOIN all_constraints t' .
-                        ' ON acc.constraint_name=t.constraint_name' .
-                        ' WHERE acc.table_name=' . $tbl .
-                        ' AND acc.column_name=c.column_name' .
-                        ' AND constraint_type=' . $this->quote('P') . ') AS pkey '.
-                'FROM all_tab_cols c ' .
-                'WHERE c.table_name=' . $tbl,
+                'SELECT c.column_name AS field, '.
+                    'c.data_type AS type, '.
+                    'c.data_default AS defval, '.
+                    'c.nullable AS nullable, '.
+                    '(SELECT t.constraint_type '.
+                        'FROM all_cons_columns acc'.
+                        ' LEFT OUTER JOIN all_constraints t'.
+                        ' ON acc.constraint_name=t.constraint_name'.
+                        ' WHERE acc.table_name='.$tbl.
+                        ' AND acc.column_name=c.column_name'.
+                        ' AND constraint_type='.$this->quote('P').') AS pkey '.
+                'FROM all_tab_cols c '.
+                'WHERE c.table_name='.$tbl,
                 'FIELD', 'TYPE', 'DEFVAL', 'NULLABLE', 'Y', 'PKEY', 'P',
             ],
         ];
@@ -953,13 +951,13 @@ final class Connection
             }
         }
 
-        throw new \DomainException('Driver ' . $driver . ' is not supported');
+        throw new \DomainException('Driver '.$driver.' is not supported');
     }
 
     /**
-     * Cast SQL-default-value to PHP-value
+     * Cast SQL-default-value to PHP-value.
      *
-     * @param  string $value
+     * @param string $value
      *
      * @return mixed
      */
@@ -969,9 +967,8 @@ final class Connection
     }
 
     /**
-     * Prohibit cloning
+     * Prohibit cloning.
      *
-     * @return void
      *
      * @codeCoverageIgnore
      */

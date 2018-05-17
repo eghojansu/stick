@@ -8,7 +8,9 @@ return [
     'bar' => 'baz',
     'PREMAP' => 'map',
     'routes' => [
-        ['GET /', function () { return 'registered from config'; }],
+        ['GET /', function () {
+            return 'registered from config';
+        }],
     ],
     'qux' => 'quux',
     'redirects' => [
@@ -17,12 +19,13 @@ return [
     'maps' => [
         ['GET /bar', MapGetController::class],
     ],
-    'arr' => range(1,3),
-    'configs' => __DIR__ . '/subconfig.php',
+    'arr' => range(1, 3),
+    'configs' => __DIR__.'/subconfig.php',
     'rules' => [
         ['foo', NoConstructorClass::class],
     ],
     'listeners' => [
-        ['foo', function() {}],
+        ['foo', function () {
+        }],
     ],
 ];

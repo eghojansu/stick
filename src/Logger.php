@@ -1,4 +1,6 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 
 /**
  * This file is part of the eghojansu/stick library.
@@ -12,26 +14,24 @@
 namespace Fal\Stick;
 
 /**
- * Log utils
+ * Log utils.
  */
 final class Logger
 {
     /** Log frequency */
-    const
-        LOG_DAILY = 'daily',
-        LOG_WEEKLY = 'weekly',
-        LOG_MONTHLY = 'monthly';
+    const LOG_DAILY = 'daily';
+    const LOG_WEEKLY = 'weekly';
+    const LOG_MONTHLY = 'monthly';
 
     /** Log level */
-    const
-        LEVEL_EMERGENCY = 'emergency',
-        LEVEL_ALERT = 'alert',
-        LEVEL_CRITICAL = 'critical',
-        LEVEL_ERROR = 'error',
-        LEVEL_WARNING = 'warning',
-        LEVEL_NOTICE = 'notice',
-        LEVEL_INFO = 'info',
-        LEVEL_DEBUG = 'debug';
+    const LEVEL_EMERGENCY = 'emergency';
+    const LEVEL_ALERT = 'alert';
+    const LEVEL_CRITICAL = 'critical';
+    const LEVEL_ERROR = 'error';
+    const LEVEL_WARNING = 'warning';
+    const LEVEL_NOTICE = 'notice';
+    const LEVEL_INFO = 'info';
+    const LEVEL_DEBUG = 'debug';
 
     /** Log level value */
     const LEVELS = [
@@ -64,7 +64,7 @@ final class Logger
     private $logLevelThreshold;
 
     /**
-     * Class construct
+     * Class construct.
      *
      * @param string $dir
      * @param string $logLevelThreshold
@@ -76,10 +76,10 @@ final class Logger
     }
 
     /**
-     * Log emergency message
+     * Log emergency message.
      *
-     * @param  string $message
-     * @param  array  $context
+     * @param string $message
+     * @param array  $context
      *
      * @return Logger
      */
@@ -89,10 +89,10 @@ final class Logger
     }
 
     /**
-     * Log alert message
+     * Log alert message.
      *
-     * @param  string $message
-     * @param  array  $context
+     * @param string $message
+     * @param array  $context
      *
      * @return Logger
      */
@@ -102,10 +102,10 @@ final class Logger
     }
 
     /**
-     * Log critical message
+     * Log critical message.
      *
-     * @param  string $message
-     * @param  array  $context
+     * @param string $message
+     * @param array  $context
      *
      * @return Logger
      */
@@ -115,10 +115,10 @@ final class Logger
     }
 
     /**
-     * Log error message
+     * Log error message.
      *
-     * @param  string $message
-     * @param  array  $context
+     * @param string $message
+     * @param array  $context
      *
      * @return Logger
      */
@@ -128,10 +128,10 @@ final class Logger
     }
 
     /**
-     * Log warning message
+     * Log warning message.
      *
-     * @param  string $message
-     * @param  array  $context
+     * @param string $message
+     * @param array  $context
      *
      * @return Logger
      */
@@ -141,10 +141,10 @@ final class Logger
     }
 
     /**
-     * Log notice message
+     * Log notice message.
      *
-     * @param  string $message
-     * @param  array  $context
+     * @param string $message
+     * @param array  $context
      *
      * @return Logger
      */
@@ -154,10 +154,10 @@ final class Logger
     }
 
     /**
-     * Log info message
+     * Log info message.
      *
-     * @param  string $message
-     * @param  array  $context
+     * @param string $message
+     * @param array  $context
      *
      * @return Logger
      */
@@ -167,10 +167,10 @@ final class Logger
     }
 
     /**
-     * Log debug message
+     * Log debug message.
      *
-     * @param  string $message
-     * @param  array  $context
+     * @param string $message
+     * @param array  $context
      *
      * @return Logger
      */
@@ -180,11 +180,11 @@ final class Logger
     }
 
     /**
-     * Log message
+     * Log message.
      *
-     * @param  string $level
-     * @param  string $message
-     * @param  array  $context
+     * @param string $level
+     * @param string $message
+     * @param array  $context
      *
      * @return Logger
      */
@@ -200,16 +200,16 @@ final class Logger
     }
 
     /**
-     * Get log files
+     * Get log files.
      *
-     * @param  DateTime|null $from
-     * @param  DateTime|null $to
+     * @param DateTime|null $from
+     * @param DateTime|null $to
      *
      * @return array
      */
     public function files(\DateTime $from = null, \DateTime $to = null): array
     {
-        $pattern = $this->dir . $this->prefix . '*.' . $this->extension;
+        $pattern = $this->dir.$this->prefix.'*.'.$this->extension;
         $start = strlen($this->prefix);
         $end = 10;
         $to = $to ?? $from;
@@ -226,10 +226,10 @@ final class Logger
     }
 
     /**
-     * Clear log files
+     * Clear log files.
      *
-     * @param  DateTime|null $from
-     * @param  DateTime|null $to
+     * @param DateTime|null $from
+     * @param DateTime|null $to
      *
      * @return Logger
      */
@@ -243,7 +243,7 @@ final class Logger
     }
 
     /**
-     * Get dateFormat
+     * Get dateFormat.
      *
      * @return string
      */
@@ -253,7 +253,7 @@ final class Logger
     }
 
     /**
-     * Set dateFormat
+     * Set dateFormat.
      *
      * @param string $dateFormat
      *
@@ -267,7 +267,7 @@ final class Logger
     }
 
     /**
-     * Get dir
+     * Get dir.
      *
      * @return string
      */
@@ -277,7 +277,7 @@ final class Logger
     }
 
     /**
-     * Set dir
+     * Set dir.
      *
      * @param string $dir
      *
@@ -291,7 +291,7 @@ final class Logger
     }
 
     /**
-     * Get logLevelThreshold
+     * Get logLevelThreshold.
      *
      * @return string
      */
@@ -301,7 +301,7 @@ final class Logger
     }
 
     /**
-     * Set logLevelThreshold
+     * Set logLevelThreshold.
      *
      * @param string $logLevelThreshold
      *
@@ -310,7 +310,7 @@ final class Logger
     public function setLogLevelThreshold(string $logLevelThreshold): Logger
     {
         if (!isset(self::LEVELS[$logLevelThreshold])) {
-            throw new \DomainException('Invalid log level: ' . $logLevelThreshold);
+            throw new \DomainException('Invalid log level: '.$logLevelThreshold);
         }
 
         $this->logLevelThreshold = $logLevelThreshold;
@@ -319,7 +319,7 @@ final class Logger
     }
 
     /**
-     * Get extension
+     * Get extension.
      *
      * @return string
      */
@@ -329,7 +329,7 @@ final class Logger
     }
 
     /**
-     * Set extension
+     * Set extension.
      *
      * @param string $extension
      *
@@ -343,7 +343,7 @@ final class Logger
     }
 
     /**
-     * Get prefix
+     * Get prefix.
      *
      * @return string
      */
@@ -353,7 +353,7 @@ final class Logger
     }
 
     /**
-     * Set prefix
+     * Set prefix.
      *
      * @param string $prefix
      *
@@ -367,7 +367,7 @@ final class Logger
     }
 
     /**
-     * Get logFrequency
+     * Get logFrequency.
      *
      * @return string
      */
@@ -377,7 +377,7 @@ final class Logger
     }
 
     /**
-     * Set logFrequency
+     * Set logFrequency.
      *
      * @param string $logFrequency
      *
@@ -391,36 +391,34 @@ final class Logger
     }
 
     /**
-     * Write message to file
+     * Write message to file.
      *
-     * @param  string $message
-     * @param  array  $context
-     * @param  string $level
-     *
-     * @return void
+     * @param string $message
+     * @param array  $context
+     * @param string $level
      */
     private function write(string $message, array $context, string $level): void
     {
         Helper::mkdir($this->dir);
 
-        $content = date($this->dateFormat) . ' ' . $level . ' ' . Helper::interpolate($message, $context, '{}') . PHP_EOL;
+        $content = date($this->dateFormat).' '.$level.' '.Helper::interpolate($message, $context, '{}').PHP_EOL;
 
         Helper::write($this->resolveFile(), $content, true);
     }
 
     /**
-     * Resolve log file based on log frequency
+     * Resolve log file based on log frequency.
      *
      * @return string
      */
     private function resolveFile(): string
     {
-        $prefix = $this->dir . $this->prefix;
-        $ext = '.' . $this->extension;
+        $prefix = $this->dir.$this->prefix;
+        $ext = '.'.$this->extension;
 
         switch ($this->logFrequency) {
             case self::LOG_DAILY:
-                return $prefix . date('Y-m-d') . $ext;
+                return $prefix.date('Y-m-d').$ext;
 
             case self::LOG_WEEKLY:
                 return $this->findThisWeekFile($prefix, $ext);
@@ -434,10 +432,10 @@ final class Logger
     }
 
     /**
-     * Find log file for this week
+     * Find log file for this week.
      *
-     * @param  string $prefix
-     * @param  string $ext
+     * @param string $prefix
+     * @param string $ext
      *
      * @return string
      */
@@ -446,7 +444,7 @@ final class Logger
         $start = strlen($prefix) + 8;
         $currentWeek = floor(date('d') / 7);
 
-        foreach (glob($prefix . date('Y-m') . '*' . $ext) as $file) {
+        foreach (glob($prefix.date('Y-m').'*'.$ext) as $file) {
             $day = substr($file, $start, 2);
             $week = floor($day / 7);
 
@@ -455,36 +453,36 @@ final class Logger
             }
         }
 
-        return $prefix . date('Y-m-d') . $ext;
+        return $prefix.date('Y-m-d').$ext;
     }
 
     /**
-     * Find log file for this month
+     * Find log file for this month.
      *
-     * @param  string $prefix
-     * @param  string $ext
+     * @param string $prefix
+     * @param string $ext
      *
      * @return string
      */
     private function findThisMonthFile(string $prefix, string $ext): string
     {
-        $files = glob($prefix . date('Y-m') . '*' . $ext);
+        $files = glob($prefix.date('Y-m').'*'.$ext);
 
-        return $files ? $files[0] : $prefix . date('Y-m-d') . $ext;
+        return $files ? $files[0] : $prefix.date('Y-m-d').$ext;
     }
 
     /**
-     * Get default file
+     * Get default file.
      *
-     * @param  string $prefix
-     * @param  string $ext
+     * @param string $prefix
+     * @param string $ext
      *
      * @return string
      */
     private function findDefaultFile(string $prefix, string $ext): string
     {
-        $files = glob($prefix . '*' . $ext);
+        $files = glob($prefix.'*'.$ext);
 
-        return $files ? $files[0] : $prefix . date('Y-m-d') . $ext;
+        return $files ? $files[0] : $prefix.date('Y-m-d').$ext;
     }
 }

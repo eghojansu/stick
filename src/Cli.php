@@ -1,4 +1,6 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 
 /**
  * This file is part of the eghojansu/stick library.
@@ -12,7 +14,7 @@
 namespace Fal\Stick;
 
 /**
- * Cli helper
+ * Cli helper.
  *
  * Color output from: https://www.if-not-true-then-false.com/2010/php-class-for-coloring-php-command-line-cli-scripts-output-php-output-colorizing-using-bash-shell-colors/
  */
@@ -62,7 +64,7 @@ final class Cli
     ];
 
     /**
-     * Class constructor
+     * Class constructor.
      *
      * @param int $width
      */
@@ -72,7 +74,7 @@ final class Cli
     }
 
     /**
-     * Get width
+     * Get width.
      *
      * @return int
      */
@@ -82,7 +84,7 @@ final class Cli
     }
 
     /**
-     * Set width
+     * Set width.
      *
      * @param int $width
      *
@@ -96,7 +98,7 @@ final class Cli
     }
 
     /**
-     * Get console width
+     * Get console width.
      *
      * @return int
      */
@@ -106,7 +108,7 @@ final class Cli
     }
 
     /**
-     * Update expr color map
+     * Update expr color map.
      *
      * @param string $expr
      * @param string $color
@@ -121,63 +123,63 @@ final class Cli
     }
 
     /**
-     * Block success
+     * Block success.
      *
-     * @param  string $line
-     * @param  int    $newline
+     * @param string $line
+     * @param int    $newline
      *
      * @return Cli
      */
     public function success(string $line, int $newline = 1): Cli
     {
-        return $this->block('Success!' . PHP_EOL . PHP_EOL . $line, 'white:success', $newline);
+        return $this->block('Success!'.PHP_EOL.PHP_EOL.$line, 'white:success', $newline);
     }
 
     /**
-     * Block danger
+     * Block danger.
      *
-     * @param  string $line
-     * @param  int    $newline
+     * @param string $line
+     * @param int    $newline
      *
      * @return Cli
      */
     public function danger(string $line, int $newline = 1): Cli
     {
-        return $this->block('!!!Alert!!!' . PHP_EOL . PHP_EOL . $line, 'white:danger', $newline);
+        return $this->block('!!!Alert!!!'.PHP_EOL.PHP_EOL.$line, 'white:danger', $newline);
     }
 
     /**
-     * Block warning
+     * Block warning.
      *
-     * @param  string $line
-     * @param  int    $newline
+     * @param string $line
+     * @param int    $newline
      *
      * @return Cli
      */
     public function warning(string $line, int $newline = 1): Cli
     {
-        return $this->block('Warning:' . PHP_EOL . PHP_EOL . $line, 'white:warning', $newline);
+        return $this->block('Warning:'.PHP_EOL.PHP_EOL.$line, 'white:warning', $newline);
     }
 
     /**
-     * Block info
+     * Block info.
      *
-     * @param  string $line
-     * @param  int    $newline
+     * @param string $line
+     * @param int    $newline
      *
      * @return Cli
      */
     public function info(string $line, int $newline = 1): Cli
     {
-        return $this->block('Info:' . PHP_EOL . PHP_EOL . $line, 'white:info', $newline);
+        return $this->block('Info:'.PHP_EOL.PHP_EOL.$line, 'white:info', $newline);
     }
 
     /**
-     * Write to console with new line
+     * Write to console with new line.
      *
-     * @param  string      $line
-     * @param  string|null $color   Foreground and background color, separated by colon
-     * @param  int         $newline
+     * @param string      $line
+     * @param string|null $color   Foreground and background color, separated by colon
+     * @param int         $newline
      *
      * @return Cli
      */
@@ -189,13 +191,13 @@ final class Cli
         $fmt = $this->parseColor($color);
         $sep = str_repeat(' ', $this->width);
 
-        $out = $fmt[0] . $fmt[1] . $sep . PHP_EOL;
+        $out = $fmt[0].$fmt[1].$sep.PHP_EOL;
 
         foreach ($lines as $single) {
-            $out .= '  ' . str_pad($single, $this->width - 2) . PHP_EOL;
+            $out .= '  '.str_pad($single, $this->width - 2).PHP_EOL;
         }
 
-        $out .= $sep . $fmt[2] . str_repeat(PHP_EOL, $newline);
+        $out .= $sep.$fmt[2].str_repeat(PHP_EOL, $newline);
 
         echo $out;
 
@@ -203,11 +205,11 @@ final class Cli
     }
 
     /**
-     * Write to console with new line
+     * Write to console with new line.
      *
-     * @param  string      $line
-     * @param  string|null $color   Foreground and background color, separated by colon
-     * @param  int         $newline
+     * @param string      $line
+     * @param string|null $color   Foreground and background color, separated by colon
+     * @param int         $newline
      *
      * @return Cli
      */
@@ -215,16 +217,16 @@ final class Cli
     {
         $fmt = $this->parseColor($color);
 
-        echo $fmt[0] . $fmt[1] . $line . $fmt[2] . str_repeat(PHP_EOL, $newline);
+        echo $fmt[0].$fmt[1].$line.$fmt[2].str_repeat(PHP_EOL, $newline);
 
         return $this;
     }
 
     /**
-     * Write to console
+     * Write to console.
      *
-     * @param  string      $line
-     * @param  string|null $color
+     * @param string      $line
+     * @param string|null $color
      *
      * @return Cli
      */
@@ -234,9 +236,9 @@ final class Cli
     }
 
     /**
-     * Parse color
+     * Parse color.
      *
-     * @param  string|null $color
+     * @param string|null $color
      *
      * @return array
      */
@@ -246,22 +248,22 @@ final class Cli
             return array_fill(0, 3, '');
         }
 
-        $x = explode(':', $color) + [1=>1];
+        $x = explode(':', $color) + [1 => 1];
         $fg = $this->exprColorMap[$x[0]] ?? $x[0];
         $bg = $this->exprColorMap[$x[1]] ?? $x[1];
 
         return [
-            "\033[" . ($this->fgColors[$fg] ?? $this->fgColors['white']) . 'm',
-            isset($this->bgColors[$bg]) ? "\033[" . $this->bgColors[$bg] . 'm' : '',
-            "\033[0m"
+            "\033[".($this->fgColors[$fg] ?? $this->fgColors['white']).'m',
+            isset($this->bgColors[$bg]) ? "\033[".$this->bgColors[$bg].'m' : '',
+            "\033[0m",
         ];
     }
 
     /**
-     * String line to array, after wrapped
+     * String line to array, after wrapped.
      *
-     * @param  string $line
-     * @param  int    $width
+     * @param string $line
+     * @param int    $width
      *
      * @return array
      */

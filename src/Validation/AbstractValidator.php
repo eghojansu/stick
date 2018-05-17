@@ -1,4 +1,6 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 
 /**
  * This file is part of the eghojansu/stick library.
@@ -14,7 +16,7 @@ namespace Fal\Stick\Validation;
 use Fal\Stick\Helper;
 
 /**
- * Simplify validator implementation
+ * Simplify validator implementation.
  */
 abstract class AbstractValidator implements ValidatorInterface
 {
@@ -29,7 +31,7 @@ abstract class AbstractValidator implements ValidatorInterface
      */
     public function has(string $rule): bool
     {
-        return method_exists($this, '_' . $rule);
+        return method_exists($this, '_'.$rule);
     }
 
     /**
@@ -39,11 +41,11 @@ abstract class AbstractValidator implements ValidatorInterface
     {
         $use = $message ?? $this->messages[strtolower($rule)] ?? 'This value is not valid.';
 
-        if (strpos($use, '{') === false) {
+        if (false === strpos($use, '{')) {
             return $use;
         }
 
-        return Helper::interpolate($use, ['field'=>$field, 'rule'=>$rule, 'value'=>$value] + $args, '{}');
+        return Helper::interpolate($use, ['field' => $field, 'rule' => $rule, 'value' => $value] + $args, '{}');
     }
 
     /**
@@ -51,7 +53,7 @@ abstract class AbstractValidator implements ValidatorInterface
      */
     public function validate(string $rule, $value, array $args = [], string $field = '', array $validated = [], array $raw = [])
     {
-        $use = '_' . $rule;
+        $use = '_'.$rule;
         $this->currentData = ['rule' => $rule, 'field' => $field, 'validated' => $validated, 'raw' => $raw];
 
         $result = $this->$use($value, ...$args);

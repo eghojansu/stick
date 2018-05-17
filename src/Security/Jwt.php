@@ -1,4 +1,6 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 
 /**
  * This file is part of the eghojansu/stick library.
@@ -12,7 +14,7 @@
 namespace Fal\Stick\Security;
 
 /**
- * JWT utils
+ * JWT utils.
  *
  * Based on:
  * - https://github.com/bllohar/php-jwt-class-with-RSA-support/blob/master/src/JWToken.php
@@ -22,12 +24,12 @@ final class Jwt
 {
     /** Supported algorithm */
     const
-        ALG_HS256 = 'HS256',
-        ALG_HS384 = 'HS384',
-        ALG_HS512 = 'HS512',
-        ALG_RS256 = 'RS256',
-        ALG_RS384 = 'RS384',
-        ALG_RS512 = 'RS512';
+        ALG_HS256 = 'HS256';
+    const ALG_HS384 = 'HS384';
+    const ALG_HS512 = 'HS512';
+    const ALG_RS256 = 'RS256';
+    const ALG_RS384 = 'RS384';
+    const ALG_RS512 = 'RS512';
 
     /** @var array */
     private $availableAlgorithms = [
@@ -55,7 +57,7 @@ final class Jwt
     private $leeway = 0;
 
     /**
-     * Class constructor
+     * Class constructor.
      *
      * @param string|resource $encodeKey
      * @param string|resource $decodeKey
@@ -70,7 +72,7 @@ final class Jwt
     }
 
     /**
-     * Get algorithm
+     * Get algorithm.
      *
      * @return string
      */
@@ -80,7 +82,7 @@ final class Jwt
     }
 
     /**
-     * Set algorithm
+     * Set algorithm.
      *
      * @param string|null $algorithm
      *
@@ -94,7 +96,7 @@ final class Jwt
     }
 
     /**
-     * Get supportedAlgorithms
+     * Get supportedAlgorithms.
      *
      * @return array
      */
@@ -104,7 +106,7 @@ final class Jwt
     }
 
     /**
-     * Set supportedAlgorithms
+     * Set supportedAlgorithms.
      *
      * @param array $supportedAlgorithms
      *
@@ -118,7 +120,7 @@ final class Jwt
     }
 
     /**
-     * Get encodeKey
+     * Get encodeKey.
      *
      * @return string|resource
      */
@@ -128,7 +130,7 @@ final class Jwt
     }
 
     /**
-     * Get decodeKey
+     * Get decodeKey.
      *
      * @return string|resource
      */
@@ -138,7 +140,7 @@ final class Jwt
     }
 
     /**
-     * Set key
+     * Set key.
      *
      * @param string|resource $encodeKey
      * @param string|resource $decodeKey
@@ -160,7 +162,7 @@ final class Jwt
     }
 
     /**
-     * Get leeway
+     * Get leeway.
      *
      * @return int
      */
@@ -170,7 +172,7 @@ final class Jwt
     }
 
     /**
-     * Set leeway
+     * Set leeway.
      *
      * @param int $leeway
      *
@@ -184,9 +186,9 @@ final class Jwt
     }
 
     /**
-     * Encode payload
+     * Encode payload.
      *
-     * @param  array|object $payload
+     * @param array|object $payload
      *
      * @return string
      */
@@ -197,17 +199,17 @@ final class Jwt
             'alg' => $this->algorithm,
         ];
 
-        $token = $this->urlencode(json_encode($header)) . '.' . $this->urlencode(json_encode($payload));
-        $token .= '.' . $this->urlencode($this->sign($token, $this->algorithm, $this->encodeKey));
+        $token = $this->urlencode(json_encode($header)).'.'.$this->urlencode(json_encode($payload));
+        $token .= '.'.$this->urlencode($this->sign($token, $this->algorithm, $this->encodeKey));
 
         return $token;
     }
 
     /**
-     * Decode jwt token
+     * Decode jwt token.
      *
-     * @param  string $token
-     * @param  bool   $assoc
+     * @param string $token
+     * @param bool   $assoc
      *
      * @return array|object
      *
@@ -217,7 +219,7 @@ final class Jwt
     {
         $use = explode('.', $token);
 
-        if (count($use) !== 3) {
+        if (3 !== count($use)) {
             throw new \UnexpectedValueException('Wrong number of segments');
         }
 
@@ -225,11 +227,11 @@ final class Jwt
         $payload = json_decode($this->urldecode($use[1]));
         $signature = $this->urldecode($use[2]);
 
-        if ($header === null) {
+        if (null === $header) {
             throw new \UnexpectedValueException('Invalid header encoding');
         }
 
-        if ($payload === null) {
+        if (null === $payload) {
             throw new \UnexpectedValueException('Invalid claims encoding');
         }
 
@@ -242,7 +244,7 @@ final class Jwt
         }
 
         // Check the signature
-        if (!$this->verify($use[0] . '.' . $use[1], $signature, $header->alg, $this->decodeKey)) {
+        if (!$this->verify($use[0].'.'.$use[1], $signature, $header->alg, $this->decodeKey)) {
             throw new \UnexpectedValueException('Signature verification failed');
         }
 
@@ -250,7 +252,7 @@ final class Jwt
         // token can actually be used. If it's not yet that time, abort.
         if (isset($payload->nbf) && $payload->nbf > (time() + $this->leeway)) {
             throw new \RuntimeException(
-                'Cannot handle token prior to ' . date(\DateTime::ISO8601, $payload->nbf)
+                'Cannot handle token prior to '.date(\DateTime::ISO8601, $payload->nbf)
             );
         }
 
@@ -259,7 +261,7 @@ final class Jwt
         // correctly used the nbf claim).
         if (isset($payload->iat) && $payload->iat > (time() + $this->leeway)) {
             throw new \RuntimeException(
-                'Cannot handle token prior to ' . date(\DateTime::ISO8601, $payload->iat)
+                'Cannot handle token prior to '.date(\DateTime::ISO8601, $payload->iat)
             );
         }
 
@@ -272,9 +274,9 @@ final class Jwt
     }
 
     /**
-     * Sign a string
+     * Sign a string.
      *
-     * @param string          $msg The message to sign
+     * @param string          $msg       The message to sign
      * @param string          $algorithm
      * @param string|resource $key
      *
@@ -304,9 +306,9 @@ final class Jwt
      * Verify a signature with the message, key and method. Not all methods
      * are symmetric, so we must have a separate verify and sign method.
      *
-     * @param string          $msg        The original message (header and body)
-     * @param string          $signature  The original signature
-     * @param string          $algorithm  The algorithm
+     * @param string          $msg       The original message (header and body)
+     * @param string          $signature The original signature
+     * @param string          $algorithm The algorithm
      * @param string|resource $key
      *
      * @return bool
@@ -332,12 +334,12 @@ final class Jwt
     }
 
     /**
-     * Verify RSA
+     * Verify RSA.
      *
-     * @param  string          $signature
-     * @param  string          $algorithm
-     * @param  string          $msg
-     * @param  string|resource $key
+     * @param string          $signature
+     * @param string          $algorithm
+     * @param string          $msg
+     * @param string|resource $key
      *
      * @return bool
      */
@@ -347,11 +349,11 @@ final class Jwt
     }
 
     /**
-     * Generate RSA
+     * Generate RSA.
      *
-     * @param  string          $algorithm
-     * @param  string          $msg
-     * @param  string|resource $key
+     * @param string          $algorithm
+     * @param string          $msg
+     * @param string|resource $key
      *
      * @return string
      */
@@ -381,6 +383,7 @@ final class Jwt
 
         return base64_decode(strtr($str, '-_', '+/'));
     }
+
     /**
      * Encode a string with URL-safe Base64.
      *

@@ -1,4 +1,6 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 
 /**
  * This file is part of the eghojansu/stick library.
@@ -15,10 +17,8 @@ use Fal\Stick\App;
 use Fal\Stick\Cache;
 use Fal\Stick\Security\Auth;
 use Fal\Stick\Security\PlainPasswordEncoder;
-use Fal\Stick\Security\SimpleUser;
 use Fal\Stick\Security\SimpleUserTransformer;
 use Fal\Stick\Security\SqlUserProvider;
-use Fal\Stick\Security\UserInterface;
 use Fal\Stick\Sql\Connection;
 use PHPUnit\Framework\TestCase;
 
@@ -29,9 +29,11 @@ class AuthTest extends TestCase
 
     public function setUp()
     {
-        $this->app = new App;
-        $this->app->on(App::EVENT_REROUTE, function(App $app, $url) { $app['rerouted'] = $url;});
-        $cache = new Cache('', 'test', TEMP . 'cache/');
+        $this->app = new App();
+        $this->app->on(App::EVENT_REROUTE, function (App $app, $url) {
+            $app['rerouted'] = $url;
+        });
+        $cache = new Cache('', 'test', TEMP.'cache/');
         $cache->reset();
 
         $db = new Connection($cache, [
@@ -53,7 +55,7 @@ SQL1
 ,
             ],
         ]);
-        $this->auth = new Auth($this->app, new SqlUserProvider($db, new SimpleUserTransformer()), new PlainPasswordEncoder);
+        $this->auth = new Auth($this->app, new SqlUserProvider($db, new SimpleUserTransformer()), new PlainPasswordEncoder());
     }
 
     public function tearDown()
@@ -63,20 +65,20 @@ SQL1
 
     public function testAttempt()
     {
-        $this->auth->setOptions(['redirect'=>'/secure']);
+        $this->auth->setOptions(['redirect' => '/secure']);
 
-        $this->assertTrue($this->auth->attempt('foo','bar', $message));
+        $this->assertTrue($this->auth->attempt('foo', 'bar', $message));
         $this->assertNull($message);
 
-        $this->assertFalse($this->auth->attempt('baz','qux', $message));
+        $this->assertFalse($this->auth->attempt('baz', 'qux', $message));
         $this->assertEquals(Auth::CREDENTIAL_EXPIRED, $message);
         $this->assertNull($this->app['rerouted']);
 
-        $this->assertFalse($this->auth->attempt('foo','quux', $message));
+        $this->assertFalse($this->auth->attempt('foo', 'quux', $message));
         $this->assertEquals(Auth::CREDENTIAL_INVALID, $message);
         $this->assertNull($this->app['rerouted']);
 
-        $this->assertFalse($this->auth->attempt('foox','quux', $message));
+        $this->assertFalse($this->auth->attempt('foox', 'quux', $message));
         $this->assertEquals(Auth::CREDENTIAL_INVALID, $message);
         $this->assertNull($this->app['rerouted']);
     }
@@ -94,7 +96,7 @@ SQL1
         $user = $this->auth->getProvider()->findById('1');
         $user2 = $this->auth->getProvider()->findById('2');
 
-        $this->app->on(Auth::EVENT_LOGIN, function() {
+        $this->app->on(Auth::EVENT_LOGIN, function () {
             return true;
         });
         $this->auth->login($user);
@@ -102,8 +104,8 @@ SQL1
         $this->assertEquals('1', $this->app['SESSION.user_login_id']);
         $this->app->clear('SESSION.user_login_id');
 
-        $this->app->clear('SYS.LISTENERS.' . Auth::EVENT_LOGIN);
-        $this->app->on(Auth::EVENT_LOGIN, function($user, Auth $auth) use ($user2) {
+        $this->app->clear('SYS.LISTENERS.'.Auth::EVENT_LOGIN);
+        $this->app->on(Auth::EVENT_LOGIN, function ($user, Auth $auth) use ($user2) {
             $auth->setUser(clone $user2);
         });
         $this->auth->login($user);
@@ -120,7 +122,7 @@ SQL1
         $this->auth->logout();
         $this->assertNull($this->app['SESSION.user_login_id']);
 
-        $this->app->on(Auth::EVENT_LOGOUT, function($user, Auth $auth) {
+        $this->app->on(Auth::EVENT_LOGOUT, function ($user, Auth $auth) {
             $auth->setUser(null);
         });
         $this->auth->logout();
@@ -138,13 +140,13 @@ SQL1
         $this->assertEquals($user, $this->auth->getUser());
 
         $this->auth->logout();
-        $this->app->on(Auth::EVENT_LOADUSER, function(Auth $auth) use ($user2) {
+        $this->app->on(Auth::EVENT_LOADUSER, function (Auth $auth) use ($user2) {
             $auth->setUser(clone $user2);
         });
         $this->assertEquals($user2, $this->auth->getUser());
 
         $this->auth->logout();
-        $this->app->clear('SYS.LISTENERS.' . Auth::EVENT_LOADUSER);
+        $this->app->clear('SYS.LISTENERS.'.Auth::EVENT_LOADUSER);
         $this->app['SESSION.user_login_id'] = '1';
         $this->assertEquals($user, $this->auth->getUser());
     }
@@ -172,7 +174,7 @@ SQL1
     public function testGuard()
     {
         $secure = '/secure';
-        $this->auth->setOptions(['rules'=>[$secure=>'role_bar'],'redirect'=>$secure]);
+        $this->auth->setOptions(['rules' => [$secure => 'role_bar'], 'redirect' => $secure]);
 
         $user = $this->auth->getProvider()->findById('1');
         $this->auth->setUser($user);
@@ -211,7 +213,7 @@ SQL1
         $this->assertTrue($this->auth->isGranted('role_foo'));
         $this->assertTrue($this->auth->isGranted('role_bar'));
         $this->assertTrue($this->auth->isGranted('role_foo,role_bar'));
-        $this->assertTrue($this->auth->isGranted(['role_foo','role_bar']));
+        $this->assertTrue($this->auth->isGranted(['role_foo', 'role_bar']));
 
         $this->assertFalse($this->auth->isGranted(null));
         $this->assertFalse($this->auth->isGranted(''));
@@ -221,7 +223,7 @@ SQL1
         $user2 = $this->auth->getProvider()->findById('2');
         $this->auth->setUser($user2);
         $this->assertFalse($this->auth->isGranted('role_bar'));
-        $this->auth->setOptions(['roleHierarchy'=>['role_foo'=>'role_bar']]);
+        $this->auth->setOptions(['roleHierarchy' => ['role_foo' => 'role_bar']]);
         $this->assertTrue($this->auth->isGranted('role_bar'));
     }
 
@@ -249,6 +251,6 @@ SQL1
 
     public function testSetOptions()
     {
-        $this->assertContains('foo', $this->auth->setOptions(['homepage'=>'foo'])->getOptions());
+        $this->assertContains('foo', $this->auth->setOptions(['homepage' => 'foo'])->getOptions());
     }
 }

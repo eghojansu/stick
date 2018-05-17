@@ -1,4 +1,6 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 
 /**
  * This file is part of the eghojansu/stick library.
@@ -12,7 +14,7 @@
 namespace Fal\Stick\Validation;
 
 /**
- * Proxy rule to native PHP functions
+ * Proxy rule to native PHP functions.
  *
  * Remember that value is always given as first arguments.
  */

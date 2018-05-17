@@ -1,4 +1,6 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 
 /**
  * This file is part of the eghojansu/stick library.
@@ -12,7 +14,7 @@
 namespace Fal\Stick\Sql;
 
 /**
- * Mapper Relation, simple class which act like array, proxy to Mapper
+ * Mapper Relation, simple class which act like array, proxy to Mapper.
  */
 final class Relation implements \Iterator, \Countable, \ArrayAccess
 {
@@ -47,21 +49,21 @@ final class Relation implements \Iterator, \Countable, \ArrayAccess
     private $loaded = false;
 
     /**
-     * Class constructor
+     * Class constructor.
      *
-     * @param Mapper        $ref
-     * @param Mapper        $target
-     * @param string        $targetId
-     * @param string        $refId
-     * @param string|array  $pivot
-     * @param bool          $one
-     * @param array         $options
+     * @param Mapper       $ref
+     * @param Mapper       $target
+     * @param string       $targetId
+     * @param string       $refId
+     * @param string|array $pivot
+     * @param bool         $one
+     * @param array        $options
      */
     public function __construct(Mapper $ref, Mapper $target = null, string $targetId = null, string $refId = null, $pivot = null, bool $one = null, array $options = null)
     {
         $this->ref = $ref;
         $this->target = $target ?? (clone $ref)->reset();
-        $this->targetId = $targetId ?? $ref->getTable() . '_id';
+        $this->targetId = $targetId ?? $ref->getTable().'_id';
         $this->refId = $refId ?? 'id';
         $this->pivot = $pivot;
         $this->options = ((array) $options) + [
@@ -74,9 +76,9 @@ final class Relation implements \Iterator, \Countable, \ArrayAccess
     }
 
     /**
-     * Move pointer to specified offset
+     * Move pointer to specified offset.
      *
-     * @param  int $offset
+     * @param int $offset
      *
      * @return Mapper|null
      */
@@ -88,7 +90,7 @@ final class Relation implements \Iterator, \Countable, \ArrayAccess
     }
 
     /**
-     * Rewind alias
+     * Rewind alias.
      *
      * @return Mapper|null
      */
@@ -98,7 +100,7 @@ final class Relation implements \Iterator, \Countable, \ArrayAccess
     }
 
     /**
-     * Move pointer to last offset
+     * Move pointer to last offset.
      *
      * @return Mapper|null
      */
@@ -108,7 +110,7 @@ final class Relation implements \Iterator, \Countable, \ArrayAccess
     }
 
     /**
-     * Next complement
+     * Next complement.
      *
      * @return Mapper|null
      */
@@ -118,7 +120,7 @@ final class Relation implements \Iterator, \Countable, \ArrayAccess
     }
 
     /**
-     * Load related mapper
+     * Load related mapper.
      *
      * @return Relation
      */
@@ -144,7 +146,7 @@ final class Relation implements \Iterator, \Countable, \ArrayAccess
     }
 
     /**
-     * Build filter based on current options
+     * Build filter based on current options.
      *
      * @return array
      */
@@ -156,19 +158,19 @@ final class Relation implements \Iterator, \Countable, \ArrayAccess
 
         $use = (array) $this->pivot;
         $pivot = array_shift($use);
-        $refId = $use[0] ?? $this->ref->getTable() . '_id';
-        $targetId = $use[1] ?? $this->target->getTable() . '_id';
+        $refId = $use[0] ?? $this->ref->getTable().'_id';
+        $targetId = $use[1] ?? $this->target->getTable().'_id';
         $ids = [];
 
         foreach ($this->ref->withTable($pivot)->findAll([$refId => $this->ref->get($this->refId)]) as $ref) {
             $ids[] = $ref->get($targetId);
         }
 
-        return [$this->refId . ' []' => $ids];
+        return [$this->refId.' []' => $ids];
     }
 
     /**
-     * Ensure mapper is used
+     * Ensure mapper is used.
      *
      * @return Mapper
      */
@@ -178,7 +180,7 @@ final class Relation implements \Iterator, \Countable, \ArrayAccess
     }
 
     /**
-     * Get current related mapper count
+     * Get current related mapper count.
      *
      * @return int
      */
@@ -188,7 +190,7 @@ final class Relation implements \Iterator, \Countable, \ArrayAccess
     }
 
     /**
-     * Return the current element
+     * Return the current element.
      *
      * @return Mapper|null
      */
@@ -198,7 +200,7 @@ final class Relation implements \Iterator, \Countable, \ArrayAccess
     }
 
     /**
-     * Move forward to next element
+     * Move forward to next element.
      *
      * @return Mapper|null
      */
@@ -208,7 +210,7 @@ final class Relation implements \Iterator, \Countable, \ArrayAccess
     }
 
     /**
-     * Return the key of the current element
+     * Return the key of the current element.
      *
      * @return int
      */
@@ -218,7 +220,7 @@ final class Relation implements \Iterator, \Countable, \ArrayAccess
     }
 
     /**
-     * Checks if current position is valid
+     * Checks if current position is valid.
      *
      * @return bool
      */
@@ -228,7 +230,7 @@ final class Relation implements \Iterator, \Countable, \ArrayAccess
     }
 
     /**
-     * Rewind the Iterator to the first element
+     * Rewind the Iterator to the first element.
      *
      * @return Mapper|null
      */
@@ -238,9 +240,9 @@ final class Relation implements \Iterator, \Countable, \ArrayAccess
     }
 
     /**
-     * Map to MapperInterface::exists
+     * Map to MapperInterface::exists.
      *
-     * @param  string $offset
+     * @param string $offset
      *
      * @return bool
      */
@@ -250,9 +252,9 @@ final class Relation implements \Iterator, \Countable, \ArrayAccess
     }
 
     /**
-     * Map to MapperInterface::get
+     * Map to MapperInterface::get.
      *
-     * @param  string $offset
+     * @param string $offset
      *
      * @return mixed
      */
@@ -262,12 +264,10 @@ final class Relation implements \Iterator, \Countable, \ArrayAccess
     }
 
     /**
-     * Map to MapperInterface::set
+     * Map to MapperInterface::set.
      *
-     * @param  string $offset
-     * @param  mixed  $value
-     *
-     * @return void
+     * @param string $offset
+     * @param mixed  $value
      */
     public function offsetSet($offset, $value)
     {
@@ -275,11 +275,9 @@ final class Relation implements \Iterator, \Countable, \ArrayAccess
     }
 
     /**
-     * Map to MapperInterface::clear
+     * Map to MapperInterface::clear.
      *
-     * @param  string $offset
-     *
-     * @return void
+     * @param string $offset
      */
     public function offsetUnset($offset)
     {
@@ -287,10 +285,10 @@ final class Relation implements \Iterator, \Countable, \ArrayAccess
     }
 
     /**
-     * Proxy to mapper method
+     * Proxy to mapper method.
      *
-     * @param  string $method
-     * @param  array  $args
+     * @param string $method
+     * @param array  $args
      *
      * @return mixed
      */

@@ -1,4 +1,6 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 
 /**
  * This file is part of the eghojansu/stick library.
@@ -12,7 +14,7 @@
 namespace Fal\Stick;
 
 /**
- * Cache utils
+ * Cache utils.
  */
 final class Cache
 {
@@ -32,7 +34,7 @@ final class Cache
     private $cacheRef;
 
     /**
-     * Class constructor
+     * Class constructor.
      *
      * @param string $dsn
      * @param string $prefix
@@ -46,28 +48,28 @@ final class Cache
     }
 
     /**
-     * Check and get cache with hash creation
+     * Check and get cache with hash creation.
      *
-     * @param  string|null &$hash
-     * @param  mixed       &$cached
-     * @param  string      $suffix
-     * @param  mixed       ...$args
+     * @param string|null &$hash
+     * @param mixed       &$cached
+     * @param string      $suffix
+     * @param mixed       ...$args
      *
      * @return bool
      */
     public function isCached(string &$hash = null, &$cached = null, string $suffix = 'cache', ...$args): bool
     {
-        if ($hash === null) {
+        if (null === $hash) {
             if (!$args) {
-                throw new \LogicException(self::class . '::isCached expect at least a hash parameter, none given');
+                throw new \LogicException(self::class.'::isCached expect at least a hash parameter, none given');
             }
 
             $str = '';
             foreach ($args as $arg) {
-                $str .= (is_string($arg) ? $arg : Helper::stringify($arg)) . '.';
+                $str .= (is_string($arg) ? $arg : Helper::stringify($arg)).'.';
             }
 
-            $hash = Helper::hash(rtrim($str, '.')) . '.' . $suffix;
+            $hash = Helper::hash(rtrim($str, '.')).'.'.$suffix;
         }
 
         $exists = $this->exists($hash);
@@ -81,9 +83,9 @@ final class Cache
     }
 
     /**
-     * Check cache item by key
+     * Check cache item by key.
      *
-     * @param  string $key
+     * @param string $key
      *
      * @return bool
      */
@@ -91,7 +93,7 @@ final class Cache
     {
         $this->load();
 
-        $ndx = $this->prefix . '.' . $key;
+        $ndx = $this->prefix.'.'.$key;
 
         switch ($this->cache) {
             case 'apc':
@@ -99,7 +101,7 @@ final class Cache
             case 'apcu':
                 return apcu_exists($ndx);
             case 'folder':
-                return (bool) $this->parse($key, Helper::read($this->cacheRef . $ndx));
+                return (bool) $this->parse($key, Helper::read($this->cacheRef.$ndx));
             case 'memcached':
                 return (bool) $this->cacheRef->get($ndx);
             case 'redis':
@@ -110,9 +112,9 @@ final class Cache
     }
 
     /**
-     * Get cache item content
+     * Get cache item content.
      *
-     * @param  string $key
+     * @param string $key
      *
      * @return array
      */
@@ -120,7 +122,7 @@ final class Cache
     {
         $this->load();
 
-        $ndx = $this->prefix . '.' . $key;
+        $ndx = $this->prefix.'.'.$key;
 
         switch ($this->cache) {
             case 'apc':
@@ -130,7 +132,7 @@ final class Cache
                 $raw = apcu_fetch($ndx);
                 break;
             case 'folder':
-                $raw = Helper::read($this->cacheRef . $ndx);
+                $raw = Helper::read($this->cacheRef.$ndx);
                 break;
             case 'memcached':
                 $raw = $this->cacheRef->get($ndx);
@@ -147,11 +149,11 @@ final class Cache
     }
 
     /**
-     * Set cache item content
+     * Set cache item content.
      *
-     * @param  string   $key
-     * @param  mixed    $val
-     * @param  int      $ttl
+     * @param string $key
+     * @param mixed  $val
+     * @param int    $ttl
      *
      * @return Cache
      */
@@ -159,7 +161,7 @@ final class Cache
     {
         $this->load();
 
-        $ndx = $this->prefix . '.' . $key;
+        $ndx = $this->prefix.'.'.$key;
         $content = $this->compact($val, (int) microtime(true), $ttl);
 
         switch ($this->cache) {
@@ -170,13 +172,13 @@ final class Cache
                 apcu_store($ndx, $content, $ttl);
                 break;
             case 'folder':
-                Helper::write($this->cacheRef . str_replace(['/', '\\'], '', $ndx), $content);
+                Helper::write($this->cacheRef.str_replace(['/', '\\'], '', $ndx), $content);
                 break;
             case 'memcached':
                 $this->cacheRef->set($ndx, $content);
                 break;
             case 'redis':
-                $this->cacheRef->set($ndx, $content, array_filter(['ex'=>$ttl]));
+                $this->cacheRef->set($ndx, $content, array_filter(['ex' => $ttl]));
                 break;
         }
 
@@ -184,9 +186,9 @@ final class Cache
     }
 
     /**
-     * Remove cache item
+     * Remove cache item.
      *
-     * @param  string $key
+     * @param string $key
      *
      * @return bool
      */
@@ -194,7 +196,7 @@ final class Cache
     {
         $this->load();
 
-        $ndx = $this->prefix . '.' . $key;
+        $ndx = $this->prefix.'.'.$key;
 
         switch ($this->cache) {
             case 'apc':
@@ -202,7 +204,7 @@ final class Cache
             case 'apcu':
                 return apcu_delete($ndx);
             case 'folder':
-                return Helper::delete($this->cacheRef . $ndx);
+                return Helper::delete($this->cacheRef.$ndx);
             case 'memcached':
                 return $this->cacheRef->delete($ndx);
             case 'redis':
@@ -213,9 +215,9 @@ final class Cache
     }
 
     /**
-     * Reset cache
+     * Reset cache.
      *
-     * @param  string $suffix
+     * @param string $suffix
      *
      * @return bool
      */
@@ -223,7 +225,7 @@ final class Cache
     {
         $this->load();
 
-        $regex = '/' . preg_quote($this->prefix, '/') . '\..+' . preg_quote($suffix, '/') . '/';
+        $regex = '/'.preg_quote($this->prefix, '/').'\..+'.preg_quote($suffix, '/').'/';
 
         switch ($this->cache) {
             case 'apc':
@@ -251,7 +253,7 @@ final class Cache
 
                 return true;
             case 'folder':
-                $files = glob($this->cacheRef . $this->prefix . '*' . $suffix) ?: [];
+                $files = glob($this->cacheRef.$this->prefix.'*'.$suffix) ?: [];
                 foreach ($files as $file) {
                     unlink($file);
                 }
@@ -265,7 +267,7 @@ final class Cache
 
                 return true;
             case 'redis':
-                $keys = $this->cacheRef->keys($this->prefix . '*' . $suffix);
+                $keys = $this->cacheRef->keys($this->prefix.'*'.$suffix);
                 foreach ($keys as $key) {
                     $this->cacheRef->del($key);
                 }
@@ -278,7 +280,7 @@ final class Cache
     }
 
     /**
-     * Get used cache
+     * Get used cache.
      *
      * @return array
      */
@@ -290,7 +292,7 @@ final class Cache
     }
 
     /**
-     * Get prefix
+     * Get prefix.
      *
      * @return string
      */
@@ -300,7 +302,7 @@ final class Cache
     }
 
     /**
-     * Set prefix
+     * Set prefix.
      *
      * @param string $prefix
      *
@@ -316,7 +318,7 @@ final class Cache
     }
 
     /**
-     * Get dsn
+     * Get dsn.
      *
      * @return string
      */
@@ -326,7 +328,7 @@ final class Cache
     }
 
     /**
-     * Set dsn
+     * Set dsn.
      *
      * @param string $dsn
      *
@@ -342,9 +344,7 @@ final class Cache
     }
 
     /**
-     * Load cache by dsn
-     *
-     * @return void
+     * Load cache by dsn.
      */
     private function load(): void
     {
@@ -361,8 +361,8 @@ final class Cache
         // Fallback to filesystem cache
         $fallback = 'folder';
 
-        if ($parts[0] === 'redis' && $parts[1] && extension_loaded('redis')) {
-            list($host, $port, $db) = explode(':', $parts[1]) + [1=>0, 2=>null];
+        if ('redis' === $parts[0] && $parts[1] && extension_loaded('redis')) {
+            list($host, $port, $db) = explode(':', $parts[1]) + [1 => 0, 2 => null];
 
             $this->cache = 'redis';
             $this->cacheRef = new \Redis();
@@ -376,24 +376,24 @@ final class Cache
             } catch (\Throwable $e) {
                 $this->cache = $fallback;
             }
-        } elseif ($parts[0] === 'memcached' && $parts[1] && extension_loaded('memcached')) {
+        } elseif ('memcached' === $parts[0] && $parts[1] && extension_loaded('memcached')) {
             $servers = explode(';', $parts[1]);
 
             $this->cache = 'memcached';
             $this->cacheRef = new \Memcached();
 
             foreach ($servers as $server) {
-                list($host, $port) = explode(':', $server) + [1=>11211];
+                list($host, $port) = explode(':', $server) + [1 => 11211];
 
                 $this->cacheRef->addServer($host, $port);
             }
-        } elseif ($parts[0] === 'folder' && $parts[1]) {
+        } elseif ('folder' === $parts[0] && $parts[1]) {
             $this->cache = 'folder';
             $this->cacheRef = $parts[1];
         } elseif (preg_match($auto, $dsn, $parts)) {
             $this->cache = $parts[1];
             $this->cacheRef = null;
-        } elseif (strtolower($dsn) === 'auto' && $grep) {
+        } elseif ('auto' === strtolower($dsn) && $grep) {
             $this->cache = current($grep);
             $this->cacheRef = null;
         } else {
@@ -406,11 +406,11 @@ final class Cache
     }
 
     /**
-     * Compact cache content and time
+     * Compact cache content and time.
      *
-     * @param  mixed    $content
-     * @param  int      $time
-     * @param  int      $ttl
+     * @param mixed $content
+     * @param int   $time
+     * @param int   $ttl
      *
      * @return string
      */
@@ -420,19 +420,17 @@ final class Cache
     }
 
     /**
-     * Parse raw cache data
+     * Parse raw cache data.
      *
-     * @param  string $key
-     * @param  string $raw
-     *
-     * @return void
+     * @param string $key
+     * @param string $raw
      */
     private function parse(string $key, string $raw): array
     {
         if ($raw) {
             list($val, $time, $ttl) = (array) unserialize($raw);
 
-            if (0 === $ttl || $time+$ttl > microtime(true)) {
+            if (0 === $ttl || $time + $ttl > microtime(true)) {
                 return [$val, $time, $ttl];
             }
 

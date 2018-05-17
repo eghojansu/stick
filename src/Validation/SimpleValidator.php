@@ -1,4 +1,6 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 
 /**
  * This file is part of the eghojansu/stick library.
@@ -12,7 +14,7 @@
 namespace Fal\Stick\Validation;
 
 /**
- * Simple validator rules
+ * Simple validator rules.
  */
 final class SimpleValidator extends AbstractValidator
 {
@@ -53,22 +55,22 @@ final class SimpleValidator extends AbstractValidator
     ];
 
     /**
-     * Required rule
+     * Required rule.
      *
-     * @param  mixed $val
+     * @param mixed $val
      *
      * @return bool
      */
     protected function _required($val): bool
     {
-        return isset($val) && $val !== '';
+        return isset($val) && '' !== $val;
     }
 
     /**
-     * Check variabel type
+     * Check variabel type.
      *
-     * @param  mixed  $val
-     * @param  string $type
+     * @param mixed  $val
+     * @param string $type
      *
      * @return bool
      */
@@ -78,36 +80,36 @@ final class SimpleValidator extends AbstractValidator
     }
 
     /**
-     * Equal to other field
+     * Equal to other field.
      *
-     * @param  mixed $val
-     * @param  mixed $compared
+     * @param mixed $val
+     * @param mixed $compared
      *
      * @return bool
      */
     protected function _equalField($val, $compared): bool
     {
-        return $val === ($this->currentData['validated'][$compared] ?? $this->currentData['raw'][$compared] ?? $val . '-');
+        return ($this->currentData['validated'][$compared] ?? $this->currentData['raw'][$compared] ?? $val.'-') === $val;
     }
 
     /**
-     * Not equal to other field
+     * Not equal to other field.
      *
-     * @param  mixed $val
-     * @param  mixed $compared
+     * @param mixed $val
+     * @param mixed $compared
      *
      * @return bool
      */
     protected function _notEqualField($val, $compared): bool
     {
-        return $val !== ($this->currentData['validated'][$compared] ?? $this->currentData['raw'][$compared] ?? $val);
+        return ($this->currentData['validated'][$compared] ?? $this->currentData['raw'][$compared] ?? $val) !== $val;
     }
 
     /**
-     * Equal to
+     * Equal to.
      *
-     * @param  mixed $val
-     * @param  mixed $compared
+     * @param mixed $val
+     * @param mixed $compared
      *
      * @return bool
      */
@@ -117,10 +119,10 @@ final class SimpleValidator extends AbstractValidator
     }
 
     /**
-     * Not equal to
+     * Not equal to.
      *
-     * @param  mixed $val
-     * @param  mixed $compared
+     * @param mixed $val
+     * @param mixed $compared
      *
      * @return bool
      */
@@ -130,11 +132,11 @@ final class SimpleValidator extends AbstractValidator
     }
 
     /**
-     * Identical to
+     * Identical to.
      *
-     * @param  mixed  $val
-     * @param  mixed  $compared
-     * @param  string $type
+     * @param mixed  $val
+     * @param mixed  $compared
+     * @param string $type
      *
      * @return bool
      */
@@ -144,11 +146,11 @@ final class SimpleValidator extends AbstractValidator
     }
 
     /**
-     * Not identical to
+     * Not identical to.
      *
-     * @param  mixed  $val
-     * @param  mixed  $compared
-     * @param  string $type
+     * @param mixed  $val
+     * @param mixed  $compared
+     * @param string $type
      *
      * @return bool
      */
@@ -158,10 +160,10 @@ final class SimpleValidator extends AbstractValidator
     }
 
     /**
-     * Less than
+     * Less than.
      *
-     * @param  mixed $val
-     * @param  mixed $min
+     * @param mixed $val
+     * @param mixed $min
      *
      * @return bool
      */
@@ -171,10 +173,10 @@ final class SimpleValidator extends AbstractValidator
     }
 
     /**
-     * Greater than
+     * Greater than.
      *
-     * @param  mixed $val
-     * @param  mixed $max
+     * @param mixed $val
+     * @param mixed $max
      *
      * @return bool
      */
@@ -184,10 +186,10 @@ final class SimpleValidator extends AbstractValidator
     }
 
     /**
-     * Less than or equal
+     * Less than or equal.
      *
-     * @param  mixed $val
-     * @param  mixed $min
+     * @param mixed $val
+     * @param mixed $min
      *
      * @return bool
      */
@@ -197,10 +199,10 @@ final class SimpleValidator extends AbstractValidator
     }
 
     /**
-     * Greater than or equal
+     * Greater than or equal.
      *
-     * @param  mixed $val
-     * @param  mixed $max
+     * @param mixed $val
+     * @param mixed $max
      *
      * @return bool
      */
@@ -210,10 +212,10 @@ final class SimpleValidator extends AbstractValidator
     }
 
     /**
-     * Number min
+     * Number min.
      *
-     * @param  mixed $val
-     * @param  mixed $min
+     * @param mixed $val
+     * @param mixed $min
      *
      * @return bool
      */
@@ -223,10 +225,10 @@ final class SimpleValidator extends AbstractValidator
     }
 
     /**
-     * Number max
+     * Number max.
      *
-     * @param  mixed $val
-     * @param  mixed $max
+     * @param mixed $val
+     * @param mixed $max
      *
      * @return bool
      */
@@ -236,10 +238,10 @@ final class SimpleValidator extends AbstractValidator
     }
 
     /**
-     * Length
+     * Length.
      *
-     * @param  string $val
-     * @param  int    $len
+     * @param string $val
+     * @param int    $len
      *
      * @return bool
      */
@@ -249,10 +251,10 @@ final class SimpleValidator extends AbstractValidator
     }
 
     /**
-     * Min length
+     * Min length.
      *
-     * @param  string $val
-     * @param  int    $min
+     * @param string $val
+     * @param int    $min
      *
      * @return bool
      */
@@ -262,10 +264,10 @@ final class SimpleValidator extends AbstractValidator
     }
 
     /**
-     * Max length
+     * Max length.
      *
-     * @param  string $val
-     * @param  int    $max
+     * @param string $val
+     * @param int    $max
      *
      * @return bool
      */
@@ -275,10 +277,10 @@ final class SimpleValidator extends AbstractValidator
     }
 
     /**
-     * Count
+     * Count.
      *
-     * @param  array $val
-     * @param  int   $count
+     * @param array $val
+     * @param int   $count
      *
      * @return bool
      */
@@ -288,10 +290,10 @@ final class SimpleValidator extends AbstractValidator
     }
 
     /**
-     * Count min
+     * Count min.
      *
-     * @param  array $val
-     * @param  int   $min
+     * @param array $val
+     * @param int   $min
      *
      * @return bool
      */
@@ -301,10 +303,10 @@ final class SimpleValidator extends AbstractValidator
     }
 
     /**
-     * Count max
+     * Count max.
      *
-     * @param  array $val
-     * @param  int   $max
+     * @param array $val
+     * @param int   $max
      *
      * @return bool
      */
@@ -314,10 +316,10 @@ final class SimpleValidator extends AbstractValidator
     }
 
     /**
-     * Try to convert date to format
+     * Try to convert date to format.
      *
-     * @param  mixed  $val
-     * @param  string $format
+     * @param mixed  $val
+     * @param string $format
      *
      * @return string
      */
@@ -333,9 +335,9 @@ final class SimpleValidator extends AbstractValidator
     }
 
     /**
-     * Check date in format YYYY-MM-DD
+     * Check date in format YYYY-MM-DD.
      *
-     * @param  mixed $val
+     * @param mixed $val
      *
      * @return bool
      */
@@ -345,9 +347,9 @@ final class SimpleValidator extends AbstractValidator
     }
 
     /**
-     * Check date in format YYYY-MM-DD HH:MM:SS
+     * Check date in format YYYY-MM-DD HH:MM:SS.
      *
-     * @param  mixed $val
+     * @param mixed $val
      *
      * @return bool
      */
@@ -357,17 +359,17 @@ final class SimpleValidator extends AbstractValidator
     }
 
     /**
-     * Perform regex
+     * Perform regex.
      *
-     * @param  mixed $val
-     * @param  string $pattern
+     * @param mixed  $val
+     * @param string $pattern
      *
      * @return bool
      */
     protected function _regex($val, string $pattern): bool
     {
         $quote = $pattern[0];
-        if (in_array($quote, ["'",'"']) && substr($pattern, -1) === $quote) {
+        if (in_array($quote, ["'", '"']) && substr($pattern, -1) === $quote) {
             $pattern = substr($pattern, 1, -1);
         }
 
@@ -375,10 +377,10 @@ final class SimpleValidator extends AbstractValidator
     }
 
     /**
-     * Check if val in choices
+     * Check if val in choices.
      *
-     * @param  mixed $val
-     * @param  array $choices
+     * @param mixed $val
+     * @param array $choices
      *
      * @return bool
      */
@@ -388,10 +390,10 @@ final class SimpleValidator extends AbstractValidator
     }
 
     /**
-     * Check if multiple val in choices
+     * Check if multiple val in choices.
      *
-     * @param  mixed $val
-     * @param  array $choices
+     * @param mixed $val
+     * @param array $choices
      *
      * @return bool
      */
@@ -404,9 +406,9 @@ final class SimpleValidator extends AbstractValidator
     }
 
     /**
-     * Return true if string is a valid URL
+     * Return true if string is a valid URL.
      *
-     * @param  string $str
+     * @param string $str
      *
      * @return bool
      */
@@ -417,10 +419,10 @@ final class SimpleValidator extends AbstractValidator
 
     /**
      * Return true if string is a valid e-mail address;
-     * Check DNS MX records if specified
+     * Check DNS MX records if specified.
      *
-     * @param  string  $str
-     * @param  bool $mx
+     * @param string $str
+     * @param bool   $mx
      *
      * @return bool
      */
@@ -428,13 +430,13 @@ final class SimpleValidator extends AbstractValidator
     {
         $hosts = [];
 
-        return (is_string(filter_var($str, FILTER_VALIDATE_EMAIL)) && (!$mx || getmxrr(substr($str, strrpos($str, '@')+1), $hosts)));
+        return is_string(filter_var($str, FILTER_VALIDATE_EMAIL)) && (!$mx || getmxrr(substr($str, strrpos($str, '@') + 1), $hosts));
     }
 
     /**
-     * Return true if string is a valid IPV4 address
+     * Return true if string is a valid IPV4 address.
      *
-     * @param  string $addr
+     * @param string $addr
      *
      * @return bool
      */
@@ -444,9 +446,9 @@ final class SimpleValidator extends AbstractValidator
     }
 
     /**
-     * Return true if string is a valid IPV6 address
+     * Return true if string is a valid IPV6 address.
      *
-     * @param  string $addr
+     * @param string $addr
      *
      * @return bool
      */
@@ -456,38 +458,38 @@ final class SimpleValidator extends AbstractValidator
     }
 
     /**
-     * Return true if IP address is within private range
+     * Return true if IP address is within private range.
      *
-     * @param  string $addr
+     * @param string $addr
      *
      * @return bool
      */
     protected function _isPrivate($addr): bool
     {
-        return !(bool) filter_var($addr, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4|FILTER_FLAG_IPV6|FILTER_FLAG_NO_PRIV_RANGE);
+        return !(bool) filter_var($addr, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4 | FILTER_FLAG_IPV6 | FILTER_FLAG_NO_PRIV_RANGE);
     }
 
     /**
-     * Return true if IP address is within reserved range
+     * Return true if IP address is within reserved range.
      *
-     * @param  string $addr
+     * @param string $addr
      *
      * @return bool
      */
     protected function _isReserved($addr): bool
     {
-        return !(bool) filter_var($addr, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4|FILTER_FLAG_IPV6|FILTER_FLAG_NO_RES_RANGE);
+        return !(bool) filter_var($addr, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4 | FILTER_FLAG_IPV6 | FILTER_FLAG_NO_RES_RANGE);
     }
 
     /**
-     * Return true if IP address is neither private nor reserved
+     * Return true if IP address is neither private nor reserved.
      *
-     * @param  string $addr
+     * @param string $addr
      *
      * @return bool
      */
     protected function _isPublic($addr): bool
     {
-        return (bool) filter_var($addr, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4|FILTER_FLAG_IPV6|FILTER_FLAG_NO_PRIV_RANGE|FILTER_FLAG_NO_RES_RANGE);
+        return (bool) filter_var($addr, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4 | FILTER_FLAG_IPV6 | FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE);
     }
 }

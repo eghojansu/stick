@@ -1,4 +1,6 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 
 /**
  * This file is part of the eghojansu/stick library.
@@ -12,7 +14,7 @@
 namespace Fal\Stick;
 
 /**
- * Simple translator class
+ * Simple translator class.
  */
 final class Translator
 {
@@ -32,7 +34,7 @@ final class Translator
     private $loaded;
 
     /**
-     * Class constructor
+     * Class constructor.
      *
      * @param string      $locales
      * @param string|null $languages
@@ -46,10 +48,10 @@ final class Translator
     }
 
     /**
-     * Trans message
+     * Trans message.
      *
-     * @param  string $key
-     * @param  array  $args
+     * @param string $key
+     * @param array  $args
      *
      * @return string
      */
@@ -59,11 +61,11 @@ final class Translator
     }
 
     /**
-     * Trans plural message
+     * Trans plural message.
      *
-     * @param  string   $key
-     * @param  numeric  $count
-     * @param  array    $args
+     * @param string  $key
+     * @param numeric $count
+     * @param array   $args
      *
      * @return string
      */
@@ -81,7 +83,7 @@ final class Translator
     }
 
     /**
-     * Get dict
+     * Get dict.
      *
      * @return array
      */
@@ -91,7 +93,7 @@ final class Translator
     }
 
     /**
-     * Add message
+     * Add message.
      *
      * @param string $key
      * @param string $message
@@ -100,14 +102,14 @@ final class Translator
      */
     public function add(string $key, string $message): Translator
     {
-        $ref =& $this->ref($key, true);
+        $ref = &$this->ref($key, true);
         $ref = $message;
 
         return $this;
     }
 
     /**
-     * Get locales
+     * Get locales.
      *
      * @return array
      */
@@ -117,7 +119,7 @@ final class Translator
     }
 
     /**
-     * Set locales
+     * Set locales.
      *
      * @param string|array $locales
      *
@@ -132,7 +134,7 @@ final class Translator
     }
 
     /**
-     * Get languages
+     * Get languages.
      *
      * @return string
      */
@@ -142,7 +144,7 @@ final class Translator
     }
 
     /**
-     * Set languages
+     * Set languages.
      *
      * @param string $code
      *
@@ -150,7 +152,7 @@ final class Translator
      */
     public function setLanguages(string $code): Translator
     {
-        $use = ltrim(preg_replace('/\h+|;q=[0-9.]+/', '', $code) . ',' . $this->fallback, ',');
+        $use = ltrim(preg_replace('/\h+|;q=[0-9.]+/', '', $code).','.$this->fallback, ',');
 
         $languages = [];
         foreach (array_reverse(explode(',', $use)) as $lang) {
@@ -160,7 +162,7 @@ final class Translator
 
                 if (isset($parts[2])) {
                     // Specific language
-                    $parts[0] = $parts[1] . '-' . strtoupper($parts[2]);
+                    $parts[0] = $parts[1].'-'.strtoupper($parts[2]);
                     array_unshift($languages, $parts[0]);
                 }
             }
@@ -173,7 +175,7 @@ final class Translator
     }
 
     /**
-     * Get fallback
+     * Get fallback.
      *
      * @return string
      */
@@ -183,7 +185,7 @@ final class Translator
     }
 
     /**
-     * Set fallback
+     * Set fallback.
      *
      * @param string $fallback
      *
@@ -198,9 +200,7 @@ final class Translator
     }
 
     /**
-     * Reset dict
-     *
-     * @return void
+     * Reset dict.
      */
     private function reset(): void
     {
@@ -209,19 +209,17 @@ final class Translator
     }
 
     /**
-     * Get message reference
+     * Get message reference.
      *
-     * @param  string   $key
-     * @param  bool     $add
-     *
-     * @return void
+     * @param string $key
+     * @param bool   $add
      */
     private function &ref(string $key, bool $add = false)
     {
         $this->load();
 
         if ($add) {
-            $ref =& Helper::ref($key, $this->dict);
+            $ref = &Helper::ref($key, $this->dict);
 
             return $ref;
         }
@@ -236,7 +234,7 @@ final class Translator
     }
 
     /**
-     * Load languages
+     * Load languages.
      *
      * @return Translator
      */
@@ -250,7 +248,7 @@ final class Translator
 
         foreach (array_reverse($this->languages) as $lang) {
             foreach ($this->locales as $dir) {
-                if (file_exists($file = $dir . $lang . '.php')) {
+                if (file_exists($file = $dir.$lang.'.php')) {
                     $this->dict = array_replace_recursive($this->dict, Helper::exrequire($file, []));
                 }
             }

@@ -1,4 +1,6 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 
 /**
  * This file is part of the eghojansu/stick library.
@@ -23,7 +25,7 @@ class MapperTest extends TestCase
 
     public function setUp()
     {
-        $cache = new Cache('', 'test', TEMP . 'cache/');
+        $cache = new Cache('', 'test', TEMP.'cache/');
         $cache->reset();
 
         $conn = new Connection($cache, [
@@ -72,13 +74,13 @@ SQL1
 
     public function testGetFields()
     {
-        $this->assertEquals(['id','username','password','active'], $this->mapper->getFields());
+        $this->assertEquals(['id', 'username', 'password', 'active'], $this->mapper->getFields());
     }
 
     public function testGetSchema()
     {
         $schema = $this->mapper->getSchema();
-        $this->assertEquals(['id','username','password','active'], array_keys($schema));
+        $this->assertEquals(['id', 'username', 'password', 'active'], array_keys($schema));
     }
 
     public function testGetConnection()
@@ -90,7 +92,7 @@ SQL1
     {
         $this->assertEquals($this->mapper, $this->mapper->on('foo', 'is_string'));
         $this->assertEquals($this->mapper, $this->mapper->on('bar,baz', 'is_string'));
-        $this->assertEquals($this->mapper, $this->mapper->on(['qux','quux'], 'is_string'));
+        $this->assertEquals($this->mapper, $this->mapper->on(['qux', 'quux'], 'is_string'));
     }
 
     public function triggerProvider()
@@ -100,13 +102,17 @@ SQL1
                 [], [[false, 'foo']],
             ],
             [
-                ['foo', function() {}], [[true, 'foo']],
+                ['foo', function () {
+                }], [[true, 'foo']],
             ],
             [
-                ['foo,bar', function() {}], [[true, 'bar']],
+                ['foo,bar', function () {
+                }], [[true, 'bar']],
             ],
             [
-                ['foo', function() { return true;}], [[false, 'foo']],
+                ['foo', function () {
+                    return true;
+                }], [[false, 'foo']],
             ],
         ];
     }
@@ -150,7 +156,7 @@ SQL1
     }
 
     /**
-     * @expectedException UnexpectedValueException
+     * @expectedException \UnexpectedValueException
      * @expectedExceptionMessage Target must be instance of Fal\Stick\Sql\Mapper or a name of valid table, given DateTime
      */
     public function testCreateRelationException()
@@ -159,12 +165,12 @@ SQL1
     }
 
     /**
-     * @expectedException UnexpectedValueException
+     * @expectedException \UnexpectedValueException
      * @expectedExceptionMessage Target must be instance of Fal\Stick\Sql\Mapper or a name of valid table, given DateTime
      */
     public function testCreateRelationException2()
     {
-        $this->mapper->createRelation(new \DateTime);
+        $this->mapper->createRelation(new \DateTime());
     }
 
     public function testExists()
@@ -183,11 +189,11 @@ SQL1
         $this->assertEquals(1, $this->mapper->get('id'));
         $this->assertEquals('2', $this->mapper->get('adhoc'));
         $this->assertEquals('3', $this->mapper->get('prop'));
-        $this->assertEquals(['id'=>1], $this->mapper->get('keys'));
+        $this->assertEquals(['id' => 1], $this->mapper->get('keys'));
     }
 
     /**
-     * @expectedException LogicException
+     * @expectedException \LogicException
      * @expectedExceptionMessage Undefined field foo
      */
     public function testGetException()
@@ -248,8 +254,8 @@ SQL1
 
     public function testKeys()
     {
-        $this->assertEquals(['id'=>null], $this->mapper->keys());
-        $this->assertEquals(['id'=>1], $this->mapper->load()->keys());
+        $this->assertEquals(['id' => null], $this->mapper->keys());
+        $this->assertEquals(['id' => 1], $this->mapper->load()->keys());
     }
 
     public function testGetKeys()
@@ -263,7 +269,7 @@ SQL1
     }
 
     /**
-     * @expectedException LogicException
+     * @expectedException \LogicException
      * @expectedExceptionMessage Invalid key foo
      */
     public function testSetKeysException()
@@ -273,14 +279,22 @@ SQL1
 
     public function testFromArray()
     {
-        $this->assertEquals('foo', $this->mapper->fromArray(['username'=>'foo'])->get('username'));
-        $this->assertEquals('foobar', $this->mapper->fromArray(['username'=>'foo'], function($u) { $u['username'] = 'foobar'; return $u; })->get('username'));
+        $this->assertEquals('foo', $this->mapper->fromArray(['username' => 'foo'])->get('username'));
+        $this->assertEquals('foobar', $this->mapper->fromArray(['username' => 'foo'], function ($u) {
+            $u['username'] = 'foobar';
+
+            return $u;
+        })->get('username'));
     }
 
     public function testToArray()
     {
-        $this->assertEquals(['id'=>null,'username'=>null,'password'=>null,'active'=>1], $this->mapper->toArray());
-        $this->assertEquals(['id'=>null,'username'=>'foo','password'=>null,'active'=>1], $this->mapper->toArray(function($u) { $u['username'] = 'foo'; return $u; }));
+        $this->assertEquals(['id' => null, 'username' => null, 'password' => null, 'active' => 1], $this->mapper->toArray());
+        $this->assertEquals(['id' => null, 'username' => 'foo', 'password' => null, 'active' => 1], $this->mapper->toArray(function ($u) {
+            $u['username'] = 'foo';
+
+            return $u;
+        }));
     }
 
     public function testValid()
@@ -295,8 +309,6 @@ SQL1
         $this->assertFalse($this->mapper->load()->dry());
     }
 
-
-
     public function paginateProvider()
     {
         $all = ['qux', 'quux', 'corge', 'grault', 'garply', 'waldo', 'fred', 'plugh', 'xyzzy', 'thud'];
@@ -305,75 +317,75 @@ SQL1
         return [
             [
                 $all,
-                [1, null, ['perpage'=>2]],
+                [1, null, ['perpage' => 2]],
                 [
                     'total' => $len,
                     'count' => 2,
                     'pages' => 7,
-                    'page'  => 1,
+                    'page' => 1,
                     'start' => 1,
-                    'end'   => 2,
-                ]
+                    'end' => 2,
+                ],
             ],
             [
                 $all,
-                [2, null, ['perpage'=>2]],
+                [2, null, ['perpage' => 2]],
                 [
                     'total' => $len,
                     'count' => 2,
                     'pages' => 7,
-                    'page'  => 2,
+                    'page' => 2,
                     'start' => 3,
-                    'end'   => 4,
-                ]
+                    'end' => 4,
+                ],
             ],
             [
                 $all,
-                [2, null, ['perpage'=>3]],
+                [2, null, ['perpage' => 3]],
                 [
                     'total' => $len,
                     'count' => 3,
                     'pages' => 5,
-                    'page'  => 2,
+                    'page' => 2,
                     'start' => 4,
-                    'end'   => 6,
-                ]
+                    'end' => 6,
+                ],
             ],
             [
                 $all,
-                [5, null, ['perpage'=>3]],
+                [5, null, ['perpage' => 3]],
                 [
                     'total' => $len,
                     'count' => 1,
                     'pages' => 5,
-                    'page'  => 5,
+                    'page' => 5,
                     'start' => 13,
-                    'end'   => 13,
-                ]
+                    'end' => 13,
+                ],
             ],
             [
                 $all,
-                [0, null, ['perpage'=>2]],
+                [0, null, ['perpage' => 2]],
                 [
                     'total' => $len,
                     'count' => 0,
                     'pages' => 7,
-                    'page'  => 0,
+                    'page' => 0,
                     'start' => 0,
-                    'end'   => 0,
-                ]
+                    'end' => 0,
+                ],
             ],
             [
                 [],
-                [0, null, ['perpage'=>2]],
+                [0, null, ['perpage' => 2]],
                 [
                     'total' => 3,
                     'count' => 0,
                     'pages' => 2,
-                    'page'  => 0,
+                    'page' => 0,
                     'start' => 0,
-                    'end'   => 0,
-                ]
+                    'end' => 0,
+                ],
             ],
         ];
     }
@@ -382,7 +394,7 @@ SQL1
     public function testPaginate($data, $args, $expected)
     {
         foreach ($data as $s) {
-            $this->mapper->fromArray(['username'=>$s])->insert()->reset();
+            $this->mapper->fromArray(['username' => $s])->insert()->reset();
         }
 
         $res = $this->mapper->paginate(...$args);
@@ -394,7 +406,7 @@ SQL1
     {
         $this->assertEquals(3, $this->mapper->count());
         $this->assertEquals(2, $this->mapper->count('id < 3'));
-        $this->assertEquals(1, $this->mapper->count(['id'=>1]));
+        $this->assertEquals(1, $this->mapper->count(['id' => 1]));
         $this->assertEquals(0, $this->mapper->count('id = 4'));
     }
 
@@ -413,7 +425,7 @@ SQL1
     }
 
     /**
-     * @expectedException ArgumentCountError
+     * @expectedException \ArgumentCountError
      * @expectedExceptionMessageRegExp /expect exactly 1 arguments, 0 given$/
      */
     public function testFindException()
@@ -428,7 +440,7 @@ SQL1
         $this->assertCount(3, $res);
         $this->assertEquals([], $this->mapper->findAll('id=4'));
 
-        $res = $this->mapper->findAll(null, ['group'=>'id','having'=>['id []'=>[1,2]],'order'=>'username desc']);
+        $res = $this->mapper->findAll(null, ['group' => 'id', 'having' => ['id []' => [1, 2]], 'order' => 'username desc']);
         $this->assertCount(2, $res);
         $this->assertEquals('foo', $res[0]->get('username'));
         $this->assertEquals('bar', $res[1]->get('username'));
@@ -436,12 +448,12 @@ SQL1
 
     public function testSave()
     {
-        $this->mapper->fromArray(['username'=>'bleh'])->save();
+        $this->mapper->fromArray(['username' => 'bleh'])->save();
 
         $this->assertEquals('bleh', $this->mapper->get('username'));
         $this->assertEquals(4, $this->mapper->get('id'));
 
-        $this->mapper->fromArray(['username'=>'update'])->save();
+        $this->mapper->fromArray(['username' => 'update'])->save();
 
         $this->assertEquals('update', $this->mapper->get('username'));
         $this->assertEquals(4, $this->mapper->get('id'));
@@ -454,16 +466,16 @@ SQL1
                 [], null,
             ],
             [
-                ['foo'=>'bar'], null,
+                ['foo' => 'bar'], null,
             ],
             [
-                ['username'=>'bleh']
+                ['username' => 'bleh'],
             ],
             [
-                ['username'=>'bleh','foo'=>'bar'],
+                ['username' => 'bleh', 'foo' => 'bar'],
             ],
             [
-                ['username'=>'bleh','password'=>'bleh','active'=>0,'id'=>5], 5,
+                ['username' => 'bleh', 'password' => 'bleh', 'active' => 0, 'id' => 5], 5,
             ],
         ];
     }
@@ -482,8 +494,9 @@ SQL1
 
     public function testInsertInterception()
     {
-        $this->mapper->on(Mapper::EVENT_BEFOREINSERT, function() {});
-        $this->mapper->fromArray(['username'=>'bleh']);
+        $this->mapper->on(Mapper::EVENT_BEFOREINSERT, function () {
+        });
+        $this->mapper->fromArray(['username' => 'bleh']);
         $this->mapper->insert();
 
         $this->assertFalse($this->mapper->valid());
@@ -491,8 +504,10 @@ SQL1
 
     public function testInsertModify()
     {
-        $this->mapper->on(Mapper::EVENT_INSERT, function($mapper) { $mapper->set('username', 'notbleh'); });
-        $this->mapper->fromArray(['username'=>'bleh']);
+        $this->mapper->on(Mapper::EVENT_INSERT, function ($mapper) {
+            $mapper->set('username', 'notbleh');
+        });
+        $this->mapper->fromArray(['username' => 'bleh']);
         $this->mapper->insert();
 
         $this->assertEquals('notbleh', $this->mapper->get('username'));
@@ -501,10 +516,10 @@ SQL1
 
     public function updateProvider()
     {
-        $one = ['id'=>1,'username'=>'foo','password'=>null,'active'=>1];
-        $foo = ['foo'=>'bar'];
-        $bleh = ['username'=>'bleh'];
-        $fullbleh = ['id'=>4,'username'=>'bleh','password'=>'bleh','active'=>0];
+        $one = ['id' => 1, 'username' => 'foo', 'password' => null, 'active' => 1];
+        $foo = ['foo' => 'bar'];
+        $bleh = ['username' => 'bleh'];
+        $fullbleh = ['id' => 4, 'username' => 'bleh', 'password' => 'bleh', 'active' => 0];
 
         return [
             [
@@ -517,7 +532,7 @@ SQL1
                 1, $bleh, $bleh + $one,
             ],
             [
-                1, $bleh + $foo, $bleh + $one
+                1, $bleh + $foo, $bleh + $one,
             ],
             [
                 1, $fullbleh, $fullbleh,
@@ -539,9 +554,10 @@ SQL1
 
     public function testUpdateInterception()
     {
-        $this->mapper->on(Mapper::EVENT_BEFOREUPDATE, function() {});
+        $this->mapper->on(Mapper::EVENT_BEFOREUPDATE, function () {
+        });
         $this->mapper->find(1);
-        $this->mapper->fromArray(['username'=>'bleh']);
+        $this->mapper->fromArray(['username' => 'bleh']);
         $this->mapper->update();
 
         $this->mapper->find(1);
@@ -550,9 +566,11 @@ SQL1
 
     public function testUpdateModify()
     {
-        $this->mapper->on(Mapper::EVENT_UPDATE, function($mapper) { $mapper->set('username', 'notbleh'); });
+        $this->mapper->on(Mapper::EVENT_UPDATE, function ($mapper) {
+            $mapper->set('username', 'notbleh');
+        });
         $this->mapper->find(1);
-        $this->mapper->fromArray(['username'=>'bleh']);
+        $this->mapper->fromArray(['username' => 'bleh']);
         $this->mapper->update();
 
         $this->assertEquals('notbleh', $this->mapper->get('username'));
@@ -561,10 +579,10 @@ SQL1
 
     public function deleteProvider()
     {
-        $one = ['id'=>1,'username'=>'foo','password'=>null,'active'=>1];
-        $foo = ['foo'=>'bar'];
-        $bleh = ['username'=>'bleh'];
-        $fullbleh = ['id'=>4,'username'=>'bleh','password'=>'bleh','active'=>0];
+        $one = ['id' => 1, 'username' => 'foo', 'password' => null, 'active' => 1];
+        $foo = ['foo' => 'bar'];
+        $bleh = ['username' => 'bleh'];
+        $fullbleh = ['id' => 4, 'username' => 'bleh', 'password' => 'bleh', 'active' => 0];
 
         return [
             [1, 1],
@@ -586,7 +604,8 @@ SQL1
 
     public function testDeleteInterception()
     {
-        $this->mapper->on(Mapper::EVENT_BEFOREDELETE, function() {});
+        $this->mapper->on(Mapper::EVENT_BEFOREDELETE, function () {
+        });
         $this->mapper->find(1);
         $deleted = $this->mapper->delete();
 
@@ -599,7 +618,9 @@ SQL1
 
     public function testDeleteModify()
     {
-        $this->mapper->on(Mapper::EVENT_DELETE, function($mapper) { $mapper->set('username', 'notbleh'); });
+        $this->mapper->on(Mapper::EVENT_DELETE, function ($mapper) {
+            $mapper->set('username', 'notbleh');
+        });
         $this->mapper->find(1);
         $deleted = $this->mapper->delete();
 
@@ -612,8 +633,8 @@ SQL1
     {
         return [
             ['id > 1', true, 2, 1],
-            [['id'=>1], true, 1, 2],
-            [['id'=>1], false, 1, 2],
+            [['id' => 1], true, 1, 2],
+            [['id' => 1], false, 1, 2],
             ['id <> 0', false, 3, 0],
         ];
     }
@@ -645,7 +666,7 @@ SQL1
     }
 
     /**
-     * @expectedException BadMethodCallException
+     * @expectedException \BadMethodCallException
      * @expectedExceptionMessageRegExp /^Call to undefined method [^:]+::foo$/
      */
     public function testMagicCallException()

@@ -1,4 +1,6 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 
 /**
  * This file is part of the eghojansu/stick library.
@@ -20,7 +22,7 @@ class CliTest extends TestCase
 
     public function setUp()
     {
-        $this->cli = new Cli;
+        $this->cli = new Cli();
     }
 
     public function tearDown()

@@ -1,4 +1,6 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 
 /**
  * This file is part of the eghojansu/stick library.
@@ -20,14 +22,14 @@ class TranslatorTest extends TestCase
 
     public function setUp()
     {
-        $this->translator = new Translator;
+        $this->translator = new Translator();
     }
 
     public function transProvider()
     {
         return [
             [
-                'foo'
+                'foo',
             ],
             [
                 "You're beautiful",
@@ -54,10 +56,10 @@ class TranslatorTest extends TestCase
                 'Dia menakjubkan', 'She.is.awesome', [], 'id',
             ],
             [
-                'Her name is Mumtaz', 'Her name is %name%', ['%name%'=>'Mumtaz'],
+                'Her name is Mumtaz', 'Her name is %name%', ['%name%' => 'Mumtaz'],
             ],
             [
-                'Namanya adalah Mumtaz', 'Her name is %name%', ['%name%'=>'Mumtaz'], 'id',
+                'Namanya adalah Mumtaz', 'Her name is %name%', ['%name%' => 'Mumtaz'], 'id',
             ],
         ];
     }
@@ -67,12 +69,12 @@ class TranslatorTest extends TestCase
      */
     public function testTrans($expected, $key = null, $args = [], $lang = 'en')
     {
-        $this->translator->setLocales(FIXTURE . 'dict/')->setLanguages($lang)->trans('foo');
+        $this->translator->setLocales(FIXTURE.'dict/')->setLanguages($lang)->trans('foo');
         $this->assertEquals($expected, $this->translator->trans($key ?? $expected, $args));
     }
 
     /**
-     * @expectedException UnexpectedValueException
+     * @expectedException \UnexpectedValueException
      * @expectedExceptionMessage Message reference is not a string
      */
     public function testTransException()
@@ -97,7 +99,7 @@ class TranslatorTest extends TestCase
      */
     public function testChoice($count, $expected, $key, $args = [], $lang = 'en')
     {
-        $this->translator->setLocales(FIXTURE . 'dict/')->setLanguages($lang)->trans('foo');
+        $this->translator->setLocales(FIXTURE.'dict/')->setLanguages($lang)->trans('foo');
         $this->assertEquals($expected, $this->translator->choice($key, $count, $args));
     }
 

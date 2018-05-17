@@ -1,4 +1,6 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 
 /**
  * This file is part of the eghojansu/stick library.
@@ -26,18 +28,18 @@ class SimpleUserTransformerTest extends TestCase
 
     public function testTransform()
     {
-        $expected = new SimpleUser('1','foo','bar');
-        $res = $this->transfomer->transform(['id'=>'1','username'=>'foo','password'=>'bar']);
+        $expected = new SimpleUser('1', 'foo', 'bar');
+        $res = $this->transfomer->transform(['id' => '1', 'username' => 'foo', 'password' => 'bar']);
 
         $this->assertEquals($expected, $res);
 
-        $expected = new SimpleUser('1','foo','bar');
-        $res = $this->transfomer->transform(['username'=>'foo','password'=>'bar','id'=>'1']);
+        $expected = new SimpleUser('1', 'foo', 'bar');
+        $res = $this->transfomer->transform(['username' => 'foo', 'password' => 'bar', 'id' => '1']);
 
         $this->assertEquals($expected, $res);
 
-        $expected = new SimpleUser('1','foo','bar',['qux'],true);
-        $res = $this->transfomer->transform(['id'=>'1','username'=>'foo','password'=>'bar','roles'=>['qux'],'expired'=>true]);
+        $expected = new SimpleUser('1', 'foo', 'bar', ['qux'], true);
+        $res = $this->transfomer->transform(['id' => '1', 'username' => 'foo', 'password' => 'bar', 'roles' => ['qux'], 'expired' => true]);
 
         $this->assertEquals($expected, $res);
     }

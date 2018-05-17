@@ -1,4 +1,6 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 
 /**
  * This file is part of the eghojansu/stick library.
@@ -12,7 +14,7 @@
 namespace Fal\Stick\Security;
 
 /**
- * Password encoder using bcrypt algorithm
+ * Password encoder using bcrypt algorithm.
  */
 final class BcryptPasswordEncoder implements PasswordEncoderInterface
 {

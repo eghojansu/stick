@@ -1,4 +1,6 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 
 /**
  * This file is part of the eghojansu/stick library.
@@ -20,7 +22,7 @@ class TemplateTest extends TestCase
 
     public function setUp()
     {
-        $this->template = new Template(FIXTURE . 'template/');
+        $this->template = new Template(FIXTURE.'template/');
     }
 
     public function testExists()
@@ -50,7 +52,7 @@ class TemplateTest extends TestCase
 
     public function testSetMacroAliases()
     {
-        $this->template->setMacroAliases(['foo'=>'message']);
+        $this->template->setMacroAliases(['foo' => 'message']);
         $expected = 'Message content: what message';
         $this->assertEquals($expected, $this->template->foo('what message'));
     }
@@ -97,7 +99,7 @@ class TemplateTest extends TestCase
     }
 
     /**
-     * @expectedException BadFunctionCallException
+     * @expectedException \BadFunctionCallException
      * @expectedExceptionMessage Call to undefined function foo
      */
     public function testMagicMethodCallException()
@@ -122,25 +124,25 @@ class TemplateTest extends TestCase
         $this->assertFalse($this->template->macroExists('foo', $b));
         $this->assertNull($b);
 
-        $this->template->setMacroAliases(['foo'=>'input']);
+        $this->template->setMacroAliases(['foo' => 'input']);
         $this->assertTrue($this->template->macroExists('foo', $c));
         $this->assertEquals(FIXTURE.'template/macros/input.php', $c);
     }
 
     public function testRender()
     {
-        $expected = file_get_contents(FIXTURE . 'template/include.html');
+        $expected = file_get_contents(FIXTURE.'template/include.html');
         $this->assertEquals($expected, $this->template->render('include'));
     }
 
     public function testRender2()
     {
-        $expected = file_get_contents(FIXTURE . 'template/single.html');
-        $this->assertEquals($expected, $this->template->render('single', ['pageTitle'=>'Foo']));
+        $expected = file_get_contents(FIXTURE.'template/single.html');
+        $this->assertEquals($expected, $this->template->render('single', ['pageTitle' => 'Foo']));
     }
 
     /**
-     * @expectedException LogicException
+     * @expectedException \LogicException
      * @expectedExceptionMessage View file does not exists: foo
      */
     public function testRenderException()
@@ -150,7 +152,7 @@ class TemplateTest extends TestCase
 
     public function testInclude()
     {
-        $expected = trim(file_get_contents(FIXTURE . 'template/includeme.html'));
+        $expected = trim(file_get_contents(FIXTURE.'template/includeme.html'));
         $this->assertEquals($expected, $this->template->include('includeme', null, 3));
     }
 

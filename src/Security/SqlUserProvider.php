@@ -1,4 +1,6 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 
 /**
  * This file is part of the eghojansu/stick library.
@@ -14,7 +16,7 @@ namespace Fal\Stick\Security;
 use Fal\Stick\Sql\Connection;
 
 /**
- * User provider that utilize Sql Connection
+ * User provider that utilize Sql Connection.
  */
 final class SqlUserProvider implements UserProviderInterface
 {
@@ -28,7 +30,7 @@ final class SqlUserProvider implements UserProviderInterface
     private $option;
 
     /**
-     * Class constructor
+     * Class constructor.
      *
      * @param Connection               $db
      * @param callable                 $transformer
@@ -42,7 +44,7 @@ final class SqlUserProvider implements UserProviderInterface
     }
 
     /**
-     * Get option
+     * Get option.
      *
      * @return array
      */
@@ -52,9 +54,9 @@ final class SqlUserProvider implements UserProviderInterface
     }
 
     /**
-     * Set option
+     * Set option.
      *
-     * @param  array $option
+     * @param array $option
      *
      * @return SqlUserProvider
      */
@@ -63,7 +65,7 @@ final class SqlUserProvider implements UserProviderInterface
         $this->option = $option + [
             'table' => 'user',
             'username' => 'username',
-            'id' => 'id'
+            'id' => 'id',
         ];
 
         return $this;
@@ -86,18 +88,18 @@ final class SqlUserProvider implements UserProviderInterface
     }
 
     /**
-     * Transform record to UserInterface
+     * Transform record to UserInterface.
      *
-     * @param  string  $key
-     * @param  scalar  $val
+     * @param string $key
+     * @param scalar $val
      *
      * @return UserInterface|null
      */
     private function transform(string $key, $val): ?UserInterface
     {
         $user = $this->db->exec(
-            'SELECT * FROM ' . $this->db->quotekey($this->option['table']) .
-            ' WHERE ' . $this->db->quotekey($key) . ' = ? LIMIT 1',
+            'SELECT * FROM '.$this->db->quotekey($this->option['table']).
+            ' WHERE '.$this->db->quotekey($key).' = ? LIMIT 1',
             [$val]
         );
 

@@ -1,4 +1,6 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 
 /**
  * This file is part of the eghojansu/stick library.
@@ -20,7 +22,7 @@ class SimpleValidatorTest extends TestCase
 
     public function setUp()
     {
-        $this->validator = new SimpleValidator;
+        $this->validator = new SimpleValidator();
     }
 
     public function hasProvider()
@@ -91,10 +93,10 @@ class SimpleValidatorTest extends TestCase
             ['gte', false, [0, 1]],
             ['gte', true, [1, 1]],
             ['equalfield', false, ['baz', 'bar']],
-            ['equalfield', true, ['baz', 'bar'], ['bar'=>'baz']],
-            ['notequalfield', false, ['baz', 'bar'], ['bar'=>'baz']],
+            ['equalfield', true, ['baz', 'bar'], ['bar' => 'baz']],
+            ['notequalfield', false, ['baz', 'bar'], ['bar' => 'baz']],
             ['notequalfield', false, ['baz', 'bar']],
-            ['notequalfield', true, ['baz', 'bar'], ['bar'=>'foo']],
+            ['notequalfield', true, ['baz', 'bar'], ['bar' => 'foo']],
             ['equal', false, ['bar', 'baz']],
             ['equal', true, ['bar', 'bar']],
             ['notequal', false, ['bar', 'bar']],
@@ -113,16 +115,16 @@ class SimpleValidatorTest extends TestCase
             ['count', true, [['bar'], 1]],
             ['countmin', false, [[], 1]],
             ['countmin', true, [['bar'], 1]],
-            ['countmax', false, [[1,2], 1]],
+            ['countmax', false, [[1, 2], 1]],
             ['countmax', true, [['bar'], 1]],
             ['regex', false, ['fo', '/^foo$/']],
             ['regex', true, ['foo', '/^foo$/']],
             ['regex', true, ['foo', '"/^foo$/"']],
             ['regex', true, ['foo', "'/^foo$/'"]],
-            ['choice', false, ['baz', ['foo','bar']]],
-            ['choice', true, ['foo', ['foo','bar']]],
-            ['choices', false, [['foo','baz'], ['foo','bar']]],
-            ['choices', true, [['foo','bar'], ['foo','bar']]],
+            ['choice', false, ['baz', ['foo', 'bar']]],
+            ['choice', true, ['foo', ['foo', 'bar']]],
+            ['choices', false, [['foo', 'baz'], ['foo', 'bar']]],
+            ['choices', true, [['foo', 'bar'], ['foo', 'bar']]],
             ['date', false, ['2010-10']],
             ['date', true, ['2010-10-10']],
             ['datetime', false, ['2010-10-10 10:10']],

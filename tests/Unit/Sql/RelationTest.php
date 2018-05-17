@@ -1,4 +1,6 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 
 /**
  * This file is part of the eghojansu/stick library.
@@ -24,7 +26,7 @@ class RelationTest extends TestCase
 
     public function setUp()
     {
-        $cache = new Cache('', 'test', TEMP . 'cache/');
+        $cache = new Cache('', 'test', TEMP.'cache/');
         $cache->reset();
 
         $conn = new Connection($cache, [
@@ -57,11 +59,11 @@ SQL1
     public function loadManyProvider()
     {
         return [
-            [0,0],
-            [1,2],
-            [2,1],
-            [3,0],
-            [4,0],
+            [0, 0],
+            [1, 2],
+            [2, 1],
+            [3, 0],
+            [4, 0],
         ];
     }
 

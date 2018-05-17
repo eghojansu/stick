@@ -1,4 +1,6 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 
 /**
  * This file is part of the eghojansu/stick library.
@@ -12,23 +14,23 @@
 namespace Fal\Stick\Security;
 
 /**
- * Interface for user provider
+ * Interface for user provider.
  */
 interface UserProviderInterface
 {
     /**
-     * Find user by username
+     * Find user by username.
      *
-     * @param  string $username
+     * @param string $username
      *
      * @return UserInterface|null
      */
     public function findByUsername(string $username): ?UserInterface;
 
     /**
-     * Find user by id
+     * Find user by id.
      *
-     * @param  string $id
+     * @param string $id
      *
      * @return UserInterface|null
      */

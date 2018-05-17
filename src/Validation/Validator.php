@@ -1,4 +1,6 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 
 /**
  * This file is part of the eghojansu/stick library.
@@ -14,7 +16,7 @@ namespace Fal\Stick\Validation;
 use Fal\Stick\Helper;
 
 /**
- * Validator wrapper
+ * Validator wrapper.
  */
 final class Validator
 {
@@ -22,7 +24,7 @@ final class Validator
     private $validators = [];
 
     /**
-     * Add validator
+     * Add validator.
      *
      * @param ValidatorInterface $validator
      *
@@ -36,11 +38,11 @@ final class Validator
     }
 
     /**
-     * Do validate
+     * Do validate.
      *
-     * @param  array $data
-     * @param  array $rules
-     * @param  array $messages
+     * @param array $data
+     * @param array $rules
+     * @param array $messages
      *
      * @return array
      */
@@ -55,31 +57,31 @@ final class Validator
                 $value = array_key_exists($field, $validated) ? $validated[$field] : Helper::ref($field, $data, false);
                 $result = $validator->validate($rule, $value, $args, $field, $validated, $data);
 
-                if ($result === false) {
+                if (false === $result) {
                     // validation fail
-                    $error[$field][] = $validator->message($rule, $value, $args, $field, $messages[$field . '.' . $rule] ?? null);
+                    $error[$field][] = $validator->message($rule, $value, $args, $field, $messages[$field.'.'.$rule] ?? null);
                     break;
-                } elseif ($result === true) {
-                    $ref =& Helper::ref($field, $validated);
+                } elseif (true === $result) {
+                    $ref = &Helper::ref($field, $validated);
                     $ref = $value;
                 } else {
-                    $ref =& Helper::ref($field, $validated);
+                    $ref = &Helper::ref($field, $validated);
                     $ref = $result;
                 }
             }
         }
 
         return [
-            'success' => count($error) === 0,
+            'success' => 0 === count($error),
             'error' => $error,
             'data' => $validated,
         ];
     }
 
     /**
-     * Find validator for rule
+     * Find validator for rule.
      *
-     * @param  string $rule
+     * @param string $rule
      *
      * @return ValidatorInterface
      */
@@ -91,6 +93,6 @@ final class Validator
             }
         }
 
-        throw new \DomainException('Rule "' . $rule . '" does not exists');
+        throw new \DomainException('Rule "'.$rule.'" does not exists');
     }
 }

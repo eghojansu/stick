@@ -1,4 +1,6 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 
 /**
  * This file is part of the eghojansu/stick library.
@@ -29,7 +31,7 @@ class SqlUserProviderTest extends TestCase
 
     protected function db()
     {
-        $cache = new Cache('', 'test', TEMP . 'cache/');
+        $cache = new Cache('', 'test', TEMP.'cache/');
         $cache->reset();
 
         return new Connection($cache, [
@@ -68,7 +70,7 @@ SQL1
             'id' => 'id',
         ];
 
-        $this->assertEquals($expected, $this->provider->setOption(['table'=>'foo'])->getOption());
+        $this->assertEquals($expected, $this->provider->setOption(['table' => 'foo'])->getOption());
     }
 
     public function testFindByUsername()

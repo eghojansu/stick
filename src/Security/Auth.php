@@ -1,4 +1,6 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 
 /**
  * This file is part of the eghojansu/stick library.
@@ -15,7 +17,7 @@ use Fal\Stick\App;
 use Fal\Stick\Helper;
 
 /**
- * Authentication utils
+ * Authentication utils.
  */
 final class Auth
 {
@@ -47,12 +49,12 @@ final class Auth
     private $userLoaded;
 
     /**
-     * Class constructor
+     * Class constructor.
      *
      * @param App                      $app
      * @param UserProviderInterface    $provider
      * @param PasswordEncoderInterface $encoder
-     * @param array                    $options   @see self::setOption
+     * @param array                    $options  @see self::setOption
      */
     public function __construct(App $app, UserProviderInterface $provider, PasswordEncoderInterface $encoder, array $options = [])
     {
@@ -64,11 +66,11 @@ final class Auth
     }
 
     /**
-     * Try login with username and password
+     * Try login with username and password.
      *
-     * @param  string $username
-     * @param  string $password
-     * @param  string &$message
+     * @param string $username
+     * @param string $password
+     * @param string &$message
      *
      * @return bool
      */
@@ -91,9 +93,7 @@ final class Auth
     }
 
     /**
-     * Set current user
-     *
-     * @return void
+     * Set current user.
      */
     public function login(UserInterface $user): void
     {
@@ -106,9 +106,7 @@ final class Auth
     }
 
     /**
-     * Finish user session
-     *
-     * @return void
+     * Finish user session.
      */
     public function logout(): void
     {
@@ -122,7 +120,7 @@ final class Auth
     }
 
     /**
-     * Get logged user
+     * Get logged user.
      *
      * @return UserInterface|null
      */
@@ -145,7 +143,7 @@ final class Auth
     }
 
     /**
-     * Set user
+     * Set user.
      *
      * @param UserInterface|null $user
      *
@@ -159,7 +157,7 @@ final class Auth
     }
 
     /**
-     * Check user login
+     * Check user login.
      *
      * @return bool
      */
@@ -169,9 +167,7 @@ final class Auth
     }
 
     /**
-     * Do guard
-     *
-     * @return void
+     * Do guard.
      */
     public function guard(): void
     {
@@ -186,7 +182,7 @@ final class Auth
         }
 
         foreach ($this->options['rules'] as $check => $roles) {
-            if (preg_match('#' . $check . '#', $path) && !$this->isGranted($roles)) {
+            if (preg_match('#'.$check.'#', $path) && !$this->isGranted($roles)) {
                 $this->app->reroute($this->options['loginPath']);
 
                 return;
@@ -195,9 +191,9 @@ final class Auth
     }
 
     /**
-     * Check roles
+     * Check roles.
      *
-     * @param  string|array  $checkRoles
+     * @param string|array $checkRoles
      *
      * @return bool
      */
@@ -228,7 +224,7 @@ final class Auth
     }
 
     /**
-     * Get user provider
+     * Get user provider.
      *
      * @return UserProviderInterface
      */
@@ -238,7 +234,7 @@ final class Auth
     }
 
     /**
-     * Get password encoder
+     * Get password encoder.
      *
      * @return PasswordEncoderInterface
      */
@@ -248,7 +244,7 @@ final class Auth
     }
 
     /**
-     * Get options
+     * Get options.
      *
      * @return array
      */
@@ -258,7 +254,7 @@ final class Auth
     }
 
     /**
-     * Set options
+     * Set options.
      *
      * Valid options:
      *  loginPath       string|array route/path to redirect if user anonymous
@@ -283,9 +279,9 @@ final class Auth
     }
 
     /**
-     * Get hierarchy for specific role
+     * Get hierarchy for specific role.
      *
-     * @param  string $role
+     * @param string $role
      *
      * @return array
      */

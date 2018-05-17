@@ -1,4 +1,6 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 
 /**
  * This file is part of the eghojansu/stick library.
@@ -16,7 +18,7 @@ use PHPUnit\Framework\TestCase;
 
 class LoggerTest extends TestCase
 {
-    const DIR = TEMP . 'logtest/';
+    const DIR = TEMP.'logtest/';
 
     private $logger;
 
@@ -32,7 +34,7 @@ class LoggerTest extends TestCase
     public function tearDown()
     {
         if (is_dir(self::DIR)) {
-            foreach (glob(self::DIR . '*') as $file) {
+            foreach (glob(self::DIR.'*') as $file) {
                 unlink($file);
             }
             rmdir(self::DIR);
@@ -95,19 +97,18 @@ class LoggerTest extends TestCase
         $this->assertContains('foo', file_get_contents($logs[0]));
     }
 
-
     public function logProvider()
     {
         return [
-            [Logger::LEVEL_EMERGENCY . ' foo', Logger::LEVEL_EMERGENCY, 'foo'],
-            [Logger::LEVEL_ALERT . ' foo', Logger::LEVEL_ALERT, 'foo'],
-            [Logger::LEVEL_CRITICAL . ' foo', Logger::LEVEL_CRITICAL, 'foo'],
-            [Logger::LEVEL_ERROR . ' foo', Logger::LEVEL_ERROR, 'foo'],
-            [Logger::LEVEL_WARNING . ' foo', Logger::LEVEL_WARNING, 'foo'],
-            [Logger::LEVEL_NOTICE . ' foo', Logger::LEVEL_NOTICE, 'foo'],
-            [Logger::LEVEL_INFO . ' foo', Logger::LEVEL_INFO, 'foo'],
-            [Logger::LEVEL_DEBUG . ' foo', Logger::LEVEL_DEBUG, 'foo'],
-            [Logger::LEVEL_EMERGENCY . ' foo baz', Logger::LEVEL_EMERGENCY, 'foo {bar}', ['bar'=>'baz']],
+            [Logger::LEVEL_EMERGENCY.' foo', Logger::LEVEL_EMERGENCY, 'foo'],
+            [Logger::LEVEL_ALERT.' foo', Logger::LEVEL_ALERT, 'foo'],
+            [Logger::LEVEL_CRITICAL.' foo', Logger::LEVEL_CRITICAL, 'foo'],
+            [Logger::LEVEL_ERROR.' foo', Logger::LEVEL_ERROR, 'foo'],
+            [Logger::LEVEL_WARNING.' foo', Logger::LEVEL_WARNING, 'foo'],
+            [Logger::LEVEL_NOTICE.' foo', Logger::LEVEL_NOTICE, 'foo'],
+            [Logger::LEVEL_INFO.' foo', Logger::LEVEL_INFO, 'foo'],
+            [Logger::LEVEL_DEBUG.' foo', Logger::LEVEL_DEBUG, 'foo'],
+            [Logger::LEVEL_EMERGENCY.' foo baz', Logger::LEVEL_EMERGENCY, 'foo {bar}', ['bar' => 'baz']],
         ];
     }
 
@@ -156,13 +157,13 @@ class LoggerTest extends TestCase
         $files = $this->logger->files();
         $log = file_get_contents($files[0]);
 
-        $this->assertContains(Logger::LEVEL_ERROR . ' ' . $first, $log);
-        $this->assertContains(Logger::LEVEL_CRITICAL . ' ' . $second, $log);
+        $this->assertContains(Logger::LEVEL_ERROR.' '.$first, $log);
+        $this->assertContains(Logger::LEVEL_CRITICAL.' '.$second, $log);
     }
 
     public function filesProvider()
     {
-        $prefix = self::DIR . 'log_';
+        $prefix = self::DIR.'log_';
         $ext = '.log';
         $fd = date('Y-m-d');
         $md = date('Y-m');
@@ -173,22 +174,22 @@ class LoggerTest extends TestCase
             ],
             [
                 [],
-                [$prefix . 'invalid' . $ext],
+                [$prefix.'invalid'.$ext],
             ],
             [
-                [$prefix . $fd . $ext],
-                [$prefix . $fd . $ext],
+                [$prefix.$fd.$ext],
+                [$prefix.$fd.$ext],
             ],
             [
-                [$prefix . $md . '-01' . $ext],
-                [$prefix . $md . '-01' . $ext,$prefix . $md . '-02' . $ext],
-                new \DateTime($md . '-01'),
+                [$prefix.$md.'-01'.$ext],
+                [$prefix.$md.'-01'.$ext, $prefix.$md.'-02'.$ext],
+                new \DateTime($md.'-01'),
             ],
             [
-                [$prefix . $md . '-01' . $ext,$prefix . $md . '-02' . $ext],
-                [$prefix . $md . '-01' . $ext,$prefix . $md . '-02' . $ext],
-                new \DateTime($md . '-01'),
-                new \DateTime($md . '-02'),
+                [$prefix.$md.'-01'.$ext, $prefix.$md.'-02'.$ext],
+                [$prefix.$md.'-01'.$ext, $prefix.$md.'-02'.$ext],
+                new \DateTime($md.'-01'),
+                new \DateTime($md.'-02'),
             ],
         ];
     }
@@ -207,7 +208,7 @@ class LoggerTest extends TestCase
 
     public function clearProvider()
     {
-        $prefix = self::DIR . 'log_';
+        $prefix = self::DIR.'log_';
         $ext = '.log';
         $fd = date('Y-m-d');
         $md = date('Y-m');
@@ -216,16 +217,16 @@ class LoggerTest extends TestCase
             [
             ],
             [
-                [$prefix . $fd . $ext],
+                [$prefix.$fd.$ext],
             ],
             [
-                [$prefix . $md . '-01' . $ext,$prefix . $md . '-02' . $ext],
-                new \DateTime($md . '-01'),
+                [$prefix.$md.'-01'.$ext, $prefix.$md.'-02'.$ext],
+                new \DateTime($md.'-01'),
             ],
             [
-                [$prefix . $md . '-01' . $ext,$prefix . $md . '-02' . $ext],
-                new \DateTime($md . '-01'),
-                new \DateTime($md . '-02'),
+                [$prefix.$md.'-01'.$ext, $prefix.$md.'-02'.$ext],
+                new \DateTime($md.'-01'),
+                new \DateTime($md.'-02'),
             ],
         ];
     }
@@ -275,7 +276,7 @@ class LoggerTest extends TestCase
     }
 
     /**
-     * @expectedException DomainException
+     * @expectedException \DomainException
      * @expectedExceptionMessage Invalid log level: foo
      */
     public function testSetLogLevelThresholdException()

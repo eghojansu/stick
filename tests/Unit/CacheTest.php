@@ -1,4 +1,6 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 
 /**
  * This file is part of the eghojansu/stick library.
@@ -20,17 +22,17 @@ class CacheTest extends TestCase
 
     public function setUp()
     {
-        $this->cache = new Cache('', 'test', TEMP . 'cache/');
+        $this->cache = new Cache('', 'test', TEMP.'cache/');
     }
 
     public function tearDown()
     {
         $this->cache->reset();
 
-        $dir = TEMP . 'cache/';
+        $dir = TEMP.'cache/';
 
         if (file_exists($dir)) {
-            foreach (glob($dir . '*') as $file) {
+            foreach (glob($dir.'*') as $file) {
                 unlink($file);
             }
             rmdir($dir);
@@ -79,7 +81,7 @@ class CacheTest extends TestCase
     }
 
     /**
-     * @expectedException LogicException
+     * @expectedException \LogicException
      * @expectedExceptionMessageRegExp /expect at least a hash parameter, none given$/
      */
     public function testIsCachedException()
@@ -162,7 +164,7 @@ class CacheTest extends TestCase
     {
         $this->cache->setDsn('redis=invalid-host');
         // fallback to folder
-        $this->assertEquals(['folder', TEMP . 'cache/'], $this->cache->def());
+        $this->assertEquals(['folder', TEMP.'cache/'], $this->cache->def());
     }
 
     public function testGetPrefix()
@@ -183,6 +185,6 @@ class CacheTest extends TestCase
     public function testSetDsn()
     {
         $this->assertEquals('foo', $this->cache->setDsn('foo')->getDsn());
-        $this->assertEquals(['folder', TEMP . 'cache/'], $this->cache->def());
+        $this->assertEquals(['folder', TEMP.'cache/'], $this->cache->def());
     }
 }

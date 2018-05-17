@@ -1,1 +1,1 @@
-Message content: <?= $arg1 ?? 'no message' ?>
+Message content: <?= $arg1 ?? 'no message'; ?>

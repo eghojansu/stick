@@ -1,4 +1,6 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 
 /**
  * This file is part of the eghojansu/stick library.
@@ -14,7 +16,7 @@ namespace Fal\Stick\Sql;
 use Fal\Stick\Validation\AbstractValidator;
 
 /**
- * Mapper related validator
+ * Mapper related validator.
  */
 final class MapperValidator extends AbstractValidator
 {
@@ -28,7 +30,7 @@ final class MapperValidator extends AbstractValidator
     private $mapper;
 
     /**
-     * Class constructor
+     * Class constructor.
      *
      * @param Mapper $mapper
      */
@@ -38,33 +40,33 @@ final class MapperValidator extends AbstractValidator
     }
 
     /**
-     * Check if given value exists
+     * Check if given value exists.
      *
-     * @param  mixed  $val
-     * @param  string $table
-     * @param  string $column
+     * @param mixed  $val
+     * @param string $table
+     * @param string $column
      *
      * @return bool
      */
     protected function _exists($val, string $table, string $column): bool
     {
-        return $this->mapper->withTable($table)->load([$column=>$val])->valid();
+        return $this->mapper->withTable($table)->load([$column => $val])->valid();
     }
 
     /**
-     * Check if given value is unique
+     * Check if given value is unique.
      *
-     * @param  mixed       $val
-     * @param  string      $table
-     * @param  string      $column
-     * @param  string|null $fid
-     * @param  mixed       $id
+     * @param mixed       $val
+     * @param string      $table
+     * @param string      $column
+     * @param string|null $fid
+     * @param mixed       $id
      *
      * @return bool
      */
     protected function _unique($val, string $table, string $column, string $fid = null, $id = null): bool
     {
-        $mapper = $this->mapper->withTable($table)->load([$column=>$val]);
+        $mapper = $this->mapper->withTable($table)->load([$column => $val]);
 
         return $mapper->dry() || ($fid && (!$mapper->exists($fid) || $mapper->get($fid) == $id));
     }
