@@ -23,7 +23,7 @@ $versions = GitVersionCollection::create(__DIR__)
 ;
 
 return new Sami($iterator, array(
-    'theme'                => 'symfony',
+    'theme'                => 'default',
     'versions'             => $versions,
     'title'                => 'Stick-PHP API',
     'build_dir'            => __DIR__.'/docs',
