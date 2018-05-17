@@ -214,7 +214,7 @@ final class Logger
         $end = 10;
         $to = $to ?? $from;
 
-        return array_filter(glob($pattern), function($file) use ($from, $to, $start, $end) {
+        return array_filter(glob($pattern), function ($file) use ($from, $to, $start, $end) {
             try {
                 $createdAt = new \DateTime(substr(basename($file), $start, $end));
 

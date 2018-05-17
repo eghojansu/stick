@@ -300,7 +300,7 @@ final class Connection
         if ($type === self::PARAM_FLOAT) {
             return is_string($val) ? $val : str_replace(',', '.', $val);
         } elseif ($type === \PDO::PARAM_NULL) {
-            return NULL;
+            return null;
         } elseif ($type === \PDO::PARAM_INT) {
             return (int) $val;
         } elseif ($type === \PDO::PARAM_BOOL) {
@@ -839,7 +839,7 @@ final class Connection
                 break;
         }
 
-        throw new \LogicException( $error ?? 'There is no logic for ' . $driver . ' DSN creation, please provide a valid one');
+        throw new \LogicException($error ?? 'There is no logic for ' . $driver . ' DSN creation, please provide a valid one');
     }
 
     /**

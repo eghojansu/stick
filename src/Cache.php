@@ -266,7 +266,7 @@ final class Cache
                 return true;
             case 'redis':
                 $keys = $this->cacheRef->keys($this->prefix . '*' . $suffix);
-                foreach($keys as $key) {
+                foreach ($keys as $key) {
                     $this->cacheRef->del($key);
                 }
 
@@ -373,7 +373,7 @@ final class Cache
                 if ($db) {
                     $this->cacheRef->select($db);
                 }
-            } catch(\Throwable $e) {
+            } catch (\Throwable $e) {
                 $this->cache = $fallback;
             }
         } elseif ($parts[0] === 'memcached' && $parts[1] && extension_loaded('memcached')) {

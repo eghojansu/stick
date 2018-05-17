@@ -54,7 +54,6 @@ final class InMemoryUserProvider implements UserProviderInterface
      */
     public function findByUsername(string $username): ?UserInterface
     {
-
         return array_key_exists($username, $this->users) ?
             $this->transformer->transform([
                 'id' => $username,

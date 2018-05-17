@@ -661,7 +661,7 @@ class Mapper implements \ArrayAccess
         $values = '';
         $filter = [];
         $ckeys = [];
-        $inc = NULL;
+        $inc = null;
 
         if ($this->trigger(self::EVENT_BEFOREINSERT, [$this, $this->keys()])) {
             return $this;
@@ -867,10 +867,13 @@ class Mapper implements \ArrayAccess
             } else {
                 // Require primary keys or order clause
                 // SQL Server 2008
-                $sql = preg_replace('/SELECT/',
+                $sql = preg_replace(
+                    '/SELECT/',
                     'SELECT '.
                     ($lmt > 0 ? 'TOP ' . ($ofs+$lmt) : '') . ' ROW_NUMBER() '.
-                    'OVER (' . $order . ') AS rnum,', $sql . $order, 1
+                    'OVER (' . $order . ') AS rnum,',
+                    $sql . $order,
+                    1
                 );
                 $sql = 'SELECT * FROM (' . $sql . ') x WHERE rnum > ' . $ofs;
             }

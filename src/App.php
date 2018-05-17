@@ -502,7 +502,7 @@ final class App implements \ArrayAccess
      */
     public function redirect(string $pattern, $url, bool $permanent = true): App
     {
-        return $this->route($pattern, function() use ($url, $permanent) {
+        return $this->route($pattern, function () use ($url, $permanent) {
             $this->reroute($url, $permanent);
         });
     }
@@ -574,7 +574,7 @@ final class App implements \ArrayAccess
 
         $lookup = (array) $args;
 
-        return preg_replace_callback('/\{(\w+)(?:\:\w+)?\}/', function($m) use ($lookup) {
+        return preg_replace_callback('/\{(\w+)(?:\:\w+)?\}/', function ($m) use ($lookup) {
             return array_key_exists($m[1], $lookup) ? $lookup[$m[1]] : $m[0];
         }, $this->hive['SYS']['ALIASES'][$alias]);
     }
@@ -957,7 +957,7 @@ final class App implements \ArrayAccess
         $ref =& $this->ref('SYS.SRULES.' . $id);
         $ref = array_filter(array_replace(self::RULE_DEFAULT, [
             'class' => $id,
-        ], $use ?? []), function($val) {
+        ], $use ?? []), function ($val) {
             return $val !== null;
         });
 
@@ -1461,7 +1461,7 @@ final class App implements \ArrayAccess
     {
         $wild = preg_replace_callback(
             '/\{(\w+)(?:\:(?:(alnum|alpha|digit|lower|upper|word)|(\w+)))?\}/',
-            function($m) {
+            function ($m) {
                 return '(?<' . $m[1] . '>[[:' . (empty($m[2]) ? 'alnum' : $m[2]) . ':]]+)';
             },
             $pattern
@@ -1816,13 +1816,14 @@ final class App implements \ArrayAccess
             array_shift($trace);
         }
 
-        $trace = array_filter($trace, function($frame) {
+        $trace = array_filter($trace, function ($frame) {
             return (
                 isset($frame['file']) &&
                 (
                     $this->hive['DEBUG'] > 1
                     || ($frame['file'] !== __FILE__ || $this->hive['DEBUG'])
-                    && (empty($frame['function'])
+                    && (
+                        empty($frame['function'])
                         || !preg_match('/^(?:(?:trigger|user)_error|__call|call_user_func)/', $frame['function'])
                     )
                 )

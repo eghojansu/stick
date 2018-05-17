@@ -286,7 +286,7 @@ final class Jwt
     {
         $usedAlgorithm = $this->availableAlgorithms[$algorithm] ?? null;
 
-        switch($algorithm) {
+        switch ($algorithm) {
             case self::ALG_HS256:
             case self::ALG_HS384:
             case self::ALG_HS512:
@@ -315,7 +315,7 @@ final class Jwt
      */
     private function verify(string $msg, string $signature, string $algorithm, $key): bool
     {
-        switch($algorithm) {
+        switch ($algorithm) {
             case self::ALG_HS256:
             case self::ALG_HS384:
             case self::ALG_HS512:
