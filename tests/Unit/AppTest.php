@@ -363,6 +363,14 @@ class AppTest extends TestCase
         $this->assertEquals($expected ?? $expr, $this->app->build($expr));
     }
 
+    public function testOn()
+    {
+        $this->app->on('foo', function() {})->on('foo', function() {})->on('bar', function() {});
+        $this->assertCount(2, $this->app->get('SYS.LISTENERS'));
+        $this->assertCount(2, $this->app->get('SYS.LISTENERS.foo'));
+        $this->assertCount(1, $this->app->get('SYS.LISTENERS.bar'));
+    }
+
     public function triggerProvider()
     {
         return [
@@ -402,7 +410,7 @@ class AppTest extends TestCase
     {
         if ($rules) {
             foreach ($rules as $key => $rule) {
-                $this->app->set('ON.' . trim($key, '.'), $rule);
+                $this->app->on(trim($key, '.'), $rule);
             }
         }
 
@@ -455,7 +463,7 @@ class AppTest extends TestCase
 
     public function testRerouteInterception()
     {
-        $this->app->set('ON.' . App::EVENT_REROUTE, function(App $app, $url, $permanent) {
+        $this->app->on(App::EVENT_REROUTE, function(App $app, $url, $permanent) {
             $app->set('rerouted', $url);
             $app->set('permanent', $permanent);
         });
@@ -621,10 +629,34 @@ class AppTest extends TestCase
         $this->assertEquals($expected, array_keys($headers));
     }
 
+    public function testRunBoot()
+    {
+        $this->app->route('GET /', function(App $app) {
+            return 'from controller';
+        });
+        $this->app->on(App::EVENT_BOOT, function(App $app) {
+            if (isset($app['booted'])) {
+                $app['booted']++;
+            }
+
+            $app['booted'] = 1;
+        });
+        $this->app->set('QUIET', true);
+
+        $this->app->run();
+        $this->assertEquals('from controller', $this->app->get('RES.CONTENT'));
+        $this->assertEquals(1, $this->app->get('booted'));
+
+        # call once again
+        $this->app->run();
+        $this->assertEquals('from controller', $this->app->get('RES.CONTENT'));
+        $this->assertEquals(1, $this->app->get('booted'));
+    }
+
     public function testRunPreRoute()
     {
         $this->app->route('GET /', function() { return 'from controller'; });
-        $this->app->set('ON.' . App::EVENT_PREROUTE, function(App $app) {
+        $this->app->on(App::EVENT_PREROUTE, function(App $app) {
             echo 'from event';
         });
 
@@ -635,7 +667,7 @@ class AppTest extends TestCase
     public function testRunPostRoute()
     {
         $this->app->route('GET /', function() { return 'from controller'; });
-        $this->app->set('ON.' . App::EVENT_POSTROUTE, function(App $app) {
+        $this->app->on(App::EVENT_POSTROUTE, function(App $app) {
             echo 'from event';
         });
 
@@ -743,7 +775,7 @@ class AppTest extends TestCase
 
     public function testErrorListener()
     {
-        $this->app->set('ON.' . App::EVENT_ERROR, function(App $app, $error) {
+        $this->app->on(App::EVENT_ERROR, function(App $app, $error) {
             $app->set('myerror', $error['text']);
         });
         $this->app->error(500, 'Internal server error');
@@ -826,6 +858,49 @@ class AppTest extends TestCase
         $this->app->call('foo');
     }
 
+    public function testRules()
+    {
+        $this->assertCount(3, $this->app->rules(['foo'=>'bar'])->get('SYS.SRULES'));
+    }
+
+    public function ruleProvider()
+    {
+        return [
+            [
+                ['class' => 'foo', 'service' => true],
+                'foo',
+            ],
+            [
+                ['class' => 'bar', 'service' => true],
+                'foo',
+                'bar',
+            ],
+            [
+                ['class' => 'foo', 'use' => 'bar', 'service' => true],
+                'foo',
+                ['use'=>'bar'],
+            ],
+            [
+                ['class' => 'bar', 'boot' => 'baz', 'service' => false],
+                'foo',
+                ['class'=>'bar','boot'=>'baz','service'=>false],
+            ],
+            [
+                ['class' => AnyController::class, 'service' => true],
+                'foo',
+                new AnyController,
+            ],
+        ];
+    }
+
+    /**
+     * @dataProvider ruleProvider
+     */
+    public function testRule($expected, $id, $rule = null)
+    {
+        $this->assertEquals($expected, $this->app->rule($id, $rule)->get('SYS.SRULES.' . $id));
+    }
+
     public function testService()
     {
         // get self
@@ -838,7 +913,7 @@ class AppTest extends TestCase
         $this->assertNotEquals($first, $this->app->service(DoNotRegisterClass::class));
 
         // Registered class
-        $this->app->set('RULE.rdt', ReqDateTimeClass::class);
+        $this->app->rule('rdt', ReqDateTimeClass::class);
         $rdt = $this->app->service('rdt');
         $this->assertInstanceOf(ReqDateTimeClass::class, $rdt);
         $this->assertEquals($rdt, $this->app->service('rdt'));
@@ -919,11 +994,11 @@ class AppTest extends TestCase
         $useId = $id ?? $classname;
 
         if ($rule) {
-            $this->app->set('RULE.' . $useId, $rule);
+            $this->app->rule($useId, $rule);
         }
 
         if ($register) {
-            $this->app->mset($register, 'RULE.');
+            $this->app->rules($register);
         }
 
         $init = $this->app->create($useId, $args);
@@ -1035,22 +1110,6 @@ class AppTest extends TestCase
             ],
             [
                 '/foo', 'JAR.PATH',
-            ],
-            [
-                [
-                    'class' => 'foo',
-                    'service' => true,
-                ], 'RULE.foo', 'foo',
-            ],
-            [
-                [
-                    'class' => 'foo',
-                    'use' => 'bar',
-                    'service' => true,
-                ], 'RULE.foo', ['use'=>'bar'],
-            ],
-            [
-                ['foo'], 'ON.foo', 'foo',
             ],
         ];
     }

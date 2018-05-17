@@ -176,8 +176,8 @@ class Mapper implements \ArrayAccess
      *
      * Listener should return true to give control back to the caller
      *
-     * @param  string   $events
-     * @param  callable $trigger
+     * @param  string|array     $events
+     * @param  callable         $trigger
      *
      * @return Mapper
      */

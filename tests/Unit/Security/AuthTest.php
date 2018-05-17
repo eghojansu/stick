@@ -30,7 +30,7 @@ class AuthTest extends TestCase
     public function setUp()
     {
         $this->app = new App;
-        $this->app['ON.app.reroute'] = function(App $app, $url) { $app['rerouted'] = $url;};
+        $this->app->on(App::EVENT_REROUTE, function(App $app, $url) { $app['rerouted'] = $url;});
         $cache = new Cache('', 'test', TEMP . 'cache/');
         $cache->reset();
 
@@ -94,7 +94,7 @@ SQL1
         $user = $this->auth->getProvider()->findById('1');
         $user2 = $this->auth->getProvider()->findById('2');
 
-        $this->app->set('ON.auth.login', function() {
+        $this->app->on(Auth::EVENT_LOGIN, function() {
             return true;
         });
         $this->auth->login($user);
@@ -102,7 +102,8 @@ SQL1
         $this->assertEquals('1', $this->app['SESSION.user_login_id']);
         $this->app->clear('SESSION.user_login_id');
 
-        $this->app->set('ON.auth.login', function($user, Auth $auth) use ($user2) {
+        $this->app->clear('SYS.LISTENERS.' . Auth::EVENT_LOGIN);
+        $this->app->on(Auth::EVENT_LOGIN, function($user, Auth $auth) use ($user2) {
             $auth->setUser(clone $user2);
         });
         $this->auth->login($user);
@@ -119,9 +120,9 @@ SQL1
         $this->auth->logout();
         $this->assertNull($this->app['SESSION.user_login_id']);
 
-        $this->app['ON.auth.logout'] = function($user, Auth $auth) {
+        $this->app->on(Auth::EVENT_LOGOUT, function($user, Auth $auth) {
             $auth->setUser(null);
-        };
+        });
         $this->auth->logout();
         $this->assertNull($this->auth->getUser());
     }
@@ -137,13 +138,13 @@ SQL1
         $this->assertEquals($user, $this->auth->getUser());
 
         $this->auth->logout();
-        $this->app['ON.auth.loaduser'] = function(Auth $auth) use ($user2) {
+        $this->app->on(Auth::EVENT_LOADUSER, function(Auth $auth) use ($user2) {
             $auth->setUser(clone $user2);
-        };
+        });
         $this->assertEquals($user2, $this->auth->getUser());
 
         $this->auth->logout();
-        $this->app->clear('ON.auth.loaduser');
+        $this->app->clear('SYS.LISTENERS.' . Auth::EVENT_LOADUSER);
         $this->app['SESSION.user_login_id'] = '1';
         $this->assertEquals($user, $this->auth->getUser());
     }

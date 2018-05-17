@@ -168,7 +168,6 @@ final class App implements \ArrayAccess
                 'HTTPONLY' => true
             ],
             'NAMESPACE' => [],
-            'ON' => [],
             'PACKAGE' => self::PACKAGE,
             'PREMAP' => '',
             'QUIET' => false,
@@ -203,14 +202,15 @@ final class App implements \ArrayAccess
                 'SCHEME' => $scheme,
                 'URI' => $_SERVER['REQUEST_URI'],
             ],
-            'RULE' => [],
             'SEED' => Helper::hash($_SERVER['SERVER_NAME'] . $base),
             'SYS' => [
                 'BOOTED' => false,
                 'ROUTES' => [],
                 'ALIASES' => [],
                 'SERVICES' => [],
+                'SRULES' => [],
                 'SALIASES' => [],
+                'LISTENERS' => [],
             ],
             'TEMP' => './var/',
             'TRACE' => is_dir($_SERVER['DOCUMENT_ROOT']) ? $_SERVER['DOCUMENT_ROOT'] : dirname($_SERVER['DOCUMENT_ROOT']),
@@ -223,7 +223,7 @@ final class App implements \ArrayAccess
         array_map([$this, 'sync'], explode('|', self::GLOBALS));
 
         // register core services
-        $this->mset([
+        $this->rules([
             'cache' => [
                 'class' => Cache::class,
                 'args' => [
@@ -239,7 +239,7 @@ final class App implements \ArrayAccess
                     'logLevelThreshold' => Logger::LEVEL_DEBUG,
                 ],
             ],
-        ], 'RULE.');
+        ]);
 
         // Save a copy of hive
         $this->init = $this->hive;
@@ -815,6 +815,29 @@ final class App implements \ArrayAccess
     }
 
     /**
+     * Set event listener
+     *
+     * Listener should return true to give control back to the caller
+     *
+     * @param  string   $event
+     * @param  callable $listener
+     *
+     * @return App
+     */
+    public function on(string $event, callable $listener): App
+    {
+        $ref =& $this->ref('SYS.LISTENERS.' . $event);
+
+        if ($ref) {
+            $ref[] = $listener;
+        } else {
+            $ref = [$listener];
+        }
+
+        return $this;
+    }
+
+    /**
      * Trigger event listener
      *
      * @param  string     $event
@@ -824,7 +847,7 @@ final class App implements \ArrayAccess
      */
     public function trigger(string $event, array $args = null): bool
     {
-        $listeners = $this->ref('ON.' . $event, false);
+        $listeners = $this->ref('SYS.LISTENERS.' . $event, false);
 
         if (!$listeners) {
             return false;
@@ -892,6 +915,58 @@ final class App implements \ArrayAccess
     }
 
     /**
+     * Register service rules
+     *
+     * @param  array  $rules
+     *
+     * @return App
+     */
+    public function rules(array $rules): App
+    {
+        foreach ($rules as $id => $rule) {
+            $this->rule($id, $rule);
+        }
+
+        return $this;
+    }
+
+    /**
+     * Set service rule
+     *
+     * @param  string $id
+     * @param  mixed  $rule
+     *
+     * @return array
+     */
+    public function rule(string $id, $rule = null): App
+    {
+        $ref =& $this->ref('SYS.SERVICES.' . $id);
+        $ref = null;
+
+        if (is_object($rule)) {
+            $use = ['class' => get_class($rule)];
+            $ref = $rule;
+        } elseif (is_string($rule)) {
+            $use = ['class' => $rule];
+        } else {
+            $use = $rule;
+        }
+
+        unset($ref);
+
+        $ref =& $this->ref('SYS.SRULES.' . $id);
+        $ref = array_filter(array_replace(self::RULE_DEFAULT, [
+            'class' => $id,
+        ], $use ?? []), function($val) {
+            return $val !== null;
+        });
+
+        $this->hive['SYS']['SALIASES'][$ref['class']] = $id;
+
+        return $this;
+    }
+
+    /**
      * Create/get instance of a class
      *
      * @param  string     $id
@@ -926,29 +1001,33 @@ final class App implements \ArrayAccess
      */
     public function create(string $id, array $args = null)
     {
-        $rule = ($this->hive['RULE'][$id] ?? []) + [
+        $rule = $this->ref('SYS.SRULES.' . $id, false);
+        $use = ($rule ?? []) + [
             'class' => $id,
             'args' => $args,
             'service' => false,
         ] + self::RULE_DEFAULT;
-        $ref = new \ReflectionClass($rule['use'] ?? $rule['class']);
+        $ref = new \ReflectionClass($use['use'] ?? $use['class']);
 
         if (!$ref->isInstantiable()) {
             throw new \LogicException('Unable to create instance. Please provide instantiable version of ' . $ref->name);
         }
 
         if ($ref->hasMethod('__construct')) {
-            $instance = $ref->newInstanceArgs($this->resolveArgs($ref->getMethod('__construct'), $rule['args']));
+            $instance = $ref->newInstanceArgs($this->resolveArgs($ref->getMethod('__construct'), $use['args']));
         } else {
             $instance = $ref->newInstance();
         }
 
-        if ($rule['boot'] && is_callable($rule['boot'])) {
-            call_user_func_array($rule['boot'], [$instance, $this]);
+        unset($ref);
+
+        if ($use['boot'] && is_callable($use['boot'])) {
+            call_user_func_array($use['boot'], [$instance, $this]);
         }
 
-        if ($rule['service']) {
-            $this->hive['SYS']['SERVICES'][$id] = $instance;
+        if ($use['service']) {
+            $ref =& $this->ref('SYS.SERVICES.' . $id);
+            $ref = $instance;
         }
 
         return $instance;
@@ -1567,13 +1646,6 @@ final class App implements \ArrayAccess
         } elseif (Helper::startswith('COOKIE.', $key)) {
             $val = $this->modifyCookieSet($val);
             $this->set('REQUEST' . Helper::cutafter('COOKIE', $key), $val);
-        } elseif (Helper::startswith('RULE.', $key)) {
-            $id = Helper::cutafter('RULE.', $key);
-            $val = $this->modifyRuleSet($id, $val);
-            $this->hive['SYS']['SALIASES'][$val['class']] = $id;
-            $this->hive['SYS']['SERVICES'][$id] = null;
-        } elseif (Helper::startswith('ON.', $key)) {
-            $val = $this->modifyListenerSet(Helper::cutafter('ON.', $key), $val);
         } elseif ($key === 'TZ') {
             date_default_timezone_set($val);
         } elseif ($key === 'ENCODING') {
@@ -1618,37 +1690,6 @@ final class App implements \ArrayAccess
         array_unshift($ujar, $needshift ? array_shift($val) : $val);
 
         return $ujar;
-    }
-
-    /**
-     * Modify rule set
-     *
-     * @param  string $id
-     * @param  mixed  $val
-     *
-     * @return array
-     */
-    private function modifyRuleSet(string $id, $val): array
-    {
-        return array_filter(array_replace(self::RULE_DEFAULT, [
-            'class' => $id,
-        ], is_string($val) ? ['class' => $val] : $val));
-    }
-
-    /**
-     * Modify listener set
-     *
-     * @param  string $event
-     * @param  mixed  $val
-     *
-     * @return array
-     */
-    private function modifyListenerSet(string $event, $val): array
-    {
-        $listeners = $this->hive['ON'][$event] ?? [];
-        $listeners[] = $val;
-
-        return $listeners;
     }
 
     /**
