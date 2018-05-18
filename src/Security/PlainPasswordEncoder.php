@@ -23,16 +23,16 @@ final class PlainPasswordEncoder implements PasswordEncoderInterface
     /**
      * {@inheritdoc}
      */
-    public function hash(string $plain): string
+    public function hash(string $plainText): string
     {
-        return $plain;
+        return $plainText;
     }
 
     /**
      * {@inheritdoc}
      */
-    public function verify(string $plain, string $hash): bool
+    public function verify(string $plainText, string $hash): bool
     {
-        return $plain === $hash;
+        return $plainText === $hash;
     }
 }

@@ -23,19 +23,19 @@ interface PasswordEncoderInterface
     /**
      * Hash password.
      *
-     * @param string $plain
+     * @param string $plainText
      *
      * @return string
      */
-    public function hash(string $plain): string;
+    public function hash(string $plainText): string;
 
     /**
      * Verify password.
      *
-     * @param string $plain
+     * @param string $plainText
      * @param string $hash
      *
      * @return bool
      */
-    public function verify(string $plain, string $hash): bool;
+    public function verify(string $plainText, string $hash): bool;
 }

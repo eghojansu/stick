@@ -35,42 +35,42 @@ final class SqlUserProvider implements UserProviderInterface
     /**
      * @var array
      */
-    private $option;
+    private $options;
 
     /**
      * Class constructor.
      *
      * @param Connection               $db
      * @param callable                 $transformer
-     * @param UserTransformerInterface $option
+     * @param UserTransformerInterface $options
      */
-    public function __construct(Connection $db, UserTransformerInterface $transformer, array $option = [])
+    public function __construct(Connection $db, UserTransformerInterface $transformer, array $options = [])
     {
         $this->db = $db;
         $this->transformer = $transformer;
-        $this->setOption($option);
+        $this->setOption($options);
     }
 
     /**
-     * Get option.
+     * Get options.
      *
      * @return array
      */
     public function getOption(): array
     {
-        return $this->option;
+        return $this->options;
     }
 
     /**
-     * Set option.
+     * Set options.
      *
-     * @param array $option
+     * @param array $options
      *
      * @return SqlUserProvider
      */
-    public function setOption(array $option): SqlUserProvider
+    public function setOption(array $options): SqlUserProvider
     {
-        $this->option = $option + [
+        $this->options = $options + [
             'table' => 'user',
             'username' => 'username',
             'id' => 'id',
@@ -84,7 +84,7 @@ final class SqlUserProvider implements UserProviderInterface
      */
     public function findByUsername(string $username): ?UserInterface
     {
-        return $this->transform($this->option['username'], $username);
+        return $this->transform($this->options['username'], $username);
     }
 
     /**
@@ -92,7 +92,7 @@ final class SqlUserProvider implements UserProviderInterface
      */
     public function findById(string $id): ?UserInterface
     {
-        return $this->transform($this->option['id'], $id);
+        return $this->transform($this->options['id'], $id);
     }
 
     /**
@@ -106,7 +106,7 @@ final class SqlUserProvider implements UserProviderInterface
     private function transform(string $key, $val): ?UserInterface
     {
         $user = $this->db->exec(
-            'SELECT * FROM '.$this->db->quotekey($this->option['table']).
+            'SELECT * FROM '.$this->db->quotekey($this->options['table']).
             ' WHERE '.$this->db->quotekey($key).' = ? LIMIT 1',
             [$val]
         );

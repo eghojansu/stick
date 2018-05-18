@@ -507,12 +507,12 @@ SQL1
     /** @dataProvider filterProvider */
     public function testFilter($expected, $filter)
     {
-        $this->assertEquals($expected, $this->conn->filter($filter));
+        $this->assertEquals($expected, $this->conn->buildFilter($filter));
     }
 
     public function testFilterEmpty()
     {
-        $this->assertEquals([], $this->conn->filter(null));
+        $this->assertEquals([], $this->conn->buildFilter(null));
     }
 
     /**
@@ -521,7 +521,7 @@ SQL1
      */
     public function testFilterException1()
     {
-        $this->conn->filter(['foo ><' => 'str']);
+        $this->conn->buildFilter(['foo ><' => 'str']);
     }
 
     public function testGetName()
@@ -539,33 +539,33 @@ SQL1
         $this->assertEquals('foo', $this->conn->setEncoding('foo')->getEncoding());
     }
 
-    public function testType()
+    public function testPdoType()
     {
-        $this->assertEquals(\PDO::PARAM_NULL, $this->conn->type(null));
-        $this->assertEquals(\PDO::PARAM_BOOL, $this->conn->type(true));
-        $this->assertEquals(\PDO::PARAM_INT, $this->conn->type(1));
-        $this->assertEquals(Connection::PARAM_FLOAT, $this->conn->type(0.0));
-        $this->assertEquals(\PDO::PARAM_STR, $this->conn->type('foo'));
+        $this->assertEquals(\PDO::PARAM_NULL, $this->conn->pdoType(null));
+        $this->assertEquals(\PDO::PARAM_BOOL, $this->conn->pdoType(true));
+        $this->assertEquals(\PDO::PARAM_INT, $this->conn->pdoType(1));
+        $this->assertEquals(Connection::PARAM_FLOAT, $this->conn->pdoType(0.0));
+        $this->assertEquals(\PDO::PARAM_STR, $this->conn->pdoType('foo'));
         $fp = fopen(FIXTURE.'long.txt', 'rb');
-        $this->assertEquals(\PDO::PARAM_LOB, $this->conn->type($fp));
+        $this->assertEquals(\PDO::PARAM_LOB, $this->conn->pdoType($fp));
     }
 
-    public function testRealType()
+    public function testRealPdoType()
     {
-        $this->assertEquals(\PDO::PARAM_STR, $this->conn->realType(0.0));
-        $this->assertEquals(\PDO::PARAM_STR, $this->conn->realType(null, Connection::PARAM_FLOAT));
+        $this->assertEquals(\PDO::PARAM_STR, $this->conn->realPdoType(0.0));
+        $this->assertEquals(\PDO::PARAM_STR, $this->conn->realPdoType(null, Connection::PARAM_FLOAT));
     }
 
-    public function testValue()
+    public function testPhpValue()
     {
-        $this->assertEquals(null, $this->conn->value(\PDO::PARAM_NULL, 'foo'));
-        $this->assertEquals('0.0', $this->conn->value(Connection::PARAM_FLOAT, 0.0));
-        $this->assertEquals(true, $this->conn->value(\PDO::PARAM_BOOL, 1));
-        $this->assertEquals(1, $this->conn->value(\PDO::PARAM_INT, '1'));
-        $this->assertEquals('1', $this->conn->value(\PDO::PARAM_STR, '1'));
-        $this->assertEquals('1', $this->conn->value('foo', '1'));
+        $this->assertEquals(null, $this->conn->phpValue(\PDO::PARAM_NULL, 'foo'));
+        $this->assertEquals('0.0', $this->conn->phpValue(Connection::PARAM_FLOAT, 0.0));
+        $this->assertEquals(true, $this->conn->phpValue(\PDO::PARAM_BOOL, 1));
+        $this->assertEquals(1, $this->conn->phpValue(\PDO::PARAM_INT, '1'));
+        $this->assertEquals('1', $this->conn->phpValue(\PDO::PARAM_STR, '1'));
+        $this->assertEquals('1', $this->conn->phpValue('foo', '1'));
         $fp = fopen(FIXTURE.'long.txt', 'rb');
-        $this->assertEquals((binary) $fp, $this->conn->value(\PDO::PARAM_LOB, $fp));
+        $this->assertEquals((binary) $fp, $this->conn->phpValue(\PDO::PARAM_LOB, $fp));
     }
 
     public function testQuote()

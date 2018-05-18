@@ -153,6 +153,43 @@ class AppTest extends TestCase
         $this->assertEquals($fragment, $this->app->get('REQ.FRAGMENT'));
     }
 
+    public function testGroup()
+    {
+        $this->app->group(['route' => 'foo', 'prefix' => '/foo'], function ($app) {
+            $app->route('GET bar /bar', function () {
+                return 'foobar';
+            });
+
+            $app->route('GET baz /baz', function () {
+                return 'foobaz';
+            });
+
+            $app->group(['prefix' => '/bleh'], function ($app) {
+                $app->route('GET /what', function () {
+                    return 'fooblehwhat';
+                });
+            });
+        });
+        $this->app->group(['prefix' => '/qux'], function ($app) {
+            $app->route('GET /quux', function () {
+                return 'quxquux';
+            });
+        });
+        $this->app->set('QUIET', true);
+
+        $this->app->mock('GET foobar');
+        $this->assertEquals('foobar', $this->app->get('RES.CONTENT'));
+
+        $this->app->mock('GET foobaz');
+        $this->assertEquals('foobaz', $this->app->get('RES.CONTENT'));
+
+        $this->app->mock('GET /qux/quux');
+        $this->assertEquals('quxquux', $this->app->get('RES.CONTENT'));
+
+        $this->app->mock('GET /foo/bleh/what');
+        $this->assertEquals('fooblehwhat', $this->app->get('RES.CONTENT'));
+    }
+
     public function routeProvider()
     {
         return [
@@ -188,7 +225,7 @@ class AppTest extends TestCase
             $this->app->route(...$before);
         }
 
-        $this->assertEquals($expected, $this->app->route($pattern, $callback)->get('SYS.ROUTES'));
+        $this->assertEquals($expected, $this->app->route($pattern, $callback)->get('_ROUTES'));
     }
 
     /**
@@ -226,7 +263,7 @@ class AppTest extends TestCase
             $this->app->set('PREMAP', $prefix);
         }
 
-        $this->assertEquals($expected, $this->app->map($pattern, $class)->get('SYS.ROUTES'));
+        $this->assertEquals($expected, $this->app->map($pattern, $class)->get('_ROUTES'));
     }
 
     public function redirectProvider()
@@ -242,7 +279,7 @@ class AppTest extends TestCase
      */
     public function testRedirect($verb, $alias, $path, $type, $pattern, $url, $permanent)
     {
-        $set = $this->app->redirect($pattern, $url, $permanent)->get('SYS.ROUTES.'.$path.'.'.$type.'.'.$verb);
+        $set = $this->app->redirect($pattern, $url, $permanent)->get('_ROUTES.'.$path.'.'.$type.'.'.$verb);
 
         $this->assertNotEmpty($set);
     }
@@ -380,9 +417,9 @@ class AppTest extends TestCase
         })->on('foo', function () {
         })->on('bar', function () {
         });
-        $this->assertCount(2, $this->app->get('SYS.LISTENERS'));
-        $this->assertCount(2, $this->app->get('SYS.LISTENERS.foo'));
-        $this->assertCount(1, $this->app->get('SYS.LISTENERS.bar'));
+        $this->assertCount(2, $this->app->get('_LISTENERS'));
+        $this->assertCount(2, $this->app->get('_LISTENERS.foo'));
+        $this->assertCount(1, $this->app->get('_LISTENERS.bar'));
     }
 
     public function triggerProvider()
@@ -959,11 +996,6 @@ class AppTest extends TestCase
         $this->app->call('foo');
     }
 
-    public function testRules()
-    {
-        $this->assertCount(3, $this->app->rules(['foo' => 'bar'])->get('SYS.SRULES'));
-    }
-
     public function ruleProvider()
     {
         return [
@@ -999,7 +1031,7 @@ class AppTest extends TestCase
      */
     public function testRule($expected, $id, $rule = null)
     {
-        $this->assertEquals($expected, $this->app->rule($id, $rule)->get('SYS.SRULES.'.$id));
+        $this->assertEquals($expected, $this->app->rule($id, $rule)->get('_SERVICE_RULES.'.$id));
     }
 
     public function testService()
@@ -1101,7 +1133,9 @@ class AppTest extends TestCase
         }
 
         if ($register) {
-            $this->app->rules($register);
+            foreach ($register as $id => $rule) {
+                $this->app->rule($id, $rule);
+            }
         }
 
         $init = $this->app->create($useId, $args);

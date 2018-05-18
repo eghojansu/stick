@@ -283,23 +283,33 @@ final class Connection
     /**
      * Map data type of argument to a PDO constant.
      *
-     * @param mixed $val
+     * @param mixed  $val
+     * @param string $type
      *
      * @return mixed
      */
-    public function type($val)
+    public function pdoType($val = null, string $type = null)
     {
         static $types = [
-            'NULL' => \PDO::PARAM_NULL,
-            'boolean' => \PDO::PARAM_BOOL,
-            'integer' => \PDO::PARAM_INT,
+            'null' => \PDO::PARAM_NULL,
             'resource' => \PDO::PARAM_LOB,
+            'int' => \PDO::PARAM_INT,
+            'integer' => \PDO::PARAM_INT,
+            'bool' => \PDO::PARAM_BOOL,
+            'boolean' => \PDO::PARAM_BOOL,
+            'blob' => \PDO::PARAM_LOB,
+            'bytea' => \PDO::PARAM_LOB,
+            'image' => \PDO::PARAM_LOB,
+            'binary' => \PDO::PARAM_LOB,
             'float' => self::PARAM_FLOAT,
+            'real' => self::PARAM_FLOAT,
             'double' => self::PARAM_FLOAT,
+            'decimal' => self::PARAM_FLOAT,
+            'numeric' => self::PARAM_FLOAT,
             'default' => \PDO::PARAM_STR,
         ];
 
-        return $types[gettype($val)] ?? $types['default'];
+        return $types[strtolower($type ?? gettype($val))] ?? $types['default'];
     }
 
     /**
@@ -310,9 +320,9 @@ final class Connection
      *
      * @return mixed
      */
-    public function realType($val, $type = null)
+    public function realPdoType($val, $type = null)
     {
-        $use = $type ?? $this->type($val);
+        $use = $type ?? $this->pdoType($val);
 
         return self::PARAM_FLOAT === $use ? \PDO::PARAM_STR : $use;
     }
@@ -325,7 +335,7 @@ final class Connection
      *
      * @return mixed
      */
-    public function value($type, $val)
+    public function phpValue($type, $val)
     {
         if (self::PARAM_FLOAT === $type) {
             return is_string($val) ? $val : str_replace(',', '.', $val);
@@ -379,7 +389,7 @@ final class Connection
      *
      * @return array
      */
-    public function filter($filter): array
+    public function buildFilter($filter): array
     {
         if (!$filter) {
             return [];
@@ -417,7 +427,7 @@ final class Connection
                 if (is_string($value)) {
                     // raw
                     $str .= ' '.$value;
-                } elseif ($cfilter = $this->filter((array) $value)) {
+                } elseif ($cfilter = $this->buildFilter((array) $value)) {
                     $str .= ' AND ('.array_shift($cfilter).')';
                     $result = array_merge($result, $cfilter);
                 }
@@ -469,7 +479,7 @@ final class Connection
 
                     $str = rtrim($str, ', ').')';
                 } elseif (is_array($expr)) {
-                    $cfilter = $this->filter((array) $expr);
+                    $cfilter = $this->buildFilter((array) $expr);
 
                     if ($cfilter) {
                         $str .= ' ('.array_shift($cfilter).')';
@@ -523,7 +533,7 @@ final class Connection
 
             $rows[$row[$cmd[1]]] = [
                 'type' => $row[$cmd[2]],
-                'pdo_type' => $this->pdoType($row[$cmd[2]]),
+                'pdo_type' => $this->pdoType(null, $row[$cmd[2]]),
                 'default' => is_string($row[$cmd[3]]) ? $this->schemaDefaultValue($row[$cmd[3]]) : $row[$cmd[3]],
                 'nullable' => $row[$cmd[4]] == $cmd[5],
                 'pkey' => $row[$cmd[6]] == $cmd[7],
@@ -727,10 +737,10 @@ final class Connection
             foreach ($arg as $key => $val) {
                 if (is_array($val)) {
                     // User-specified data type
-                    $query->bindvalue($key, $val[0], $this->realType(null, $val[1]));
+                    $query->bindvalue($key, $val[0], $this->realPdoType(null, $val[1]));
                 } else {
                     // Convert to PDO data type
-                    $query->bindvalue($key, $val, $this->realType($val));
+                    $query->bindvalue($key, $val, $this->realPdoType($val));
                 }
             }
 
@@ -785,16 +795,6 @@ final class Connection
     }
 
     /**
-     * Get log.
-     *
-     * @return string
-     */
-    public function getLog(): string
-    {
-        return $this->log;
-    }
-
-    /**
      * Get rows count affected by last query.
      *
      * @return int
@@ -802,6 +802,16 @@ final class Connection
     public function getRows(): int
     {
         return $this->rows;
+    }
+
+    /**
+     * Get log.
+     *
+     * @return string
+     */
+    public function getLog(): string
+    {
+        return $this->log;
     }
 
     /**
@@ -842,9 +852,9 @@ final class Connection
         foreach ($arg as $key => $val) {
             if (is_array($val)) {
                 // User-specified data type
-                $vals[] = Helper::stringify($cached ? $val[0] : $this->value($val[1], $val[0]));
+                $vals[] = Helper::stringify($cached ? $val[0] : $this->phpValue($val[1], $val[0]));
             } else {
-                $vals[] = Helper::stringify($cached ? $val : $this->value($this->realType($val), $val));
+                $vals[] = Helper::stringify($cached ? $val : $this->phpValue($this->realPdoType($val), $val));
             }
             $keys[] = '/'.preg_quote(is_numeric($key) ? chr(0).'?' : $key).'/';
         }
@@ -896,35 +906,6 @@ final class Connection
         }
 
         throw new \LogicException($error ?? 'There is no logic for '.$driver.' DSN creation, please provide a valid one');
-    }
-
-    /**
-     * String sql data type to PDO data type.
-     *
-     * @param string $type
-     *
-     * @return mixed
-     */
-    private function pdoType(string $type)
-    {
-        // Data types
-        static $types = [
-            'int' => \PDO::PARAM_INT,
-            'integer' => \PDO::PARAM_INT,
-            'bool' => \PDO::PARAM_BOOL,
-            'blob' => \PDO::PARAM_LOB,
-            'bytea' => \PDO::PARAM_LOB,
-            'image' => \PDO::PARAM_LOB,
-            'binary' => \PDO::PARAM_LOB,
-            'float' => self::PARAM_FLOAT,
-            'real' => self::PARAM_FLOAT,
-            'double' => self::PARAM_FLOAT,
-            'decimal' => self::PARAM_FLOAT,
-            'numeric' => self::PARAM_FLOAT,
-            'default' => \PDO::PARAM_STR,
-        ];
-
-        return $types[strtolower($type)] ?? $types['default'];
     }
 
     /**

@@ -71,15 +71,15 @@ SQL1
         $this->assertNull($message);
 
         $this->assertFalse($this->auth->attempt('baz', 'qux', $message));
-        $this->assertEquals(Auth::CREDENTIAL_EXPIRED, $message);
+        $this->assertEquals(Auth::ERROR_CREDENTIAL_EXPIRED, $message);
         $this->assertNull($this->app['rerouted']);
 
         $this->assertFalse($this->auth->attempt('foo', 'quux', $message));
-        $this->assertEquals(Auth::CREDENTIAL_INVALID, $message);
+        $this->assertEquals(Auth::ERROR_CREDENTIAL_INVALID, $message);
         $this->assertNull($this->app['rerouted']);
 
         $this->assertFalse($this->auth->attempt('foox', 'quux', $message));
-        $this->assertEquals(Auth::CREDENTIAL_INVALID, $message);
+        $this->assertEquals(Auth::ERROR_CREDENTIAL_INVALID, $message);
         $this->assertNull($this->app['rerouted']);
     }
 
@@ -104,7 +104,7 @@ SQL1
         $this->assertEquals('1', $this->app['SESSION.user_login_id']);
         $this->app->clear('SESSION.user_login_id');
 
-        $this->app->clear('SYS.LISTENERS.'.Auth::EVENT_LOGIN);
+        $this->app->clear('_LISTENERS.'.Auth::EVENT_LOGIN);
         $this->app->on(Auth::EVENT_LOGIN, function ($user, Auth $auth) use ($user2) {
             $auth->setUser(clone $user2);
         });
@@ -146,7 +146,7 @@ SQL1
         $this->assertEquals($user2, $this->auth->getUser());
 
         $this->auth->logout();
-        $this->app->clear('SYS.LISTENERS.'.Auth::EVENT_LOADUSER);
+        $this->app->clear('_LISTENERS.'.Auth::EVENT_LOADUSER);
         $this->app['SESSION.user_login_id'] = '1';
         $this->assertEquals($user, $this->auth->getUser());
     }

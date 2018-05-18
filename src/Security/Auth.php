@@ -24,8 +24,8 @@ use Fal\Stick\Helper;
 final class Auth
 {
     // Error messages
-    const CREDENTIAL_INVALID = 'Invalid credentials.';
-    const CREDENTIAL_EXPIRED = 'Your credentials is expired.';
+    const ERROR_CREDENTIAL_INVALID = 'Invalid credentials.';
+    const ERROR_CREDENTIAL_EXPIRED = 'Your credentials is expired.';
 
     // Supported events
     const EVENT_LOGIN = 'auth.login';
@@ -94,9 +94,9 @@ final class Auth
         $user = $this->provider->findByUsername($username);
 
         if (!$user || !$this->encoder->verify($password, $user->getPassword())) {
-            $message = self::CREDENTIAL_INVALID;
+            $message = self::ERROR_CREDENTIAL_INVALID;
         } elseif ($user->isExpired()) {
-            $message = self::CREDENTIAL_EXPIRED;
+            $message = self::ERROR_CREDENTIAL_EXPIRED;
         } else {
             $result = true;
 
@@ -231,7 +231,7 @@ final class Auth
         $roles = [];
 
         foreach ($userRoles as $userRole) {
-            $roles = array_merge($roles, [$userRole], $this->getHierarchy($userRole));
+            $roles = array_merge($roles, [$userRole], $this->getRoleHierarchy($userRole));
         }
 
         $roles = array_unique($roles);
@@ -302,7 +302,7 @@ final class Auth
      *
      * @return array
      */
-    private function getHierarchy($role): array
+    private function getRoleHierarchy($role): array
     {
         if (!array_key_exists($role, $this->options['roleHierarchy'])) {
             return [];
@@ -312,7 +312,7 @@ final class Auth
         $children = Helper::reqarr($this->options['roleHierarchy'][$role]);
 
         foreach ($children as $child) {
-            $roles = array_merge($roles, $this->getHierarchy($child));
+            $roles = array_merge($roles, $this->getRoleHierarchy($child));
         }
         $roles = array_merge($roles, $children);
 

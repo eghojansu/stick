@@ -25,6 +25,7 @@ namespace Fal\Stick\Security;
  */
 final class Jwt
 {
+    // Available algorithm
     const ALG_HS256 = 'HS256';
     const ALG_HS384 = 'HS384';
     const ALG_HS512 = 'HS512';
@@ -292,7 +293,7 @@ final class Jwt
     /**
      * Sign a string.
      *
-     * @param string          $msg       The message to sign
+     * @param string          $message   The message to sign
      * @param string          $algorithm
      * @param string|resource $key
      *
@@ -300,7 +301,7 @@ final class Jwt
      *
      * @throws DomainException If algorithm is not supported
      */
-    private function sign(string $msg, string $algorithm, $key): string
+    private function sign(string $message, string $algorithm, $key): string
     {
         $usedAlgorithm = self::AVAILABLE_ALGORITHM[$algorithm] ?? null;
 
@@ -308,11 +309,11 @@ final class Jwt
             case self::ALG_HS256:
             case self::ALG_HS384:
             case self::ALG_HS512:
-                return hash_hmac($usedAlgorithm, $msg, $key, true);
+                return hash_hmac($usedAlgorithm, $message, $key, true);
             case self::ALG_RS256:
             case self::ALG_RS384:
             case self::ALG_RS512:
-                return $this->generateRsa($usedAlgorithm, $msg, $key);
+                return $this->generateRsa($usedAlgorithm, $message, $key);
             default:
                 throw new \DomainException('Algorithm is not supported');
         }
@@ -322,7 +323,7 @@ final class Jwt
      * Verify a signature with the message, key and method. Not all methods
      * are symmetric, so we must have a separate verify and sign method.
      *
-     * @param string          $msg       The original message (header and body)
+     * @param string          $message   The original message (header and body)
      * @param string          $signature The original signature
      * @param string          $algorithm The algorithm
      * @param string|resource $key
@@ -331,19 +332,19 @@ final class Jwt
      *
      * @throws DomainException If algorithm is not supported
      */
-    private function verify(string $msg, string $signature, string $algorithm, $key): bool
+    private function verify(string $message, string $signature, string $algorithm, $key): bool
     {
         switch ($algorithm) {
             case self::ALG_HS256:
             case self::ALG_HS384:
             case self::ALG_HS512:
-                return hash_equals($signature, $this->sign($msg, $algorithm, $key));
+                return hash_equals($signature, $this->sign($message, $algorithm, $key));
             case self::ALG_RS256:
             case self::ALG_RS384:
             case self::ALG_RS512:
                 $usedAlgorithm = self::AVAILABLE_ALGORITHM[$algorithm];
 
-                return $this->verifyRsa($signature, $usedAlgorithm, $msg, $key);
+                return $this->verifyRsa($signature, $usedAlgorithm, $message, $key);
             default:
                 throw new \DomainException('Algorithm is not supported');
         }
@@ -354,29 +355,29 @@ final class Jwt
      *
      * @param string          $signature
      * @param string          $algorithm
-     * @param string          $msg
+     * @param string          $message
      * @param string|resource $key
      *
      * @return bool
      */
-    private function verifyRsa(string $signature, string $algorithm, string $msg, $key): bool
+    private function verifyRsa(string $signature, string $algorithm, string $message, $key): bool
     {
-        return openssl_verify($msg, $signature, $key, $algorithm) > 0;
+        return openssl_verify($message, $signature, $key, $algorithm) > 0;
     }
 
     /**
      * Generate RSA.
      *
      * @param string          $algorithm
-     * @param string          $msg
+     * @param string          $message
      * @param string|resource $key
      *
      * @return string
      */
-    private function generateRsa(string $algorithm, string $msg, $key): string
+    private function generateRsa(string $algorithm, string $message, $key): string
     {
         $signature = '';
-        openssl_sign($msg, $signature, $key, $algorithm);
+        openssl_sign($message, $signature, $key, $algorithm);
 
         return $signature ?? '';
     }

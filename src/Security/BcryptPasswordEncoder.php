@@ -21,16 +21,16 @@ final class BcryptPasswordEncoder implements PasswordEncoderInterface
     /**
      * {@inheritdoc}
      */
-    public function hash(string $plain): string
+    public function hash(string $plainText): string
     {
-        return password_hash($plain, PASSWORD_BCRYPT);
+        return password_hash($plainText, PASSWORD_BCRYPT);
     }
 
     /**
      * {@inheritdoc}
      */
-    public function verify(string $plain, string $hash): bool
+    public function verify(string $plainText, string $hash): bool
     {
-        return password_verify($plain, $hash);
+        return password_verify($plainText, $hash);
     }
 }

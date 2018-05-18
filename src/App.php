@@ -95,6 +95,15 @@ final class App implements \ArrayAccess
         'boot' => null,
     ];
 
+    // Default group
+    const GROUP_DEFAULT = [
+        'class' => '',
+        'route' => '',
+        'prefix' => '',
+        'suffix' => '',
+        'mode' => '->',
+    ];
+
     /**
      * Initial value.
      *
@@ -154,6 +163,34 @@ final class App implements \ArrayAccess
         ];
         // Full assignment
         $this->hive = [
+            '_BOOTED' => false,
+            '_GROUP' => null,
+            '_GROUP_DEPTH' => 0,
+            '_LISTENERS' => [],
+            '_ROUTES' => [],
+            '_ROUTE_ALIASES' => [],
+            '_SERVICES' => [],
+            '_SERVICE_RULES' => [
+                'cache' => [
+                    'class' => Cache::class,
+                    'args' => [
+                        'dsn' => '%CACHE%',
+                        'prefix' => '%SEED%',
+                        'fallback' => '%TEMP%cache/',
+                    ],
+                ],
+                'logger' => [
+                    'class' => Logger::class,
+                    'args' => [
+                        'dir' => '%TEMP%log/',
+                        'logLevelThreshold' => Logger::LEVEL_DEBUG,
+                    ],
+                ],
+            ],
+            '_SERVICE_ALIASES' => [
+                Cache::class => 'cache',
+                Logger::class => 'logger',
+            ],
             'CACHE' => '',
             'CASELESS' => false,
             'CORS' => [
@@ -211,15 +248,6 @@ final class App implements \ArrayAccess
                 'URI' => $_SERVER['REQUEST_URI'],
             ],
             'SEED' => Helper::hash($_SERVER['SERVER_NAME'].$base),
-            'SYS' => [
-                'BOOTED' => false,
-                'ROUTES' => [],
-                'ALIASES' => [],
-                'SERVICES' => [],
-                'SRULES' => [],
-                'SALIASES' => [],
-                'LISTENERS' => [],
-            ],
             'TEMP' => './var/',
             'TRACE' => is_dir($_SERVER['DOCUMENT_ROOT']) ? $_SERVER['DOCUMENT_ROOT'] : dirname($_SERVER['DOCUMENT_ROOT']),
             'TZ' => date_default_timezone_get(),
@@ -229,25 +257,6 @@ final class App implements \ArrayAccess
 
         // Sync PHP globals with corresponding hive keys
         array_map([$this, 'sync'], explode('|', self::GLOBALS));
-
-        // register core services
-        $this->rules([
-            'cache' => [
-                'class' => Cache::class,
-                'args' => [
-                    'dsn' => '%CACHE%',
-                    'prefix' => '%SEED%',
-                    'fallback' => '%TEMP%cache/',
-                ],
-            ],
-            'logger' => [
-                'class' => Logger::class,
-                'args' => [
-                    'dir' => '%TEMP%log/',
-                    'logLevelThreshold' => Logger::LEVEL_DEBUG,
-                ],
-            ],
-        ]);
 
         // Save a copy of hive
         $this->init = $this->hive;
@@ -439,6 +448,56 @@ final class App implements \ArrayAccess
     }
 
     /**
+     * Register route with group.
+     *
+     * Available options:
+     *
+     *  * route  : route prefix
+     *  * prefix : path prefix
+     *  * suffix : path suffix
+     *  * class  : class name handler
+     *  * mode   : '->' (default) or '::'
+     *
+     * Example:
+     *
+     *      $app->group(['prefix'=>'/foo', 'route'=>'foo'], function($app) {
+     *          $app->route('GET bar /bar', function() {
+     *              # ...
+     *          });
+     *      });
+     *
+     * @param array    $options
+     * @param callable $callback
+     *
+     * @return App
+     */
+    public function group(array $options, callable $callback): App
+    {
+        ++$this->hive['_GROUP_DEPTH'];
+
+        $use = $options + self::GROUP_DEFAULT;
+
+        if ($this->hive['_GROUP_DEPTH'] > 1) {
+            $use = [
+                'route' => $this->hive['_GROUP']['route'].$use['route'],
+                'prefix' => $this->hive['_GROUP']['prefix'].$use['prefix'],
+                'suffix' => $this->hive['_GROUP']['suffix'].$use['suffix'],
+                'class' => $use['class'],
+                'mode' => $use['mode'],
+                '_parent' => $this->hive['_GROUP'] ?? null,
+            ];
+        }
+
+        $this->hive['_GROUP'] = $use;
+
+        call_user_func_array($callback, [$this]);
+
+        $this->hive['_GROUP'] = --$this->hive['_GROUP_DEPTH'] > 0 ? $this->hive['_GROUP']['_parent'] ?? self::GROUP_DEFAULT : self::GROUP_DEFAULT;
+
+        return $this;
+    }
+
+    /**
      * Register route.
      *
      * Pattern rule: "METHOD [routeName] /path [requestMode]".
@@ -487,10 +546,18 @@ final class App implements \ArrayAccess
 
         $alias = $match[2] ?? null;
         $path = $match[3] ?? '';
+        $reuse = !$alias && isset($path) && isset($this->hive['_ROUTE_ALIASES'][$path]);
+        $group = $this->hive['_GROUP'] ?? self::GROUP_DEFAULT;
 
-        if (!$alias && isset($path) && isset($this->hive['SYS']['ALIASES'][$path])) {
+        if ($reuse) {
             $alias = $path;
-            $path = $this->hive['SYS']['ALIASES'][$alias];
+            $path = $this->hive['_ROUTE_ALIASES'][$alias];
+        } else {
+            if ($alias) {
+                $alias = $group['route'].$alias;
+            }
+
+            $path = $group['prefix'].$path.$group['suffix'];
         }
 
         if (!$path) {
@@ -498,13 +565,14 @@ final class App implements \ArrayAccess
         }
 
         if ($alias) {
-            $this->hive['SYS']['ALIASES'][$alias] = $path;
+            $this->hive['_ROUTE_ALIASES'][$alias] = $path;
         }
 
         $type = Helper::constant(self::class.'::REQ_'.strtoupper($match[4] ?? ''), 0);
+        $use = is_string($handler) ? ($group['class'] ? $group['class'].$group['mode'] : '').$handler : $handler;
 
         foreach (Helper::split(strtoupper($match[1])) as $verb) {
-            $this->hive['SYS']['ROUTES'][$path][$type][$verb] = [$handler, $ttl, $kbps, $alias];
+            $this->hive['_ROUTES'][$path][$type][$verb] = [$use, $ttl, $kbps, $alias];
         }
 
         return $this;
@@ -645,7 +713,7 @@ final class App implements \ArrayAccess
      */
     public function alias(string $alias, array $args = null): string
     {
-        if (!isset($this->hive['SYS']['ALIASES'][$alias])) {
+        if (!isset($this->hive['_ROUTE_ALIASES'][$alias])) {
             throw new \LogicException('Route "'.$alias.'" does not exists');
         }
 
@@ -653,7 +721,7 @@ final class App implements \ArrayAccess
 
         return preg_replace_callback('/\{(\w+)(?:\:\w+)?\}/', function ($m) use ($lookup) {
             return array_key_exists($m[1], $lookup) ? $lookup[$m[1]] : $m[0];
-        }, $this->hive['SYS']['ALIASES'][$alias]);
+        }, $this->hive['_ROUTE_ALIASES'][$alias]);
     }
 
     /**
@@ -896,7 +964,7 @@ final class App implements \ArrayAccess
      */
     public function on(string $event, callable $listener): App
     {
-        $ref = &$this->ref('SYS.LISTENERS.'.$event);
+        $ref = &$this->ref('_LISTENERS.'.$event);
 
         if ($ref) {
             $ref[] = $listener;
@@ -917,7 +985,7 @@ final class App implements \ArrayAccess
      */
     public function trigger(string $event, array $args = null): bool
     {
-        $listeners = $this->ref('SYS.LISTENERS.'.$event, false);
+        $listeners = $this->ref('_LISTENERS.'.$event, false);
 
         if (!$listeners) {
             return false;
@@ -997,22 +1065,6 @@ final class App implements \ArrayAccess
     }
 
     /**
-     * Register service rules massively.
-     *
-     * @param array $rules
-     *
-     * @return App
-     */
-    public function rules(array $rules): App
-    {
-        foreach ($rules as $id => $rule) {
-            $this->rule($id, $rule);
-        }
-
-        return $this;
-    }
-
-    /**
      * Register service rule.
      *
      * Available options:
@@ -1038,7 +1090,7 @@ final class App implements \ArrayAccess
      */
     public function rule(string $id, $rule = null): App
     {
-        $ref = &$this->ref('SYS.SERVICES.'.$id);
+        $ref = &$this->ref('_SERVICES.'.$id);
         $ref = null;
 
         if (is_object($rule)) {
@@ -1052,14 +1104,14 @@ final class App implements \ArrayAccess
 
         unset($ref);
 
-        $ref = &$this->ref('SYS.SRULES.'.$id);
+        $ref = &$this->ref('_SERVICE_RULES.'.$id);
         $ref = array_filter(array_replace(self::RULE_DEFAULT, [
             'class' => $id,
         ], $use ?? []), function ($val) {
             return null !== $val;
         });
 
-        $this->hive['SYS']['SALIASES'][$ref['class']] = $id;
+        $this->hive['_SERVICE_ALIASES'][$ref['class']] = $id;
 
         return $this;
     }
@@ -1076,13 +1128,13 @@ final class App implements \ArrayAccess
     {
         if (in_array($id, ['app', self::class])) {
             return $this;
-        } elseif (isset($this->hive['SYS']['SERVICES'][$id])) {
-            return $this->hive['SYS']['SERVICES'][$id];
-        } elseif (isset($this->hive['SYS']['SALIASES'][$id])) {
-            $id = $this->hive['SYS']['SALIASES'][$id];
+        } elseif (isset($this->hive['_SERVICES'][$id])) {
+            return $this->hive['_SERVICES'][$id];
+        } elseif (isset($this->hive['_SERVICE_ALIASES'][$id])) {
+            $id = $this->hive['_SERVICE_ALIASES'][$id];
 
-            if (isset($this->hive['SYS']['SERVICES'][$id])) {
-                return $this->hive['SYS']['SERVICES'][$id];
+            if (isset($this->hive['_SERVICES'][$id])) {
+                return $this->hive['_SERVICES'][$id];
             }
         }
 
@@ -1101,7 +1153,7 @@ final class App implements \ArrayAccess
      */
     public function create(string $id, array $args = null)
     {
-        $rule = $this->ref('SYS.SRULES.'.$id, false);
+        $rule = $this->ref('_SERVICE_RULES.'.$id, false);
         $use = ($rule ?? []) + [
             'class' => $id,
             'args' => $args,
@@ -1126,7 +1178,7 @@ final class App implements \ArrayAccess
         }
 
         if ($use['service']) {
-            $ref = &$this->ref('SYS.SERVICES.'.$id);
+            $ref = &$this->ref('_SERVICES.'.$id);
             $ref = $instance;
         }
 
@@ -1349,9 +1401,9 @@ final class App implements \ArrayAccess
      */
     private function doRun(): void
     {
-        if (!$this->hive['SYS']['BOOTED']) {
+        if (!$this->hive['_BOOTED']) {
             $this->trigger(self::EVENT_BOOT);
-            $this->hive['SYS']['BOOTED'] = true;
+            $this->hive['_BOOTED'] = true;
         }
 
         // We skip this part to test
@@ -1364,7 +1416,7 @@ final class App implements \ArrayAccess
         }
         // @codeCoverageIgnoreEnd
 
-        if (!$this->hive['SYS']['ROUTES']) {
+        if (!$this->hive['_ROUTES']) {
             // No routes defined
             $this->error(500, 'No route specified');
 
@@ -1389,7 +1441,7 @@ final class App implements \ArrayAccess
             $this->hive['RES']['HEADERS']['Access-Control-Allow-Credentials'] = Helper::reqstr($cors['CREDENTIALS']);
         }
 
-        foreach ($this->hive['SYS']['ROUTES'] as $pattern => $routes) {
+        foreach ($this->hive['_ROUTES'] as $pattern => $routes) {
             if ($this->noMatch($pattern, $modifier, $args)) {
                 continue;
             } elseif (isset($routes[$type][$method])) {

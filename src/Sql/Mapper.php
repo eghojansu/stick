@@ -352,7 +352,7 @@ class Mapper implements \ArrayAccess
     public function set(string $key, $val): Mapper
     {
         if (array_key_exists($key, $this->fields)) {
-            $val = is_null($val) && $this->fields[$key]['nullable'] ? $val : $this->db->value($this->fields[$key]['pdo_type'], $val);
+            $val = is_null($val) && $this->fields[$key]['nullable'] ? $val : $this->db->phpValue($this->fields[$key]['pdo_type'], $val);
             $this->fields[$key]['changed'] = $this->fields[$key]['initial'] !== $val || $this->fields[$key]['default'] !== $val;
             $this->fields[$key]['value'] = $val;
         } elseif (isset($this->adhoc[$key])) {
@@ -705,7 +705,7 @@ class Mapper implements \ArrayAccess
                     $inc = $key;
                 }
 
-                $filter[$key] = $this->db->value($field['pdo_type'], $field['value']);
+                $filter[$key] = $this->db->phpValue($field['pdo_type'], $field['value']);
             }
 
             if ($field['changed'] && $key !== $inc) {
@@ -729,7 +729,7 @@ class Mapper implements \ArrayAccess
 
         // Reload to obtain default and auto-increment field values
         if ($inc || $filter) {
-            $this->load($inc ? [$inc => $this->db->value($this->fields[$inc]['pdo_type'], $id)] : $filter);
+            $this->load($inc ? [$inc => $this->db->phpValue($this->fields[$inc]['pdo_type'], $id)] : $filter);
         }
 
         $this->trigger(self::EVENT_AFTERINSERT, [$this, $this->keys()]);
@@ -806,7 +806,7 @@ class Mapper implements \ArrayAccess
                 return $out;
             }
 
-            $args = $this->db->filter($filter);
+            $args = $this->db->buildFilter($filter);
             $sql = 'DELETE FROM '.$this->map.($args ? ' WHERE '.array_shift($args) : '');
 
             return (int) $this->db->exec($sql, $args);
@@ -857,7 +857,7 @@ class Mapper implements \ArrayAccess
         $args = [];
         $sql = 'SELECT '.$fields.' FROM '.$this->map;
 
-        $f = $this->db->filter($filter);
+        $f = $this->db->buildFilter($filter);
         if ($f) {
             $sql .= ' WHERE '.array_shift($f);
             $args = array_merge($args, $f);
@@ -867,7 +867,7 @@ class Mapper implements \ArrayAccess
             $sql .= ' GROUP BY '.$use['group'];
         }
 
-        $f = $this->db->filter($use['having']);
+        $f = $this->db->buildFilter($use['having']);
         if ($f) {
             $sql .= ' HAVING '.array_shift($f);
             $args = array_merge($args, $f);
@@ -956,7 +956,7 @@ class Mapper implements \ArrayAccess
 
         foreach ($row as $key => $val) {
             if (array_key_exists($key, $this->fields)) {
-                $mapper->fields[$key]['value'] = $mapper->fields[$key]['initial'] = is_null($val) && $this->fields[$key]['nullable'] ? $val : $this->db->value($this->fields[$key]['pdo_type'], $val);
+                $mapper->fields[$key]['value'] = $mapper->fields[$key]['initial'] = is_null($val) && $this->fields[$key]['nullable'] ? $val : $this->db->phpValue($this->fields[$key]['pdo_type'], $val);
             } else {
                 $mapper->adhoc[$key]['value'] = $val;
             }
