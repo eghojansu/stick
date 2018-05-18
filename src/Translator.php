@@ -15,22 +15,34 @@ namespace Fal\Stick;
 
 /**
  * Simple translator class.
+ *
+ * @author Eko Kurniawan <ekokurniawanbs@gmail.com>
  */
 final class Translator
 {
-    /** @var array */
+    /**
+     * @var array
+     */
     private $dict;
 
-    /** @var array */
+    /**
+     * @var array
+     */
     private $locales;
 
-    /** @var array */
+    /**
+     * @var array
+     */
     private $languages;
 
-    /** @var string */
+    /**
+     * @var string
+     */
     private $fallback;
 
-    /** @var bool */
+    /**
+     * @var bool
+     */
     private $loaded;
 
     /**
@@ -62,6 +74,10 @@ final class Translator
 
     /**
      * Trans plural message.
+     *
+     * Key/content example:
+     *
+     *  * There is no apple|There is one apple|There is # apples
      *
      * @param string  $key
      * @param numeric $count
@@ -213,6 +229,8 @@ final class Translator
      *
      * @param string $key
      * @param bool   $add
+     *
+     * @throws UnexpectedValueException If message reference is not a string
      */
     private function &ref(string $key, bool $add = false)
     {

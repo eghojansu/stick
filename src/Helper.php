@@ -15,6 +15,8 @@ namespace Fal\Stick;
 
 /**
  * Common helper.
+ *
+ * @author Eko Kurniawan <ekokurniawanbs@gmail.com>
  */
 final class Helper
 {

@@ -15,25 +15,41 @@ namespace Fal\Stick;
 
 /**
  * Simple template engine.
+ *
+ * @author Eko Kurniawan <ekokurniawanbs@gmail.com>
  */
 final class Template implements \ArrayAccess
 {
-    /** @var array */
+    /**
+     * @var array
+     */
     private $context = [];
 
-    /** @var array */
+    /**
+     * @var array
+     */
     private $dirs = [];
 
-    /** @var array Macro directory, relative to dirs */
+    /**
+     * Macro directory, relative to dirs.
+     *
+     * @var array
+     */
     private $macros = [];
 
-    /** @var array Macro aliases */
+    /**
+     * Macro aliases.
+     *
+     * @var array
+     */
     private $maliases = [];
 
     /** @var string */
     private $templateExtension = '.php';
 
-    /** @var array */
+    /**
+     * @var array
+     */
     private $aliases = [
         'esc' => 'e',
     ];
@@ -310,7 +326,7 @@ final class Template implements \ArrayAccess
      *
      * @return mixed
      *
-     * @throws BadFunctionCallException
+     * @throws BadFunctionCallException If function cannot be resolved
      */
     public function __call($func, $args)
     {

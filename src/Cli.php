@@ -17,13 +17,23 @@ namespace Fal\Stick;
  * Cli helper.
  *
  * Color output from: https://www.if-not-true-then-false.com/2010/php-class-for-coloring-php-command-line-cli-scripts-output-php-output-colorizing-using-bash-shell-colors/
+ *
+ * @author Eko Kurniawan <ekokurniawanbs@gmail.com>
  */
 final class Cli
 {
-    /** @var int Console width */
+    /**
+     * Console width.
+     *
+     * @var int
+     */
     private $width;
 
-    /** @var array Foreground color */
+    /**
+     * Foreground color.
+     *
+     * @var array
+     */
     private $fgColors = [
         'black' => '0;30',
         'dark_gray' => '1;30',
@@ -43,7 +53,11 @@ final class Cli
         'white' => '1;37',
     ];
 
-    /** @var array Background color */
+    /**
+     * Background color.
+     *
+     * @var array
+     */
     private $bgColors = [
         'black' => '40',
         'red' => '41',
@@ -55,7 +69,11 @@ final class Cli
         'light_gray' => '47',
     ];
 
-    /** @var array Expression color map */
+    /**
+     * Expression color map.
+     *
+     * @var array
+     */
     private $exprColorMap = [
         'success' => 'green',
         'warning' => 'yellow',

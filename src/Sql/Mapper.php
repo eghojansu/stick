@@ -17,13 +17,15 @@ use Fal\Stick\Helper;
 
 /**
  * Sql record mapper.
+ *
+ * @author Eko Kurniawan <ekokurniawanbs@gmail.com>
  */
 class Mapper implements \ArrayAccess
 {
-    /** Pagination records perpage */
+    // Paginate perpage
     const PERPAGE = 10;
 
-    /** Event names */
+    // Supported events
     const EVENT_LOAD = 'load';
     const EVENT_BEFOREINSERT = 'beforeinsert';
     const EVENT_AFTERINSERT = 'afterinsert';
@@ -32,39 +34,61 @@ class Mapper implements \ArrayAccess
     const EVENT_BEFOREDELETE = 'beforedelete';
     const EVENT_AFTERDELETE = 'afterdelete';
 
-    /** Aliases */
+    // Event aliases
     const EVENT_INSERT = self::EVENT_AFTERINSERT;
     const EVENT_UPDATE = self::EVENT_AFTERUPDATE;
     const EVENT_DELETE = self::EVENT_AFTERDELETE;
 
-    /** @var Connection */
+    /**
+     * @var Connection
+     */
     protected $db;
 
-    /** @var string */
+    /**
+     * @var string
+     */
     protected $driver;
 
-    /** @var string */
+    /**
+     * @var string
+     */
     protected $table;
 
-    /** @var string */
+    /**
+     * @var string
+     */
     protected $map;
 
-    /** @var array */
+    /**
+     * @var array
+     */
     protected $fields;
 
-    /** @var array primary keys */
+    /**
+     * Primary keys.
+     *
+     * @var array
+     */
     protected $keys;
 
-    /** @var array */
+    /**
+     * @var array
+     */
     protected $hive;
 
-    /** @var array */
+    /**
+     * @var array
+     */
     protected $adhoc = [];
 
-    /** @var array */
+    /**
+     * @var array
+     */
     protected $props = [];
 
-    /** @var array */
+    /**
+     * @var array
+     */
     protected $triggers = [];
 
     /**
@@ -255,6 +279,8 @@ class Mapper implements \ArrayAccess
      * @param array|null    $options
      *
      * @return Relation
+     *
+     * @throws UnexpectedValueException If target is not instance of Mapper
      */
     public function createRelation($target = null, string $targetId = null, string $refId = null, $pivot = null, bool $one = null, array $options = null): Relation
     {
@@ -293,6 +319,8 @@ class Mapper implements \ArrayAccess
      * @param string $key
      *
      * @return mixed
+     *
+     * @throws LogicException If given key is undefined
      */
     public function &get(string $key)
     {
@@ -456,6 +484,8 @@ class Mapper implements \ArrayAccess
      * @param array $keys
      *
      * @return Mapper
+     *
+     * @throws LogicException If given key is not valid field
      */
     public function setKeys(array $keys): Mapper
     {
@@ -527,10 +557,10 @@ class Mapper implements \ArrayAccess
     }
 
     /**
-     * Paginate table content.
+     * Paginate records.
      *
      * @param int               $page
-     * @param string|array|null $filter  @see Connection::filter
+     * @param string|array|null $filter
      * @param array|null        $options
      * @param int               $ttl
      *
@@ -561,7 +591,7 @@ class Mapper implements \ArrayAccess
     /**
      * Count table records.
      *
-     * @param string|array|null $filter  @see Connection::filter
+     * @param string|array|null $filter
      * @param array|null        $options
      * @param int               $ttl
      *
@@ -582,7 +612,7 @@ class Mapper implements \ArrayAccess
     /**
      * Load mapper.
      *
-     * @param string|array|null $filter  @see Connection::filter
+     * @param string|array|null $filter
      * @param array|null        $options
      * @param int               $ttl
      *
@@ -608,6 +638,8 @@ class Mapper implements \ArrayAccess
      * @param mixed $ids
      *
      * @return Mapper
+     *
+     * @throws ArgumentCountError If given argument count is not match with primary keys count
      */
     public function find(...$ids): Mapper
     {
@@ -624,7 +656,7 @@ class Mapper implements \ArrayAccess
     /**
      * Find records.
      *
-     * @param string|array|null $filter  @see Connection::filter
+     * @param string|array|null $filter
      * @param array|null        $options
      * @param int               $ttl
      *
@@ -807,7 +839,7 @@ class Mapper implements \ArrayAccess
      * Build select query.
      *
      * @param string            $fields
-     * @param string|array|null $filter  @see Connection::filter
+     * @param string|array|null $filter
      * @param array|null        $options
      *
      * @return array
@@ -936,7 +968,7 @@ class Mapper implements \ArrayAccess
     }
 
     /**
-     * Return modified field arg (@see self::__call).
+     * Return modified field arg.
      *
      * @param string $field
      * @param array  $args
@@ -1004,14 +1036,17 @@ class Mapper implements \ArrayAccess
      * Magic method proxy.
      *
      * Example:
-     *     getName      get('name')
-     *     findByName   findAll(['name'=>'value'])
-     *     loadByName   load(['name'=>'value'])
+     *
+     *     getName      => get('name')
+     *     findByName   => findAll(['name'=>'value'])
+     *     loadByName   => load(['name'=>'value'])
      *
      * @param string $method
      * @param array  $args
      *
      * @return mixed
+     *
+     * @throws BadMethodCallException If method is undefined
      */
     public function __call($method, array $args)
     {

@@ -17,16 +17,24 @@ use Fal\Stick\Sql\Connection;
 
 /**
  * User provider that utilize Sql Connection.
+ *
+ * @author Eko Kurniawan <ekokurniawanbs@gmail.com>
  */
 final class SqlUserProvider implements UserProviderInterface
 {
-    /** @var Connection */
+    /**
+     * @var Connection
+     */
     private $db;
 
-    /** @var UserTransformerInterface */
+    /**
+     * @var UserTransformerInterface
+     */
     private $transformer;
 
-    /** @var array */
+    /**
+     * @var array
+     */
     private $option;
 
     /**

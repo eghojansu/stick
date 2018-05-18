@@ -15,13 +15,19 @@ namespace Fal\Stick\Security;
 
 /**
  * Simple user provider that holds users as its data.
+ *
+ * @author Eko Kurniawan <ekokurniawanbs@gmail.com>
  */
 final class InMemoryUserProvider implements UserProviderInterface
 {
-    /** @var array */
+    /**
+     * @var array
+     */
     private $users;
 
-    /** @var UserTransformerInterface */
+    /**
+     * @var UserTransformerInterface
+     */
     private $transformer;
 
     /**

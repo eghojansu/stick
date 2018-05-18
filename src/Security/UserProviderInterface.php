@@ -15,6 +15,8 @@ namespace Fal\Stick\Security;
 
 /**
  * Interface for user provider.
+ *
+ * @author Eko Kurniawan <ekokurniawanbs@gmail.com>
  */
 interface UserProviderInterface
 {

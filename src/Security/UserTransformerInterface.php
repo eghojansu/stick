@@ -15,6 +15,8 @@ namespace Fal\Stick\Security;
 
 /**
  * Interface for user transformer.
+ *
+ * @author Eko Kurniawan <ekokurniawanbs@gmail.com>
  */
 interface UserTransformerInterface
 {

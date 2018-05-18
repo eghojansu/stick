@@ -18,34 +18,48 @@ use Fal\Stick\Helper;
 
 /**
  * Authentication utils.
+ *
+ * @author Eko Kurniawan <ekokurniawanbs@gmail.com>
  */
 final class Auth
 {
-    /** Credential messages */
+    // Error messages
     const CREDENTIAL_INVALID = 'Invalid credentials.';
     const CREDENTIAL_EXPIRED = 'Your credentials is expired.';
 
-    /** Event names */
+    // Supported events
     const EVENT_LOGIN = 'auth.login';
     const EVENT_LOGOUT = 'auth.logout';
     const EVENT_LOADUSER = 'auth.loaduser';
 
-    /** @var App */
+    /**
+     * @var App
+     */
     private $app;
 
-    /** @var UserProviderInterface */
+    /**
+     * @var UserProviderInterface
+     */
     private $provider;
 
-    /** @var PasswordEncoderInterface */
+    /**
+     * @var PasswordEncoderInterface
+     */
     private $encoder;
 
-    /** @var array */
+    /**
+     * @var array
+     */
     private $options;
 
-    /** @var UserInterface */
+    /**
+     * @var UserInterface
+     */
     private $user;
 
-    /** @var bool */
+    /**
+     * @var bool
+     */
     private $userLoaded;
 
     /**
@@ -54,7 +68,7 @@ final class Auth
      * @param App                      $app
      * @param UserProviderInterface    $provider
      * @param PasswordEncoderInterface $encoder
-     * @param array                    $options  @see self::setOption
+     * @param array                    $options
      */
     public function __construct(App $app, UserProviderInterface $provider, PasswordEncoderInterface $encoder, array $options = [])
     {
@@ -66,7 +80,7 @@ final class Auth
     }
 
     /**
-     * Try login with username and password.
+     * Attempt login with username and password.
      *
      * @param string $username
      * @param string $password
@@ -93,7 +107,9 @@ final class Auth
     }
 
     /**
-     * Set current user.
+     * Set current user and trigger login event.
+     *
+     * @param UserInterface $user
      */
     public function login(UserInterface $user): void
     {
@@ -191,7 +207,7 @@ final class Auth
     }
 
     /**
-     * Check roles.
+     * Check roles agains current user roles.
      *
      * @param string|array $checkRoles
      *
@@ -257,10 +273,11 @@ final class Auth
      * Set options.
      *
      * Valid options:
-     *  loginPath       string|array route/path to redirect if user anonymous
-     *  redirect        string|array route/path to redirect if user has been login
-     *  rules           array        path with valid roles, example: /secure => ROLE_USER,ROLE_ADMIN
-     *  roleHierarchy   array        like in symfony roles, example: ROLE_ADMIN => ROLE_USER
+     *
+     *     loginPath       string|array route/path to redirect if user anonymous
+     *     redirect        string|array route/path to redirect if user has been login
+     *     rules           array        path with valid roles, example: ['/secure' => 'ROLE_USER,ROLE_ADMIN']
+     *     roleHierarchy   array        like in symfony roles, example: ['ROLE_ADMIN' => 'ROLE_USER']
      *
      * @param array $options
      *
@@ -292,7 +309,7 @@ final class Auth
         }
 
         $roles = [];
-        $children = (array) $this->options['roleHierarchy'][$role];
+        $children = Helper::reqarr($this->options['roleHierarchy'][$role]);
 
         foreach ($children as $child) {
             $roles = array_merge($roles, $this->getHierarchy($child));

@@ -15,6 +15,8 @@ namespace Fal\Stick\Validation;
 
 /**
  * Interface for validator.
+ *
+ * @author Eko Kurniawan <ekokurniawanbs@gmail.com>
  */
 interface ValidatorInterface
 {
@@ -41,7 +43,7 @@ interface ValidatorInterface
     public function message(string $rule, $value = null, array $args = [], string $field = '', string $message = null): string;
 
     /**
-     * Get real validator rule.
+     * Perform validation with given rule.
      *
      * @param string $rule
      * @param mixed  $value

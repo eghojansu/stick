@@ -15,15 +15,17 @@ namespace Fal\Stick;
 
 /**
  * Log utils.
+ *
+ * @author Eko Kurniawan <ekokurniawanbs@gmail.com>
  */
 final class Logger
 {
-    /** Log frequency */
+    // Log frequency
     const LOG_DAILY = 'daily';
     const LOG_WEEKLY = 'weekly';
     const LOG_MONTHLY = 'monthly';
 
-    /** Log level */
+    // Log level
     const LEVEL_EMERGENCY = 'emergency';
     const LEVEL_ALERT = 'alert';
     const LEVEL_CRITICAL = 'critical';
@@ -33,7 +35,7 @@ final class Logger
     const LEVEL_INFO = 'info';
     const LEVEL_DEBUG = 'debug';
 
-    /** Log level value */
+    // Log level value
     const LEVELS = [
         self::LEVEL_EMERGENCY => 0,
         self::LEVEL_ALERT => 1,
@@ -45,22 +47,34 @@ final class Logger
         self::LEVEL_DEBUG => 7,
     ];
 
-    /** @var string */
+    /**
+     * @var string
+     */
     private $extension = 'log';
 
-    /** @var string */
+    /**
+     * @var string
+     */
     private $dateFormat = 'Y-m-d G:i:s.u';
 
-    /** @var string */
+    /**
+     * @var string
+     */
     private $logFrequency = self::LOG_DAILY;
 
-    /** @var string */
+    /**
+     * @var string
+     */
     private $prefix = 'log_';
 
-    /** @var string */
+    /**
+     * @var string
+     */
     private $dir;
 
-    /** @var string */
+    /**
+     * @var string
+     */
     private $logLevelThreshold;
 
     /**
@@ -306,6 +320,8 @@ final class Logger
      * @param string $logLevelThreshold
      *
      * @return Logger
+     *
+     * @throws DomainException If given log level is not valid
      */
     public function setLogLevelThreshold(string $logLevelThreshold): Logger
     {

@@ -15,6 +15,8 @@ namespace Fal\Stick\Security;
 
 /**
  * Interface for User class.
+ *
+ * @author Eko Kurniawan <ekokurniawanbs@gmail.com>
  */
 interface UserInterface
 {

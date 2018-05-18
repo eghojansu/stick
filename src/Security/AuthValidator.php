@@ -17,15 +17,21 @@ use Fal\Stick\Validation\AbstractValidator;
 
 /**
  * Auth related validator.
+ *
+ * @author Eko Kurniawan <ekokurniawanbs@gmail.com>
  */
 final class AuthValidator extends AbstractValidator
 {
-    /** @var array */
+    /**
+     * @var array
+     */
     protected $messages = [
         'password' => 'This value should be equal to current user password.',
     ];
 
-    /** @var Auth */
+    /**
+     * @var Auth
+     */
     private $auth;
 
     /**
@@ -39,7 +45,7 @@ final class AuthValidator extends AbstractValidator
     }
 
     /**
-     * Verify given password is valid current user password.
+     * Verify given password with current user password.
      *
      * @param string $val
      *

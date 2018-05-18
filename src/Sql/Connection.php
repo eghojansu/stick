@@ -18,10 +18,12 @@ use Fal\Stick\Helper;
 
 /**
  * PDO Wrapper.
+ *
+ * @author Eko Kurniawan <ekokurniawanbs@gmail.com>
  */
 final class Connection
 {
-    /** Supported database engine name */
+    // Supported databases
     const DB_SQLITE = 'sqlite';
     const DB_SQLITE2 = 'sqlite2';
     const DB_MYSQL = 'mysql';
@@ -33,37 +35,64 @@ final class Connection
     const DB_SYBASE = 'sybase';
     const DB_DBLIB = 'dblib';
 
-    /** Special data type */
     const PARAM_FLOAT = 'float';
 
-    /** @var string */
+    /**
+     * @var string
+     */
     private $encoding;
 
-    /** @var array original options */
+    /**
+     * Original options.
+     *
+     * @var array
+     */
     private $original;
 
-    /** @var array */
+    /**
+     * @var array
+     */
     private $options;
 
-    /** @var PDO */
+    /**
+     * @var PDO
+     */
     private $pdo;
 
-    /** @var Cache */
+    /**
+     * @var Cache
+     */
     private $cache;
 
-    /** @var string */
+    /**
+     * @var string
+     */
     private $log = '';
 
-    /** @var string driver name */
+    /**
+     * Driver name.
+     *
+     * @var string
+     */
     private $driver;
 
-    /** @var string driver version */
+    /**
+     * Driver version.
+     *
+     * @var string
+     */
     private $version;
 
-    /** @var bool */
+    /**
+     * Transaction status.
+     *
+     * @var bool
+     */
     private $trans;
 
-    /** @var int */
+    /**
+     * @var int
+     */
     private $rows = 0;
 
     /**
@@ -159,6 +188,7 @@ final class Connection
      * Set options.
      *
      * Available options (and its default value):
+     *
      *     debug    bool    false           enable debug mode
      *     log      bool    false           log query
      *     driver   string  void|unknown    database driver name, eg: mysql, sqlite
@@ -315,7 +345,35 @@ final class Connection
     }
 
     /**
-     * Build filter with rule below:.
+     * Build filter.
+     *
+     * Available maps:
+     *
+     *      * =       : =
+     *      * >       : >
+     *      * <       : <
+     *      * >=      : >=
+     *      * <=      : <=
+     *      * <>      : <>
+     *      * !=      : !=
+     *      * &       : AND
+     *      * |       : OR
+     *      * ^       : XOR
+     *      * !       : NOT
+     *      * ~       : LIKE
+     *      * !~      : NOT LIKE
+     *
+     *      * @       : SOUNDS LIKE
+     *      * []      : IN
+     *      * ![]     : NOT IN
+     *      * ><      : BETWEEN
+     *      * !><     : NOT BETWEEN
+     *
+     * Example:
+     *
+     *      ['field []' => [1,3]]   = 'field between 1 and 3'
+     *      ['field <>' => 2]   = 'field <> 1'
+     *      ['field #comment in case duplicate field cannot be avoided' => 2]   = 'field = 2'
      *
      * @param string|array $filter
      *
@@ -441,7 +499,7 @@ final class Connection
      * @param array|null $fields
      * @param int        $ttl
      *
-     * @return array ['field'=>['type'=>string,'pdo_type'=>string,'default'=>mixed,'nullable'=>bool,'pkey'=>bool]]
+     * @return array
      */
     public function schema(string $table, array $fields = null, int $ttl = 0): array
     {
@@ -737,7 +795,7 @@ final class Connection
     }
 
     /**
-     * Get affected rows/row count affected by last query.
+     * Get rows count affected by last query.
      *
      * @return int
      */
@@ -809,7 +867,7 @@ final class Connection
      *
      * @return string
      *
-     * @throws LogicException
+     * @throws LogicException If no logic found for creating driver DSN
      */
     private function createDsn(string $driver, array $options): string
     {

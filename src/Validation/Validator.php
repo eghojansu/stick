@@ -17,10 +17,14 @@ use Fal\Stick\Helper;
 
 /**
  * Validator wrapper.
+ *
+ * @author Eko Kurniawan <ekokurniawanbs@gmail.com>
  */
 final class Validator
 {
-    /** @var array */
+    /**
+     * @var array
+     */
     private $validators = [];
 
     /**
@@ -84,6 +88,8 @@ final class Validator
      * @param string $rule
      *
      * @return ValidatorInterface
+     *
+     * @throws DomainException If no validator supports the rule
      */
     private function findValidator(string $rule): ValidatorInterface
     {

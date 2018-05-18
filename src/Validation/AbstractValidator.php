@@ -17,13 +17,21 @@ use Fal\Stick\Helper;
 
 /**
  * Simplify validator implementation.
+ *
+ * @author Eko Kurniawan <ekokurniawanbs@gmail.com>
  */
 abstract class AbstractValidator implements ValidatorInterface
 {
-    /** @var array Rule message */
+    /**
+     * Rule messages.
+     *
+     * @var array
+     */
     protected $messages = [];
 
-    /** @var array */
+    /**
+     * @var array
+     */
     protected $currentData;
 
     /**

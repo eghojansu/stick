@@ -15,22 +15,46 @@ namespace Fal\Stick;
 
 /**
  * Cache utils.
+ *
+ * Supported cache engine:
+ *
+ *  * apc
+ *  * apcu
+ *  * folder
+ *  * memcached
+ *  * redis
+ *
+ * To disable cache pass empty DSN string.
+ *
+ * @author Eko Kurniawan <ekokurniawanbs@gmail.com>
  */
 final class Cache
 {
-    /** @var string */
+    /**
+     * @var string
+     */
     private $dsn;
 
-    /** @var string */
+    /**
+     * @var string
+     */
     private $prefix;
 
-    /** @var string */
+    /**
+     * @var string
+     */
     private $fallback;
 
-    /** @var string Cache id */
+    /**
+     * Cache id.
+     *
+     * @var string
+     */
     private $cache;
 
-    /** @var Redis|Memcached|string */
+    /**
+     * @var Redis|Memcached|string
+     */
     private $cacheRef;
 
     /**
@@ -56,6 +80,8 @@ final class Cache
      * @param mixed       ...$args
      *
      * @return bool
+     *
+     * @throws LogicException If required argument is not supplied
      */
     public function isCached(string &$hash = null, &$cached = null, string $suffix = 'cache', ...$args): bool
     {

@@ -17,16 +17,22 @@ use Fal\Stick\Validation\AbstractValidator;
 
 /**
  * Mapper related validator.
+ *
+ * @author Eko Kurniawan <ekokurniawanbs@gmail.com>
  */
 final class MapperValidator extends AbstractValidator
 {
-    /** @var array */
+    /**
+     * @var array
+     */
     protected $messages = [
         'exists' => null,
         'unique' => 'This value is already used.',
     ];
 
-    /** @var Mapper */
+    /**
+     * @var Mapper
+     */
     private $mapper;
 
     /**

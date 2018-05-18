@@ -17,6 +17,8 @@ namespace Fal\Stick\Validation;
  * Proxy rule to native PHP functions.
  *
  * Remember that value is always given as first arguments.
+ *
+ * @author Eko Kurniawan <ekokurniawanbs@gmail.com>
  */
 final class NativeValidator extends AbstractValidator
 {

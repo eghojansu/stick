@@ -17,22 +17,22 @@ namespace Fal\Stick\Security;
  * JWT utils.
  *
  * Based on:
- * - https://github.com/bllohar/php-jwt-class-with-RSA-support/blob/master/src/JWToken.php
- * - https://github.com/bastman/php-jwt/blob/master/src/JWT.php
+ *
+ *  * https://github.com/bllohar/php-jwt-class-with-RSA-support/blob/master/src/JWToken.php
+ *  * https://github.com/bastman/php-jwt/blob/master/src/JWT.php
+ *
+ * @author Eko Kurniawan <ekokurniawanbs@gmail.com>
  */
 final class Jwt
 {
-    /** Supported algorithm */
-    const
-        ALG_HS256 = 'HS256';
+    const ALG_HS256 = 'HS256';
     const ALG_HS384 = 'HS384';
     const ALG_HS512 = 'HS512';
     const ALG_RS256 = 'RS256';
     const ALG_RS384 = 'RS384';
     const ALG_RS512 = 'RS512';
 
-    /** @var array */
-    private $availableAlgorithms = [
+    const AVAILABLE_ALGORITHM = [
         self::ALG_HS256 => 'SHA256',
         self::ALG_HS384 => 'SHA384',
         self::ALG_HS512 => 'SHA512',
@@ -41,19 +41,37 @@ final class Jwt
         self::ALG_RS512 => 'SHA512',
     ];
 
-    /** @var array */
+    /**
+     * @var array
+     */
     private $supportedAlgorithms;
 
-    /** @var string */
+    /**
+     * @var string
+     */
     private $algorithm;
 
-    /** @var string|resource */
+    /**
+     * @var string|resource
+     */
     private $encodeKey;
 
-    /** @var string|resource */
+    /**
+     * @var string|resource
+     */
     private $decodeKey;
 
-    /** @var int */
+    /**
+     * Leeway time.
+     *
+     * The server leeway time in seconds to aware the acceptable different time
+     * between clocks of token issued server and relying parties.
+     *
+     * When checking nbf, iat or expiration times, we want to provide
+     * some extra leeway time to account for clock skew.
+     *
+     * @var int
+     */
     private $leeway = 0;
 
     /**
@@ -213,7 +231,9 @@ final class Jwt
      *
      * @return array|object
      *
-     * @throws UnexpectedValueException If given token is invalid
+     * @throws UnexpectedValueException If given token is invalid or signature verification failed
+     * @throws DomainException          If header contains no algorithm or algorithm is not allowed
+     * @throws RuntimeException         If token expired or token is invalid
      */
     public function decode(string $token, bool $assoc = true)
     {
@@ -240,7 +260,7 @@ final class Jwt
         }
 
         if ($this->supportedAlgorithms && !in_array($header->alg, $this->supportedAlgorithms)) {
-            throw new \DomainException('Algorithm not allowed');
+            throw new \DomainException('Algorithm is not allowed');
         }
 
         // Check the signature
@@ -251,18 +271,14 @@ final class Jwt
         // Check if the nbf if it is defined. This is the time that the
         // token can actually be used. If it's not yet that time, abort.
         if (isset($payload->nbf) && $payload->nbf > (time() + $this->leeway)) {
-            throw new \RuntimeException(
-                'Cannot handle token prior to '.date(\DateTime::ISO8601, $payload->nbf)
-            );
+            throw new \RuntimeException('Cannot handle token prior to '.date(\DateTime::ISO8601, $payload->nbf));
         }
 
         // Check that this token has been created before 'now'. This prevents
         // using tokens that have been created for later use (and haven't
         // correctly used the nbf claim).
         if (isset($payload->iat) && $payload->iat > (time() + $this->leeway)) {
-            throw new \RuntimeException(
-                'Cannot handle token prior to '.date(\DateTime::ISO8601, $payload->iat)
-            );
+            throw new \RuntimeException('Cannot handle token prior to '.date(\DateTime::ISO8601, $payload->iat));
         }
 
         // Check if this token has expired.
@@ -282,11 +298,11 @@ final class Jwt
      *
      * @return string An encrypted message
      *
-     * @throws DomainException Invalid Algorithm is not supported
+     * @throws DomainException If algorithm is not supported
      */
     private function sign(string $msg, string $algorithm, $key): string
     {
-        $usedAlgorithm = $this->availableAlgorithms[$algorithm] ?? null;
+        $usedAlgorithm = self::AVAILABLE_ALGORITHM[$algorithm] ?? null;
 
         switch ($algorithm) {
             case self::ALG_HS256:
@@ -313,7 +329,7 @@ final class Jwt
      *
      * @return bool
      *
-     * @throws DomainException Invalid Algorithm is not supported
+     * @throws DomainException If algorithm is not supported
      */
     private function verify(string $msg, string $signature, string $algorithm, $key): bool
     {
@@ -325,7 +341,7 @@ final class Jwt
             case self::ALG_RS256:
             case self::ALG_RS384:
             case self::ALG_RS512:
-                $usedAlgorithm = $this->availableAlgorithms[$algorithm];
+                $usedAlgorithm = self::AVAILABLE_ALGORITHM[$algorithm];
 
                 return $this->verifyRsa($signature, $usedAlgorithm, $msg, $key);
             default:

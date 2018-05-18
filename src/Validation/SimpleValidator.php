@@ -15,10 +15,14 @@ namespace Fal\Stick\Validation;
 
 /**
  * Simple validator rules.
+ *
+ * @author Eko Kurniawan <ekokurniawanbs@gmail.com>
  */
 final class SimpleValidator extends AbstractValidator
 {
-    /** @var array Rule message */
+    /**
+     * @var array
+     */
     protected $messages = [
         'required' => 'This value should not be blank.',
         'type' => 'This value should be of type {0}.',
@@ -418,7 +422,10 @@ final class SimpleValidator extends AbstractValidator
     }
 
     /**
-     * Return true if string is a valid e-mail address;
+     * Check email.
+     *
+     * Return true if string is a valid e-mail address.
+     *
      * Check DNS MX records if specified.
      *
      * @param string $str

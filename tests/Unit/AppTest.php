@@ -247,6 +247,15 @@ class AppTest extends TestCase
         $this->assertNotEmpty($set);
     }
 
+    /**
+     * @expectedException \LogicException
+     * @expectedExceptionMessage Url cannot be empty
+     */
+    public function testRedirectException()
+    {
+        $this->app->redirect('GET /', '');
+    }
+
     public function testRedirectOnAction()
     {
         $this->app->redirect('GET /', '/foo');

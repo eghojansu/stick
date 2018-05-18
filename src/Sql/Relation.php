@@ -14,38 +14,62 @@ declare(strict_types=1);
 namespace Fal\Stick\Sql;
 
 /**
- * Mapper Relation, simple class which act like array, proxy to Mapper.
+ * Mapper Relation.
+ *
+ * Simple class which act like array and proxified to Mapper.
+ *
+ * @author Eko Kurniawan <ekokurniawanbs@gmail.com>
  */
 final class Relation implements \Iterator, \Countable, \ArrayAccess
 {
-    /** @var Mapper */
+    /**
+     * @var Mapper
+     */
     private $ref;
 
-    /** @var Mapper */
+    /**
+     * @var Mapper
+     */
     private $target;
 
-    /** @var string */
+    /**
+     * @var string
+     */
     private $refId;
 
-    /** @var string */
+    /**
+     * @var string
+     */
     private $targetId;
 
-    /** @var array */
+    /**
+     * @var array
+     */
     private $pivot;
 
-    /** @var array */
+    /**
+     * @var array
+     */
     private $options;
 
-    /** @var array */
+    /**
+     * @var array
+     */
     private $query = [];
 
-    /** @var int */
+    /**
+     * @var int
+     */
     private $count = 0;
 
-    /** @var int */
+    /**
+     * @var int
+     */
     private $ptr = 0;
 
-    /** @var bool */
+    /**
+     * @var bool
+     */
     private $loaded = false;
 
     /**
@@ -285,7 +309,7 @@ final class Relation implements \Iterator, \Countable, \ArrayAccess
     }
 
     /**
-     * Proxy to mapper method.
+     * Proxy to mapper's method.
      *
      * @param string $method
      * @param array  $args

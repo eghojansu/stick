@@ -17,22 +17,34 @@ use Fal\Stick\Helper;
 
 /**
  * Simple user class.
+ *
+ * @author Eko Kurniawan <ekokurniawanbs@gmail.com>
  */
 final class SimpleUser implements UserInterface
 {
-    /** @var string */
+    /**
+     * @var string
+     */
     private $id;
 
-    /** @var string */
+    /**
+     * @var string
+     */
     private $username;
 
-    /** @var string */
+    /**
+     * @var string
+     */
     private $password;
 
-    /** @var array */
+    /**
+     * @var array
+     */
     private $roles;
 
-    /** @var bool */
+    /**
+     * @var bool
+     */
     private $expired;
 
     /**

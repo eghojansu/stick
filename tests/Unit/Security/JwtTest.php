@@ -210,7 +210,7 @@ class JwtTest extends TestCase
 
     /**
      * @expectedException \DomainException
-     * @expectedExceptionMessage Algorithm not allowed
+     * @expectedExceptionMessage Algorithm is not allowed
      */
     public function testDecodeException5()
     {

@@ -15,25 +15,27 @@ namespace Fal\Stick;
 
 /**
  * Main framework class.
+ *
+ * @author Eko Kurniawan <ekokurniawanbs@gmail.com>
  */
 final class App implements \ArrayAccess
 {
-    /** Framework details */
+    // Framework details
     const PACKAGE = 'Stick-PHP';
     const VERSION = '0.1.0-beta';
 
-    /** Request types */
+    // Request types
     const REQ_SYNC = 1;
     const REQ_AJAX = 2;
     const REQ_CLI = 4;
 
-    /** Mapped PHP globals */
+    // Mapped PHP globals
     const GLOBALS = 'GET|POST|COOKIE|REQUEST|SESSION|FILES|SERVER|ENV';
 
-    /** Request methods */
+    // Request methods
     const VERBS = 'GET|HEAD|POST|PUT|PATCH|DELETE|CONNECT|OPTIONS';
 
-    /** HTTP status codes (RFC 2616) */
+    // HTTP status codes (RFC 2616)
     const HTTP_100 = 'Continue';
     const HTTP_101 = 'Switching Protocols';
     const HTTP_103 = 'Early Hints';
@@ -76,7 +78,7 @@ final class App implements \ArrayAccess
     const HTTP_504 = 'Gateway Timeout';
     const HTTP_505 = 'HTTP Version Not Supported';
 
-    /** Events */
+    // App events
     const EVENT_BOOT = 'app.boot';
     const EVENT_SHUTDOWN = 'app.shutdown';
     const EVENT_PREROUTE = 'app.preroute';
@@ -84,7 +86,7 @@ final class App implements \ArrayAccess
     const EVENT_REROUTE = 'app.reroute';
     const EVENT_ERROR = 'app.error';
 
-    /** @var array */
+    // Default rule
     const RULE_DEFAULT = [
         'class' => null,
         'use' => null,
@@ -93,10 +95,18 @@ final class App implements \ArrayAccess
         'boot' => null,
     ];
 
-    /** @var array Initial value */
+    /**
+     * Initial value.
+     *
+     * @var array
+     */
     private $init;
 
-    /** @var array Variables hive */
+    /**
+     * Variable hive.
+     *
+     * @var array
+     */
     private $hive;
 
     /**
@@ -429,16 +439,49 @@ final class App implements \ArrayAccess
     }
 
     /**
-     * Set route.
+     * Register route.
+     *
+     * Pattern rule: "METHOD [routeName] /path [requestMode]".
+     *
+     *  * Multiple method can be defined with pipe character as separator.
+     *  * Route name should not contains '.' (dot) or space.
+     *  * /path can be a valid routeName or pure path, if routeName given the previous path of routeName will be used
+     *  * Supported request mode: sync, ajax, cli
+     *
+     * Pattern example:
+     *
+     *      * GET /foo
+     *      * GET|POST /bar
+     *      * GET routeName /baz
+     *      * POST routeName (Above path '/baz' will be used)
+     *      * GET syncModeOnly /sync sync
+     *      * GET ajaxModeOnly /ajax ajax
+     *      * GET cliModeOnly /cli ajax
+     *      * GET /arguments/{arg}
+     *      * GET /arguments/{arg:alpha}/{arg2:digit}/{arg3:word}/{arg4:alnum}
+     *      * GET /arguments/{arg:lower}/{arg2:upper}
+     *
+     * Handler example:
+     *
+     *      * function() { ... } # no argument
+     *      * function($arg) { ... } # named arg in pattern
+     *      * function(App $app) { ... } # if instance of App needed
+     *      * function(OtherService $instance) { ... } # if instance of other service needed
+     *      * [$instanceOfController, 'method'] # if controller instantiate manually
+     *      * 'ControllerName->method' # same as above but controller will be instantiated by the Framework
+     *      * ['ControllerName', 'method'] # if controller method is static
+     *      * 'ControllerName::method' # same as above
      *
      * @param string          $pattern
-     * @param string|callable $callback
+     * @param string|callable $handler
      * @param int             $ttl
      * @param int             $kbps
      *
      * @return App
+     *
+     * @throws LogicException If route pattern is not valid
      */
-    public function route(string $pattern, $callback, int $ttl = 0, int $kbps = 0): App
+    public function route(string $pattern, $handler, int $ttl = 0, int $kbps = 0): App
     {
         preg_match('/^([\|\w]+)(?:\h+(\w+))?(?:\h+([^\h]+))(?:\h+(sync|ajax|cli))?$/i', $pattern, $match);
 
@@ -461,7 +504,7 @@ final class App implements \ArrayAccess
         $type = Helper::constant(self::class.'::REQ_'.strtoupper($match[4] ?? ''), 0);
 
         foreach (Helper::split(strtoupper($match[1])) as $verb) {
-            $this->hive['SYS']['ROUTES'][$path][$type][$verb] = [$callback, $ttl, $kbps, $alias];
+            $this->hive['SYS']['ROUTES'][$path][$type][$verb] = [$handler, $ttl, $kbps, $alias];
         }
 
         return $this;
@@ -469,6 +512,22 @@ final class App implements \ArrayAccess
 
     /**
      * Register pattern to handle ReST.
+     *
+     * Pattern is same as App::route but without method.
+     *
+     * App::VERBS will be registered with verb name as its method.
+     * Controller method can be prefixed with PREMAP value.
+     *
+     * Pattern example:
+     *
+     *  * /foo
+     *  * routeName /bar
+     *  * routeName /path sync
+     *
+     * Class example:
+     *
+     *      * $instanceOfController
+     *      * 'ControllerName'
      *
      * @param string        $pattern
      * @param string|object $class
@@ -492,14 +551,30 @@ final class App implements \ArrayAccess
     /**
      * Redirect pattern to specified url.
      *
-     * @param string            $pattern
-     * @param string|array|null $url
-     * @param bool              $permanent
+     * Pattern is same as App::route.
+     *
+     * Url can be string or array.
+     *
+     * Url example:
+     *
+     *      * /target/path
+     *      * routeName
+     *      * ['routeName', ['arg'=>'foo']]
+     *
+     * @param string       $pattern
+     * @param string|array $url
+     * @param bool         $permanent
      *
      * @return App
+     *
+     * @throws LogicException If url empty
      */
     public function redirect(string $pattern, $url, bool $permanent = true): App
     {
+        if (!$url) {
+            throw new \LogicException('Url cannot be empty');
+        }
+
         return $this->route($pattern, function () use ($url, $permanent) {
             $this->reroute($url, $permanent);
         });
@@ -511,6 +586,8 @@ final class App implements \ArrayAccess
      * @param int $code
      *
      * @return App
+     *
+     * @throws DomainException If given code is not supported
      */
     public function status(int $code): App
     {
@@ -563,6 +640,8 @@ final class App implements \ArrayAccess
      * @param array|null $args
      *
      * @return string
+     *
+     * @throws LogicException If named route (alias) does not exists
      */
     public function alias(string $alias, array $args = null): string
     {
@@ -658,6 +737,8 @@ final class App implements \ArrayAccess
      * @param array|null  $args
      * @param array|null  $headers
      * @param string|null $body
+     *
+     * @throws LogicException If mock pattern is not valid
      */
     public function mock(string $pattern, array $args = null, array $headers = null, string $body = null): void
     {
@@ -875,16 +956,28 @@ final class App implements \ArrayAccess
     }
 
     /**
-     * Call method.
+     * Call callback.
      *
-     * @param mixed      $def
+     * Framework will trying to find required arguments by looking up in services
+     * and given args.
+     *
+     * Callback example:
+     *
+     *  * regular callback is supported
+     *  * 'ClassName->method', instance of class name will be instantiated by the framework
+     *  * 'ClassName->method', static callable will be grabbed (['ClassName', 'method'])
+     *
+     * @param mixed      $callback
      * @param array|null $args
      *
      * @return mixed
+     *
+     * @throws BadMethodCallException   When method is not callable
+     * @throws BadFunctionCallException When function is not callable
      */
-    public function call($def, array $args = null)
+    public function call($callback, array $args = null)
     {
-        $func = is_string($def) ? $this->grab($def) : $def;
+        $func = is_string($callback) ? $this->grab($callback) : $callback;
 
         if (!is_callable($func)) {
             if (is_array($func)) {
@@ -904,7 +997,7 @@ final class App implements \ArrayAccess
     }
 
     /**
-     * Register service rules.
+     * Register service rules massively.
      *
      * @param array $rules
      *
@@ -920,7 +1013,23 @@ final class App implements \ArrayAccess
     }
 
     /**
-     * Set service rule.
+     * Register service rule.
+     *
+     * Available options:
+     *
+     *  * class: class name
+     *  * use: use this class name instead one defined as class name (in case your class is an interface or abstract class)
+     *  * args: an array of required arguments
+     *  * service: true or false
+     *  * boot: a callable to call after instance creation
+     *
+     * Usage example:
+     *
+     *  * $app->rule('YourClassName') # class name will be service id
+     *  * $app->rule('serviceId', 'YourClassName') # using class name
+     *  * $app->rule('serviceId', ['class'=>'YourClassName']) # same as above
+     *  * $app->rule('serviceId', $yourClassInstance) # using class instance
+     *  * $app->rule('serviceId', ['class'=>'YourClassName','service'=>false])
      *
      * @param string $id
      * @param mixed  $rule
@@ -987,6 +1096,8 @@ final class App implements \ArrayAccess
      * @param array|null $args
      *
      * @return mixed
+     *
+     * @throws LogicException If instance is not instantiable, eg: Interface, Abstract class
      */
     public function create(string $id, array $args = null)
     {
@@ -1034,6 +1145,17 @@ final class App implements \ArrayAccess
 
     /**
      * Load configuration from a file.
+     *
+     * Expect file which return multidimensional array.
+     *
+     * All key except below will be added to App hive.
+     *
+     *  * configs: to load another configuration file
+     *  * routes: to register routes
+     *  * maps: to register maps
+     *  * redirects: to register redirection
+     *  * rules: to register services
+     *  * listeners: to register event listener
      *
      * @param string $file
      *
