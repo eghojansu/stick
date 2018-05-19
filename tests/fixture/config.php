@@ -28,4 +28,11 @@ return [
         ['foo', function () {
         }],
     ],
+    'groups' => [
+        [['prefix'=>'/group'], function($app) {
+            $app->route('GET /index', function() {
+                return 'group index';
+            });
+        }],
+    ],
 ];

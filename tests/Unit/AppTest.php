@@ -1176,6 +1176,9 @@ class AppTest extends TestCase
         $this->app->mock('GET /bar');
         $this->assertEquals('foo', $this->app->get('RES.CONTENT'));
 
+        $this->app->mock('GET /group/index');
+        $this->assertEquals('group index', $this->app->get('RES.CONTENT'));
+
         $this->assertTrue($this->app->trigger('foo'));
         $this->assertInstanceOf(NoConstructorClass::class, $this->app->service('foo'));
     }

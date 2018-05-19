@@ -104,6 +104,17 @@ final class App implements \ArrayAccess
         'mode' => '->',
     ];
 
+    // Config map
+    const CONFIG_MAP = [
+        'configs' => 'config',
+        'routes' => 'route',
+        'maps' => 'map',
+        'redirects' => 'redirect',
+        'rules' => 'rule',
+        'listeners' => 'on',
+        'groups' => 'group',
+    ];
+
     /**
      * Initial value.
      *
@@ -1218,8 +1229,8 @@ final class App implements \ArrayAccess
         foreach (file_exists($file) ? Helper::exrequire($file, []) : [] as $key => $val) {
             $lkey = strtolower($key);
 
-            if (in_array($lkey, ['configs', 'routes', 'maps', 'redirects', 'rules', 'listeners'])) {
-                $call = 'listeners' === $lkey ? 'on' : substr($lkey, 0, -1);
+            if (isset(self::CONFIG_MAP[$lkey])) {
+                $call = self::CONFIG_MAP[$lkey];
 
                 foreach ((array) $val as $arg) {
                     $args = array_values((array) $arg);
