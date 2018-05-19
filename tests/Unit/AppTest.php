@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Fal\Stick\Test\Unit;
 
 use Fal\Stick\App;
+use Fal\Stick\ResponseErrorException;
 use Fal\Stick\Test\fixture\autoload\LoadAClass;
 use Fal\Stick\Test\fixture\controller\AnyController;
 use Fal\Stick\Test\fixture\controller\MapGetController;
@@ -636,6 +637,11 @@ class AppTest extends TestCase
                         throw new \Exception('bar');
                     };
                 }]], '/bar/',
+            ],
+            [
+                'foo', [], [['GET /', function () {
+                    throw new ResponseErrorException('Generated from exception', 404);
+                }]], '/Generated from exception/',
             ],
             [ // route do not exists
                 'foo', [], [['GET /foo', function () {

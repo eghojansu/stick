@@ -29,8 +29,8 @@ return [
         }],
     ],
     'groups' => [
-        [['prefix'=>'/group'], function($app) {
-            $app->route('GET /index', function() {
+        [['prefix' => '/group'], function ($app) {
+            $app->route('GET /index', function () {
                 return 'group index';
             });
         }],

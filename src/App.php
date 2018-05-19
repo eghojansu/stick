@@ -805,7 +805,7 @@ final class App implements \ArrayAccess
                 ob_end_clean();
             }
 
-            $this->error(500, $e->getMessage(), $e->getTrace());
+            $this->error($e instanceof ResponseErrorException ? $e->getCode() : 500, $e->getMessage() ?: null, $e->getTrace());
         }
     }
 
@@ -1422,17 +1422,13 @@ final class App implements \ArrayAccess
         // @codeCoverageIgnoreStart
         if ($this->blacklisted()) {
             // Spammer detected
-            $this->error(403);
-
-            return;
+            throw new ResponseErrorException("Sorry, you're not allowed to visit this site.", 403);
         }
         // @codeCoverageIgnoreEnd
 
         if (!$this->hive['_ROUTES']) {
             // No routes defined
-            $this->error(500, 'No route specified');
-
-            return;
+            throw new ResponseErrorException('No route specified');
         }
 
         $method = $this->hive['REQ']['METHOD'];
@@ -1490,9 +1486,7 @@ final class App implements \ArrayAccess
                 $check = $this->grab($handler, false);
 
                 if (is_array($check) && !class_exists($check[0])) {
-                    $this->error(404);
-
-                    return;
+                    throw new ResponseErrorException(null, 404);
                 }
             }
 
@@ -1538,9 +1532,7 @@ final class App implements \ArrayAccess
                 }
 
                 if (!is_callable($handler)) {
-                    $this->error(405);
-
-                    return;
+                    throw new ResponseErrorException(null, 405);
                 }
 
                 if ($this->trigger(self::EVENT_PREROUTE, $args)) {
@@ -1588,9 +1580,7 @@ final class App implements \ArrayAccess
 
         if (!$allowed) {
             // URL doesn't match any route
-            $this->error(404);
-
-            return;
+            throw new ResponseErrorException(null, 404);
         }
 
         if (!$this->hive['REQ']['CLI']) {
@@ -1612,9 +1602,7 @@ final class App implements \ArrayAccess
             }
 
             if ('OPTIONS' !== $method) {
-                $this->error(405);
-
-                return;
+                throw new ResponseErrorException(null, 405);
             }
         }
 
