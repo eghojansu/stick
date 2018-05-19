@@ -15,9 +15,12 @@ namespace Fal\Stick\Test\Unit;
 
 use Fal\Stick\App;
 use Fal\Stick\ResponseErrorException;
+use Fal\Stick\Sql\Connection;
 use Fal\Stick\Test\fixture\autoload\LoadAClass;
 use Fal\Stick\Test\fixture\controller\AnyController;
 use Fal\Stick\Test\fixture\controller\MapGetController;
+use Fal\Stick\Test\fixture\mapper\MyCompositUserMapper;
+use Fal\Stick\Test\fixture\mapper\MyUserMapper;
 use Fal\Stick\Test\fixture\services\DoNotRegisterClass;
 use Fal\Stick\Test\fixture\services\ImplementNoMethodInterface;
 use Fal\Stick\Test\fixture\services\NoConstructorClass;
@@ -832,6 +835,110 @@ class AppTest extends TestCase
         $this->app->run();
         $this->assertEquals('', $this->app->get('RES.CONTENT'));
         $this->assertEquals(304, $this->app->get('RES.CODE'));
+    }
+
+    public function runMapperProvider()
+    {
+        return [
+            [
+                'my mapper was constructed in dry state',
+                '/',
+                ['GET /', function (MyUserMapper $mapper) {
+                    return 'my mapper was constructed in '.($mapper->dry() ? 'dry' : 'wet').' state';
+                }],
+            ],
+            [
+                'username is foo',
+                '/1',
+                ['GET /{mapper}', function (MyUserMapper $mapper) {
+                    return 'username is '.$mapper->get('username');
+                }],
+            ],
+            [
+                'username is bar',
+                '/2',
+                ['GET /{mapper}', function (MyUserMapper $mapper) {
+                    return 'username is '.$mapper->get('username');
+                }],
+            ],
+            [
+                'username is bar',
+                '/4',
+                ['GET /{mapper}', function (MyUserMapper $mapper) {
+                }], 'Record is not found (GET /4)',
+            ],
+            [
+                'username is foo and password is bar',
+                '/foo/bar',
+                ['GET /{mapper}/{password}', function (MyCompositUserMapper $mapper) {
+                    return 'username is '.$mapper->get('username').' and password is '.$mapper->get('password');
+                }],
+            ],
+            [
+                'username is bar and password is baz',
+                '/bar/baz',
+                ['GET /{mapper}/{password}', function (MyCompositUserMapper $mapper) {
+                    return 'username is '.$mapper->get('username').' and password is '.$mapper->get('password');
+                }],
+            ],
+            [
+                null,
+                '/bar/qux',
+                ['GET /{mapper}/{password}', function (MyCompositUserMapper $mapper) {
+                }], 'Record is not found (GET /bar/qux)',
+            ],
+            [
+                null,
+                '/bar',
+                ['GET /{mapper}', function (MyCompositUserMapper $mapper) {
+                }], 'Insufficient primary keys value, expect value of "username, password"'
+            ],
+        ];
+    }
+
+    /**
+     * @dataProvider runMapperProvider
+     */
+    public function testRunMapper($expected, $path, $route = null, $error = null)
+    {
+        $this->app->set('QUIET', true)->set('CMAPPER', true)->set('REQ.PATH', $path);
+        $this->app->rule(Connection::class, [
+            'args' => [
+                'cache' => '%cache%',
+                'options' => [
+                    'driver' => 'sqlite',
+                    'location' => ':memory:',
+                    'commands' => <<<SQL1
+CREATE TABLE `user` (
+    `id` INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    `username` TEXT NOT NULL,
+    `password` TEXT NULL DEFAULT NULL,
+    `active` INTEGER NOT NULL DEFAULT 1
+);
+CREATE TABLE `composit_user` (
+    `username` TEXT NOT NULL,
+    `password` TEXT NOT NULL,
+    `active` INTEGER NOT NULL DEFAULT 1,
+    PRIMARY KEY (username, password)
+);
+insert into user (username) values ("foo"), ("bar"), ("baz");
+insert into composit_user (username, password) values ("foo","bar"), ("bar","baz"), ("baz","qux");
+SQL1
+                ],
+            ],
+        ]);
+
+        if ($route) {
+            $this->app->route(...$route);
+        }
+
+        $this->app->run();
+
+        if ($error) {
+            $this->assertEquals($error, $this->app->get('ERROR.text'));
+        } else {
+            $this->assertEquals($expected, $this->app->get('RES.CONTENT'));
+        }
     }
 
     public function mockProvider()

@@ -160,6 +160,16 @@ class HelperTest extends TestCase
         $this->assertEquals('def', Helper::icutbefore('bar', 'FOO', 'def'));
     }
 
+    public function testPickstartsat()
+    {
+        $this->assertEquals([], Helper::pickstartsat(['foo'=>'bar'], 'bar'));
+        $this->assertEquals(['foo'=>'bar'], Helper::pickstartsat(['foo'=>'bar'], 'foo'));
+        $this->assertEquals(['bar'=>'baz','qux'=>'quux'], Helper::pickstartsat(['foo'=>'bar','bar'=>'baz','qux'=>'quux'], 'bar'));
+        $this->assertEquals(['bar'=>'baz','qux'=>'quux'], Helper::pickstartsat(['foo'=>'bar','bar'=>'baz','qux'=>'quux'], 'bar', 2));
+        $this->assertEquals(['bar'=>'baz'], Helper::pickstartsat(['foo'=>'bar','bar'=>'baz'], 'bar', 1));
+        $this->assertEquals(['bar'=>'baz'], Helper::pickstartsat(['foo'=>'bar','bar'=>'baz','qux'=>'quux'], 'bar', 1));
+    }
+
     public function testExtract()
     {
         $this->assertEquals(['bar' => 'baz'], Helper::extract(['foobar' => 'baz'], 'foo'));

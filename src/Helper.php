@@ -279,6 +279,30 @@ final class Helper
         return substr(strtolower($str), $cut) === strtolower($suffix) ? substr($str, 0, $cut) : $default;
     }
 
+    public static function pickstartsat(array $arr, string $start, int $count = null): array
+    {
+        $res = [];
+        $used = 0;
+        $started = false;
+        $use = $count ?? count($arr);
+
+        foreach ($arr as $key => $value) {
+            if (!$started) {
+                $started = $key === $start;
+            }
+
+            if ($started) {
+                if ($used++ >= $use) {
+                    return $res;
+                }
+
+                $res[$key] = $value;
+            }
+        }
+
+        return $res;
+    }
+
     /**
      * Extract array contents which starts with prefix.
      *

@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace Fal\Stick;
 
+use Fal\Stick\Sql\Mapper;
+
 /**
  * Main framework class.
  *
@@ -175,8 +177,9 @@ final class App implements \ArrayAccess
         // Full assignment
         $this->hive = [
             '_BOOTED' => false,
-            '_GROUP' => null,
+            '_GROUP' => [],
             '_GROUP_DEPTH' => 0,
+            '_HANDLE_MAPPER' => false,
             '_LISTENERS' => [],
             '_ROUTES' => [],
             '_ROUTE_ALIASES' => [],
@@ -216,6 +219,7 @@ final class App implements \ArrayAccess
             'ENCODING' => 'UTF-8',
             'ERROR' => [],
             'EXEMPT' => [],
+            'CMAPPER' => false,
             'JAR' => [
                 'EXPIRE' => 0,
                 'PATH' => $base ?: '/',
@@ -245,6 +249,7 @@ final class App implements \ArrayAccess
                 'HEADERS' => $headers,
                 'HOST' => $_SERVER['SERVER_NAME'],
                 'IP' => $this->ip(),
+                'LANGUAGE' => $headers['Accept-Language'] ?? '',
                 'MATCH' => '',
                 'METHOD' => $method,
                 'PARAMS' => [],
@@ -495,7 +500,7 @@ final class App implements \ArrayAccess
                 'suffix' => $this->hive['_GROUP']['suffix'].$use['suffix'],
                 'class' => $use['class'],
                 'mode' => $use['mode'],
-                '_parent' => $this->hive['_GROUP'] ?? null,
+                '_parent' => $this->hive['_GROUP'],
             ];
         }
 
@@ -558,7 +563,7 @@ final class App implements \ArrayAccess
         $alias = $match[2] ?? null;
         $path = $match[3] ?? '';
         $reuse = !$alias && isset($path) && isset($this->hive['_ROUTE_ALIASES'][$path]);
-        $group = $this->hive['_GROUP'] ?? self::GROUP_DEFAULT;
+        $group = $this->hive['_GROUP'] ?: self::GROUP_DEFAULT;
 
         if ($reuse) {
             $alias = $path;
@@ -1539,7 +1544,9 @@ final class App implements \ArrayAccess
                     return;
                 }
 
+                $this->hive['_HANDLE_MAPPER'] = $this->hive['CMAPPER'];
                 $result = $this->call($handler, $args);
+                $this->hive['_HANDLE_MAPPER'] = false;
 
                 if (is_array($result)) {
                     $body = json_encode($result);
@@ -1778,7 +1785,30 @@ final class App implements \ArrayAccess
             return $this->service($classname);
         }
 
-        // TODO: logic for converting to Mapper
+        // special handling for converting REQ.PARAMS to mapper instance
+        if ($this->hive['_HANDLE_MAPPER'] && is_subclass_of($classname, Mapper::class)) {
+            $mapper = $this->service($classname);
+            $keys = $mapper->getKeys();
+            $kcount = count($keys);
+            $vals = Helper::pickstartsat($lookup, $ref->name, $kcount);
+            $vcount = count($vals);
+
+            if ($vcount !== $kcount) {
+                throw new ResponseErrorException('Insufficient primary keys value, expect value of "'.implode(', ', $keys).'"');
+            }
+
+            $use = array_values($vals);
+            $lookup = array_diff_key($lookup, $vals);
+
+            $mapper->find(...$use);
+
+            if ($mapper->dry()) {
+                throw new ResponseErrorException('Record is not found ('.$this->hive['REQ']['METHOD'].' '.$this->hive['REQ']['PATH'].')', 404);
+            }
+
+            return $mapper;
+        }
+
         return is_string($lookup[$ref->name]) ? $this->resolveArg($lookup[$ref->name]) : $lookup[$ref->name];
     }
 
