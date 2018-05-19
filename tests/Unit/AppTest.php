@@ -891,7 +891,7 @@ class AppTest extends TestCase
                 null,
                 '/bar',
                 ['GET /{mapper}', function (MyCompositUserMapper $mapper) {
-                }], 'Insufficient primary keys value, expect value of "username, password"'
+                }], 'Insufficient primary keys value, expect value of "username, password"',
             ],
         ];
     }

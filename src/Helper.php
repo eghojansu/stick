@@ -166,12 +166,12 @@ final class Helper
     /**
      * Check if string starts with prefix.
      *
-     * @param string $prefix
      * @param string $str
+     * @param string $prefix
      *
      * @return bool
      */
-    public static function startswith(string $prefix, string $str): bool
+    public static function startswith(string $str, string $prefix): bool
     {
         return substr($str, 0, strlen($prefix)) === $prefix;
     }
@@ -179,12 +179,12 @@ final class Helper
     /**
      * startswith case-insensitive.
      *
-     * @param string $prefix
      * @param string $str
+     * @param string $prefix
      *
      * @return bool
      */
-    public static function istartswith(string $prefix, string $str): bool
+    public static function istartswith(string $str, string $prefix): bool
     {
         return substr(strtolower($str), 0, strlen($prefix)) === strtolower($prefix);
     }
@@ -192,12 +192,12 @@ final class Helper
     /**
      * Check if string ends with suffix.
      *
-     * @param string $prefix
      * @param string $str
+     * @param string $suffix
      *
      * @return bool
      */
-    public static function endswith(string $suffix, string $str): bool
+    public static function endswith(string $str, string $suffix): bool
     {
         return substr($str, -1 * strlen($suffix)) === $suffix;
     }
@@ -205,12 +205,12 @@ final class Helper
     /**
      * endswith case-insensitive.
      *
-     * @param string $prefix
      * @param string $str
+     * @param string $suffix
      *
      * @return bool
      */
-    public static function iendswith(string $suffix, string $str): bool
+    public static function iendswith(string $str, string $suffix): bool
     {
         return substr(strtolower($str), -1 * strlen($suffix)) === strtolower($suffix);
     }
@@ -218,13 +218,13 @@ final class Helper
     /**
      * Cut string after prefix.
      *
-     * @param string $prefix
      * @param string $str
+     * @param string $prefix
      * @param string $default
      *
      * @return string
      */
-    public static function cutafter(string $prefix, string $str, string $default = ''): string
+    public static function cutafter(string $str, string $prefix, string $default = ''): string
     {
         $cut = strlen($prefix);
 
@@ -234,13 +234,13 @@ final class Helper
     /**
      * cutafter case-insensitive.
      *
-     * @param string $prefix
      * @param string $str
+     * @param string $prefix
      * @param string $default
      *
      * @return string
      */
-    public static function icutafter(string $prefix, string $str, string $default = ''): string
+    public static function icutafter(string $str, string $prefix, string $default = ''): string
     {
         $cut = strlen($prefix);
 
@@ -250,13 +250,13 @@ final class Helper
     /**
      * Cut string before suffix.
      *
-     * @param string $suffix
      * @param string $str
+     * @param string $suffix
      * @param string $default
      *
      * @return string
      */
-    public static function cutbefore(string $suffix, string $str, string $default = ''): string
+    public static function cutbefore(string $str, string $suffix, string $default = ''): string
     {
         $cut = strlen($suffix) * -1;
 
@@ -266,19 +266,28 @@ final class Helper
     /**
      * cutbefore case-insensitive.
      *
-     * @param string $suffix
      * @param string $str
+     * @param string $suffix
      * @param string $default
      *
      * @return string
      */
-    public static function icutbefore(string $suffix, string $str, string $default = ''): string
+    public static function icutbefore(string $str, string $suffix, string $default = ''): string
     {
         $cut = strlen($suffix) * -1;
 
         return substr(strtolower($str), $cut) === strtolower($suffix) ? substr($str, 0, $cut) : $default;
     }
 
+    /**
+     * Pick array values start at key.
+     *
+     * @param array    $arr
+     * @param string   $start
+     * @param int|null $count
+     *
+     * @return array
+     */
     public static function pickstartsat(array $arr, string $start, int $count = null): array
     {
         $res = [];

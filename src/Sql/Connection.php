@@ -435,7 +435,7 @@ final class Connection
                 continue;
             }
 
-            $raw = is_string($value) && Helper::startswith('```', $value);
+            $raw = is_string($value) && Helper::startswith($value, '```');
             $expr = $raw ? substr($value, 3) : $value;
             // clear column from comments format
             $ccol = (false === ($pos = strpos($key, '#'))) ? $key : substr($key, 0, $pos);

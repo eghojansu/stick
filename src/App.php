@@ -1820,13 +1820,13 @@ final class App implements \ArrayAccess
      */
     private function beforeSet(string $key, &$val): void
     {
-        if (Helper::startswith('GET.', $key)) {
-            $this->set('REQUEST'.Helper::cutafter('GET', $key), $val);
-        } elseif (Helper::startswith('POST.', $key)) {
-            $this->set('REQUEST'.Helper::cutafter('POST', $key), $val);
-        } elseif (Helper::startswith('COOKIE.', $key)) {
+        if (Helper::startswith($key, 'GET.')) {
+            $this->set('REQUEST'.Helper::cutafter($key, 'GET'), $val);
+        } elseif (Helper::startswith($key, 'POST.')) {
+            $this->set('REQUEST'.Helper::cutafter($key, 'POST'), $val);
+        } elseif (Helper::startswith($key, 'COOKIE.')) {
             $val = $this->modifyCookieSet($val);
-            $this->set('REQUEST'.Helper::cutafter('COOKIE', $key), $val);
+            $this->set('REQUEST'.Helper::cutafter($key, 'COOKIE'), $val);
         } elseif ('TZ' === $key) {
             date_default_timezone_set($val);
         } elseif ('ENCODING' === $key) {
@@ -1842,7 +1842,7 @@ final class App implements \ArrayAccess
      */
     private function afterSet(string $key, $val): void
     {
-        if (Helper::cutafter('JAR', $key) && !Helper::endswith('.EXPIRE', $key)) {
+        if (Helper::cutafter($key, 'JAR') && !Helper::endswith($key, '.EXPIRE')) {
             $this->hive['JAR']['EXPIRE'] -= microtime(true);
         }
     }
@@ -1902,12 +1902,12 @@ final class App implements \ArrayAccess
      */
     private function beforeClear(string $key): bool
     {
-        if (Helper::startswith('GET.', $key)) {
-            $this->clear('REQUEST'.Helper::cutafter('GET', $key));
-        } elseif (Helper::startswith('POST.', $key)) {
-            $this->clear('REQUEST'.Helper::cutafter('POST', $key));
-        } elseif (Helper::startswith('COOKIE.', $key)) {
-            $this->clear('REQUEST'.Helper::cutafter('COOKIE', $key));
+        if (Helper::startswith($key, 'GET.')) {
+            $this->clear('REQUEST'.Helper::cutafter($key, 'GET'));
+        } elseif (Helper::startswith($key, 'POST.')) {
+            $this->clear('REQUEST'.Helper::cutafter($key, 'POST'));
+        } elseif (Helper::startswith($key, 'COOKIE.')) {
+            $this->clear('REQUEST'.Helper::cutafter($key, 'COOKIE'));
             $this->set($key, ['', '_jar' => [strtotime('-1 year')]]);
 
             return true;
@@ -1923,8 +1923,8 @@ final class App implements \ArrayAccess
      */
     private function afterClear(string $key): void
     {
-        if (Helper::startswith('SESSION', $key)) {
-            $this->clearSession(Helper::cutafter('SESSION', $key));
+        if (Helper::startswith($key, 'SESSION')) {
+            $this->clearSession(Helper::cutafter($key, 'SESSION'));
         }
     }
 

@@ -101,33 +101,33 @@ class HelperTest extends TestCase
     public function testStartswith()
     {
         $this->assertTrue(Helper::startswith('foo', 'foo'));
-        $this->assertTrue(Helper::startswith('foo', 'foobar'));
-        $this->assertFalse(Helper::startswith('foo', 'bar'));
-        $this->assertFalse(Helper::startswith('foo', 'FOO'));
+        $this->assertTrue(Helper::startswith('foobar', 'foo'));
+        $this->assertFalse(Helper::startswith('bar', 'foo'));
+        $this->assertFalse(Helper::startswith('FOO', 'foo'));
     }
 
     public function testIstartswith()
     {
         $this->assertTrue(Helper::istartswith('foo', 'foo'));
-        $this->assertTrue(Helper::istartswith('foo', 'foobar'));
-        $this->assertFalse(Helper::istartswith('foo', 'bar'));
-        $this->assertTrue(Helper::istartswith('foo', 'FOO'));
+        $this->assertTrue(Helper::istartswith('foobar', 'foo'));
+        $this->assertFalse(Helper::istartswith('bar', 'foo'));
         $this->assertTrue(Helper::istartswith('FOO', 'foo'));
+        $this->assertTrue(Helper::istartswith('foo', 'FOO'));
     }
 
     public function testEndswith()
     {
         $this->assertTrue(Helper::endswith('foo', 'foo'));
-        $this->assertTrue(Helper::endswith('foo', 'barfoo'));
-        $this->assertFalse(Helper::endswith('foo', 'bar'));
-        $this->assertFalse(Helper::endswith('foo', 'FOO'));
+        $this->assertTrue(Helper::endswith('barfoo', 'foo'));
+        $this->assertFalse(Helper::endswith('bar', 'foo'));
+        $this->assertFalse(Helper::endswith('FOO', 'foo'));
     }
 
     public function testIendswith()
     {
         $this->assertTrue(Helper::iendswith('foo', 'foo'));
-        $this->assertTrue(Helper::iendswith('foo', 'barfoo'));
-        $this->assertFalse(Helper::iendswith('foo', 'bar'));
+        $this->assertTrue(Helper::iendswith('barfoo', 'foo'));
+        $this->assertFalse(Helper::iendswith('bar', 'foo'));
         $this->assertTrue(Helper::iendswith('foo', 'FOO'));
         $this->assertTrue(Helper::iendswith('FOO', 'foo'));
     }
@@ -135,39 +135,39 @@ class HelperTest extends TestCase
     public function testCutafter()
     {
         $this->assertEquals('', Helper::cutafter('foo', 'foo'));
-        $this->assertEquals('bar', Helper::cutafter('foo', 'foobar'));
-        $this->assertEquals('def', Helper::cutafter('foo', 'bar', 'def'));
+        $this->assertEquals('bar', Helper::cutafter('foobar', 'foo'));
+        $this->assertEquals('def', Helper::cutafter('bar', 'foo', 'def'));
     }
 
     public function testIcutafter()
     {
         $this->assertEquals('', Helper::icutafter('foo', 'foo'));
-        $this->assertEquals('BAR', Helper::icutafter('foo', 'FOOBAR'));
-        $this->assertEquals('def', Helper::icutafter('foo', 'bar', 'def'));
+        $this->assertEquals('BAR', Helper::icutafter('FOOBAR', 'foo'));
+        $this->assertEquals('def', Helper::icutafter('bar', 'foo', 'def'));
     }
 
     public function testCutbefore()
     {
         $this->assertEquals('', Helper::cutbefore('bar', 'bar'));
-        $this->assertEquals('foo', Helper::cutbefore('bar', 'foobar'));
-        $this->assertEquals('def', Helper::cutbefore('bar', 'foo', 'def'));
+        $this->assertEquals('foo', Helper::cutbefore('foobar', 'bar'));
+        $this->assertEquals('def', Helper::cutbefore('foo', 'bar', 'def'));
     }
 
     public function testIcutbefore()
     {
         $this->assertEquals('', Helper::icutbefore('bar', 'bar'));
-        $this->assertEquals('FOO', Helper::icutbefore('bar', 'FOOBAR'));
-        $this->assertEquals('def', Helper::icutbefore('bar', 'FOO', 'def'));
+        $this->assertEquals('FOO', Helper::icutbefore('FOOBAR', 'bar'));
+        $this->assertEquals('def', Helper::icutbefore('FOO', 'bar', 'def'));
     }
 
     public function testPickstartsat()
     {
-        $this->assertEquals([], Helper::pickstartsat(['foo'=>'bar'], 'bar'));
-        $this->assertEquals(['foo'=>'bar'], Helper::pickstartsat(['foo'=>'bar'], 'foo'));
-        $this->assertEquals(['bar'=>'baz','qux'=>'quux'], Helper::pickstartsat(['foo'=>'bar','bar'=>'baz','qux'=>'quux'], 'bar'));
-        $this->assertEquals(['bar'=>'baz','qux'=>'quux'], Helper::pickstartsat(['foo'=>'bar','bar'=>'baz','qux'=>'quux'], 'bar', 2));
-        $this->assertEquals(['bar'=>'baz'], Helper::pickstartsat(['foo'=>'bar','bar'=>'baz'], 'bar', 1));
-        $this->assertEquals(['bar'=>'baz'], Helper::pickstartsat(['foo'=>'bar','bar'=>'baz','qux'=>'quux'], 'bar', 1));
+        $this->assertEquals([], Helper::pickstartsat(['foo' => 'bar'], 'bar'));
+        $this->assertEquals(['foo' => 'bar'], Helper::pickstartsat(['foo' => 'bar'], 'foo'));
+        $this->assertEquals(['bar' => 'baz', 'qux' => 'quux'], Helper::pickstartsat(['foo' => 'bar', 'bar' => 'baz', 'qux' => 'quux'], 'bar'));
+        $this->assertEquals(['bar' => 'baz', 'qux' => 'quux'], Helper::pickstartsat(['foo' => 'bar', 'bar' => 'baz', 'qux' => 'quux'], 'bar', 2));
+        $this->assertEquals(['bar' => 'baz'], Helper::pickstartsat(['foo' => 'bar', 'bar' => 'baz'], 'bar', 1));
+        $this->assertEquals(['bar' => 'baz'], Helper::pickstartsat(['foo' => 'bar', 'bar' => 'baz', 'qux' => 'quux'], 'bar', 1));
     }
 
     public function testExtract()

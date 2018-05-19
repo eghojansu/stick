@@ -1050,18 +1050,18 @@ class Mapper implements \ArrayAccess
      */
     public function __call($method, array $args)
     {
-        if (Helper::istartswith('get', $method)) {
-            $field = Helper::snakecase(Helper::icutafter('get', $method));
+        if (Helper::istartswith($method, 'get')) {
+            $field = Helper::snakecase(Helper::icutafter($method, 'get'));
             array_unshift($args, $field);
 
             return $this->get(...$args);
-        } elseif (Helper::istartswith('findby', $method)) {
-            $field = Helper::snakecase(Helper::icutafter('findby', $method));
+        } elseif (Helper::istartswith($method, 'findby')) {
+            $field = Helper::snakecase(Helper::icutafter($method, 'findby'));
             $args = $this->fieldArgs($field, $args);
 
             return $this->findAll(...$args);
-        } elseif (Helper::istartswith('loadby', $method)) {
-            $field = Helper::snakecase(Helper::icutafter('loadby', $method));
+        } elseif (Helper::istartswith($method, 'loadby')) {
+            $field = Helper::snakecase(Helper::icutafter($method, 'loadby'));
             $args = $this->fieldArgs($field, $args);
 
             return $this->load(...$args);

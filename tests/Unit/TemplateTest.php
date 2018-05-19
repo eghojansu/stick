@@ -81,7 +81,7 @@ class TemplateTest extends TestCase
     {
         $this->assertEquals('&lt;span&gt;foo&lt;/span&gt;', $this->template->esc('<span>foo</span>'));
         $this->assertEquals('FOO', $this->template->upper('foo'));
-        $this->assertTrue($this->template->startswith('foo', 'foobar'));
+        $this->assertTrue($this->template->startswith('foobar', 'foo'));
         $this->assertEquals('fOO', $this->template->lcfirst('FOO'));
 
         // calling macro
