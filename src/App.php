@@ -1219,6 +1219,7 @@ final class App implements \ArrayAccess
      *  * redirects: to register redirection
      *  * rules: to register services
      *  * listeners: to register event listener
+     *  * groups: to register route groups
      *
      * @param string $file
      *
