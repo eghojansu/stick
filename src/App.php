@@ -94,6 +94,7 @@ final class App implements \ArrayAccess
         'use' => null,
         'args' => null,
         'service' => true,
+        'constructor' => null,
         'boot' => null,
     ];
 
@@ -197,7 +198,7 @@ final class App implements \ArrayAccess
                     'class' => Logger::class,
                     'args' => [
                         'dir' => '%TEMP%log/',
-                        'logLevelThreshold' => Logger::LEVEL_DEBUG,
+                        'logLevelThreshold' => '%LOG.THRESHOLD%',
                     ],
                 ],
             ],
@@ -226,6 +227,10 @@ final class App implements \ArrayAccess
                 'DOMAIN' => (false === strpos($domain, '.') || filter_var($domain, FILTER_VALIDATE_IP)) ? '' : $domain,
                 'SECURE' => $secure,
                 'HTTPONLY' => true,
+            ],
+            'LOG' => [
+                'THRESHOLD' => Logger::LEVEL_ERROR,
+                'LEVEL' => Logger::LEVEL_DEBUG,
             ],
             'NAMESPACE' => [],
             'PACKAGE' => self::PACKAGE,
@@ -880,7 +885,7 @@ final class App implements \ArrayAccess
      * @param array  $trace
      * @param string $level
      */
-    public function error(int $code, string $message = null, array $trace = null, string $level = Logger::LEVEL_DEBUG): void
+    public function error(int $code, string $message = null, array $trace = null, string $level = null): void
     {
         $this->clear('RES')->status($code);
 
@@ -889,7 +894,7 @@ final class App implements \ArrayAccess
         $text = $message ?? 'HTTP '.$code.' ('.$req.')';
         $sTrace = $this->trace($trace);
 
-        $this->service('logger')->log($level, $text.PHP_EOL.$sTrace);
+        $this->service('logger')->log($level ?? $this->hive['LOG']['LEVEL'], $text.PHP_EOL.$sTrace);
 
         $prev = $this->hive['ERROR'];
         $this->hive['ERROR'] = [
@@ -1109,7 +1114,9 @@ final class App implements \ArrayAccess
         $ref = &$this->ref('_SERVICES.'.$id);
         $ref = null;
 
-        if (is_object($rule)) {
+        if (is_callable($rule)) {
+            $use = ['class' => $id, 'constructor' => $rule];
+        } elseif (is_object($rule)) {
             $use = ['class' => get_class($rule)];
             $ref = $rule;
         } elseif (is_string($rule)) {
@@ -1178,10 +1185,16 @@ final class App implements \ArrayAccess
         $ref = new \ReflectionClass($use['use'] ?? $use['class']);
 
         if (!$ref->isInstantiable()) {
-            throw new \LogicException('Unable to create instance. Please provide instantiable version of '.$ref->name);
+            throw new \LogicException('Unable to create instance for "'.$id.'". Please provide instantiable version of '.$ref->name);
         }
 
-        if ($ref->hasMethod('__construct')) {
+        if (isset($use['constructor']) && is_callable($use['constructor'])) {
+            $instance = $this->call($use['constructor']);
+
+            if (!$instance instanceof $ref->name) {
+                throw new \LogicException('Constructor of "'.$id.'" should return instance of '.$ref->name);
+            }
+        } elseif ($ref->hasMethod('__construct')) {
             $instance = $ref->newInstanceArgs($this->resolveArgs($ref->getMethod('__construct'), $use['args']));
         } else {
             $instance = $ref->newInstance();

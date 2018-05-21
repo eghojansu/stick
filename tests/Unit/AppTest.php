@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Fal\Stick\Test\Unit;
 
 use Fal\Stick\App;
+use Fal\Stick\Logger;
 use Fal\Stick\ResponseErrorException;
 use Fal\Stick\Sql\Connection;
 use Fal\Stick\Test\fixture\autoload\LoadAClass;
@@ -56,6 +57,8 @@ class AppTest extends TestCase
             $GLOBALS['_'.$global] = $value;
         }
         date_default_timezone_set($this->init['tz']);
+
+        $this->app->service('logger')->clear();
     }
 
     public function testAgent()
@@ -1033,6 +1036,17 @@ SQL1
         $this->assertEquals('Internal server error', $this->app->get('myerror'));
     }
 
+    public function testErrorEnsureLogged()
+    {
+        $this->app->set('LOG.THRESHOLD', Logger::LEVEL_DEBUG)->set('QUIET', true);
+
+        $this->assertEmpty($this->app->service('logger')->files());
+
+        $this->app->error(404);
+
+        $this->assertNotEmpty($this->app->service('logger')->files());
+    }
+
     public function grabProvider()
     {
         return [
@@ -1231,6 +1245,19 @@ SQL1
                     'use' => ImplementNoMethodInterface::class,
                 ],
             ],
+            [
+                ReqDateTimeClass::class, 'foo', null, [
+                    'class' => ReqDateTimeClass::class,
+                    'constructor' => function () {
+                        return new ReqDateTimeClass(new \DateTime());
+                    },
+                ],
+            ],
+            [
+                ReqDateTimeClass::class, null, null, function () {
+                    return new ReqDateTimeClass(new \DateTime());
+                },
+            ],
         ];
     }
 
@@ -1257,11 +1284,22 @@ SQL1
 
     /**
      * @expectedException \LogicException
-     * @expectedExceptionMessage Unable to create instance. Please provide instantiable version of Fal\Stick\Test\fixture\services\NoMethodInterface
+     * @expectedExceptionMessage Unable to create instance for "Fal\Stick\Test\fixture\services\NoMethodInterface". Please provide instantiable version of Fal\Stick\Test\fixture\services\NoMethodInterface
      */
     public function testCreateException()
     {
         $this->app->create(NoMethodInterface::class);
+    }
+
+    /**
+     * @expectedException \LogicException
+     * @expectedExceptionMessage Constructor of "Fal\Stick\Test\fixture\services\ReqDateTimeClass" should return instance of Fal\Stick\Test\fixture\services\ReqDateTimeClass
+     */
+    public function testCreateException2()
+    {
+        $this->app->rule(ReqDateTimeClass::class, function () {});
+
+        $this->app->create(ReqDateTimeClass::class);
     }
 
     public function testHive()
