@@ -184,26 +184,34 @@ final class Auth
 
     /**
      * Do guard.
+     *
+     * Return true if request has been rerouted.
+     *
+     * @return bool
      */
-    public function guard(): void
+    public function guard(): bool
     {
         $path = $this->app['REQ.PATH'];
 
         if ($path === $this->options['loginPath']) {
             if ($this->isLogged()) {
                 $this->app->reroute($this->options['redirect']);
+
+                return true;
             }
 
-            return;
+            return false;
         }
 
         foreach ($this->options['rules'] as $check => $roles) {
             if (preg_match('#'.$check.'#', $path) && !$this->isGranted($roles)) {
                 $this->app->reroute($this->options['loginPath']);
 
-                return;
+                return true;
             }
         }
+
+        return false;
     }
 
     /**

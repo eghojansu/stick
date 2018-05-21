@@ -146,7 +146,7 @@ final class App implements \ArrayAccess
         ];
 
         foreach ($_SERVER as $key => $val) {
-            if ($header = Helper::cutafter('HTTP_', $key)) {
+            if ($header = Helper::cutafter($key, 'HTTP_')) {
                 $headers[Helper::toHKey($header)] = $val;
             }
         }
@@ -158,7 +158,7 @@ final class App implements \ArrayAccess
         $uridomain = preg_match('~^\w+://~', $urireq) ? '' : '//'.$domain;
         $uri = parse_url($uridomain.$urireq) + ['query' => '', 'fragment' => ''];
         $base = $cli ? '' : rtrim(Helper::fixslashes(dirname($_SERVER['SCRIPT_NAME'])), '/');
-        $path = Helper::cutafter($base, $uri['path'], $uri['path']);
+        $path = Helper::cutafter($uri['path'], $base, $uri['path']);
         $secure = ($_SERVER['HTTPS'] ?? '') === 'on' || ($headers['X-Forwarded-Proto'] ?? '') === 'https';
         $scheme = $secure ? 'https' : 'http';
         $port = $headers['X-Forwarded-Port'] ?? $_SERVER['SERVER_PORT'] ?? 80;

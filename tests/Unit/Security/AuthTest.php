@@ -180,28 +180,33 @@ SQL1
         $this->auth->setUser($user);
         $this->app['REQ.PATH'] = '/login';
 
-        $this->auth->guard();
+        $rerouted = $this->auth->guard();
+        $this->assertTrue($rerouted);
         $this->assertEquals($secure, $this->app->flash('rerouted'));
 
         // valid access
         $this->app['REQ.PATH'] = $secure;
-        $this->auth->guard();
+        $rerouted = $this->auth->guard();
+        $this->assertFalse($rerouted);
         $this->assertNull($this->app->flash('rerouted'));
 
         // on un-protected path
         $this->app['REQ.PATH'] = '/foo';
-        $this->auth->guard();
+        $rerouted = $this->auth->guard();
+        $this->assertFalse($rerouted);
         $this->assertNull($this->app->flash('rerouted'));
 
         // reset, access secure
         $this->auth->setUser(null);
         $this->app['REQ.PATH'] = $secure;
-        $this->auth->guard();
+        $rerouted = $this->auth->guard();
+        $this->assertTrue($rerouted);
         $this->assertEquals('/login', $this->app->flash('rerouted'));
 
         // access login
         $this->app['REQ.PATH'] = '/login';
-        $this->auth->guard();
+        $rerouted = $this->auth->guard();
+        $this->assertFalse($rerouted);
         $this->assertNull($this->app->flash('rerouted'));
     }
 
