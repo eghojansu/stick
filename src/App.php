@@ -563,15 +563,13 @@ final class App implements \ArrayAccess
      */
     public function route(string $pattern, $handler, int $ttl = 0, int $kbps = 0): App
     {
-        preg_match('/^([\|\w]+)(?:\h+(\w+))?(?:\h+([^\h]+))(?:\h+(sync|ajax|cli))?$/i', $pattern, $match);
+        preg_match('/^([\|\w]+)(?:\h+(\w+))?(?:\h+([^\h]+))?(?:\h+(sync|ajax|cli))?$/i', $pattern, $match);
 
         $alias = $match[2] ?? null;
-        $path = $match[3] ?? '';
-        $reuse = !$alias && isset($path) && isset($this->hive['_ROUTE_ALIASES'][$path]);
+        $path = $match[3] ?? null;
         $group = $this->hive['_GROUP'] ?: self::GROUP_DEFAULT;
 
-        if ($reuse) {
-            $alias = $path;
+        if (!$path && $alias && isset($this->hive['_ROUTE_ALIASES'][$alias])) {
             $path = $this->hive['_ROUTE_ALIASES'][$alias];
         } else {
             if ($alias) {
