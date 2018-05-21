@@ -894,7 +894,7 @@ final class App implements \ArrayAccess
 
         $this->service('logger')->log($level ?? $this->hive['LOG']['LEVEL'], $text.PHP_EOL.$sTrace);
 
-        $prev = $this->hive['ERROR'];
+        $prior = $this->hive['ERROR'];
         $this->hive['ERROR'] = [
             'status' => $status,
             'code' => $code,
@@ -904,7 +904,11 @@ final class App implements \ArrayAccess
 
         $this->expire(-1);
 
-        if ((!$prev && $this->trigger(self::EVENT_ERROR, [$this->hive['ERROR']])) || $this->hive['QUIET']) {
+        if ($this->trigger(self::EVENT_ERROR, [$this->hive['ERROR'], $prior])) {
+            return;
+        }
+
+        if ($prior || $this->hive['QUIET']) {
             return;
         }
 
