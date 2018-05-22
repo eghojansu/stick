@@ -11,7 +11,7 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace Fal\Stick\Test\Unit\Sql;
+namespace Fal\Stick\Test\Sql;
 
 use Fal\Stick\Cache;
 use Fal\Stick\Logger;

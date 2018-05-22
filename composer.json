@@ -14,7 +14,8 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "Fal\\Stick\\Test\\": "tests/"
+            "Fal\\Stick\\Test\\": "tests/src/",
+            "Fal\\Stick\\Test\\fixture\\": "tests/fixture/"
         }
     },
     "require": {

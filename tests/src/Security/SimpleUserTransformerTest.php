@@ -11,7 +11,7 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace Fal\Stick\Test\Unit\Security;
+namespace Fal\Stick\Test\Security;
 
 use Fal\Stick\Security\SimpleUser;
 use Fal\Stick\Security\SimpleUserTransformer;

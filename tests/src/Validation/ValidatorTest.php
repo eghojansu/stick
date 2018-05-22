@@ -11,7 +11,7 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace Fal\Stick\Test\Unit\Validation;
+namespace Fal\Stick\Test\Validation;
 
 use Fal\Stick\Validation\NativeValidator;
 use Fal\Stick\Validation\SimpleValidator;

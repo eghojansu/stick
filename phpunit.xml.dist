@@ -1,15 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <phpunit bootstrap="tests/bootstrap.php" colors="true" verbose="true" stderr="true">
   <testsuite name="Unit">
-    <directory>tests/Unit</directory>
+    <directory>tests/src</directory>
   </testsuite>
 
   <filter>
     <whitelist processUncoveredFilesFromWhitelist="true">
       <directory>src</directory>
-      <exclude>
-        <file>src/autoload.php</file>
-      </exclude>
     </whitelist>
   </filter>
 
