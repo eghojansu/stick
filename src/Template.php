@@ -310,12 +310,23 @@ final class Template implements \ArrayAccess
      */
     private function sandbox(string $file, array $context = []): string
     {
-        extract($this->context);
-        extract($context);
-        ob_start();
-        include $file;
+        $level = ob_get_level();
+        $output = '';
 
-        return ob_get_clean();
+        try {
+            extract($this->context);
+            extract($context);
+            ob_start();
+            include $file;
+            $output = ob_get_clean();
+        } catch (\Throwable $e) {
+            while (ob_get_level() > $level) {
+                ob_end_clean();
+            }
+            $output = 'Template parsing error: ['.get_class($e).'] '.$e->getMessage().' in '.$e->getFile().' on line '.$e->getLine();
+        }
+
+        return $output;
     }
 
     /**

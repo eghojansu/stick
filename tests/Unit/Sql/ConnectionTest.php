@@ -528,14 +528,14 @@ SQL1
         $this->assertEquals('', $this->conn->getName());
     }
 
-    public function testGetEncoding()
+    public function testGetLogLevel()
     {
-        $this->assertEquals('UTF-8', $this->conn->getEncoding());
+        $this->assertEquals(Logger::LEVEL_DEBUG, $this->conn->getLogLevel());
     }
 
-    public function testSetEncoding()
+    public function testSetLogLevel()
     {
-        $this->assertEquals('foo', $this->conn->setEncoding('foo')->getEncoding());
+        $this->assertEquals('foo', $this->conn->setLogLevel('foo')->getLogLevel());
     }
 
     public function testPdoType()

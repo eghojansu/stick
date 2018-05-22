@@ -643,14 +643,6 @@ class AppTest extends TestCase
             ],
             [
                 'foo', [], [['GET /', function () {
-                    return function () {
-                        ob_start();
-                        throw new \Exception('bar');
-                    };
-                }]], '/bar/',
-            ],
-            [
-                'foo', [], [['GET /', function () {
                     throw new ResponseErrorException('Generated from exception', 404);
                 }]], '/Generated from exception/',
             ],
@@ -1040,6 +1032,19 @@ SQL1
         });
         $this->app->error(500, 'Internal server error');
         $this->assertEquals('Internal server error', $this->app->get('myerror'));
+
+        // listener trigger error
+        $message = 'Error triggered from app error listener';
+
+        $this->app->clear('_LISTENERS.'.App::EVENT_ERROR);
+        $this->app->set('QUIET', true);
+        $this->app->on(App::EVENT_ERROR, function () use ($message) {
+            throw new \Exception($message);
+        });
+
+        $this->app->error(404, 'Internal server error');
+        $this->assertEquals(500, $this->app->get('RES.CODE'));
+        $this->assertEmpty($this->app->get('RES.CONTENT'));
     }
 
     public function testErrorEnsureLogged()

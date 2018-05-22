@@ -39,18 +39,6 @@ final class Connection
     const PARAM_FLOAT = 'float';
 
     /**
-     * @var string
-     */
-    private $encoding;
-
-    /**
-     * Original options.
-     *
-     * @var array
-     */
-    private $original;
-
-    /**
      * @var array
      */
     private $options;
@@ -69,6 +57,11 @@ final class Connection
      * @var Logger
      */
     private $logger;
+
+    /**
+     * @var string
+     */
+    private $logLevel;
 
     /**
      * Driver name.
@@ -102,13 +95,13 @@ final class Connection
      * @param Cache  $cache
      * @param Logger $logger
      * @param array  $options
-     * @param string $encoding
+     * @param string $logLevel
      */
-    public function __construct(Cache $cache, Logger $logger, array $options, string $encoding = 'UTF-8')
+    public function __construct(Cache $cache, Logger $logger, array $options, string $logLevel = Logger::LEVEL_DEBUG)
     {
         $this->cache = $cache;
         $this->logger = $logger;
-        $this->encoding = $encoding;
+        $this->setLogLevel($logLevel);
         $this->setOptions($options);
     }
 
@@ -163,26 +156,25 @@ final class Connection
     }
 
     /**
-     * Get encoding.
+     * Get logLevel.
      *
      * @return string
      */
-    public function getEncoding(): string
+    public function getLogLevel(): string
     {
-        return $this->encoding;
+        return $this->logLevel;
     }
 
     /**
-     * Set encoding.
+     * Set logLevel.
      *
-     * @param string $encoding
+     * @param string $logLevel
      *
      * @return Connection
      */
-    public function setEncoding(string $encoding): Connection
+    public function setLogLevel(string $logLevel): Connection
     {
-        $this->encoding = $encoding;
-        $this->setOptions($this->original);
+        $this->logLevel = $logLevel;
 
         return $this;
     }
@@ -203,6 +195,7 @@ final class Connection
      * Available options (and its default value):
      *
      *     debug    bool    false           enable debug mode
+     *     encoding string  UTF8
      *     driver   string  void|unknown    database driver name, eg: mysql, sqlite
      *     dsn      string  void            valid dsn
      *     server   string  127.0.0.1
@@ -213,7 +206,6 @@ final class Connection
      *     location string  void            for sqlite driver
      *     options  array   []              A key=>value array of driver-specific connection options
      *     commands array   void            Commands to be executed
-     *     defaults array   void            defaults configuration
      *
      * @param array $options
      *
@@ -223,6 +215,7 @@ final class Connection
     {
         $defaults = [
             'debug' => false,
+            'encoding' => 'UTF8',
             'server' => '127.0.0.1',
             'port' => 3306,
             'username' => null,
@@ -236,7 +229,7 @@ final class Connection
         $driver = strtolower($use['driver'] ?? 'unknown');
         $driverDefaults = [
             self::DB_MYSQL => ['options' => [
-                \PDO::MYSQL_ATTR_INIT_COMMAND => 'SET NAMES '.strtolower(str_replace('-', '', $this->encoding)).';',
+                \PDO::MYSQL_ATTR_INIT_COMMAND => 'SET NAMES '.strtolower(str_replace('-', '', $use['encoding'])).';',
             ]],
         ];
 
@@ -249,7 +242,6 @@ final class Connection
         }
 
         $this->options = array_replace_recursive($driverDefaults[$driver] ?? [], $use);
-        $this->original = $options;
         $this->pdo = null;
         $this->driver = null;
         $this->version = null;
@@ -729,7 +721,7 @@ final class Connection
             if ($ttl && $this->cache->isCached($hash, $data, 'sql', $cmd, $arg)) {
                 $res[$i] = $data[0];
 
-                $this->logger->log(Logger::LEVEL_DEBUG, $this->buildLog([$cmd, $arg, $start, true]));
+                $this->logger->log($this->logLevel, $this->buildLog([$cmd, $arg, $start, true]));
 
                 continue;
             }
@@ -758,7 +750,7 @@ final class Connection
 
             $log = $this->buildLog([$cmd, $arg]);
             $query->execute();
-            $this->logger->log(Logger::LEVEL_DEBUG, $this->buildLog([], $start, $log));
+            $this->logger->log($this->logLevel, $this->buildLog([], $start, $log));
 
             $error = $query->errorinfo();
 

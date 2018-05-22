@@ -807,15 +807,9 @@ final class App implements \ArrayAccess
      */
     public function run(): void
     {
-        $level = ob_get_level();
-
         try {
             $this->doRun();
         } catch (\Throwable $e) {
-            while (ob_get_level() > $level) {
-                ob_end_clean();
-            }
-
             $this->error($e instanceof ResponseErrorException ? $e->getCode() : 500, $e->getMessage() ?: null, $e->getTrace());
         }
     }
@@ -907,11 +901,18 @@ final class App implements \ArrayAccess
 
         $this->expire(-1);
 
-        if ($this->trigger(self::EVENT_ERROR, [$this->hive['ERROR'], $prior])) {
-            return;
+        $handled = false;
+
+        try {
+            $handled = $this->trigger(self::EVENT_ERROR, [$this->hive['ERROR'], $prior]);
+        } catch (\Throwable $e) {
+            // clear handler
+            $this->mclear(['_LISTENERS.'.self::EVENT_ERROR, 'ERROR']);
+            $this->error($e instanceof ResponseErrorException ? $e->getCode() : 500, $e->getMessage() ?: null);
+            $handled = true;
         }
 
-        if ($prior || $this->hive['QUIET']) {
+        if ($handled || $prior || $this->hive['QUIET']) {
             return;
         }
 

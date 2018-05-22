@@ -129,16 +129,21 @@ class TemplateTest extends TestCase
         $this->assertEquals(FIXTURE.'template/macros/input.php', $c);
     }
 
-    public function testRender()
+    public function renderProvider()
     {
-        $expected = file_get_contents(FIXTURE.'template/include.html');
-        $this->assertEquals($expected, $this->template->render('include'));
+        return [
+            [FIXTURE.'template/include.html', 'include'],
+            [FIXTURE.'template/single.html', 'single', ['pageTitle' => 'Foo']],
+            [FIXTURE.'template/exception.html', 'exception'],
+        ];
     }
 
-    public function testRender2()
+    /**
+     * @dataProvider renderProvider
+     */
+    public function testRender($expected, $template, $data = [])
     {
-        $expected = file_get_contents(FIXTURE.'template/single.html');
-        $this->assertEquals($expected, $this->template->render('single', ['pageTitle' => 'Foo']));
+        $this->assertEquals(file_get_contents($expected), $this->template->render($template, $data));
     }
 
     /**
