@@ -15,6 +15,7 @@ namespace Fal\Stick\Test\Unit\Sql;
 
 use Fal\Stick\App;
 use Fal\Stick\Cache;
+use Fal\Stick\Logger;
 use Fal\Stick\Security\Auth;
 use Fal\Stick\Security\AuthValidator;
 use Fal\Stick\Security\PlainPasswordEncoder;
@@ -36,7 +37,10 @@ class AuthValidatorTest extends TestCase
         $cache = new Cache('', 'test', TEMP.'cache/');
         $cache->reset();
 
-        $db = new Connection($cache, [
+        $logger = new Logger(TEMP.'authvalidatorlog/');
+        $logger->clear();
+
+        $db = new Connection($cache, $logger, [
             'driver' => 'sqlite',
             'location' => ':memory:',
             'debug' => true,

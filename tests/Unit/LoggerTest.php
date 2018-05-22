@@ -24,7 +24,7 @@ class LoggerTest extends TestCase
 
     public function setUp()
     {
-        $this->logger = new Logger(self::DIR);
+        $this->logger = new Logger(self::DIR, Logger::LEVEL_DEBUG);
 
         if (!is_dir(self::DIR)) {
             mkdir(self::DIR);

@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Fal\Stick\Test\Unit\Sql;
 
 use Fal\Stick\Cache;
+use Fal\Stick\Logger;
 use Fal\Stick\Sql\Connection;
 use Fal\Stick\Sql\Mapper;
 use Fal\Stick\Sql\MapperValidator;
@@ -28,7 +29,10 @@ class MapperValidatorTest extends TestCase
         $cache = new Cache('', 'test', TEMP.'cache/');
         $cache->reset();
 
-        $conn = new Connection($cache, [
+        $logger = new Logger(TEMP.'mappervalidatorlog/');
+        $logger->clear();
+
+        $conn = new Connection($cache, $logger, [
             'driver' => 'sqlite',
             'location' => ':memory:',
             'commands' => <<<SQL1

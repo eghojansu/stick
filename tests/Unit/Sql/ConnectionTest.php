@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Fal\Stick\Test\Unit\Sql;
 
 use Fal\Stick\Cache;
+use Fal\Stick\Logger;
 use Fal\Stick\Sql\Connection;
 use PHPUnit\Framework\TestCase;
 
@@ -36,7 +37,10 @@ class ConnectionTest extends TestCase
         $cache = new Cache($dsn, 'test', TEMP.'cache/');
         $cache->reset();
 
-        $this->conn = new Connection($cache, [
+        $logger = new Logger(TEMP.'conlog/', Logger::LEVEL_DEBUG);
+        $logger->clear();
+
+        $this->conn = new Connection($cache, $logger, [
             'driver' => 'sqlite',
             'location' => ':memory:',
             'commands' => <<<SQL1
@@ -65,11 +69,6 @@ SQL1
         $this->conn->setOptions(['debug' => true] + $this->conn->getOptions());
     }
 
-    private function enableLog()
-    {
-        $this->conn->setOptions(['log' => true] + $this->conn->getOptions());
-    }
-
     private function changeDriver(string $driver)
     {
         $ref = new \ReflectionProperty($this->conn, 'driver');
@@ -80,6 +79,21 @@ SQL1
     public function testGetCache()
     {
         $this->assertInstanceof(Cache::class, $this->conn->getCache());
+    }
+
+    public function testGetLogger()
+    {
+        $this->conn->exec('select * from user');
+        $this->conn->exec('insert into user (username) values (?)', ['quux']);
+        $this->conn->exec('insert into user (id,username) values (?,?)', [['5', \PDO::PARAM_INT], 'bleh']);
+
+        $logs = $this->conn->getLogger()->files();
+        $this->assertCount(1, $logs);
+
+        $log = file_get_contents($logs[0]);
+        $this->assertContains('select * from user', $log);
+        $this->assertContains("insert into user (username) values ('quux')", $log);
+        $this->assertContains("insert into user (id,username) values (5,'bleh')", $log);
     }
 
     public function testGetOptions()
@@ -213,21 +227,6 @@ SQL1
     public function testGetVersion()
     {
         $this->assertNotEmpty($this->conn->getVersion());
-    }
-
-    public function testGetLog()
-    {
-        $this->enableLog();
-        $this->assertEquals('', $this->conn->getLog());
-
-        $this->conn->exec('select * from user');
-        $this->assertContains('select * from user', $this->conn->getLog());
-
-        $this->conn->exec('insert into user (username) values (?)', ['quux']);
-        $this->assertContains("insert into user (username) values ('quux')", $this->conn->getLog());
-
-        $this->conn->exec('insert into user (id,username) values (?,?)', [['5', \PDO::PARAM_INT], 'bleh']);
-        $this->assertContains("insert into user (id,username) values (5,'bleh')", $this->conn->getLog());
     }
 
     public function testSchema()
@@ -424,7 +423,7 @@ SQL1
         $this->conn->exec('select * from user where id = ?', [1, 2]);
     }
 
-    public function filterProvider()
+    public function buildFilterProvider()
     {
         $filter = [];
 
@@ -504,13 +503,13 @@ SQL1
         return $filter;
     }
 
-    /** @dataProvider filterProvider */
-    public function testFilter($expected, $filter)
+    /** @dataProvider buildFilterProvider */
+    public function testBuildFilter($expected, $filter)
     {
         $this->assertEquals($expected, $this->conn->buildFilter($filter));
     }
 
-    public function testFilterEmpty()
+    public function testBuildFilterEmpty()
     {
         $this->assertEquals([], $this->conn->buildFilter(null));
     }
@@ -519,7 +518,7 @@ SQL1
      * @expectedException \LogicException
      * @expectedExceptionMessage BETWEEN operator needs an array operand, string given
      */
-    public function testFilterException1()
+    public function testBuildFilterException1()
     {
         $this->conn->buildFilter(['foo ><' => 'str']);
     }

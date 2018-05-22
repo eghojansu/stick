@@ -15,6 +15,7 @@ namespace Fal\Stick\Sql;
 
 use Fal\Stick\Cache;
 use Fal\Stick\Helper;
+use Fal\Stick\Logger;
 
 /**
  * PDO Wrapper.
@@ -65,9 +66,9 @@ final class Connection
     private $cache;
 
     /**
-     * @var string
+     * @var Logger
      */
-    private $log = '';
+    private $logger;
 
     /**
      * Driver name.
@@ -99,12 +100,14 @@ final class Connection
      * Class constructor.
      *
      * @param Cache  $cache
+     * @param Logger $logger
      * @param array  $options
      * @param string $encoding
      */
-    public function __construct(Cache $cache, array $options, string $encoding = 'UTF-8')
+    public function __construct(Cache $cache, Logger $logger, array $options, string $encoding = 'UTF-8')
     {
         $this->cache = $cache;
+        $this->logger = $logger;
         $this->encoding = $encoding;
         $this->setOptions($options);
     }
@@ -150,6 +153,16 @@ final class Connection
     }
 
     /**
+     * Get logger.
+     *
+     * @return Logger
+     */
+    public function getLogger(): Logger
+    {
+        return $this->logger;
+    }
+
+    /**
      * Get encoding.
      *
      * @return string
@@ -190,7 +203,6 @@ final class Connection
      * Available options (and its default value):
      *
      *     debug    bool    false           enable debug mode
-     *     log      bool    false           log query
      *     driver   string  void|unknown    database driver name, eg: mysql, sqlite
      *     dsn      string  void            valid dsn
      *     server   string  127.0.0.1
@@ -211,7 +223,6 @@ final class Connection
     {
         $defaults = [
             'debug' => false,
-            'log' => false,
             'server' => '127.0.0.1',
             'port' => 3306,
             'username' => null,
@@ -716,8 +727,9 @@ final class Connection
             }
 
             if ($ttl && $this->cache->isCached($hash, $data, 'sql', $cmd, $arg)) {
-                $this->log($cmd, $arg, $start, false, true);
                 $res[$i] = $data[0];
+
+                $this->logger->log(Logger::LEVEL_DEBUG, $this->buildLog([$cmd, $arg, $start, true]));
 
                 continue;
             }
@@ -744,9 +756,9 @@ final class Connection
                 }
             }
 
-            $this->log($cmd, $arg);
+            $log = $this->buildLog([$cmd, $arg]);
             $query->execute();
-            $this->log($cmd, $arg, $start, true);
+            $this->logger->log(Logger::LEVEL_DEBUG, $this->buildLog([], $start, $log));
 
             $error = $query->errorinfo();
 
@@ -805,16 +817,6 @@ final class Connection
     }
 
     /**
-     * Get log.
-     *
-     * @return string
-     */
-    public function getLog(): string
-    {
-        return $this->log;
-    }
-
-    /**
      * Check if table exists.
      *
      * @param string $table
@@ -834,39 +836,34 @@ final class Connection
     /**
      * Log sql and arg.
      *
-     * @param string $sql
-     * @param array  $arg
-     * @param float  $start
-     * @param bool   $replace
-     * @param bool   $cached
+     * @param array  $data
+     * @param float  $update
+     * @param string $prior
+     *
+     * @return string
      */
-    private function log(string $sql, array $arg, float $start = 0, bool $replace = false, bool $cached = false): void
+    private function buildLog(array $data, float $update = 0, string $prior = null): string
     {
-        if (!$this->options['log']) {
-            return;
+        $use = $data + ['', [], $update, false];
+        $time = '('.($use[2] ? sprintf('%.1f', 1e3 * (microtime(true) - $use[2])) : '-0').'ms)';
+
+        if ($prior && $update) {
+            return str_replace('(-0ms)', $time, $prior);
         }
 
         $keys = $vals = [];
-        $time = '('.($start ? sprintf('%.1f', 1e3 * (microtime(true) - $start)) : '-0').'ms)';
 
-        foreach ($arg as $key => $val) {
+        foreach ($use[1] as $key => $val) {
             if (is_array($val)) {
                 // User-specified data type
-                $vals[] = Helper::stringify($cached ? $val[0] : $this->phpValue($val[1], $val[0]));
+                $vals[] = Helper::stringify($use[3] ? $val[0] : $this->phpValue($val[1], $val[0]));
             } else {
-                $vals[] = Helper::stringify($cached ? $val : $this->phpValue($this->realPdoType($val), $val));
+                $vals[] = Helper::stringify($use[3] ? $val : $this->phpValue($this->realPdoType($val), $val));
             }
             $keys[] = '/'.preg_quote(is_numeric($key) ? chr(0).'?' : $key).'/';
         }
 
-        if ($replace) {
-            $this->log = str_replace('(-0ms)', $time, $this->log);
-        } else {
-            $this->log .= date('r').' '.$time.' '.
-                        ($cached ? '[CACHED] ' : '').
-                        preg_replace($keys, $vals, str_replace('?', chr(0).'?', $sql), 1).
-                        PHP_EOL;
-        }
+        return $time.' '.($use[3] ? '[CACHED] ' : '').preg_replace($keys, $vals, str_replace('?', chr(0).'?', $use[0]), 1);
     }
 
     /**

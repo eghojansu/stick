@@ -15,6 +15,7 @@ namespace Fal\Stick\Test\Unit\Security;
 
 use Fal\Stick\App;
 use Fal\Stick\Cache;
+use Fal\Stick\Logger;
 use Fal\Stick\Security\Auth;
 use Fal\Stick\Security\PlainPasswordEncoder;
 use Fal\Stick\Security\SimpleUserTransformer;
@@ -36,7 +37,10 @@ class AuthTest extends TestCase
         $cache = new Cache('', 'test', TEMP.'cache/');
         $cache->reset();
 
-        $db = new Connection($cache, [
+        $logger = new Logger(TEMP.'authlog/');
+        $logger->clear();
+
+        $db = new Connection($cache, $logger, [
             'driver' => 'sqlite',
             'location' => ':memory:',
             'debug' => true,

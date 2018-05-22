@@ -913,6 +913,7 @@ class AppTest extends TestCase
         $this->app->rule(Connection::class, [
             'args' => [
                 'cache' => '%cache%',
+                'logger' => '%logger%',
                 'options' => [
                     'driver' => 'sqlite',
                     'location' => ':memory:',

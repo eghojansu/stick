@@ -83,7 +83,7 @@ final class Logger
      * @param string $dir
      * @param string $logLevelThreshold
      */
-    public function __construct(string $dir, string $logLevelThreshold = self::LEVEL_DEBUG)
+    public function __construct(string $dir, string $logLevelThreshold = self::LEVEL_ERROR)
     {
         $this->dir = $dir;
         $this->logLevelThreshold = $logLevelThreshold;

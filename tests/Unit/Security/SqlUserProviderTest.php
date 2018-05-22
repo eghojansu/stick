@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Fal\Stick\Test\Unit\Security;
 
 use Fal\Stick\Cache;
+use Fal\Stick\Logger;
 use Fal\Stick\Security\SimpleUser;
 use Fal\Stick\Security\SimpleUserTransformer;
 use Fal\Stick\Security\SqlUserProvider;
@@ -34,7 +35,10 @@ class SqlUserProviderTest extends TestCase
         $cache = new Cache('', 'test', TEMP.'cache/');
         $cache->reset();
 
-        return new Connection($cache, [
+        $logger = new Logger(TEMP.'sqlproviderlog/');
+        $logger->clear();
+
+        return new Connection($cache, $logger, [
             'driver' => 'sqlite',
             'location' => ':memory:',
             'commands' => [
