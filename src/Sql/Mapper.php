@@ -811,7 +811,7 @@ class Mapper implements \ArrayAccess
         $ctr = 0;
         $out = 0;
 
-        foreach ($this->keys as $key) {
+        foreach ($this->hive['loaded'] ? $this->keys : [] as $key) {
             $filter .= ($filter ? ' AND ' : '').$this->db->quotekey($key).'=?';
             $args[++$ctr] = [$this->fields[$key]['initial'], $this->fields[$key]['pdo_type']];
         }
