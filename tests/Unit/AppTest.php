@@ -237,7 +237,7 @@ class AppTest extends TestCase
 
     /**
      * @expectedException \LogicException
-     * @expectedExceptionMessage Route pattern should contain at least request method and path, given "foo"
+     * @expectedExceptionMessage Route rule should contain at least request method and path, given "foo"
      */
     public function testRouteException()
     {
@@ -568,6 +568,11 @@ class AppTest extends TestCase
             [
                 'foo', [], [['GET /', function () {
                     return 'foo';
+                }]],
+            ],
+            [
+                'foo fixed', ['REQ.PATH' => '/foo/'], [['GET /foo', function () {
+                    return 'foo fixed';
                 }]],
             ],
             [

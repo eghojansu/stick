@@ -28,16 +28,11 @@ class Mapper implements \ArrayAccess
     // Supported events
     const EVENT_LOAD = 'load';
     const EVENT_BEFOREINSERT = 'beforeinsert';
-    const EVENT_AFTERINSERT = 'afterinsert';
+    const EVENT_INSERT = 'insert';
     const EVENT_BEFOREUPDATE = 'beforeupdate';
-    const EVENT_AFTERUPDATE = 'afterupdate';
+    const EVENT_UPDATE = 'update';
     const EVENT_BEFOREDELETE = 'beforedelete';
-    const EVENT_AFTERDELETE = 'afterdelete';
-
-    // Event aliases
-    const EVENT_INSERT = self::EVENT_AFTERINSERT;
-    const EVENT_UPDATE = self::EVENT_AFTERUPDATE;
-    const EVENT_DELETE = self::EVENT_AFTERDELETE;
+    const EVENT_DELETE = 'delete';
 
     /**
      * @var Connection
@@ -732,7 +727,7 @@ class Mapper implements \ArrayAccess
             $this->load($inc ? [$inc => $this->db->phpValue($this->fields[$inc]['pdo_type'], $id)] : $filter);
         }
 
-        $this->trigger(self::EVENT_AFTERINSERT, [$this, $this->keys()]);
+        $this->trigger(self::EVENT_INSERT, [$this, $this->keys()]);
 
         return $this;
     }
@@ -771,7 +766,7 @@ class Mapper implements \ArrayAccess
             $this->db->exec($sql, $args);
         }
 
-        if ($this->trigger(self::EVENT_AFTERUPDATE, [$this, $this->keys()])) {
+        if ($this->trigger(self::EVENT_UPDATE, [$this, $this->keys()])) {
             return $this;
         }
 
@@ -829,7 +824,7 @@ class Mapper implements \ArrayAccess
             $out = (int) $this->db->exec('DELETE FROM '.$this->map.' WHERE '.$filter, $args);
         }
 
-        $this->trigger(self::EVENT_BEFOREDELETE, [$this, $this->keys()]);
+        $this->trigger(self::EVENT_DELETE, [$this, $this->keys()]);
         $this->reset();
 
         return $out;

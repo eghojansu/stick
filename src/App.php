@@ -242,6 +242,7 @@ final class App implements \ArrayAccess
                 'STATUS' => self::HTTP_200,
                 'CONTENT' => '',
                 'HEADERS' => [],
+                'KBPS' => 0,
             ],
             'REQ' => [
                 'AGENT' => $this->agent(),
@@ -552,46 +553,48 @@ final class App implements \ArrayAccess
      *      * ['ControllerName', 'method'] # if controller method is static
      *      * 'ControllerName::method' # same as above
      *
-     * @param string          $pattern
+     * @param string          $rule
      * @param string|callable $handler
      * @param int             $ttl
      * @param int             $kbps
      *
      * @return App
      *
-     * @throws LogicException If route pattern is not valid
+     * @throws LogicException If route rule is not valid
      */
-    public function route(string $pattern, $handler, int $ttl = 0, int $kbps = 0): App
+    public function route(string $rule, $handler, int $ttl = 0, int $kbps = 0): App
     {
-        preg_match('/^([\|\w]+)(?:\h+(\w+))?(?:\h+([^\h]+))?(?:\h+(sync|ajax|cli))?$/i', $pattern, $match);
+        preg_match('/^([\|\w]+)(?:\h+(\w+))?(?:\h+([^\h]+))(?:\h+(sync|ajax|cli))?$/i', $rule, $match);
 
         $alias = $match[2] ?? null;
-        $path = $match[3] ?? null;
+        $pattern = $match[3] ?? null;
         $group = $this->hive['_GROUP'] ?: self::GROUP_DEFAULT;
 
-        if (!$path && $alias && isset($this->hive['_ROUTE_ALIASES'][$alias])) {
-            $path = $this->hive['_ROUTE_ALIASES'][$alias];
+        if (!$alias && $pattern && isset($this->hive['_ROUTE_ALIASES'][$pattern])) {
+            $alias = $pattern;
+            $pattern = $this->hive['_ROUTE_ALIASES'][$alias];
         } else {
             if ($alias) {
                 $alias = $group['route'].$alias;
             }
 
-            $path = $group['prefix'].$path.$group['suffix'];
+            $pattern = $group['prefix'].$pattern.$group['suffix'];
         }
 
-        if (!$path) {
-            throw new \LogicException('Route pattern should contain at least request method and path, given "'.$pattern.'"');
-        }
-
-        if ($alias) {
-            $this->hive['_ROUTE_ALIASES'][$alias] = $path;
+        if (!$pattern) {
+            throw new \LogicException('Route rule should contain at least request method and path, given "'.$rule.'"');
         }
 
         $type = Helper::constant(self::class.'::REQ_'.strtoupper($match[4] ?? ''), 0);
+        $pattern = '/'.trim($pattern, '/');
         $use = is_string($handler) ? ($group['class'] ? $group['class'].$group['mode'] : '').$handler : $handler;
 
         foreach (Helper::split(strtoupper($match[1])) as $verb) {
-            $this->hive['_ROUTES'][$path][$type][$verb] = [$use, $ttl, $kbps, $alias];
+            $this->hive['_ROUTES'][$pattern][$type][$verb] = [$use, $ttl, $kbps, $alias];
+        }
+
+        if ($alias) {
+            $this->hive['_ROUTE_ALIASES'][$alias] = $pattern;
         }
 
         return $this;
@@ -616,27 +619,27 @@ final class App implements \ArrayAccess
      *      * $instanceOfController
      *      * 'ControllerName'
      *
-     * @param string        $pattern
+     * @param string        $rule
      * @param string|object $class
      * @param int           $ttl
      * @param int           $kbps
      *
      * @return App
      */
-    public function map(string $pattern, $class, int $ttl = 0, int $kbps = 0): App
+    public function map(string $rule, $class, int $ttl = 0, int $kbps = 0): App
     {
         $str = is_string($class);
         $prefix = $this->hive['PREMAP'];
 
         foreach (Helper::split(self::VERBS) as $verb) {
-            $this->route($verb.' '.$pattern, $str ? $class.'->'.$prefix.$verb : [$class, $prefix.$verb], $ttl, $kbps);
+            $this->route($verb.' '.$rule, $str ? $class.'->'.$prefix.$verb : [$class, $prefix.$verb], $ttl, $kbps);
         }
 
         return $this;
     }
 
     /**
-     * Redirect pattern to specified url.
+     * Redirect rule to specified url.
      *
      * Pattern is same as App::route.
      *
@@ -648,7 +651,7 @@ final class App implements \ArrayAccess
      *      * routeName
      *      * ['routeName', ['arg'=>'foo']]
      *
-     * @param string       $pattern
+     * @param string       $rule
      * @param string|array $url
      * @param bool         $permanent
      *
@@ -656,13 +659,13 @@ final class App implements \ArrayAccess
      *
      * @throws LogicException If url empty
      */
-    public function redirect(string $pattern, $url, bool $permanent = true): App
+    public function redirect(string $rule, $url, bool $permanent = true): App
     {
         if (!$url) {
             throw new \LogicException('Url cannot be empty');
         }
 
-        return $this->route($pattern, function () use ($url, $permanent) {
+        return $this->route($rule, function () use ($url, $permanent) {
             $this->reroute($url, $permanent);
         });
     }
@@ -913,20 +916,20 @@ final class App implements \ArrayAccess
         }
 
         if ($this->hive['REQ']['AJAX']) {
-            $type = 'application/json';
-            $out = json_encode(array_diff_key(
+            $this->hive['RES']['HEADERS']['Content-Type'] = 'application/json';
+            $this->hive['RES']['CONTENT'] = json_encode(array_diff_key(
                 $this->hive['ERROR'],
                 $this->hive['DEBUG'] ? [] : ['trace' => 1]
             ));
         } elseif ($this->hive['REQ']['CLI']) {
-            $type = 'text/plain';
-            $out = Helper::contexttostring(array_diff_key(
+            $this->hive['RES']['HEADERS']['Content-Type'] = 'text/plain';
+            $this->hive['RES']['CONTENT'] = Helper::contexttostring(array_diff_key(
                 $this->hive['ERROR'],
                 $this->hive['DEBUG'] ? [] : ['trace' => 1]
             ));
         } else {
-            $type = 'text/html';
-            $out = '<!DOCTYPE html>'.
+            $this->hive['RES']['HEADERS']['Content-Type'] = 'text/html';
+            $this->hive['RES']['CONTENT'] = '<!DOCTYPE html>'.
                 '<html>'.
                 '<head>'.
                   '<meta charset="'.$this->hive['ENCODING'].'">'.
@@ -942,9 +945,7 @@ final class App implements \ArrayAccess
             ;
         }
 
-        $this->hive['RES']['HEADERS']['Content-Type'] = $type;
-        $this->sendHeaders();
-        echo $out;
+        $this->send();
     }
 
     /**
@@ -1429,6 +1430,77 @@ final class App implements \ArrayAccess
     }
 
     /**
+     * Send content and headers.
+     *
+     * @return App
+     */
+    public function send(): App
+    {
+        $this->sendHeaders();
+        $this->sendContent();
+
+        return $this;
+    }
+
+    /**
+     * Send content.
+     *
+     * @return App
+     */
+    public function sendContent(): App
+    {
+        if ($this->hive['QUIET']) {
+            return $this;
+        }
+
+        if ($this->hive['RES']['KBPS'] <= 0) {
+            echo $this->hive['RES']['CONTENT'];
+
+            return $this;
+        }
+
+        $now = microtime(true);
+        $ctr = 0;
+
+        foreach (str_split($this->hive['RES']['CONTENT'], 1024) as $part) {
+            // Throttle output
+            ++$ctr;
+
+            if ($ctr / $this->hive['RES']['KBPS'] > ($elapsed = microtime(true) - $now) && !connection_aborted()) {
+                usleep((int) (1e6 * ($ctr / $this->hive['RES']['KBPS'] - $elapsed)));
+            }
+
+            echo $part;
+        }
+
+        return $this;
+    }
+
+    /**
+     * Send response headers and cookies.
+     *
+     * @return App
+     */
+    public function sendHeaders(): App
+    {
+        if ($this->hive['REQ']['CLI'] || headers_sent()) {
+            return $this;
+        }
+
+        foreach ($this->hive['COOKIE'] as $name => $value) {
+            setcookie($name, ...$value);
+        }
+
+        foreach ($this->hive['RES']['HEADERS'] as $name => $value) {
+            header($name.': '.$value);
+        }
+
+        header($this->hive['REQ']['PROTOCOL'].' '.$this->hive['RES']['CODE'].' '.$this->hive['RES']['STATUS'], true);
+
+        return $this;
+    }
+
+    /**
      * Do run.
      */
     private function doRun(): void
@@ -1461,6 +1533,12 @@ final class App implements \ArrayAccess
 
         $this->mclear(['RES', 'ERROR']);
 
+        if ('GET' === $method && $realpath = Helper::cutbefore($this->hive['REQ']['PATH'], '/')) {
+            $this->reroute(rtrim($realpath.'?'.$this->hive['REQ']['QUERY'], '?'));
+
+            return;
+        }
+
         if (isset($headers['Origin']) && $this->hive['CORS']['ORIGIN']) {
             $cors = $this->hive['CORS'];
             $preflight = isset($headers['Access-Control-Request-Method']);
@@ -1489,11 +1567,11 @@ final class App implements \ArrayAccess
             list($handler, $ttl, $kbps, $alias) = $route[$method];
 
             // Capture values of route pattern tokens
-            $this->hive['MATCH'] = array_shift($args);
-            $this->hive['PARAMS'] = $args;
+            $this->hive['REQ']['MATCH'] = array_shift($args);
+            $this->hive['REQ']['PARAMS'] = $args;
             // Save matching route
-            $this->hive['ALIAS'] = $alias;
-            $this->hive['PATTERN'] = $pattern;
+            $this->hive['REQ']['ALIAS'] = $alias;
+            $this->hive['REQ']['PATTERN'] = $pattern;
 
             // Expose if defined
             if ($cors && $cors['EXPOSE']) {
@@ -1508,6 +1586,10 @@ final class App implements \ArrayAccess
                 if (is_array($check) && !class_exists($check[0])) {
                     throw new ResponseErrorException(null, 404);
                 }
+            }
+
+            if ($this->trigger(self::EVENT_PREROUTE, $args)) {
+                return;
             }
 
             // Process request
@@ -1547,20 +1629,14 @@ final class App implements \ArrayAccess
                     $this->hive['REQ']['BODY'] = file_get_contents('php://input');
                 }
 
-                if (is_string($handler)) {
-                    $handler = $this->grab($handler);
-                }
+                $call = is_string($handler) ? $this->grab($handler) : $handler;
 
-                if (!is_callable($handler)) {
+                if (!is_callable($call)) {
                     throw new ResponseErrorException(null, 405);
                 }
 
-                if ($this->trigger(self::EVENT_PREROUTE, $args)) {
-                    return;
-                }
-
                 $this->hive['_HANDLE_MAPPER'] = $this->hive['CMAPPER'];
-                $result = $this->call($handler, $args);
+                $result = $this->call($call, $args);
                 $this->hive['_HANDLE_MAPPER'] = false;
 
                 if (is_array($result)) {
@@ -1586,13 +1662,10 @@ final class App implements \ArrayAccess
             }
 
             $this->hive['RES']['CONTENT'] = $body;
+            $this->hive['RES']['KBPS'] = $kbps;
 
             if (!$handled) {
-                $this->sendHeaders();
-
-                if (!$this->hive['QUIET']) {
-                    $this->throttle($body, $kbps);
-                }
+                $this->send();
             }
 
             if ('OPTIONS' !== $method) {
@@ -1665,59 +1738,6 @@ final class App implements \ArrayAccess
         }
 
         return !$res;
-    }
-
-    /**
-     * Do throttle output.
-     *
-     * @param string $content
-     * @param int    $kbps
-     */
-    private function throttle(string $content, int $kbps = 0): void
-    {
-        if ($kbps <= 0) {
-            echo $content;
-
-            return;
-        }
-
-        $now = microtime(true);
-        $ctr = 0;
-
-        foreach (str_split($content, 1024) as $part) {
-            // Throttle output
-            ++$ctr;
-
-            if ($ctr / $kbps > ($elapsed = microtime(true) - $now) && !connection_aborted()) {
-                usleep((int) (1e6 * ($ctr / $kbps - $elapsed)));
-            }
-
-            echo $part;
-        }
-    }
-
-    /**
-     * Send response headers and cookies.
-     *
-     * @return App
-     */
-    private function sendHeaders(): App
-    {
-        if ($this->hive['REQ']['CLI'] || headers_sent()) {
-            return $this;
-        }
-
-        foreach ($this->hive['COOKIE'] as $name => $value) {
-            setcookie($name, ...$value);
-        }
-
-        foreach ($this->hive['RES']['HEADERS'] as $name => $value) {
-            header($name.': '.$value);
-        }
-
-        header($this->hive['REQ']['PROTOCOL'].' '.$this->hive['RES']['CODE'].' '.$this->hive['RES']['STATUS'], true);
-
-        return $this;
     }
 
     /**
