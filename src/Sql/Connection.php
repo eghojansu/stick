@@ -482,7 +482,7 @@ final class Connection
 
                     $str = rtrim($str, ', ').')';
                 } elseif (is_array($expr)) {
-                    $cfilter = $this->buildFilter((array) $expr);
+                    $cfilter = $this->buildFilter($expr);
 
                     if ($cfilter) {
                         $str .= ' ('.array_shift($cfilter).')';
