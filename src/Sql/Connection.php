@@ -513,10 +513,17 @@ final class Connection
      * @param int        $ttl
      *
      * @return array
+     *
+     * @throws LogicException If schema contains nothing
      */
     public function schema(string $table, array $fields = null, int $ttl = 0): array
     {
+        $start = microtime(true);
+        $message = '(%.1f) %sRetrieving table "%s" schema';
+
         if ($ttl && $this->cache->isCached($hash, $data, 'schema', $table, $fields)) {
+            $this->logger->log($this->logLevel, sprintf('(%.1fms) [CACHED] Retrieving schema of %s table', 1e3 * (microtime(true) - $start), $table));
+
             return $data[0];
         }
 
@@ -543,10 +550,16 @@ final class Connection
             ];
         }
 
+        if (!$rows) {
+            throw new \LogicException('Table "'.$table.'" contains no defined schema');
+        }
+
         if ($ttl) {
             // Save to cache backend
             $this->cache->set($hash, $rows, $ttl);
         }
+
+        $this->logger->log($this->logLevel, sprintf('(%.1fms) Retrieving schema of %s table (%s)', 1e3 * (microtime(true) - $start), $table, $cmd[0]));
 
         return $rows;
     }

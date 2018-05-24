@@ -295,6 +295,15 @@ SQL1
         $this->conn->schema('foo.user');
     }
 
+    /**
+     * @expectedException \LogicException
+     * @expectedExceptionMessage Table "noschema" contains no defined schema
+     */
+    public function testSchemaException2()
+    {
+        $this->conn->schema('noschema');
+    }
+
     public function testGetQuote()
     {
         $this->assertEquals(['`', '`'], $this->conn->getQuote());
