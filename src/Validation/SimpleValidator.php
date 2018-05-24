@@ -59,6 +59,45 @@ final class SimpleValidator extends AbstractValidator
     ];
 
     /**
+     * Proxy to trim, prevent trimming null value.
+     *
+     * @param mixed  $val
+     * @param string $chars
+     *
+     * @return string
+     */
+    protected function _trim($val, string $chars = " \t\n\r\0\x0B"): string
+    {
+        return trim((string) $val, $chars);
+    }
+
+    /**
+     * Proxy to ltrim, prevent trimming null value.
+     *
+     * @param mixed  $val
+     * @param string $chars
+     *
+     * @return string
+     */
+    protected function _ltrim($val, string $chars = " \t\n\r\0\x0B"): string
+    {
+        return ltrim((string) $val, $chars);
+    }
+
+    /**
+     * Proxy to rtrim, prevent trimming null value.
+     *
+     * @param mixed  $val
+     * @param string $chars
+     *
+     * @return string
+     */
+    protected function _rtrim($val, string $chars = " \t\n\r\0\x0B"): string
+    {
+        return rtrim((string) $val, $chars);
+    }
+
+    /**
      * Required rule.
      *
      * @param mixed $val

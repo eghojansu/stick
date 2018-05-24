@@ -28,6 +28,9 @@ class SimpleValidatorTest extends TestCase
     public function hasProvider()
     {
         return [
+            ['trim'],
+            ['ltrim'],
+            ['rtrim'],
             ['required'],
             ['type'],
             ['min'],
@@ -76,6 +79,10 @@ class SimpleValidatorTest extends TestCase
     public function validateProvider()
     {
         return [
+            ['trim', 'foo', [' foo ']],
+            ['trim', 'foo', [' ,foo ;', ' ,;']],
+            ['ltrim', 'foo ', [' foo ']],
+            ['rtrim', ' foo', [' foo ']],
             ['required', false],
             ['required', true, ['bar']],
             ['type', false, ['1', 'integer']],
