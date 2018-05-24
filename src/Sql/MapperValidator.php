@@ -31,18 +31,18 @@ final class MapperValidator extends AbstractValidator
     ];
 
     /**
-     * @var Mapper
+     * @var Connection
      */
-    private $mapper;
+    private $connection;
 
     /**
      * Class constructor.
      *
-     * @param Mapper $mapper
+     * @param Connection $connection
      */
-    public function __construct(Mapper $mapper)
+    public function __construct(Connection $connection)
     {
-        $this->mapper = $mapper;
+        $this->connection = $connection;
     }
 
     /**
@@ -56,7 +56,7 @@ final class MapperValidator extends AbstractValidator
      */
     protected function _exists($val, string $table, string $column): bool
     {
-        return $this->mapper->withTable($table)->load([$column => $val])->valid();
+        return (new Mapper($this->connection, $table))->load([$column => $val])->valid();
     }
 
     /**
@@ -72,7 +72,7 @@ final class MapperValidator extends AbstractValidator
      */
     protected function _unique($val, string $table, string $column, string $fid = null, $id = null): bool
     {
-        $mapper = $this->mapper->withTable($table)->load([$column => $val]);
+        $mapper = (new Mapper($this->connection, $table))->load([$column => $val]);
 
         return $mapper->dry() || ($fid && (!$mapper->exists($fid) || $mapper->get($fid) == $id));
     }

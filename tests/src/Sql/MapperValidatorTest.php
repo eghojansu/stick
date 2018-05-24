@@ -16,7 +16,6 @@ namespace Fal\Stick\Test\Sql;
 use Fal\Stick\Cache;
 use Fal\Stick\Logger;
 use Fal\Stick\Sql\Connection;
-use Fal\Stick\Sql\Mapper;
 use Fal\Stick\Sql\MapperValidator;
 use PHPUnit\Framework\TestCase;
 
@@ -46,9 +45,7 @@ insert into user (username) values ("foo"), ("bar"), ("baz");
 SQL1
         ]);
 
-        $mapper = new Mapper($conn, 'user');
-
-        $this->validator = new MapperValidator($mapper);
+        $this->validator = new MapperValidator($conn);
     }
 
     public function hasProvider()
