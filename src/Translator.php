@@ -18,7 +18,7 @@ namespace Fal\Stick;
  *
  * @author Eko Kurniawan <ekokurniawanbs@gmail.com>
  */
-final class Translator
+class Translator
 {
     /**
      * @var array

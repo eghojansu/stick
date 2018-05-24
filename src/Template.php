@@ -18,7 +18,7 @@ namespace Fal\Stick;
  *
  * @author Eko Kurniawan <ekokurniawanbs@gmail.com>
  */
-final class Template implements \ArrayAccess
+class Template implements \ArrayAccess
 {
     /**
      * @var array

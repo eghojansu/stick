@@ -20,7 +20,7 @@ namespace Fal\Stick;
  *
  * @author Eko Kurniawan <ekokurniawanbs@gmail.com>
  */
-final class Cli
+class Cli
 {
     /**
      * Console width.
