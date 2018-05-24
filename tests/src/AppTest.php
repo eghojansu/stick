@@ -371,6 +371,26 @@ class AppTest extends TestCase
         }
     }
 
+    public function urlProvider()
+    {
+        return [
+            ['/'],
+            ['/bar'],
+            ['/foo/1'],
+        ];
+    }
+
+    /**
+     * @dataProvider urlProvider
+     */
+    public function testUrl($path)
+    {
+        $req = $this->app->get('REQ');
+        $expected = $req['SCHEME'].'://'.$req['HOST'].(in_array($req['PORT'], [80, 443]) ? '' : (':'.$req['PORT'])).$req['BASE'].$path;
+
+        $this->assertEquals($expected, $this->app->url($path));
+    }
+
     public function aliasProvider()
     {
         return [

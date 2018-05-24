@@ -735,6 +735,18 @@ final class App implements \ArrayAccess
     }
 
     /**
+     * Build absolute url path.
+     *
+     * @param string $path
+     *
+     * @return string
+     */
+    public function url(string $path): string
+    {
+        return $this->hive['REQ']['SCHEME'].'://'.$this->hive['REQ']['HOST'].(in_array($this->hive['REQ']['PORT'], [80, 443]) ? '' : (':'.$this->hive['REQ']['PORT'])).$this->hive['REQ']['BASE'].$path;
+    }
+
+    /**
      * Build url from given alias.
      *
      * @param string     $alias
@@ -799,8 +811,7 @@ final class App implements \ArrayAccess
         }
 
         if ('/' === $use[0] && (empty($use[1]) || '/' !== $use[1])) {
-            $port = $this->hive['REQ']['PORT'];
-            $use = $this->hive['REQ']['SCHEME'].'://'.$this->hive['REQ']['HOST'].(in_array($port, [80, 443]) ? '' : (':'.$port)).$this->hive['REQ']['BASE'].$use;
+            $use = $this->url($use);
         }
 
         if ($this->hive['REQ']['CLI']) {
