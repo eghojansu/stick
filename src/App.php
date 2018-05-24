@@ -475,12 +475,12 @@ final class App implements \ArrayAccess
      *
      * Available options:
      *
-     *  * name     : route name prefix
-     *  * mode     : request mode allowed (all, sync, ajax or cli)
-     *  * class    : class name handler
-     *  * instance : is class should be instantiated?
-     *  * prefix   : path prefix
-     *  * suffix   : path suffix
+     *  * name     : route name prefix (Concatenate with parent mode)
+     *  * mode     : request mode allowed (all, sync, ajax or cli) (Inherited from parent)
+     *  * class    : class name handler (Dependant)
+     *  * instance : is class should be instantiated? (Dependant)
+     *  * prefix   : path prefix (Concatenate with parent mode)
+     *  * suffix   : path suffix (Concatenate with parent mode)
      *
      * Example:
      *
@@ -504,9 +504,9 @@ final class App implements \ArrayAccess
         if ($this->hive['_GROUP_DEPTH'] > 1) {
             $use = [
                 'name' => $this->hive['_GROUP']['name'].$use['name'],
-                'mode' => $use['mode'],
+                'mode' => $use['mode'] ?? $this->hive['_GROUP']['mode'],
                 'class' => $use['class'],
-                'instance' => $use['instance'],
+                'instance' => $use['instance'] ?? self::GROUP_DEFAULT['instance'],
                 'prefix' => $this->hive['_GROUP']['prefix'].$use['prefix'],
                 'suffix' => $this->hive['_GROUP']['suffix'].$use['suffix'],
                 '_parent' => $this->hive['_GROUP'],

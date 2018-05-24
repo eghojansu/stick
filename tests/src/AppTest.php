@@ -171,7 +171,7 @@ class AppTest extends TestCase
                 return 'foobaz';
             });
 
-            $app->group(['prefix' => '/bleh', 'mode'=>'cli'], function ($app) {
+            $app->group(['prefix' => '/bleh', 'mode' => 'cli'], function ($app) {
                 $app->route('GET /what', function (App $app) {
                     return 'fooblehwhat, cli mode = '.var_export($app['REQ']['CLI'], true);
                 });
@@ -182,11 +182,11 @@ class AppTest extends TestCase
                 return 'quxquux';
             });
         });
-        $this->app->group(['prefix' => '/any'], function($app) {
-            $app->group(['class'=>AnyController::class], function($app) {
+        $this->app->group(['prefix' => '/any'], function ($app) {
+            $app->group(['class' => AnyController::class], function ($app) {
                 $app->route('GET /string/{input}', 'any');
             });
-            $app->group(['class'=>new AnyController], function($app) {
+            $app->group(['class' => new AnyController()], function ($app) {
                 $app->route('GET /instance/{input}', 'any');
             });
         });
