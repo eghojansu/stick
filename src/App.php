@@ -100,11 +100,12 @@ final class App implements \ArrayAccess
 
     // Default group
     const GROUP_DEFAULT = [
+        'name' => '',
+        'mode' => 'all',
         'class' => '',
-        'route' => '',
+        'instance' => true,
         'prefix' => '',
         'suffix' => '',
-        'mode' => '->',
     ];
 
     // Config map
@@ -474,11 +475,12 @@ final class App implements \ArrayAccess
      *
      * Available options:
      *
-     *  * route  : route prefix
-     *  * prefix : path prefix
-     *  * suffix : path suffix
-     *  * class  : class name handler
-     *  * mode   : '->' (default) or '::'
+     *  * name     : route name prefix
+     *  * mode     : request mode allowed (all, sync, ajax or cli)
+     *  * class    : class name handler
+     *  * instance : is class should be instantiated?
+     *  * prefix   : path prefix
+     *  * suffix   : path suffix
      *
      * Example:
      *
@@ -501,11 +503,12 @@ final class App implements \ArrayAccess
 
         if ($this->hive['_GROUP_DEPTH'] > 1) {
             $use = [
-                'route' => $this->hive['_GROUP']['route'].$use['route'],
+                'name' => $this->hive['_GROUP']['name'].$use['name'],
+                'mode' => $use['mode'],
+                'class' => $use['class'],
+                'instance' => $use['instance'],
                 'prefix' => $this->hive['_GROUP']['prefix'].$use['prefix'],
                 'suffix' => $this->hive['_GROUP']['suffix'].$use['suffix'],
-                'class' => $use['class'],
-                'mode' => $use['mode'],
                 '_parent' => $this->hive['_GROUP'],
             ];
         }
@@ -575,7 +578,7 @@ final class App implements \ArrayAccess
             $pattern = $this->hive['_ROUTE_ALIASES'][$alias];
         } else {
             if ($alias) {
-                $alias = $group['route'].$alias;
+                $alias = $group['name'].$alias;
             }
 
             $pattern = $group['prefix'].$pattern.$group['suffix'];
@@ -585,9 +588,17 @@ final class App implements \ArrayAccess
             throw new \LogicException('Route rule should contain at least request method and path, given "'.$rule.'"');
         }
 
-        $type = Helper::constant(self::class.'::REQ_'.strtoupper($match[4] ?? ''), 0);
+        $type = Helper::constant(self::class.'::REQ_'.strtoupper($match[4] ?? $group['mode']), 0);
         $pattern = '/'.trim($pattern, '/');
-        $use = is_string($handler) ? ($group['class'] ? $group['class'].$group['mode'] : '').$handler : $handler;
+        $use = $handler;
+
+        if (is_string($handler) && $group['class']) {
+            if (is_string($group['class']) && $group['instance']) {
+                $use = $group['class'].'->'.$handler;
+            } else {
+                $use = [$group['class'], $handler];
+            }
+        }
 
         foreach (Helper::split(strtoupper($match[1])) as $verb) {
             $this->hive['_ROUTES'][$pattern][$type][$verb] = [$use, $ttl, $kbps, $alias];

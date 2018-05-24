@@ -162,7 +162,7 @@ class AppTest extends TestCase
 
     public function testGroup()
     {
-        $this->app->group(['route' => 'foo', 'prefix' => '/foo'], function ($app) {
+        $this->app->group(['name' => 'foo', 'prefix' => '/foo'], function ($app) {
             $app->route('GET bar /bar', function () {
                 return 'foobar';
             });
@@ -171,15 +171,23 @@ class AppTest extends TestCase
                 return 'foobaz';
             });
 
-            $app->group(['prefix' => '/bleh'], function ($app) {
-                $app->route('GET /what', function () {
-                    return 'fooblehwhat';
+            $app->group(['prefix' => '/bleh', 'mode'=>'cli'], function ($app) {
+                $app->route('GET /what', function (App $app) {
+                    return 'fooblehwhat, cli mode = '.var_export($app['REQ']['CLI'], true);
                 });
             });
         });
         $this->app->group(['prefix' => '/qux'], function ($app) {
             $app->route('GET /quux', function () {
                 return 'quxquux';
+            });
+        });
+        $this->app->group(['prefix' => '/any'], function($app) {
+            $app->group(['class'=>AnyController::class], function($app) {
+                $app->route('GET /string/{input}', 'any');
+            });
+            $app->group(['class'=>new AnyController], function($app) {
+                $app->route('GET /instance/{input}', 'any');
             });
         });
         $this->app->set('QUIET', true);
@@ -193,8 +201,14 @@ class AppTest extends TestCase
         $this->app->mock('GET /qux/quux');
         $this->assertEquals('quxquux', $this->app->get('RES.CONTENT'));
 
-        $this->app->mock('GET /foo/bleh/what');
-        $this->assertEquals('fooblehwhat', $this->app->get('RES.CONTENT'));
+        $this->app->mock('GET /foo/bleh/what cli');
+        $this->assertEquals('fooblehwhat, cli mode = true', $this->app->get('RES.CONTENT'));
+
+        $this->app->mock('GET /any/string/bar');
+        $this->assertEquals('bar', $this->app->get('RES.CONTENT'));
+
+        $this->app->mock('GET /any/instance/baz');
+        $this->assertEquals('baz', $this->app->get('RES.CONTENT'));
     }
 
     public function routeProvider()
