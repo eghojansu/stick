@@ -833,9 +833,11 @@ final class App implements \ArrayAccess
      * @param array|null  $headers
      * @param string|null $body
      *
+     * @return App
+     *
      * @throws LogicException If mock pattern is not valid
      */
-    public function mock(string $pattern, array $args = null, array $headers = null, string $body = null): void
+    public function mock(string $pattern, array $args = null, array $headers = null, string $body = null): App
     {
         preg_match('/^([\w]+)(?:\h+([^\h]+))(?:\h+(sync|ajax|cli))?$/i', $pattern, $match);
 
@@ -881,6 +883,8 @@ final class App implements \ArrayAccess
         }
 
         $this->run();
+
+        return $this;
     }
 
     /**
