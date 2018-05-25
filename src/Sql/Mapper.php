@@ -87,6 +87,11 @@ class Mapper implements \ArrayAccess
     protected $triggers = [];
 
     /**
+     * @var array
+     */
+    protected $one = [];
+
+    /**
      * Class constructor.
      *
      * @param Connection  $db
@@ -191,6 +196,24 @@ class Mapper implements \ArrayAccess
     }
 
     /**
+     * Set event listener, called once.
+     *
+     * @param string|array $events
+     * @param callable     $trigger
+     *
+     * @return Mapper
+     */
+    public function one($events, callable $trigger): Mapper
+    {
+        foreach (Helper::reqarr($events) as $event) {
+            $this->triggers[$event][] = $trigger;
+            $this->one[$event] = true;
+        }
+
+        return $this;
+    }
+
+    /**
      * Set event listener.
      *
      * Listener should return true to give control back to the caller
@@ -223,13 +246,20 @@ class Mapper implements \ArrayAccess
             return false;
         }
 
+        $result = true;
+
         foreach ($this->triggers[$event] as $func) {
             if (true === call_user_func_array($func, $args)) {
-                return false;
+                $result = false;
+                break;
             }
         }
 
-        return true;
+        if (isset($this->one[$event])) {
+            unset($this->triggers[$event], $this->one[$event]);
+        }
+
+        return $result;
     }
 
     /**

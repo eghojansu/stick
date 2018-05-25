@@ -92,6 +92,11 @@ SQL1
         $this->assertInstanceof(Connection::class, $this->mapper->getConnection());
     }
 
+    public function testOne()
+    {
+        $this->assertEquals($this->mapper, $this->mapper->one('foo', 'is_string'));
+    }
+
     public function testOn()
     {
         $this->assertEquals($this->mapper, $this->mapper->on('foo', 'is_string'));
@@ -118,20 +123,34 @@ SQL1
                     return true;
                 }], [[false, 'foo']],
             ],
+            [
+                ['foo', function () {
+                }], [[true, 'foo']], true,
+            ],
         ];
     }
 
     /**
      * @dataProvider triggerProvider
      */
-    public function testTrigger($sets, $triggers)
+    public function testTrigger($sets, $triggers, $once = false)
     {
         if ($sets) {
-            $this->mapper->on(...$sets);
+            if ($once) {
+                $this->mapper->one(...$sets);
+            } else {
+                $this->mapper->on(...$sets);
+            }
         }
 
         foreach ($triggers as $trigger) {
             $this->assertEquals($trigger[0], $this->mapper->trigger($trigger[1], $trigger[2] ?? []));
+        }
+
+        if ($once) {
+            foreach ($triggers as $trigger) {
+                $this->assertEquals(false, $this->mapper->trigger($trigger[1], $trigger[2] ?? []));
+            }
         }
     }
 
