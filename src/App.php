@@ -159,7 +159,7 @@ final class App implements \ArrayAccess
         $uridomain = preg_match('~^\w+://~', $urireq) ? '' : '//'.$domain;
         $uri = parse_url($uridomain.$urireq) + ['query' => '', 'fragment' => ''];
         $base = $cli ? '' : rtrim(Helper::fixslashes(dirname($_SERVER['SCRIPT_NAME'])), '/');
-        $path = Helper::cutafter($uri['path'], $base, $uri['path']);
+        $path = urldecode(Helper::cutafter($uri['path'], $base, $uri['path']));
         $secure = ($_SERVER['HTTPS'] ?? '') === 'on' || ($headers['X-Forwarded-Proto'] ?? '') === 'https';
         $scheme = $secure ? 'https' : 'http';
         $port = $headers['X-Forwarded-Port'] ?? $_SERVER['SERVER_PORT'] ?? 80;
@@ -173,7 +173,11 @@ final class App implements \ArrayAccess
         // Early assignment
         $this->hive = [
             'REQ' => [
+                'BASE' => $base,
                 'HEADERS' => $headers,
+                'HOST' => $_SERVER['SERVER_NAME'],
+                'PORT' => $port,
+                'SCHEME' => $scheme,
             ],
         ];
         // Full assignment
@@ -260,12 +264,12 @@ final class App implements \ArrayAccess
                 'MATCH' => '',
                 'METHOD' => $method,
                 'PARAMS' => [],
-                'PATH' => urldecode($path),
+                'PATH' => $path,
                 'PATTERN' => '',
                 'PROTOCOL' => $_SERVER['SERVER_PROTOCOL'],
                 'PORT' => $port,
                 'QUERY' => $uri['query'],
-                'REALM' => $scheme.'://'.$_SERVER['SERVER_NAME'].($port && !in_array($port, [80, 443]) ? (':'.$port) : '').$_SERVER['REQUEST_URI'],
+                'REALM' => $this->url($path, $uri['query'], $uri['fragment']),
                 'ROOT' => $_SERVER['DOCUMENT_ROOT'],
                 'SCHEME' => $scheme,
                 'URI' => $_SERVER['REQUEST_URI'],
@@ -741,9 +745,9 @@ final class App implements \ArrayAccess
      *
      * @return string
      */
-    public function url(string $path): string
+    public function url(string $path, string $query = '', string $fragment = ''): string
     {
-        return $this->hive['REQ']['SCHEME'].'://'.$this->hive['REQ']['HOST'].(in_array($this->hive['REQ']['PORT'], [80, 443]) ? '' : (':'.$this->hive['REQ']['PORT'])).$this->hive['REQ']['BASE'].$path;
+        return rtrim($this->hive['REQ']['SCHEME'].'://'.$this->hive['REQ']['HOST'].(in_array($this->hive['REQ']['PORT'], [80, 443]) ? '' : (':'.$this->hive['REQ']['PORT'])).$this->hive['REQ']['BASE'].$path.'?'.$query.'#'.$fragment, '?#');
     }
 
     /**
@@ -872,6 +876,7 @@ final class App implements \ArrayAccess
         $this->hive['REQ']['AJAX'] = 'ajax' === $mode;
         $this->hive['REQ']['CLI'] = 'cli' === $mode;
         $this->hive['REQ']['HEADERS'] = $headers;
+        $this->hive['REQ']['REALM'] = $this->url($uri['path'], $uri['query'], $uri['fragment']);
 
         parse_str($uri['query'], $GLOBALS['_GET']);
 
