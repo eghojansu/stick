@@ -899,7 +899,7 @@ class AppTest extends TestCase
                 'username is bar',
                 '/4',
                 ['GET /{mapper}', function (MyUserMapper $mapper) {
-                }], 'Record is not found (GET /4)',
+                }], 'Record of user not found (GET /4)',
             ],
             [
                 'username is foo and password is bar',
@@ -919,7 +919,7 @@ class AppTest extends TestCase
                 null,
                 '/bar/qux',
                 ['GET /{mapper}/{password}', function (MyCompositUserMapper $mapper) {
-                }], 'Record is not found (GET /bar/qux)',
+                }], 'Record of composit_user not found (GET /bar/qux)',
             ],
             [
                 null,

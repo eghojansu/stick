@@ -1870,7 +1870,7 @@ final class App implements \ArrayAccess
             $mapper->find(...$use);
 
             if ($mapper->dry()) {
-                throw new ResponseErrorException('Record is not found ('.$this->hive['REQ']['METHOD'].' '.$this->hive['REQ']['PATH'].')', 404);
+                throw new ResponseErrorException('Record of '.$mapper->getTable().' not found ('.$this->hive['REQ']['METHOD'].' '.$this->hive['REQ']['PATH'].')', 404);
             }
 
             return $mapper;
