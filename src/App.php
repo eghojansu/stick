@@ -187,6 +187,7 @@ final class App implements \ArrayAccess
             '_GROUP_DEPTH' => 0,
             '_HANDLE_MAPPER' => false,
             '_LISTENERS' => [],
+            '_ONCE' => [],
             '_ROUTES' => [],
             '_ROUTE_ALIASES' => [],
             '_SERVICES' => [],
@@ -248,6 +249,7 @@ final class App implements \ArrayAccess
                 'CONTENT' => '',
                 'HEADERS' => [],
                 'KBPS' => 0,
+                'SENT' => false,
             ],
             'REQ' => [
                 'AGENT' => $this->agent(),
@@ -830,14 +832,18 @@ final class App implements \ArrayAccess
 
     /**
      * Start route matching.
+     *
+     * @return App
      */
-    public function run(): void
+    public function run(): App
     {
         try {
             $this->doRun();
         } catch (\Throwable $e) {
             $this->error($e instanceof ResponseErrorException ? $e->getCode() : 500, $e->getMessage() ?: null, $e->getTrace());
         }
+
+        return $this;
     }
 
     /**
@@ -898,9 +904,7 @@ final class App implements \ArrayAccess
             $_SERVER['HTTP_'.Helper::fromHKey($key)] = $val;
         }
 
-        $this->run();
-
-        return $this;
+        return $this->run();
     }
 
     /**
@@ -910,8 +914,10 @@ final class App implements \ArrayAccess
      * @param string $message
      * @param array  $trace
      * @param string $level
+     *
+     * @return App
      */
-    public function error(int $code, string $message = null, array $trace = null, string $level = null): void
+    public function error(int $code, string $message = null, array $trace = null, string $level = null): App
     {
         $this->clear('RES')->status($code);
 
@@ -943,8 +949,8 @@ final class App implements \ArrayAccess
             $handled = true;
         }
 
-        if ($handled || $prior || $this->hive['QUIET']) {
-            return;
+        if ($handled || $prior) {
+            return $this;
         }
 
         if ($this->hive['REQ']['AJAX']) {
@@ -977,7 +983,7 @@ final class App implements \ArrayAccess
             ;
         }
 
-        $this->send();
+        return $this->send();
     }
 
     /**
@@ -1032,6 +1038,21 @@ final class App implements \ArrayAccess
     }
 
     /**
+     * Set event listener that run once only.
+     *
+     * @param string   $event
+     * @param callable $listener
+     *
+     * @return App
+     */
+    public function one(string $event, callable $listener): App
+    {
+        $this->hive['_ONCE'][$event] = true;
+
+        return $this->on($event, $listener);
+    }
+
+    /**
      * Trigger event listener.
      *
      * @param string     $event
@@ -1041,10 +1062,16 @@ final class App implements \ArrayAccess
      */
     public function trigger(string $event, array $args = null): bool
     {
-        $listeners = $this->ref('_LISTENERS.'.$event, false);
+        $key = '_LISTENERS.'.$event;
+        $listeners = $this->ref($key, false);
 
         if (!$listeners) {
             return false;
+        }
+
+        if (isset($this->hive['_ONCE'][$event])) {
+            unset($this->hive['_ONCE'][$event]);
+            $this->doClear($key);
         }
 
         foreach ($listeners as $listener) {
@@ -1481,9 +1508,11 @@ final class App implements \ArrayAccess
      */
     public function sendContent(): App
     {
-        if ($this->hive['QUIET']) {
+        if ($this->hive['QUIET'] || $this->hive['RES']['SENT']) {
             return $this;
         }
+
+        $this->hive['RES']['SENT'] = true;
 
         if ($this->hive['RES']['KBPS'] <= 0) {
             echo $this->hive['RES']['CONTENT'];
@@ -1628,7 +1657,6 @@ final class App implements \ArrayAccess
             $now = microtime(true);
             $body = '';
             $cached = null;
-            $handled = false;
 
             if ($ttl && in_array($method, ['GET', 'HEAD'])) {
                 // Only GET and HEAD requests are cacheable
@@ -1656,7 +1684,7 @@ final class App implements \ArrayAccess
                 $this->expire(0);
             }
 
-            if (!$cached) {
+            if (null === $cached) {
                 if (!$this->hive['RAW'] && !$this->hive['REQ']['BODY']) {
                     $this->hive['REQ']['BODY'] = file_get_contents('php://input');
                 }
@@ -1671,16 +1699,19 @@ final class App implements \ArrayAccess
                 $result = $this->call($call, $args);
                 $this->hive['_HANDLE_MAPPER'] = false;
 
-                if (is_array($result)) {
+                if (is_scalar($result)) {
+                    $body = (string) $result;
+                } elseif (is_array($result)) {
                     $body = json_encode($result);
                 } elseif ($result instanceof \Closure) {
-                    $handled = true;
                     $result($this);
-                } else {
-                    $body = (string) $result;
                 }
 
-                if (isset($hash) && $body && !error_get_last()) {
+                if ($this->hive['ERROR']) {
+                    return;
+                }
+
+                if (isset($hash) && '' !== $body) {
                     $headers = $this->hive['RES']['HEADERS'];
                     unset($headers['Set-Cookie']);
 
@@ -1696,9 +1727,7 @@ final class App implements \ArrayAccess
             $this->hive['RES']['CONTENT'] = $body;
             $this->hive['RES']['KBPS'] = $kbps;
 
-            if (!$handled) {
-                $this->send();
-            }
+            $this->send();
 
             if ('OPTIONS' !== $method) {
                 return;

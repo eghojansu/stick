@@ -100,7 +100,7 @@ SQL1
         $user = $this->auth->getProvider()->findById('1');
         $user2 = $this->auth->getProvider()->findById('2');
 
-        $this->app->on(Auth::EVENT_LOGIN, function () {
+        $this->app->one(Auth::EVENT_LOGIN, function () {
             return true;
         });
         $this->auth->login($user);
@@ -108,8 +108,7 @@ SQL1
         $this->assertEquals('1', $this->app['SESSION.user_login_id']);
         $this->app->clear('SESSION.user_login_id');
 
-        $this->app->clear('_LISTENERS.'.Auth::EVENT_LOGIN);
-        $this->app->on(Auth::EVENT_LOGIN, function ($user, Auth $auth) use ($user2) {
+        $this->app->one(Auth::EVENT_LOGIN, function ($user, Auth $auth) use ($user2) {
             $auth->setUser(clone $user2);
         });
         $this->auth->login($user);
@@ -144,13 +143,12 @@ SQL1
         $this->assertEquals($user, $this->auth->getUser());
 
         $this->auth->logout();
-        $this->app->on(Auth::EVENT_LOADUSER, function (Auth $auth) use ($user2) {
+        $this->app->one(Auth::EVENT_LOADUSER, function (Auth $auth) use ($user2) {
             $auth->setUser(clone $user2);
         });
         $this->assertEquals($user2, $this->auth->getUser());
 
         $this->auth->logout();
-        $this->app->clear('_LISTENERS.'.Auth::EVENT_LOADUSER);
         $this->app['SESSION.user_login_id'] = '1';
         $this->assertEquals($user, $this->auth->getUser());
     }

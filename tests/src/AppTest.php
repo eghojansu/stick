@@ -463,6 +463,18 @@ class AppTest extends TestCase
         $this->assertCount(1, $this->app->get('_LISTENERS.bar'));
     }
 
+    public function testOne()
+    {
+        $this->app->one('foo', function () {
+        })->one('foo', function () {
+        })->one('bar', function () {
+        });
+
+        $this->assertCount(2, $this->app->get('_ONCE'));
+        $this->assertTrue($this->app->get('_ONCE.foo'));
+        $this->assertTrue($this->app->get('_ONCE.bar'));
+    }
+
     public function triggerProvider()
     {
         return [
@@ -667,52 +679,13 @@ class AppTest extends TestCase
             [
                 'foo', ['REQ.PATH' => '/any/foo'], [['GET /{method}/{input}', AnyController::class.'->{method}']],
             ],
-            [
-                'foo', [], [], '/No route specified/',
-            ],
-            [
-                'foo', [], [['GET /', function () {
-                    throw new \Exception('bar');
-                }]], '/bar/',
-            ],
-            [
-                'foo', [], [['GET /', function () {
-                    throw new ResponseErrorException('Generated from exception', 404);
-                }]], '/Generated from exception/',
-            ],
-            [ // route do not exists
-                'foo', [], [['GET /foo', function () {
-                    return 'foo';
-                }]], '/Not Found/',
-            ],
-            [ // invalid mode
-                'foo', [], [['GET / sync', function () {
-                    return 'foo';
-                }]], '/Not Found/',
-            ],
-            [ // invalid request method
-                'foo', ['REQ.CLI' => false], [['POST /', function () {
-                    return 'foo';
-                }]], '/Method Not Allowed/',
-            ],
-            [ // invalid controller (unable to call)
-                'foo', [], [['GET /', AnyController::class.'->fakeMethod']], '/Method Not Allowed/',
-            ],
-            [ // invalid controller (class does not exists)
-                'foo', [], [['GET /', 'FakeController->method']], '/Not Found/',
-            ],
-            [ // cached
-                'foo', [], [['GET /', function () {
-                    return 'foo';
-                }, 1]],
-            ],
         ];
     }
 
     /**
      * @dataProvider runProvider
      */
-    public function testRun($expected, $sets, $routes, $error = null)
+    public function testRun($expected, $sets, $routes)
     {
         $this->app->mset($sets);
 
@@ -723,22 +696,81 @@ class AppTest extends TestCase
         if ($this->app->get('QUIET')) {
             $this->app->run();
 
-            if ($error) {
-                $this->assertContains($error, $this->app->get('ERROR'));
-            } else {
-                $this->assertEmpty($this->app->get('ERROR'));
-                $this->assertEquals($expected, $this->app->get('RES.CONTENT'));
-            }
+            $this->assertEmpty($this->app->get('ERROR'));
+            $this->assertEquals($expected, $this->app->get('RES.CONTENT'));
         } else {
-            if ($error) {
-                $this->expectOutputRegex($error);
-                $this->app->run();
-            } else {
-                $this->expectOutputString($expected);
-                $this->app->run();
-                $this->assertEmpty($this->app->get('ERROR'));
-            }
+            $this->expectOutputString($expected);
+            $this->app->run();
+            $this->assertEmpty($this->app->get('ERROR'));
         }
+    }
+
+    public function runErrorProvider()
+    {
+        return [
+            [
+                'No route specified', [], [],
+            ],
+            [
+                'bar', [], [['GET /', function () {
+                    throw new \Exception('bar');
+                }]],
+            ],
+            [
+                'Generated from exception', [], [['GET /', function () {
+                    throw new ResponseErrorException('Generated from exception', 404);
+                }]],
+            ],
+            [ // route do not exists
+                'Not Found', [], [['GET /foo', 'foo']],
+            ],
+            [ // invalid mode
+                'Not Found', [], [['GET / sync', 'foo']],
+            ],
+            [ // invalid request method
+                'Method Not Allowed', ['REQ.CLI' => false], [['POST /', 'foo']],
+            ],
+            [ // invalid controller (unable to call)
+                'Method Not Allowed', [], [['GET /', AnyController::class.'->fakeMethod']],
+            ],
+            [ // invalid controller (class does not exists)
+                'Not Found', [], [['GET /', 'FakeController->method']],
+            ],
+            [ // runtime error by bad logic
+                'Division by zero', [], [['GET /', function () {
+                    return 1 / 0;
+                }]],
+            ],
+            [ // Call error on handler
+                'Not Found', [], [['GET /', function (App $app) {
+                    return $app->error(404, 'Not Found');
+                }]],
+            ],
+        ];
+    }
+
+    /**
+     * @dataProvider runErrorProvider
+     */
+    public function testRunError($expected, $sets, $routes, array $error = [])
+    {
+        $this->app->mset($sets)->set('QUIET', true);
+
+        foreach ($routes as $route) {
+            $this->app->route(...$route);
+        }
+
+        $this->app->run();
+
+        $appError = $this->app->get('ERROR');
+        $this->assertNotEmpty($appError);
+
+        if ($expected) {
+            $this->assertContains($expected, $this->app->get('RES.CONTENT'));
+        }
+
+        $expectedError = array_merge($appError, $error);
+        $this->assertEquals($appError, $expectedError);
     }
 
     public function testRunHeaders()
@@ -1061,7 +1093,7 @@ SQL1
 
     public function testErrorListener()
     {
-        $this->app->on(App::EVENT_ERROR, function (App $app, $error) {
+        $this->app->one(App::EVENT_ERROR, function (App $app, $error) {
             $app->set('myerror', $error['text']);
         });
         $this->app->error(500, 'Internal server error');
@@ -1070,7 +1102,6 @@ SQL1
         // listener trigger error
         $message = 'Error triggered from app error listener';
 
-        $this->app->clear('_LISTENERS.'.App::EVENT_ERROR);
         $this->app->set('QUIET', true);
         $this->app->on(App::EVENT_ERROR, function () use ($message) {
             throw new \Exception($message);
@@ -1078,7 +1109,8 @@ SQL1
 
         $this->app->error(404, 'Internal server error');
         $this->assertEquals(500, $this->app->get('RES.CODE'));
-        $this->assertEmpty($this->app->get('RES.CONTENT'));
+        $this->assertContains($message, $this->app->get('ERROR'));
+        $this->assertContains($message, $this->app->get('RES.CONTENT'));
     }
 
     public function testErrorEnsureLogged()
@@ -1515,6 +1547,87 @@ SQL1
 
         $this->assertEquals('bar', $this->app->flash('foo'));
         $this->assertNull($this->app->flash('foo'));
+    }
+
+    public function testSend()
+    {
+        $this->app->set('RES.CONTENT', 'foo');
+
+        $this->expectOutputString('foo');
+        $this->app->send();
+    }
+
+    public function sendContentProvider()
+    {
+        return [
+            [
+                '', ['QUIET' => true],
+            ],
+            [
+                'foo', ['RES.CONTENT' => 'foo'],
+            ],
+            [
+                'foo', ['RES.CONTENT' => 'foo', 'RES.KBPS' => 10],
+            ],
+        ];
+    }
+
+    /**
+     * @dataProvider sendContentProvider
+     */
+    public function testSendContent($expected, $sets)
+    {
+        $this->app->mset($sets);
+
+        $this->expectOutputString($expected);
+        $this->app->sendContent();
+    }
+
+    public function sendHeadersProvider()
+    {
+        return [
+            [
+                [],
+            ],
+            [
+                [
+                    'RES.HEADERS' => ['Location' => '/foo'],
+                    'REQ.CLI' => false,
+                ],
+                [
+                    '/^Location: \/foo$/' => 1,
+                ],
+            ],
+            [
+                [
+                    'REQ.CLI' => false,
+                    'COOKIE' => ['foo' => ['bar']],
+                ],
+                [
+                    '/^Set-Cookie: foo=bar/' => 1,
+                ],
+            ],
+        ];
+    }
+
+    /**
+     * @dataProvider sendHeadersProvider
+     */
+    public function testSendHeaders($sets, $checks = null)
+    {
+        $this->app->mset($sets);
+
+        $this->assertEquals($this->app, $this->app->sendHeaders());
+
+        if (function_exists('xdebug_get_headers')) {
+            $headers = xdebug_get_headers();
+
+            foreach ($checks ?? [] as $pattern => $expected) {
+                $checked = preg_grep($pattern, $headers);
+
+                $this->assertCount($expected, $checked);
+            }
+        }
     }
 
     public function testArrayAccess()
