@@ -66,7 +66,7 @@ class Template implements \ArrayAccess
      * @param string $dirs   template dirs
      * @param string $macros macro dirs
      */
-    public function __construct(string $dirs, string $macros = 'macros')
+    public function __construct(string $dirs = './ui/', string $macros = 'macros')
     {
         $this->dirs = Helper::reqarr($dirs);
         $this->macros = Helper::reqarr($macros);
