@@ -537,16 +537,6 @@ SQL1
         $this->assertEquals('', $this->conn->getName());
     }
 
-    public function testGetLogLevel()
-    {
-        $this->assertEquals(Logger::LEVEL_DEBUG, $this->conn->getLogLevel());
-    }
-
-    public function testSetLogLevel()
-    {
-        $this->assertEquals('foo', $this->conn->setLogLevel('foo')->getLogLevel());
-    }
-
     public function testPdoType()
     {
         $this->assertEquals(\PDO::PARAM_NULL, $this->conn->pdoType(null));
