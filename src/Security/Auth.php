@@ -118,7 +118,7 @@ final class Auth
         }
 
         $this->user = $user;
-        $this->app->set('SESSION.user_login_id', $user->getId());
+        $this->app['SESSION']['user_login_id'] = $user->getId();
     }
 
     /**
@@ -132,7 +132,7 @@ final class Auth
 
         $this->userLoaded = false;
         $this->user = null;
-        $this->app->clear('SESSION.user_login_id');
+        unset($this->app['SESSION']['user_login_id']);
     }
 
     /**
@@ -146,7 +146,7 @@ final class Auth
             return $this->user;
         }
 
-        $userId = $this->app->get('SESSION.user_login_id');
+        $userId = $this->app['SESSION']['user_login_id'] ?? null;
         $this->userLoaded = true;
 
         if (!$userId) {
@@ -191,7 +191,7 @@ final class Auth
      */
     public function guard(): bool
     {
-        $path = $this->app['REQ.PATH'];
+        $path = $this->app['PATH'];
 
         if ($path === $this->options['loginPath']) {
             if ($this->isLogged()) {

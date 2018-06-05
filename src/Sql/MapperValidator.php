@@ -23,14 +23,6 @@ use Fal\Stick\Validation\AbstractValidator;
 final class MapperValidator extends AbstractValidator
 {
     /**
-     * @var array
-     */
-    protected $messages = [
-        'exists' => null,
-        'unique' => 'This value is already used.',
-    ];
-
-    /**
      * @var Connection
      */
     private $connection;

@@ -30,19 +30,6 @@ interface ValidatorInterface
     public function has(string $rule): bool;
 
     /**
-     * Get message for rule.
-     *
-     * @param string $rule
-     * @param mixed  $value
-     * @param array  $args
-     * @param string $field
-     * @param string $message
-     *
-     * @return string
-     */
-    public function message(string $rule, $value = null, array $args = [], string $field = '', string $message = null): string;
-
-    /**
      * Perform validation with given rule.
      *
      * @param string $rule

@@ -66,7 +66,7 @@ SQL1
 
     public function tearDown()
     {
-        $this->app->mclear(explode('|', App::GLOBALS));
+        session_destroy();
     }
 
     public function passwordProvider()
@@ -106,20 +106,5 @@ SQL1
     public function testHas($rule, $expected = true)
     {
         $this->assertEquals($expected, $this->validator->has($rule));
-    }
-
-    public function messageProvider()
-    {
-        return [
-            ['password', 'This value should be equal to current user password.'],
-        ];
-    }
-
-    /**
-     * @dataProvider messageProvider
-     */
-    public function testMessage($rule, $message, $args = [])
-    {
-        $this->assertEquals($message, $this->validator->message($rule, null, $args));
     }
 }

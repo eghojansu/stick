@@ -62,14 +62,14 @@ class Translator
     /**
      * Trans message.
      *
-     * @param string $key
-     * @param array  $args
+     * @param string     $key
+     * @param array|null $args
      *
      * @return string
      */
-    public function trans(string $key, array $args = []): string
+    public function trans(string $key, array $args = null): string
     {
-        return strtr($this->ref($key) ?? $key, $args);
+        return strtr($this->ref($key) ?? $key, $args ?? []);
     }
 
     /**
@@ -79,13 +79,13 @@ class Translator
      *
      *  * There is no apple|There is one apple|There is # apples
      *
-     * @param string  $key
-     * @param numeric $count
-     * @param array   $args
+     * @param string     $key
+     * @param numeric    $count
+     * @param array|null $args
      *
      * @return string
      */
-    public function choice(string $key, $count, array $args = []): string
+    public function choice(string $key, $count, array $args = null): string
     {
         $args['#'] = $count;
 
@@ -96,6 +96,31 @@ class Translator
         }
 
         return strtr($choice, $args);
+    }
+
+    /**
+     * Translate alt.
+     *
+     * @param string        $key
+     * @param array|null    $args
+     * @param string|null   $fallback
+     * @param array<string> $alts
+     *
+     * @return string
+     */
+    public function transAlt(string $key, array $args = null, string $fallback = null, string ...$alts): string
+    {
+        $use = $this->ref($key);
+
+        foreach ($use ? [] : $alts as $alt) {
+            $use = $this->ref($alt);
+
+            if ($use) {
+                break;
+            }
+        }
+
+        return strtr($use ?? $fallback ?? $key, $args ?? []);
     }
 
     /**
@@ -111,12 +136,12 @@ class Translator
     /**
      * Add message.
      *
-     * @param string $key
-     * @param string $message
+     * @param string       $key
+     * @param array|string $message
      *
      * @return Translator
      */
-    public function add(string $key, string $message): Translator
+    public function add(string $key, $message): Translator
     {
         $ref = &$this->ref($key, true);
         $ref = $message;
@@ -143,7 +168,7 @@ class Translator
      */
     public function setLocales($locales): Translator
     {
-        $this->locales = Helper::reqarr($locales);
+        $this->locales = array_unique(array_merge([__DIR__.'/dict/'], Helper::reqarr($locales)));
         $this->reset();
 
         return $this;

@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Fal\Stick\Test\Validation;
 
+use Fal\Stick\Translator;
 use Fal\Stick\Validation\NativeValidator;
 use Fal\Stick\Validation\SimpleValidator;
 use Fal\Stick\Validation\Validator;
@@ -24,7 +25,7 @@ class ValidatorTest extends TestCase
 
     public function setUp()
     {
-        $this->validator = new Validator();
+        $this->validator = new Validator(new Translator());
         $this->validator->add(new SimpleValidator());
         $this->validator->add(new NativeValidator());
     }
@@ -324,5 +325,12 @@ class ValidatorTest extends TestCase
     public function testValidateException()
     {
         $this->validator->validate(['foo' => 'foo'], ['foo' => 'foo']);
+    }
+
+    public function testValidateCustomMessage()
+    {
+        $res = $this->validator->validate([], ['foo' => 'required'], ['foo.required' => 'Required']);
+        $this->assertFalse($res['success']);
+        $this->assertEquals('Required', $res['error']['foo'][0]);
     }
 }

@@ -13,8 +13,6 @@ declare(strict_types=1);
 
 namespace Fal\Stick\Validation;
 
-use Fal\Stick\Helper;
-
 /**
  * Simplify validator implementation.
  *
@@ -22,13 +20,6 @@ use Fal\Stick\Helper;
  */
 abstract class AbstractValidator implements ValidatorInterface
 {
-    /**
-     * Rule messages.
-     *
-     * @var array
-     */
-    protected $messages = [];
-
     /**
      * @var array
      */
@@ -40,20 +31,6 @@ abstract class AbstractValidator implements ValidatorInterface
     public function has(string $rule): bool
     {
         return method_exists($this, '_'.$rule);
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function message(string $rule, $value = null, array $args = [], string $field = '', string $message = null): string
-    {
-        $use = $message ?? $this->messages[strtolower($rule)] ?? 'This value is not valid.';
-
-        if (false === strpos($use, '{')) {
-            return $use;
-        }
-
-        return Helper::interpolate($use, ['field' => $field, 'rule' => $rule, 'value' => $value] + $args, '{}');
     }
 
     /**

@@ -23,13 +23,6 @@ use Fal\Stick\Validation\AbstractValidator;
 final class AuthValidator extends AbstractValidator
 {
     /**
-     * @var array
-     */
-    protected $messages = [
-        'password' => 'This value should be equal to current user password.',
-    ];
-
-    /**
      * @var Auth
      */
     private $auth;

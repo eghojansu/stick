@@ -87,20 +87,4 @@ SQL1
     {
         $this->assertEquals($expected, $this->validator->validate($rule, array_shift($args), $args, '', $validated));
     }
-
-    public function messageProvider()
-    {
-        return [
-            ['unique', 'This value is already used.'],
-            ['exists', 'This value is not valid.'],
-        ];
-    }
-
-    /**
-     * @dataProvider messageProvider
-     */
-    public function testMessage($rule, $message, $args = [])
-    {
-        $this->assertEquals($message, $this->validator->message($rule, null, $args));
-    }
 }

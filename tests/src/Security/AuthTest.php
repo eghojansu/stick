@@ -64,7 +64,7 @@ SQL1
 
     public function tearDown()
     {
-        $this->app->mclear(explode('|', App::GLOBALS));
+        session_destroy();
     }
 
     public function testAttempt()
@@ -92,7 +92,7 @@ SQL1
         $user = $this->auth->getProvider()->findById('1');
         $this->auth->login($user);
         $this->assertEquals($user, $this->auth->getUser());
-        $this->assertEquals('1', $this->app['SESSION.user_login_id']);
+        $this->assertEquals('1', $this->app['SESSION']['user_login_id']);
     }
 
     public function testLoginEvent()
@@ -105,25 +105,25 @@ SQL1
         });
         $this->auth->login($user);
         $this->assertEquals($user, $this->auth->getUser());
-        $this->assertEquals('1', $this->app['SESSION.user_login_id']);
-        $this->app->clear('SESSION.user_login_id');
+        $this->assertEquals('1', $this->app['SESSION']['user_login_id']);
+        unset($this->app['SESSION']['user_login_id']);
 
         $this->app->one(Auth::EVENT_LOGIN, function ($user, Auth $auth) use ($user2) {
             $auth->setUser(clone $user2);
         });
         $this->auth->login($user);
         $this->assertEquals($user2, $this->auth->getUser());
-        $this->assertNull($this->app['SESSION.user_login_id']);
+        $this->assertFalse(isset($this->app['SESSION']['user_login_id']));
     }
 
     public function testLogout()
     {
         $user = $this->auth->getProvider()->findById('1');
         $this->auth->login($user);
-        $this->assertEquals('1', $this->app['SESSION.user_login_id']);
+        $this->assertEquals('1', $this->app['SESSION']['user_login_id']);
 
         $this->auth->logout();
-        $this->assertNull($this->app['SESSION.user_login_id']);
+        $this->assertFalse(isset($this->app['SESSION']['user_login_id']));
 
         $this->app->on(Auth::EVENT_LOGOUT, function ($user, Auth $auth) {
             $auth->setUser(null);
@@ -149,7 +149,7 @@ SQL1
         $this->assertEquals($user2, $this->auth->getUser());
 
         $this->auth->logout();
-        $this->app['SESSION.user_login_id'] = '1';
+        $this->app['SESSION']['user_login_id'] = '1';
         $this->assertEquals($user, $this->auth->getUser());
     }
 
@@ -180,33 +180,33 @@ SQL1
 
         $user = $this->auth->getProvider()->findById('1');
         $this->auth->setUser($user);
-        $this->app['REQ.PATH'] = '/login';
+        $this->app['PATH'] = '/login';
 
         $rerouted = $this->auth->guard();
         $this->assertTrue($rerouted);
         $this->assertEquals($secure, $this->app->flash('rerouted'));
 
         // valid access
-        $this->app['REQ.PATH'] = $secure;
+        $this->app['PATH'] = $secure;
         $rerouted = $this->auth->guard();
         $this->assertFalse($rerouted);
         $this->assertNull($this->app->flash('rerouted'));
 
         // on un-protected path
-        $this->app['REQ.PATH'] = '/foo';
+        $this->app['PATH'] = '/foo';
         $rerouted = $this->auth->guard();
         $this->assertFalse($rerouted);
         $this->assertNull($this->app->flash('rerouted'));
 
         // reset, access secure
         $this->auth->setUser(null);
-        $this->app['REQ.PATH'] = $secure;
+        $this->app['PATH'] = $secure;
         $rerouted = $this->auth->guard();
         $this->assertTrue($rerouted);
         $this->assertEquals('/login', $this->app->flash('rerouted'));
 
         // access login
-        $this->app['REQ.PATH'] = '/login';
+        $this->app['PATH'] = '/login';
         $rerouted = $this->auth->guard();
         $this->assertFalse($rerouted);
         $this->assertNull($this->app->flash('rerouted'));

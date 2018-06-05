@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Fal\Stick\Validation;
 
 use Fal\Stick\Helper;
+use Fal\Stick\Translator;
 
 /**
  * Validator wrapper.
@@ -23,9 +24,24 @@ use Fal\Stick\Helper;
 final class Validator
 {
     /**
+     * @var Translator
+     */
+    private $translator;
+
+    /**
      * @var array
      */
     private $validators = [];
+
+    /**
+     * Class constructor.
+     *
+     * @param Translator $translator
+     */
+    public function __construct(Translator $translator)
+    {
+        $this->translator = $translator;
+    }
 
     /**
      * Add validator.
@@ -63,7 +79,7 @@ final class Validator
 
                 if (false === $result) {
                     // validation fail
-                    $error[$field][] = $validator->message($rule, $value, $args, $field, $messages[$field.'.'.$rule] ?? null);
+                    $error[$field][] = $this->message($rule, $value, $args, $field, $messages[$field.'.'.$rule] ?? null);
                     break;
                 } elseif (true === $result) {
                     $ref = &Helper::ref($field, $validated);
@@ -100,5 +116,34 @@ final class Validator
         }
 
         throw new \DomainException('Rule "'.$rule.'" does not exists');
+    }
+
+    /**
+     * Get message for rule.
+     *
+     * @param string $rule
+     * @param mixed  $value
+     * @param array  $args
+     * @param string $field
+     * @param string $message
+     *
+     * @return string
+     */
+    private function message(string $rule, $value = null, array $args = [], string $field = '', string $message = null): string
+    {
+        if ($message && false === strpos($message, '{')) {
+            return $message;
+        }
+
+        $key = 'validation.'.strtolower($rule);
+        $alt = 'validation.default';
+        $fallback = 'This value is not valid.';
+        $data = [];
+
+        foreach (compact('field', 'rule', 'value') + $args as $k => $v) {
+            $data['{'.$k.'}'] = Helper::stringifyignorescalar($v);
+        }
+
+        return $this->translator->transAlt($key, $data, $fallback, $alt);
     }
 }
