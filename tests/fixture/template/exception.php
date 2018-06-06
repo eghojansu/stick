@@ -1,1 +1,1 @@
-<?php throw new Exception('Template render trigger error');
+<?php throw new Exception('Template render trigger error') ?>
