@@ -69,7 +69,7 @@ final class Validator
     public function validate(array $data, array $rules, array $messages = []): array
     {
         $validated = [];
-        $error = [];
+        $errors = [];
 
         foreach ($rules as $field => $fieldRules) {
             foreach (Helper::parsexpr($fieldRules) as $rule => $args) {
@@ -79,7 +79,7 @@ final class Validator
 
                 if (false === $result) {
                     // validation fail
-                    $error[$field][] = $this->message($rule, $value, $args, $field, $messages[$field.'.'.$rule] ?? null);
+                    $errors[$field][] = $this->message($rule, $value, $args, $field, $messages[$field.'.'.$rule] ?? null);
                     break;
                 } elseif (true === $result) {
                     $ref = &Helper::ref($field, $validated);
@@ -92,8 +92,8 @@ final class Validator
         }
 
         return [
-            'success' => 0 === count($error),
-            'error' => $error,
+            'success' => 0 === count($errors),
+            'errors' => $errors,
             'data' => $validated,
         ];
     }

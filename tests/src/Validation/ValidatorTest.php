@@ -285,7 +285,7 @@ class ValidatorTest extends TestCase
 
         $second = $this->validator->validate($falseData, $rules, $messages);
         $this->assertFalse($second['success']);
-        $this->assertEquals($expected, $second['error']);
+        $this->assertEquals($expected, $second['errors']);
     }
 
     public function validateMutateProvider()
@@ -331,6 +331,6 @@ class ValidatorTest extends TestCase
     {
         $res = $this->validator->validate([], ['foo' => 'required'], ['foo.required' => 'Required']);
         $this->assertFalse($res['success']);
-        $this->assertEquals('Required', $res['error']['foo'][0]);
+        $this->assertEquals('Required', $res['errors']['foo'][0]);
     }
 }
