@@ -291,6 +291,10 @@ class HelperTest extends TestCase
     {
         return [
             [
+                '',
+                [],
+            ],
+            [
                 'foo',
                 [
                     'foo' => [],
