@@ -21,6 +21,16 @@ namespace Fal\Stick;
 class Template implements \ArrayAccess
 {
     /**
+     * @var App
+     */
+    private $app;
+
+    /**
+     * @var Translator
+     */
+    private $translator;
+
+    /**
      * @var array
      */
     private $context = [];
@@ -44,7 +54,9 @@ class Template implements \ArrayAccess
      */
     private $maliases = [];
 
-    /** @var string */
+    /**
+     * @var string
+     */
     private $templateExtension = '.php';
 
     /**
@@ -63,11 +75,15 @@ class Template implements \ArrayAccess
     /**
      * Class constructor.
      *
-     * @param string $dirs   template dirs
-     * @param string $macros macro dirs
+     * @param App        $app
+     * @param Translator $translator
+     * @param string     $dirs       template dirs
+     * @param string     $macros     macro dirs
      */
-    public function __construct(string $dirs = './ui/', string $macros = 'macros')
+    public function __construct(App $app, Translator $translator, string $dirs = './ui/', string $macros = 'macros')
     {
+        $this->app = $app;
+        $this->translator = $translator;
         $this->dirs = Helper::reqarr($dirs);
         $this->macros = Helper::reqarr($macros);
     }
@@ -369,6 +385,12 @@ class Template implements \ArrayAccess
             }
 
             return trim($this->render($filepath, $args));
+        } elseif (method_exists($this->translator, $func)) {
+            // translator methods
+            return $this->translator->$func(...$args);
+        } elseif (method_exists($this->app, $func)) {
+            // app methods
+            return $this->app->$func(...$args);
         }
 
         throw new \BadFunctionCallException('Call to undefined function '.$func);

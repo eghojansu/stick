@@ -6,7 +6,11 @@
 
   <filter>
     <whitelist processUncoveredFilesFromWhitelist="true">
-      <directory>src</directory>
+      <directory suffix=".php">src</directory>
+      <exclude>
+        <directory suffix=".php">src/Crud/template</directory>
+        <directory suffix=".php">src/dict</directory>
+      </exclude>
     </whitelist>
   </filter>
 
