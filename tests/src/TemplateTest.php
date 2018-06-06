@@ -24,7 +24,9 @@ class TemplateTest extends TestCase
 
     public function setUp()
     {
-        $this->template = new Template(new App(), new Translator(), FIXTURE.'template/');
+        $app = new App();
+        $app['GET']['foo'] = 'bar';
+        $this->template = new Template($app, new Translator(), FIXTURE.'template/');
     }
 
     public function testExists()

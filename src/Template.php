@@ -332,6 +332,10 @@ class Template implements \ArrayAccess
         try {
             extract($this->context);
             extract($context);
+            // Map globals
+            foreach (['GET', 'POST', 'FILES', 'COOKIE', 'SESSION', 'ENV', 'SERVER'] as $var) {
+                $$var = $this->app[$var];
+            }
             ob_start();
             include $file;
             $output = ob_get_clean();
