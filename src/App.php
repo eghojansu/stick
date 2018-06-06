@@ -136,7 +136,10 @@ final class App implements \ArrayAccess
     public function __construct()
     {
         ini_set('default_charset', 'UTF-8');
+        ini_set('display_errors', 'off');
         session_cache_limiter('');
+        // Intercept errors/exceptions; PHP5.3-compatible
+        error_reporting((E_ALL | E_STRICT) & ~(E_NOTICE | E_USER_NOTICE));
 
         $headers = [
             'Content-Type' => $_SERVER['CONTENT_TYPE'] ?? null,
@@ -292,9 +295,6 @@ final class App implements \ArrayAccess
         $this->init['FILES'] = [];
         $this->init['SERVER'] = $GLOBALS['_SERVER'];
         $this->init['ENV'] = $GLOBALS['_ENV'];
-
-        // Register shutdown handler
-        register_shutdown_function([$this, 'unload'], getcwd());
     }
 
     /**
@@ -400,6 +400,36 @@ final class App implements \ArrayAccess
                 return true;
             }
         }
+    }
+
+    /**
+     * Register autoloader.
+     *
+     * In case you do not need composer full feature, register this autoloader.
+     *
+     * @return App
+     *
+     * @codeCoverageIgnore
+     */
+    public function registerAutoloader(): App
+    {
+        spl_autoload_register([$this, 'autoload']);
+
+        return $this;
+    }
+
+    /**
+     * Register shutdown handler.
+     *
+     * @return App
+     *
+     * @codeCoverageIgnore
+     */
+    public function registerShutdownHandler(): App
+    {
+        register_shutdown_function([$this, 'unload'], getcwd());
+
+        return $this;
     }
 
     /**
@@ -998,7 +1028,6 @@ final class App implements \ArrayAccess
      * Framework shutdown sequence.
      *
      * @param string $cwd
-     *
      *
      * @codeCoverageIgnore
      */
