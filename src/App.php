@@ -860,6 +860,8 @@ final class App implements \ArrayAccess
      */
     public function reroute($url = null, bool $permanent = false): void
     {
+        $this->mclear('OUTPUT', 'CODE', 'STATUS');
+
         $use = $url ? (is_array($url) ? $this->alias(...$url) : $this->build($url)) : $this->hive['REALM'];
 
         $this->sessionCommit();
