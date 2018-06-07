@@ -48,6 +48,7 @@ class AppTest extends TestCase
 
     public function tearDown()
     {
+        $_SESSION = [];
         $_COOKIE = [];
         header_remove();
         date_default_timezone_set($this->init['tz']);
@@ -1533,48 +1534,62 @@ SQL1
         }
     }
 
-    public function commitStateProvider()
+    public function testCookieHandling()
     {
-        return [
-            [
-                [],
-            ],
-            [
-                ['SESSION' => ['foo' => 'bar'], 'COOKIE' => ['bar' => 'baz']],
-                ['foo' => 'bar'],
-                ['bar' => 'baz'],
-                'bar',
-            ],
-        ];
-    }
-
-    /**
-     * @dataProvider commitStateProvider
-     */
-    public function testCommitState($sets, $session = [], $cookie = [], $removeCookie = null)
-    {
-        $this->app->mset($sets);
+        $check = function_exists('xdebug_get_headers');
         $this->app->sendHeaders();
 
-        $this->assertEquals($session, $_SESSION);
-        $this->assertEquals($cookie, $_COOKIE);
-        $this->assertEquals($session, $this->app['SESSION']);
-        $this->assertEquals($cookie, $this->app['COOKIE']);
-
-        if ($removeCookie) {
-            $this->assertTrue(isset($this->app['COOKIE'][$removeCookie]));
-            $this->assertTrue(isset($_COOKIE[$removeCookie]));
-
-            unset($this->app['COOKIE'][$removeCookie]);
-            // modify the initial value manually
-            $prop = new \ReflectionProperty($this->app, 'init');
-            $prop->setAccessible(true);
-            $prop->setValue($this->app, ['COOKIE' => ['bar' => 'baz']] + $prop->getValue($this->app));
-            $this->app->sendHeaders();
-
-            $this->assertFalse(isset($this->app['COOKIE'][$removeCookie]));
-            $this->assertFalse(isset($_COOKIE[$removeCookie]));
+        $this->assertEmpty($this->app['COOKIE']);
+        if ($check) {
+            $this->assertCount(0, preg_grep('/^Set-Cookie: bar=baz/', xdebug_get_headers()));
         }
+
+        $cookie = ['bar' => 'baz'];
+        $this->app->mset(['CLI' => false, 'COOKIE' => $cookie]);
+        $this->app->sendHeaders();
+
+        $this->assertEquals($cookie, $this->app['COOKIE']);
+        if ($check) {
+            $this->assertCount(1, preg_grep('/^Set-Cookie: bar=baz/', xdebug_get_headers()));
+        }
+        header_remove();
+
+        // modify the initial value manually
+        $prop = new \ReflectionProperty($this->app, 'init');
+        $prop->setAccessible(true);
+        $prop->setValue($this->app, ['COOKIE' => $cookie] + $prop->getValue($this->app));
+
+        unset($this->app['COOKIE']['bar']);
+
+        $this->app->sendHeaders();
+
+        $this->assertEmpty($this->app['COOKIE']);
+        if ($check) {
+            $this->assertCount(1, preg_grep('/^Set-Cookie: bar=deleted/', xdebug_get_headers()));
+        }
+    }
+
+    public function testSessionDestroy()
+    {
+        $this->app['QUIET'] = true;
+        $this->app['CLI'] = false;
+        $this->app['SESSION']['foo'] = 'bar';
+
+        $this->app->reroute('/');
+
+        $this->assertEquals('bar', $_SESSION['foo']);
+
+        unset($this->app['SESSION']['foo']);
+
+        $this->app['_SESSION_FLY'] = true;
+        $this->app->reroute('/');
+        $this->assertEmpty($_SESSION);
+
+        unset($this->app['SESSION']);
+
+        $this->app['_SESSION_FLY'] = true;
+        $this->app->reroute('/');
+        $this->assertEmpty($_SESSION);
     }
 
     public function testTracify()
@@ -1627,5 +1642,8 @@ SQL1
         $this->app->offsetSet('COOKIE', ['bar' => 'baz']);
         $this->app->offsetUnset('COOKIE');
         $this->assertEquals([], $this->app->offsetGet('COOKIE'));
+
+        $this->app->offsetUnset('SESSION');
+        $this->assertTrue($this->app->offsetGet('_SESSION_INVALID'));
     }
 }

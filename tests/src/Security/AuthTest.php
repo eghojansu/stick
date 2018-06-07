@@ -62,11 +62,6 @@ SQL1
         $this->auth = new Auth($this->app, new SqlUserProvider($db, new SimpleUserTransformer()), new PlainPasswordEncoder());
     }
 
-    public function tearDown()
-    {
-        session_destroy();
-    }
-
     public function testAttempt()
     {
         $this->auth->setOptions(['redirect' => '/secure']);

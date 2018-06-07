@@ -178,7 +178,6 @@ final class App implements \ArrayAccess
         // Full assignment
         $this->hive = [
             '_BOOTED' => false,
-            '_COOKIE' => [],
             '_GROUP' => [],
             '_GROUP_DEPTH' => 0,
             '_HANDLE_MAPPER' => false,
@@ -208,6 +207,9 @@ final class App implements \ArrayAccess
                 Logger::class => 'logger',
             ],
             '_SERVICES' => [],
+            '_SESSION_DRY' => true,
+            '_SESSION_INVALID' => false,
+            '_SESSION_FLY' => true,
             'AGENT' => $this->agent(),
             'AJAX' => $this->ajax(),
             'ALIAS' => '',
@@ -282,7 +284,7 @@ final class App implements \ArrayAccess
         $this->hive['GET'] = $GLOBALS['_GET'];
         $this->hive['POST'] = $GLOBALS['_POST'];
         $this->hive['COOKIE'] = $GLOBALS['_COOKIE'];
-        $this->hive['SESSION'] = $GLOBALS['_SESSION'] ?? [];
+        $this->hive['SESSION'] = [];
         $this->hive['FILES'] = $GLOBALS['_FILES'];
         $this->hive['SERVER'] = $GLOBALS['_SERVER'];
         $this->hive['ENV'] = $GLOBALS['_ENV'];
@@ -855,6 +857,8 @@ final class App implements \ArrayAccess
     {
         $use = $url ? (is_array($url) ? $this->alias(...$url) : $this->build($url)) : $this->hive['REALM'];
 
+        $this->sessionCommit();
+
         if ($this->trigger(self::EVENT_REROUTE, [$use, $permanent])) {
             return;
         }
@@ -956,7 +960,7 @@ final class App implements \ArrayAccess
      */
     public function error(int $code, string $message = null, array $trace = null, string $level = null): App
     {
-        $this->mclear('RESPONSE', 'OUTPUT')->status($code)->commitState();
+        $this->mclear('RESPONSE', 'OUTPUT')->status($code);
 
         $status = $this->hive['STATUS'];
         $text = $message ?? 'HTTP '.$code.' ('.rtrim($this->hive['VERB'].' '.$this->hive['PATH'].'?'.$this->hive['QUERY'], '?').')';
@@ -1035,19 +1039,23 @@ final class App implements \ArrayAccess
     {
         chdir($cwd);
 
-        $error = error_get_last();
-
-        if (!$error && PHP_SESSION_ACTIVE === session_status()) {
-            session_commit();
-        }
+        $this->sessionCommit();
 
         if ($this->trigger(self::EVENT_SHUTDOWN, [$cwd])) {
             return;
         }
 
-        if ($error && in_array($error['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR])) {
-            // Fatal error detected
-            $this->error(500, 'Fatal error: '.$error['message'], [$error]);
+        $error = error_get_last();
+
+        if ($error) {
+            if (in_array($error['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR])) {
+                // Fatal error detected
+                $this->error(500, 'Fatal error: '.$error['message'], [$error]);
+            } else {
+                $message = '['.$error['type'].'] '.$error['message'].' in '.$error['file'].' on '.$error['line'];
+
+                $this->get('logger')->log(self::decideLogLevel(), $message);
+            }
         }
     }
 
@@ -1441,13 +1449,11 @@ final class App implements \ArrayAccess
      */
     public function sendHeaders(): App
     {
-        $this->commitState();
-
         if ($this->hive['CLI'] || headers_sent()) {
             return $this;
         }
 
-        foreach ($this->hive['_COOKIE'] as $name => $value) {
+        foreach ($this->cookieCollectAll() as $name => $value) {
             setcookie($name, ...$value);
         }
 
@@ -1510,46 +1516,6 @@ final class App implements \ArrayAccess
         }
 
         return $out;
-    }
-
-    /**
-     * Commit app state.
-     *
-     * Prepare cookies to send and commit session.
-     *
-     * @return App
-     */
-    private function commitState(): App
-    {
-        $jar = array_values($this->hive['JAR']);
-
-        foreach ($this->hive['COOKIE'] as $name => $value) {
-            if (!isset($this->init['COOKIE'][$name]) || $this->init['COOKIE'][$name] !== $value) {
-                $this->hive['_COOKIE'][$name] = self::modifyCookieSet($jar, $value);
-            }
-        }
-
-        foreach ($this->init['COOKIE'] as $name => $value) {
-            if (!isset($this->hive['COOKIE'][$name])) {
-                $this->hive['_COOKIE'][$name] = self::modifyCookieSet($jar, ['', '_jar' => [strtotime('-1 year')]]);
-            }
-        }
-
-        $GLOBALS['_COOKIE'] = $this->hive['COOKIE'];
-
-        $this->sessionStart();
-
-        if ($this->hive['SESSION']) {
-            $GLOBALS['_SESSION'] = $this->hive['SESSION'];
-
-            session_commit();
-        } else {
-            // End session
-            session_unset();
-            session_destroy();
-        }
-
-        return $this;
     }
 
     /**
@@ -1880,7 +1846,56 @@ final class App implements \ArrayAccess
     {
         if ('SESSION' === $key && !headers_sent() && PHP_SESSION_ACTIVE !== session_status()) {
             session_start();
+
+            if ($this->hive['_SESSION_DRY']) {
+                $this->hive['_SESSION_DRY'] = false;
+                $this->hive['SESSION'] = $GLOBALS['_SESSION'] ?? [];
+            }
         }
+    }
+
+    /**
+     * Commit session.
+     */
+    private function sessionCommit(): void
+    {
+        if ($this->hive['_SESSION_FLY'] && PHP_SESSION_ACTIVE === session_status()) {
+            $this->hive['_SESSION_FLY'] = false;
+
+            if ($this->hive['_SESSION_INVALID']) {
+                session_unset();
+                session_destroy();
+            } else {
+                $GLOBALS['_SESSION'] = $this->hive['SESSION'];
+
+                session_commit();
+            }
+        }
+    }
+
+    /**
+     * Collect cookies.
+     *
+     * @return array
+     */
+    private function cookieCollectAll(): array
+    {
+        $jar = array_values($this->hive['JAR']);
+        $cookies = [];
+
+        foreach ($this->hive['COOKIE'] as $name => $value) {
+            if (!isset($this->init['COOKIE'][$name]) || $this->init['COOKIE'][$name] !== $value) {
+                $cookies[$name] = self::cookieModifySet($jar, $value);
+            }
+        }
+
+        foreach ($this->init['COOKIE'] as $name => $value) {
+            if (!isset($this->hive['COOKIE'][$name])) {
+                $cookies[$name] = self::cookieModifySet($jar, ['', '_jar' => [strtotime('-1 year')]]);
+            }
+        }
+
+        return $cookies;
     }
 
     /**
@@ -1891,12 +1906,12 @@ final class App implements \ArrayAccess
      *
      * @return array
      */
-    private static function modifyCookieSet(array $jar, $val): array
+    private static function cookieModifySet(array $jar, $val): array
     {
         $custom = [];
 
         if (is_array($val) && isset($val['_jar'])) {
-            $tmp = $val['_jar'];
+            $custom = $val['_jar'];
             unset($val['_jar']);
         }
 
@@ -1948,7 +1963,7 @@ final class App implements \ArrayAccess
      *
      * @return string
      */
-    private static function decideLogLevel(int $code): string
+    private static function decideLogLevel(int $code = 0): string
     {
         if (500 === $code) {
             return Logger::LEVEL_ERROR;
@@ -1997,8 +2012,10 @@ final class App implements \ArrayAccess
      */
     public function offsetSet($offset, $value)
     {
+        $this->sessionStart($offset);
+
         if (isset($this->init[$offset]) && is_array($this->init[$offset])) {
-            $this->hive[$offset] = array_replace_recursive($this->hive[$offset], (array) $value);
+            $this->hive[$offset] = array_replace_recursive($this->hive[$offset] ?? [], (array) $value);
         } else {
             $this->hive[$offset] = $value;
         }
@@ -2023,8 +2040,13 @@ final class App implements \ArrayAccess
      */
     public function offsetUnset($offset)
     {
+        $this->sessionStart($offset);
+
         if ('COOKIE' === $offset) {
             $this->hive[$offset] = [];
+        } elseif ('SESSION' === $offset) {
+            $this->hive[$offset] = [];
+            $this->hive['_SESSION_INVALID'] = true;
         } elseif (isset($this->init[$offset])) {
             $this->hive[$offset] = $this->init[$offset];
         } else {
