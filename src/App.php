@@ -1386,21 +1386,6 @@ final class App implements \ArrayAccess
     }
 
     /**
-     * Get and clear hive.
-     *
-     * @param string $key
-     *
-     * @return mixed
-     */
-    public function flash(string $key)
-    {
-        $res = $this->offsetGet($key);
-        $this->offsetUnset($key);
-
-        return $res;
-    }
-
-    /**
      * Send content and headers.
      *
      * @return App

@@ -1452,14 +1452,6 @@ SQL1
         $this->assertNull($this->app['foo']);
     }
 
-    public function testFlash()
-    {
-        $this->app['foo'] = 'bar';
-
-        $this->assertEquals('bar', $this->app->flash('foo'));
-        $this->assertNull($this->app->flash('foo'));
-    }
-
     public function testSend()
     {
         $this->app['OUTPUT'] = 'foo';

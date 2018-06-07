@@ -184,32 +184,37 @@ SQL1
 
         $rerouted = $this->auth->guard();
         $this->assertTrue($rerouted);
-        $this->assertEquals($secure, $this->app->flash('rerouted'));
+        $this->assertEquals($secure, $this->app['rerouted']);
+        unset($this->app['rerouted']);
 
         // valid access
         $this->app['PATH'] = $secure;
         $rerouted = $this->auth->guard();
         $this->assertFalse($rerouted);
-        $this->assertNull($this->app->flash('rerouted'));
+        $this->assertNull($this->app['rerouted']);
+        unset($this->app['rerouted']);
 
         // on un-protected path
         $this->app['PATH'] = '/foo';
         $rerouted = $this->auth->guard();
         $this->assertFalse($rerouted);
-        $this->assertNull($this->app->flash('rerouted'));
+        $this->assertNull($this->app['rerouted']);
+        unset($this->app['rerouted']);
 
         // reset, access secure
         $this->auth->setUser(null);
         $this->app['PATH'] = $secure;
         $rerouted = $this->auth->guard();
         $this->assertTrue($rerouted);
-        $this->assertEquals('/login', $this->app->flash('rerouted'));
+        $this->assertEquals('/login', $this->app['rerouted']);
+        unset($this->app['rerouted']);
 
         // access login
         $this->app['PATH'] = '/login';
         $rerouted = $this->auth->guard();
         $this->assertFalse($rerouted);
-        $this->assertNull($this->app->flash('rerouted'));
+        $this->assertNull($this->app['rerouted']);
+        unset($this->app['rerouted']);
     }
 
     public function testIsGranted()
