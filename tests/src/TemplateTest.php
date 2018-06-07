@@ -21,12 +21,12 @@ use PHPUnit\Framework\TestCase;
 class TemplateTest extends TestCase
 {
     protected $template;
+    protected $app;
 
     public function setUp()
     {
-        $app = new App();
-        $app['GET']['foo'] = 'bar';
-        $this->template = new Template($app, new Translator(), FIXTURE.'template/');
+        $this->app = new App();
+        $this->template = new Template($this->app, new Translator(), FIXTURE.'template/');
     }
 
     public function testExists()
@@ -153,7 +153,16 @@ class TemplateTest extends TestCase
      */
     public function testRender($expected, $template, $data = [])
     {
+        $this->app['GET']['foo'] = 'bar';
+
         $this->assertEquals(file_get_contents($expected), $this->template->render($template, $data));
+    }
+
+    public function testRenderTrace()
+    {
+        $this->app['DEBUG'] = 3;
+
+        $this->assertNotEquals(file_get_contents(FIXTURE.'template/exception.html'), $this->template->render('exception'));
     }
 
     /**

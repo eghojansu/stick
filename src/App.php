@@ -960,7 +960,7 @@ final class App implements \ArrayAccess
 
         $status = $this->hive['STATUS'];
         $text = $message ?? 'HTTP '.$code.' ('.rtrim($this->hive['VERB'].' '.$this->hive['PATH'].'?'.$this->hive['QUERY'], '?').')';
-        $sTrace = $this->trace($trace);
+        $sTrace = $this->tracify($trace);
 
         $this->get('logger')->log($level ?? self::decideLogLevel($code), $text.PHP_EOL.$sTrace);
 
@@ -1476,6 +1476,58 @@ final class App implements \ArrayAccess
     }
 
     /**
+     * Convert and modify trace as string.
+     *
+     * @param array|null &$trace
+     *
+     * @return string
+     */
+    public function tracify(array &$trace = null): string
+    {
+        if (!$trace) {
+            $trace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);
+            array_shift($trace);
+        }
+
+        $trace = array_filter($trace, function ($frame) {
+            return
+                isset($frame['file']) &&
+                (
+                    $this->hive['DEBUG'] > 1
+                    || (__FILE__ !== $frame['file'] || $this->hive['DEBUG'])
+                    && (
+                        empty($frame['function'])
+                        || !preg_match('/^(?:(?:trigger|user)_error|__call|call_user_func)/', $frame['function'])
+                    )
+                )
+            ;
+        });
+
+        $out = '';
+        $eol = "\n";
+
+        // Analyze stack trace
+        foreach ($trace as $frame) {
+            $line = '';
+
+            if (isset($frame['class'])) {
+                $line .= $frame['class'].$frame['type'];
+            }
+
+            if (isset($frame['function'])) {
+                $line .= $frame['function'].'('.
+                         ($this->hive['DEBUG'] > 2 && isset($frame['args']) ? Helper::csv($frame['args']) : '').
+                         ')';
+            }
+
+            $src = Helper::fixslashes(str_replace($this->hive['TRACE'].'/', '', $frame['file']));
+            $out .= '['.$src.':'.$frame['line'].'] '.$line.$eol;
+        }
+
+        return $out;
+    }
+
+    /**
      * Commit app state.
      *
      * Prepare cookies to send and commit session.
@@ -1832,58 +1884,6 @@ final class App implements \ArrayAccess
         }
 
         return $mapper;
-    }
-
-    /**
-     * Convert and modify trace as string.
-     *
-     * @param array|null &$trace
-     *
-     * @return string
-     */
-    private function trace(array &$trace = null): string
-    {
-        if (!$trace) {
-            $trace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);
-            array_shift($trace);
-        }
-
-        $trace = array_filter($trace, function ($frame) {
-            return
-                isset($frame['file']) &&
-                (
-                    $this->hive['DEBUG'] > 1
-                    || (__FILE__ !== $frame['file'] || $this->hive['DEBUG'])
-                    && (
-                        empty($frame['function'])
-                        || !preg_match('/^(?:(?:trigger|user)_error|__call|call_user_func)/', $frame['function'])
-                    )
-                )
-            ;
-        });
-
-        $out = '';
-        $eol = "\n";
-
-        // Analyze stack trace
-        foreach ($trace as $frame) {
-            $line = '';
-
-            if (isset($frame['class'])) {
-                $line .= $frame['class'].$frame['type'];
-            }
-
-            if (isset($frame['function'])) {
-                $line .= $frame['function'].'('.
-                         ($this->hive['DEBUG'] > 2 && isset($frame['args']) ? Helper::csv($frame['args']) : '').
-                         ')';
-            }
-
-            $src = Helper::fixslashes(str_replace($this->hive['TRACE'].'/', '', $frame['file']));
-            $out .= '['.$src.':'.$frame['line'].'] '.$line.$eol;
-        }
-
-        return $out;
     }
 
     /**

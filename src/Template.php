@@ -343,7 +343,15 @@ class Template implements \ArrayAccess
             while (ob_get_level() > $level) {
                 ob_end_clean();
             }
-            $output = 'Template parsing error: ['.get_class($e).'] '.$e->getMessage().' in '.$e->getFile().' on line '.$e->getLine();
+
+            $output = '<pre>Template parsing error: ['.get_class($e).'] '.$e->getMessage().' in '.$e->getFile().' on line '.$e->getLine();
+
+            if ($this->app['DEBUG']) {
+                $trace = $e->getTrace();
+                $output .= PHP_EOL.PHP_EOL.$this->app->tracify($trace);
+            }
+
+            $output .= '</pre>';
         }
 
         return $output;

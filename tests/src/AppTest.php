@@ -1585,6 +1585,11 @@ SQL1
         }
     }
 
+    public function testTracify()
+    {
+        $this->assertNotEmpty($this->app->tracify());
+    }
+
     public function testOffsetExists()
     {
         $this->assertTrue($this->app->offsetExists('PACKAGE'));
