@@ -1154,9 +1154,15 @@ SQL1
     public function testHandleException()
     {
         $this->app['QUIET'] = true;
+
         $this->app->handleException(new \Exception('Exception handled'));
         $this->assertContains('Exception handled', $this->app['ERROR']);
         $this->assertEquals(500, $this->app['CODE']);
+
+        $this->app->mclear('ERROR');
+        $this->app->handleException(new ResponseErrorException(null, 404));
+        $this->assertContains('HTTP 404 (GET /)', $this->app['ERROR']);
+        $this->assertEquals(404, $this->app['CODE']);
     }
 
     public function grabProvider()

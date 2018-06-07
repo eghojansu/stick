@@ -965,9 +965,15 @@ final class App implements \ArrayAccess
      */
     public function handleException(\Throwable $e): App
     {
-        $code = $e instanceof ResponseErrorException ? $e->getCode() : 500;
+        if ($e instanceof ResponseErrorException) {
+            $httpCode = $e->getCode();
+            $code = E_RECOVERABLE_ERROR;
+        } else {
+            $httpCode = 500;
+            $code = $e->getCode();
+        }
 
-        return $this->error($code, $e->getMessage(), $e->getTrace(), $e->getCode());
+        return $this->error($httpCode, $e->getMessage(), $e->getTrace(), $code);
     }
 
     /**
@@ -985,7 +991,7 @@ final class App implements \ArrayAccess
         $this->mclear('RESPONSE', 'OUTPUT')->status($httpCode);
 
         $status = $this->hive['STATUS'];
-        $text = $message ?? 'HTTP '.$httpCode.' ('.rtrim($this->hive['VERB'].' '.$this->hive['PATH'].'?'.$this->hive['QUERY'], '?').')';
+        $text = $message ?: 'HTTP '.$httpCode.' ('.rtrim($this->hive['VERB'].' '.$this->hive['PATH'].'?'.$this->hive['QUERY'], '?').')';
         $sTrace = $this->tracify($trace);
 
         $this->get('logger')->logByCode($code, $text.PHP_EOL.$sTrace);
