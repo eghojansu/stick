@@ -786,20 +786,21 @@ final class App implements \ArrayAccess
     /**
      * Build absolute or relative url path.
      *
-     * @param string     $path     Path or alias (alias will check first)
-     * @param array|null $args
-     * @param bool       $abs
-     * @param string     $query
-     * @param string     $fragment
+     * @param string       $path     Path or alias (alias will check first)
+     * @param array|null   $args
+     * @param bool         $abs
+     * @param string|array $query
+     * @param string       $fragment
      *
      * @return string
      */
-    public function path(string $path = null, array $args = null, bool $abs = false, string $query = '', string $fragment = ''): string
+    public function path(string $path = null, array $args = null, bool $abs = false, $query = null, string $fragment = null): string
     {
         $use = $path ? (isset($this->hive['_ROUTE_ALIASES'][$path]) ? $this->alias($path, $args) : $path) : $this->hive['PATH'];
         $host = $abs ? $this->hive['SCHEME'].'://'.$this->hive['HOST'].(in_array($this->hive['PORT'], [80, 443]) ? '' : (':'.$this->hive['PORT'])) : '';
+        $useQuery = is_array($query) ? http_build_query($query) : $query;
 
-        return $host.rtrim($this->hive['BASE'].$this->hive['ENTRY'].$use.'?'.$query.'#'.$fragment, '?#');
+        return $host.rtrim(rtrim($this->hive['BASE'].$this->hive['ENTRY'].$use.'?'.$useQuery, '?').'#'.$fragment, '#');
     }
 
     /**

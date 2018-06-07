@@ -221,16 +221,16 @@ class Template implements \ArrayAccess
     /**
      * Escape variable.
      *
-     * @param string      $filter
+     * @param string|null $val
      * @param string|null $filters
      *
      * @return string
      */
-    public function e(string $filter, string $filters = null): string
+    public function e(string $val = null, string $filters = null): string
     {
-        $rule = $filters.($filters ? '|' : '').'htmlspecialchars';
+        $use = $filters.($filters ? '|' : '').'htmlspecialchars';
 
-        return $this->filter($filter, $rule);
+        return $this->filter($val ?? '', $use);
     }
 
     /**
