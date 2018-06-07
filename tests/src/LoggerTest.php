@@ -41,6 +41,18 @@ class LoggerTest extends TestCase
         }
     }
 
+    public function testErrorCodeToLogLevel()
+    {
+        $this->assertEquals(Logger::LEVEL_EMERGENCY, Logger::errorCodeToLogLevel(E_ERROR));
+        $this->assertEquals(Logger::LEVEL_ALERT, Logger::errorCodeToLogLevel(E_WARNING));
+        $this->assertEquals(Logger::LEVEL_CRITICAL, Logger::errorCodeToLogLevel(E_STRICT));
+        $this->assertEquals(Logger::LEVEL_ERROR, Logger::errorCodeToLogLevel(E_USER_ERROR));
+        $this->assertEquals(Logger::LEVEL_WARNING, Logger::errorCodeToLogLevel(E_USER_WARNING));
+        $this->assertEquals(Logger::LEVEL_NOTICE, Logger::errorCodeToLogLevel(E_USER_NOTICE));
+        $this->assertEquals(Logger::LEVEL_INFO, Logger::errorCodeToLogLevel(E_DEPRECATED));
+        $this->assertEquals(Logger::LEVEL_DEBUG, Logger::errorCodeToLogLevel(0));
+    }
+
     public function testEmergency()
     {
         $logs = $this->logger->emergency('foo')->files();
@@ -93,6 +105,13 @@ class LoggerTest extends TestCase
     public function testDebug()
     {
         $logs = $this->logger->debug('foo')->files();
+
+        $this->assertContains('foo', file_get_contents($logs[0]));
+    }
+
+    public function testLogByCode()
+    {
+        $logs = $this->logger->logByCode(0, 'foo')->files();
 
         $this->assertContains('foo', file_get_contents($logs[0]));
     }

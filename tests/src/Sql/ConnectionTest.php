@@ -229,6 +229,16 @@ SQL1
         $this->assertNotEmpty($this->conn->getVersion());
     }
 
+    public function testGetLogLevel()
+    {
+        $this->assertEquals(Logger::LEVEL_INFO, $this->conn->getLogLevel());
+    }
+
+    public function testSetLogLevel()
+    {
+        $this->assertEquals('foo', $this->conn->setLogLevel('foo')->getLogLevel());
+    }
+
     public function testSchema()
     {
         $schema = $this->conn->schema('user');

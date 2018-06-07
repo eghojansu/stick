@@ -1151,6 +1151,14 @@ SQL1
         $this->assertNotEmpty($this->app->get('logger')->files());
     }
 
+    public function testHandleException()
+    {
+        $this->app['QUIET'] = true;
+        $this->app->handleException(new \Exception('Exception handled'));
+        $this->assertContains('Exception handled', $this->app['ERROR']);
+        $this->assertEquals(500, $this->app['CODE']);
+    }
+
     public function grabProvider()
     {
         return [

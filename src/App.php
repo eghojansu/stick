@@ -423,6 +423,11 @@ final class App implements \ArrayAccess
     /**
      * Register shutdown handler.
      *
+     * *Important*
+     *
+     * *If you do not call this method after initialization,
+     * your session will not be commited.*
+     *
      * @return App
      *
      * @codeCoverageIgnore
@@ -887,7 +892,7 @@ final class App implements \ArrayAccess
         try {
             $this->doRun();
         } catch (\Throwable $e) {
-            $this->error($e instanceof ResponseErrorException ? $e->getCode() : 500, $e->getMessage() ?: null, $e->getTrace());
+            $this->handleException($e);
         }
 
         return $this;
@@ -949,29 +954,43 @@ final class App implements \ArrayAccess
     }
 
     /**
-     * Send error.
+     * Send error by Throwable.
      *
-     * @param int    $code
-     * @param string $message
-     * @param array  $trace
-     * @param string $level
+     * @param Throwable $e
      *
      * @return App
      */
-    public function error(int $code, string $message = null, array $trace = null, string $level = null): App
+    public function handleException(\Throwable $e): App
     {
-        $this->mclear('RESPONSE', 'OUTPUT')->status($code);
+        $code = $e instanceof ResponseErrorException ? $e->getCode() : 500;
+
+        return $this->error($code, $e->getMessage(), $e->getTrace(), $e->getCode());
+    }
+
+    /**
+     * Send error.
+     *
+     * @param int    $httpCode
+     * @param string $message
+     * @param array  $trace
+     * @param int    $code
+     *
+     * @return App
+     */
+    public function error(int $httpCode, string $message = null, array $trace = null, int $code = 0): App
+    {
+        $this->mclear('RESPONSE', 'OUTPUT')->status($httpCode);
 
         $status = $this->hive['STATUS'];
-        $text = $message ?? 'HTTP '.$code.' ('.rtrim($this->hive['VERB'].' '.$this->hive['PATH'].'?'.$this->hive['QUERY'], '?').')';
+        $text = $message ?? 'HTTP '.$httpCode.' ('.rtrim($this->hive['VERB'].' '.$this->hive['PATH'].'?'.$this->hive['QUERY'], '?').')';
         $sTrace = $this->tracify($trace);
 
-        $this->get('logger')->log($level ?? self::decideLogLevel($code), $text.PHP_EOL.$sTrace);
+        $this->get('logger')->logByCode($code, $text.PHP_EOL.$sTrace);
 
         $prior = $this->hive['ERROR'];
         $this->hive['ERROR'] = [
             'status' => $status,
-            'code' => $code,
+            'code' => $httpCode,
             'text' => $text,
             'trace' => $sTrace,
         ];
@@ -984,10 +1003,9 @@ final class App implements \ArrayAccess
             $handled = $this->trigger(self::EVENT_ERROR, [$this->hive['ERROR'], $prior]);
         } catch (\Throwable $e) {
             // clear handler
-            unset($this->hive['_LISTENERS'][self::EVENT_ERROR]);
-            $this->offsetUnset('ERROR');
+            unset($this->hive['_LISTENERS'][self::EVENT_ERROR], $this['ERROR']);
 
-            $this->error($e instanceof ResponseErrorException ? $e->getCode() : 500, $e->getMessage() ?: null);
+            $this->handleException($e);
             $handled = true;
         }
 
@@ -1014,7 +1032,7 @@ final class App implements \ArrayAccess
                 '<head>'.
                   '<meta charset="'.$this->hive['ENCODING'].'">'.
                   '<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">'.
-                  '<title>'.$code.' '.$status.'</title>'.
+                  '<title>'.$httpCode.' '.$status.'</title>'.
                 '</head>'.
                 '<body>'.
                   '<h1>'.$status.'</h1>'.
@@ -1050,11 +1068,11 @@ final class App implements \ArrayAccess
         if ($error) {
             if (in_array($error['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR])) {
                 // Fatal error detected
-                $this->error(500, 'Fatal error: '.$error['message'], [$error]);
+                $this->error(500, 'Fatal error: '.$error['message'], [$error], $error['type']);
             } else {
                 $message = '['.$error['type'].'] '.$error['message'].' in '.$error['file'].' on '.$error['line'];
 
-                $this->get('logger')->log(self::decideLogLevel(), $message);
+                $this->get('logger')->logByCode($error['type'], $message);
             }
         }
     }
@@ -1954,22 +1972,6 @@ final class App implements \ArrayAccess
         }
 
         return !$res;
-    }
-
-    /**
-     * Decide log level based on HTTP error code.
-     *
-     * @param int $code
-     *
-     * @return string
-     */
-    private static function decideLogLevel(int $code = 0): string
-    {
-        if (500 === $code) {
-            return Logger::LEVEL_ERROR;
-        }
-
-        return Logger::LEVEL_INFO;
     }
 
     /**

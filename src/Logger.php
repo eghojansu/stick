@@ -90,6 +90,43 @@ final class Logger
     }
 
     /**
+     * PHP error code to log level.
+     *
+     * @param int $code
+     *
+     * @return string
+     */
+    public static function errorCodeToLogLevel(int $code): string
+    {
+        switch ($code) {
+            case E_ERROR:
+            case E_PARSE:
+            case E_CORE_ERROR:
+            case E_COMPILE_ERROR:
+                return self::LEVEL_EMERGENCY;
+            case E_WARNING:
+            case E_CORE_WARNING:
+                return self::LEVEL_ALERT;
+            case E_STRICT:
+                return self::LEVEL_CRITICAL;
+            case E_USER_ERROR:
+                return self::LEVEL_ERROR;
+            case E_USER_WARNING:
+                return self::LEVEL_WARNING;
+            case E_NOTICE:
+            case E_COMPILE_WARNING:
+            case E_USER_NOTICE:
+                return self::LEVEL_NOTICE;
+            case E_RECOVERABLE_ERROR:
+            case E_DEPRECATED:
+            case E_USER_DEPRECATED:
+                return self::LEVEL_INFO;
+            default:
+                return self::LEVEL_DEBUG;
+        }
+    }
+
+    /**
      * Log emergency message.
      *
      * @param string $message
@@ -211,6 +248,20 @@ final class Logger
         $this->write($message, $context, $level);
 
         return $this;
+    }
+
+    /**
+     * Log message from by error code.
+     *
+     * @param int    $code
+     * @param string $message
+     * @param array  $context
+     *
+     * @return Logger
+     */
+    public function logByCode(int $code, string $message, array $context = []): Logger
+    {
+        return $this->log(self::errorCodeToLogLevel($code), $message, $context);
     }
 
     /**

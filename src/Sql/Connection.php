@@ -73,6 +73,13 @@ final class Connection
     private $version;
 
     /**
+     * Log level.
+     *
+     * @var string
+     */
+    private $logLevel = Logger::LEVEL_INFO;
+
+    /**
      * Transaction status.
      *
      * @var bool
@@ -146,6 +153,32 @@ final class Connection
     public function getLogger(): Logger
     {
         return $this->logger;
+    }
+
+    /**
+     * Get logLevel.
+     *
+     * @return string
+     */
+    public function getLogLevel(): string
+    {
+        return $this->logLevel;
+    }
+
+    /**
+     * Set logLevel.
+     *
+     * In case you need to change log level higher or lower.
+     *
+     * @param string $logLevel
+     *
+     * @return Connection
+     */
+    public function setLogLevel(string $logLevel): Connection
+    {
+        $this->logLevel = $logLevel;
+
+        return $this;
     }
 
     /**
@@ -491,7 +524,7 @@ final class Connection
         $message = '(%.1f) %sRetrieving table "%s" schema';
 
         if ($ttl && $this->cache->isCached($hash, $data, 'schema', $table, $fields)) {
-            $this->logger->log(Logger::LEVEL_INFO, sprintf('(%.1fms) [CACHED] Retrieving schema of %s table', 1e3 * (microtime(true) - $start), $table));
+            $this->logger->log($this->logLevel, sprintf('(%.1fms) [CACHED] Retrieving schema of %s table', 1e3 * (microtime(true) - $start), $table));
 
             return $data[0];
         }
@@ -528,7 +561,7 @@ final class Connection
             $this->cache->set($hash, $rows, $ttl);
         }
 
-        $this->logger->log(Logger::LEVEL_INFO, sprintf('(%.1fms) Retrieving schema of %s table (%s)', 1e3 * (microtime(true) - $start), $table, $cmd[0]));
+        $this->logger->log($this->logLevel, sprintf('(%.1fms) Retrieving schema of %s table (%s)', 1e3 * (microtime(true) - $start), $table, $cmd[0]));
 
         return $rows;
     }
@@ -703,7 +736,7 @@ final class Connection
             if ($ttl && $this->cache->isCached($hash, $data, 'sql', $cmd, $arg)) {
                 $res[$i] = $data[0];
 
-                $this->logger->log(Logger::LEVEL_INFO, $this->buildLog([$cmd, $arg, $start, true]));
+                $this->logger->log($this->logLevel, $this->buildLog([$cmd, $arg, $start, true]));
 
                 continue;
             }
@@ -732,7 +765,7 @@ final class Connection
 
             $log = $this->buildLog([$cmd, $arg]);
             $query->execute();
-            $this->logger->log(Logger::LEVEL_INFO, $this->buildLog([], $start, $log));
+            $this->logger->log($this->logLevel, $this->buildLog([], $start, $log));
 
             $error = $query->errorinfo();
 
