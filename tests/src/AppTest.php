@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 /**
  * This file is part of the eghojansu/stick library.
  *
@@ -11,17 +9,15 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
+declare(strict_types=1);
+
 namespace Fal\Stick\Test;
 
 use Fal\Stick\App;
-use Fal\Stick\Logger;
-use Fal\Stick\ResponseErrorException;
+use Fal\Stick\ResponseException;
 use Fal\Stick\Sql\Connection;
-use Fal\Stick\Test\fixture\autoload\LoadAClass;
 use Fal\Stick\Test\fixture\controller\AnyController;
 use Fal\Stick\Test\fixture\controller\MapGetController;
-use Fal\Stick\Test\fixture\mapper\MyCompositUserMapper;
-use Fal\Stick\Test\fixture\mapper\MyUserMapper;
 use Fal\Stick\Test\fixture\services\DoNotRegisterClass;
 use Fal\Stick\Test\fixture\services\ImplementNoMethodInterface;
 use Fal\Stick\Test\fixture\services\NoConstructorClass;
@@ -32,7 +28,6 @@ use Fal\Stick\Test\fixture\services\WithConstructorArgClass;
 use Fal\Stick\Test\fixture\services\WithConstructorClass;
 use Fal\Stick\Test\fixture\services\WithConstructorDefaultArgClass;
 use PHPUnit\Framework\TestCase;
-use autoload\LoadBClass;
 
 class AppTest extends TestCase
 {
@@ -53,22 +48,18 @@ class AppTest extends TestCase
         header_remove();
         date_default_timezone_set($this->init['tz']);
 
-        $this->app->get('logger')->clear();
+        $this->app->logClear();
+
+        if (is_dir($logDir = $this->app['TEMP'].$this->app['LOG']['DIR'])) {
+            foreach (glob($logDir.'*') as $file) {
+                unlink($file);
+            }
+        }
     }
 
-    public function testAgent()
+    public function testCreate()
     {
-        $this->assertEquals('', $this->app->agent());
-    }
-
-    public function testAjax()
-    {
-        $this->assertEquals(false, $this->app->ajax());
-    }
-
-    public function testIp()
-    {
-        $this->assertEquals('', $this->app->ip());
+        $this->assertInstanceOf(App::class, App::create());
     }
 
     public function testBlacklisted()
@@ -77,34 +68,6 @@ class AppTest extends TestCase
         // because its need internet connection and real blacklisted ip
         // We also ignore code coverage for that part
         $this->assertFalse($this->app->blacklisted());
-    }
-
-    public function autoloadProvider()
-    {
-        return [
-            [LoadAClass::class, true],
-            [LoadBClass::class, true],
-            // doesn't exists
-            [LoadCClass::class, false],
-        ];
-    }
-
-    /**
-     * @dataProvider autoloadProvider
-     */
-    public function testAutoload($class, $expected)
-    {
-        $this->app['NAMESPACE'] = [
-            '\\' => FIXTURE,
-            'Fal\\Stick\\Test\\' => ROOT,
-        ];
-
-        if ($expected) {
-            $this->assertFalse(class_exists($class, false));
-        }
-
-        $this->assertEquals($expected, $this->app->autoload($class));
-        $this->assertEquals($expected, class_exists($class, false));
     }
 
     public function testOverrideRequestMethod()
@@ -337,7 +300,7 @@ class AppTest extends TestCase
 
     /**
      * @expectedException \DomainException
-     * @expectedExceptionMessage Unsupported http code: 600
+     * @expectedExceptionMessage Unsupported HTTP code: 600
      */
     public function testStatusException()
     {
@@ -372,31 +335,6 @@ class AppTest extends TestCase
         foreach ($checks as $key => $value) {
             $this->assertEquals($value, $this->app['RESPONSE'][$key]);
         }
-    }
-
-    public function pathProvider()
-    {
-        return [
-            [],
-            ['/'],
-            ['/bar'],
-            ['/foo/1'],
-            [null, 'home', ['bar' => 'baz']],
-            [null, 'home', ['bar' => 'baz'], true],
-        ];
-    }
-
-    /**
-     * @dataProvider pathProvider
-     */
-    public function testPath($path = null, $alias = null, $args = null, $abs = false)
-    {
-        $req = $this->app;
-        $req->route('GET home /home/{bar}', 'foo');
-        $host = $abs ? $req['SCHEME'].'://'.$req['HOST'].(in_array($req['PORT'], [80, 443]) ? '' : (':'.$req['PORT'])) : '';
-        $expected = $host.$req['BASE'].$req['ENTRY'].($alias ? $req->alias($alias, $args) : $path ?? $req['PATH']);
-
-        $this->assertEquals($expected, $this->app->path($alias ?? $path ?? $req['PATH'], $args, $abs));
     }
 
     public function testEllapsedTime()
@@ -731,7 +669,7 @@ class AppTest extends TestCase
             ],
             [
                 'Generated from exception', [], [['GET /', function () {
-                    throw new ResponseErrorException('Generated from exception', 404);
+                    throw new ResponseException('Generated from exception', 404);
                 }]],
             ],
             [ // route do not exists
@@ -925,115 +863,6 @@ class AppTest extends TestCase
         $this->assertEquals(304, $this->app['CODE']);
     }
 
-    public function runMapperProvider()
-    {
-        return [
-            [
-                'my mapper was constructed in dry state',
-                '/',
-                ['GET /', function (MyUserMapper $mapper) {
-                    return 'my mapper was constructed in '.($mapper->dry() ? 'dry' : 'wet').' state';
-                }],
-            ],
-            [
-                'username is foo',
-                '/1',
-                ['GET /{mapper}', function (MyUserMapper $mapper) {
-                    return 'username is '.$mapper->get('username');
-                }],
-            ],
-            [
-                'username is bar',
-                '/2',
-                ['GET /{mapper}', function (MyUserMapper $mapper) {
-                    return 'username is '.$mapper->get('username');
-                }],
-            ],
-            [
-                'username is bar',
-                '/4',
-                ['GET /{mapper}', function (MyUserMapper $mapper) {
-                }], 'Record of user not found (GET /4)',
-            ],
-            [
-                'username is foo and password is bar',
-                '/foo/bar',
-                ['GET /{mapper}/{password}', function (MyCompositUserMapper $mapper) {
-                    return 'username is '.$mapper->get('username').' and password is '.$mapper->get('password');
-                }],
-            ],
-            [
-                'username is bar and password is baz',
-                '/bar/baz',
-                ['GET /{mapper}/{password}', function (MyCompositUserMapper $mapper) {
-                    return 'username is '.$mapper->get('username').' and password is '.$mapper->get('password');
-                }],
-            ],
-            [
-                null,
-                '/bar/qux',
-                ['GET /{mapper}/{password}', function (MyCompositUserMapper $mapper) {
-                }], 'Record of composit_user not found (GET /bar/qux)',
-            ],
-            [
-                null,
-                '/bar',
-                ['GET /{mapper}', function (MyCompositUserMapper $mapper) {
-                }], 'Insufficient primary keys value, expect value of "username, password"',
-            ],
-        ];
-    }
-
-    /**
-     * @dataProvider runMapperProvider
-     */
-    public function testRunMapper($expected, $path, $route = null, $error = null)
-    {
-        $this->app->mset([
-            'QUIET' => true,
-            'MAPPER' => true,
-            'PATH' => $path,
-        ]);
-        $this->app->set(Connection::class, [
-            'args' => [
-                'cache' => '%cache%',
-                'logger' => '%logger%',
-                'options' => [
-                    'driver' => 'sqlite',
-                    'location' => ':memory:',
-                    'commands' => <<<SQL1
-CREATE TABLE `user` (
-    `id` INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-    `username` TEXT NOT NULL,
-    `password` TEXT NULL DEFAULT NULL,
-    `active` INTEGER NOT NULL DEFAULT 1
-);
-CREATE TABLE `composit_user` (
-    `username` TEXT NOT NULL,
-    `password` TEXT NOT NULL,
-    `active` INTEGER NOT NULL DEFAULT 1,
-    PRIMARY KEY (username, password)
-);
-insert into user (username) values ("foo"), ("bar"), ("baz");
-insert into composit_user (username, password) values ("foo","bar"), ("bar","baz"), ("baz","qux");
-SQL1
-                ],
-            ],
-        ]);
-
-        if ($route) {
-            $this->app->route(...$route);
-        }
-
-        $this->app->run();
-
-        if ($error) {
-            $this->assertEquals($error, $this->app['ERROR']['text']);
-        } else {
-            $this->assertEquals($expected, $this->app['OUTPUT']);
-        }
-    }
-
     public function mockProvider()
     {
         return [
@@ -1141,14 +970,14 @@ SQL1
 
     public function testErrorEnsureLogged()
     {
-        $this->app['THRESHOLD'] = Logger::LEVEL_DEBUG;
+        $this->app['LOG']['THRESHOLD'] = App::LEVEL_DEBUG;
         $this->app['QUIET'] = true;
 
-        $this->assertEmpty($this->app->get('logger')->files());
+        $this->assertEmpty($this->app->logFiles());
 
         $this->app->error(404);
 
-        $this->assertNotEmpty($this->app->get('logger')->files());
+        $this->assertNotEmpty($this->app->logFiles());
     }
 
     public function testHandleException()
@@ -1160,7 +989,7 @@ SQL1
         $this->assertEquals(500, $this->app['CODE']);
 
         $this->app->mclear('ERROR');
-        $this->app->handleException(new ResponseErrorException(null, 404));
+        $this->app->handleException(new ResponseException(null, 404));
         $this->assertContains('HTTP 404 (GET /)', $this->app['ERROR']);
         $this->assertEquals(404, $this->app['CODE']);
     }
@@ -1301,7 +1130,7 @@ SQL1
         $this->assertNotEquals($rdt->dt, $this->app->get(\DateTime::class));
     }
 
-    public function createProvider()
+    public function instanceProvider()
     {
         return [
             [
@@ -1382,9 +1211,9 @@ SQL1
     }
 
     /**
-     * @dataProvider createProvider
+     * @dataProvider instanceProvider
      */
-    public function testCreate($classname, $id = null, $args = null, $rule = null, $register = null)
+    public function testInstance($classname, $id = null, $args = null, $rule = null, $register = null)
     {
         $useId = $id ?? $classname;
 
@@ -1398,7 +1227,7 @@ SQL1
             }
         }
 
-        $init = $this->app->create($useId, $args);
+        $init = $this->app->instance($useId, $args);
         $this->assertInstanceOf($classname, $init);
     }
 
@@ -1406,20 +1235,20 @@ SQL1
      * @expectedException \LogicException
      * @expectedExceptionMessage Unable to create instance for "Fal\Stick\Test\fixture\services\NoMethodInterface". Please provide instantiable version of Fal\Stick\Test\fixture\services\NoMethodInterface
      */
-    public function testCreateException()
+    public function testInstanceException()
     {
-        $this->app->create(NoMethodInterface::class);
+        $this->app->instance(NoMethodInterface::class);
     }
 
     /**
      * @expectedException \LogicException
      * @expectedExceptionMessage Constructor of "Fal\Stick\Test\fixture\services\ReqDateTimeClass" should return instance of Fal\Stick\Test\fixture\services\ReqDateTimeClass
      */
-    public function testCreateException2()
+    public function testInstanceException2()
     {
         $this->app->set(ReqDateTimeClass::class, function () {});
 
-        $this->app->create(ReqDateTimeClass::class);
+        $this->app->instance(ReqDateTimeClass::class);
     }
 
     public function testHive()
@@ -1659,5 +1488,412 @@ SQL1
 
         $this->app->offsetUnset('SESSION');
         $this->assertTrue($this->app->offsetGet('_SESSION_INVALID'));
+    }
+
+    public function testFixslashes()
+    {
+        $this->assertEquals('/root', App::fixslashes('\\root'));
+        $this->assertEquals('/root/path', App::fixslashes('\\root\\path'));
+    }
+
+    public function testHash()
+    {
+        $one = App::hash('foo');
+        $two = App::hash('foobar');
+        $three = App::hash('foobarbaz');
+
+        $this->assertEquals(13, strlen($one));
+        $this->assertEquals(13, strlen($two));
+        $this->assertEquals(13, strlen($three));
+    }
+
+    public function testSplit()
+    {
+        $this->assertEquals(['a', 'b', 'c'], App::split('a|b|c'));
+        $this->assertEquals(['a', 'b', 'c'], App::split('a,b,c'));
+        $this->assertEquals(['a', 'b', 'c'], App::split('a;b;c'));
+        $this->assertEquals(['a', 'b', 'c', ''], App::split('a,b,c,', false));
+    }
+
+    public function testReqarr()
+    {
+        $this->assertEquals(['a', 'b', 'c'], App::reqarr(['a', 'b', 'c']));
+        $this->assertEquals(['a', 'b', 'c'], App::reqarr('a,b,c'));
+    }
+
+    public function testReqstr()
+    {
+        $this->assertEquals('abc', App::reqstr('abc'));
+        $this->assertEquals('abc', App::reqstr(['a', 'b', 'c'], ''));
+    }
+
+    public function testXinclude()
+    {
+        $this->expectOutputString("Foo\n");
+        App::xinclude(FIXTURE.'foo.php');
+    }
+
+    public function testXrequire()
+    {
+        $this->expectOutputString("Foo\n");
+        App::xrequire(FIXTURE.'foo.php');
+    }
+
+    public function testCsv()
+    {
+        $this->assertEquals("1,2,'3'", App::csv([1, 2, '3']));
+    }
+
+    public function testContexttostring()
+    {
+        $this->assertEquals("foo: 'bar'", App::contexttostring(['foo' => 'bar']));
+        $this->assertEquals("foo: 'bar'\nbar: 'baz'", App::contexttostring(['foo' => 'bar', 'bar' => 'baz']));
+        $this->assertEquals("foo: array(\n    0 => 'bar',\n)", App::contexttostring(['foo' => ['bar']]));
+    }
+
+    public function testStringifyignorescalar()
+    {
+        $this->assertEquals('foo', App::stringifyignorescalar('foo'));
+        $this->assertEquals('0', App::stringifyignorescalar(0));
+        $this->assertEquals("['foo']", App::stringifyignorescalar(['foo']));
+    }
+
+    public function testStringify()
+    {
+        $this->assertEquals("'foo'", App::stringify('foo'));
+        $this->assertEquals("['foo']", App::stringify(['foo']));
+        $this->assertEquals('stdClass::__set_state([])', App::stringify(new \StdClass()));
+
+        $std = new \StdClass();
+        $std->foo = 'bar';
+        $this->assertEquals("stdClass::__set_state(['foo'=>'bar'])", App::stringify($std));
+    }
+
+    public function refProvider()
+    {
+        return [
+            [null, 'foo'],
+            [null, 'foo.bar.baz'],
+            [null, 'foo', [], false],
+            [null, 'foo.bar.baz', [], false],
+            ['bar', 'foo', ['foo' => 'bar']],
+            ['baz', 'foo.bar', ['foo' => ['bar' => 'baz']]],
+        ];
+    }
+
+    /**
+     * @dataProvider refProvider
+     */
+    public function testRef($expected, $key, $data = [], $add = true)
+    {
+        $this->assertEquals($expected, App::ref($key, $data, $add));
+    }
+
+    public function testRefRealCase()
+    {
+        $data = ['foo' => 'bar'];
+        $ref = &App::ref('foo', $data);
+        $ref = 'baz';
+
+        $this->assertEquals(['foo' => 'baz'], $data);
+
+        $ref = &App::ref('baz.qux', $data);
+        $ref = 'quux';
+
+        $this->assertEquals(['foo' => 'baz', 'baz' => ['qux' => 'quux']], $data);
+    }
+
+    public function testAgent()
+    {
+        $this->assertEquals('', App::agent());
+    }
+
+    public function testAjax()
+    {
+        $this->assertEquals(false, App::ajax());
+    }
+
+    public function testIp()
+    {
+        $this->assertEquals('', App::ip());
+        $init = $_SERVER['HTTP_X_FORWARDED_FOR'] ?? null;
+        $_SERVER['HTTP_X_FORWARDED_FOR'] = 'foo,bar';
+        $this->assertEquals('foo', App::ip());
+        $_SERVER['HTTP_X_FORWARDED_FOR'] = $init;
+    }
+
+    public function testShift()
+    {
+        $arr = ['foo', 'bar'];
+
+        $this->assertEquals('foo', App::shift($arr));
+    }
+
+    public function testPop()
+    {
+        $arr = ['foo', 'bar'];
+
+        $this->assertEquals('bar', App::pop($arr));
+    }
+
+    public function testMkdir()
+    {
+        $path = TEMP.'mktest';
+        $result = App::mkdir($path);
+        $this->assertTrue($result);
+        $this->assertTrue(is_dir($path));
+
+        $result = App::mkdir($path);
+        $this->assertTrue($result);
+    }
+
+    public function testRead()
+    {
+        $expected = 'foo';
+        $file = FIXTURE.'foo.txt';
+        $result = App::read($file);
+        $this->assertEquals($expected, $result);
+    }
+
+    public function testWrite()
+    {
+        $expected = 3;
+        $file = TEMP.'foo.txt';
+        $data = 'foo';
+        $result = App::write($file, $data);
+        $this->assertEquals($expected, $result);
+    }
+
+    public function testDelete()
+    {
+        $file = TEMP.'todelete.txt';
+        $this->assertFalse(App::delete($file));
+        touch($file);
+        $this->assertFileExists($file);
+        $this->assertTrue(App::delete($file));
+        $this->assertFileNotExists($file);
+    }
+
+    public function testToHKey()
+    {
+        $this->assertEquals('Allow', App::toHKey('ALLOW'));
+        $this->assertEquals('Content-Type', App::toHKey('CONTENT_TYPE'));
+    }
+
+    public function testFromHKey()
+    {
+        $this->assertEquals('ALLOW', App::fromHKey('Allow'));
+        $this->assertEquals('CONTENT_TYPE', App::fromHKey('Content-Type'));
+    }
+
+    public function testErrorCodeToLogLevel()
+    {
+        $this->assertEquals(App::LEVEL_EMERGENCY, App::errorCodeToLogLevel(E_ERROR));
+        $this->assertEquals(App::LEVEL_ALERT, App::errorCodeToLogLevel(E_WARNING));
+        $this->assertEquals(App::LEVEL_CRITICAL, App::errorCodeToLogLevel(E_STRICT));
+        $this->assertEquals(App::LEVEL_ERROR, App::errorCodeToLogLevel(E_USER_ERROR));
+        $this->assertEquals(App::LEVEL_WARNING, App::errorCodeToLogLevel(E_USER_WARNING));
+        $this->assertEquals(App::LEVEL_NOTICE, App::errorCodeToLogLevel(E_USER_NOTICE));
+        $this->assertEquals(App::LEVEL_INFO, App::errorCodeToLogLevel(E_DEPRECATED));
+        $this->assertEquals(App::LEVEL_DEBUG, App::errorCodeToLogLevel(0));
+    }
+
+    public function testLogByCode()
+    {
+        $this->app['LOG']['THRESHOLD'] = App::LEVEL_DEBUG;
+
+        $logs = $this->app->logByCode(0, 'foo')->logFiles();
+
+        $this->assertContains('foo', file_get_contents($logs[0]));
+    }
+
+    public function logProvider()
+    {
+        return [
+            [App::LEVEL_EMERGENCY.' foo', App::LEVEL_EMERGENCY, 'foo'],
+            [App::LEVEL_ALERT.' foo', App::LEVEL_ALERT, 'foo'],
+            [App::LEVEL_CRITICAL.' foo', App::LEVEL_CRITICAL, 'foo'],
+            [App::LEVEL_ERROR.' foo', App::LEVEL_ERROR, 'foo'],
+            [App::LEVEL_WARNING.' foo', App::LEVEL_WARNING, 'foo'],
+            [App::LEVEL_NOTICE.' foo', App::LEVEL_NOTICE, 'foo'],
+            [App::LEVEL_INFO.' foo', App::LEVEL_INFO, 'foo'],
+            [App::LEVEL_DEBUG.' foo', App::LEVEL_DEBUG, 'foo'],
+            [App::LEVEL_EMERGENCY.' foo baz', App::LEVEL_EMERGENCY, 'foo {bar}', ['bar' => 'baz']],
+        ];
+    }
+
+    /**
+     * @dataProvider logProvider
+     */
+    public function testLog($expected, $level, $message, $context = [])
+    {
+        $this->app['LOG']['THRESHOLD'] = App::LEVEL_DEBUG;
+        $logs = $this->app->log($level, $message, $context)->logFiles();
+
+        $this->assertContains($expected, file_get_contents($logs[0]));
+    }
+
+    public function testLogLevel()
+    {
+        $this->app['LOG']['THRESHOLD'] = App::LEVEL_EMERGENCY;
+
+        $logs = $this->app->log(App::LEVEL_DEBUG, 'foo')->logFiles();
+
+        $this->assertEmpty($logs);
+    }
+
+    public function logFrequencyProvider()
+    {
+        return [
+            [App::LOG_DAILY],
+            [App::LOG_WEEKLY],
+            [App::LOG_MONTHLY],
+            ['freeform'],
+        ];
+    }
+
+    /**
+     * @dataProvider logFrequencyProvider
+     */
+    public function testLogFrequency($frequency)
+    {
+        $this->app['LOG']['THRESHOLD'] = App::LEVEL_DEBUG;
+        $this->app['LOG']['FREQUENCY'] = $frequency;
+
+        $first = 'foo';
+        $second = 'bar';
+
+        $this->app->log(App::LEVEL_ERROR, $first);
+        $this->app->log(App::LEVEL_CRITICAL, $second);
+
+        $files = $this->app->logFiles();
+        $log = file_get_contents($files[0]);
+
+        $this->assertContains(App::LEVEL_ERROR.' '.$first, $log);
+        $this->assertContains(App::LEVEL_CRITICAL.' '.$second, $log);
+    }
+
+    public function filesProvider()
+    {
+        $fd = date('Y-m-d');
+        $md = date('Y-m');
+
+        return [
+            [
+                [],
+            ],
+            [
+                [],
+                ['invalid'],
+            ],
+            [
+                [$fd],
+                [$fd],
+            ],
+            [
+                [$md.'-01'],
+                [$md.'-01', $md.'-02'],
+                new \DateTime($md.'-01'),
+            ],
+            [
+                [$md.'-01', $md.'-02'],
+                [$md.'-01', $md.'-02'],
+                new \DateTime($md.'-01'),
+                new \DateTime($md.'-02'),
+            ],
+        ];
+    }
+
+    /**
+     * @dataProvider filesProvider
+     */
+    public function testLogFiles($expected, $touches = null, $from = null, $to = null)
+    {
+        $prefix = $this->app['TEMP'].$this->app['LOG']['DIR'].$this->app['LOG']['PREFIX'];
+        $ext = $this->app['LOG']['EXT'];
+
+        foreach ($touches ?? [] as $file) {
+            touch($prefix.$file.$ext);
+        }
+
+        foreach ($expected as $key => $value) {
+            $expected[$key] = $prefix.$value.$ext;
+        }
+
+        $this->assertEquals($expected, $this->app->logFiles($from, $to));
+    }
+
+    public function clearProvider()
+    {
+        $fd = date('Y-m-d');
+        $md = date('Y-m');
+
+        return [
+            [
+            ],
+            [
+                [$fd],
+            ],
+            [
+                [$md.'-01', $md.'-02'],
+                new \DateTime($md.'-01'),
+            ],
+            [
+                [$md.'-01', $md.'-02'],
+                new \DateTime($md.'-01'),
+                new \DateTime($md.'-02'),
+            ],
+        ];
+    }
+
+    /**
+     * @dataProvider clearProvider
+     */
+    public function testLogClear($touches = null, $from = null, $to = null)
+    {
+        $prefix = $this->app['TEMP'].$this->app['LOG']['DIR'].$this->app['LOG']['PREFIX'];
+        $ext = $this->app['LOG']['EXT'];
+
+        foreach ($touches ?? [] as $file) {
+            touch($prefix.$file.$ext);
+        }
+
+        $this->app->logClear($from, $to);
+
+        $this->assertEmpty($this->app->logFiles($from, $to));
+    }
+
+    public function testBuildRealm()
+    {
+        $url = App::buildRealm('http', 'foo', 80, '/bar', '/baz.php', '/qux', 'quux=corge', 'grault');
+        $this->assertEquals('http://foo/bar/baz.php/qux?quux=corge#grault', $url);
+    }
+
+    public function testAsset()
+    {
+        $this->assertEquals('/foo', $this->app->asset('/foo'));
+    }
+
+    public function pathProvider()
+    {
+        return [
+            [],
+            ['/'],
+            ['/bar'],
+            ['/foo/1'],
+            [null, 'home', ['bar' => 'baz']],
+        ];
+    }
+
+    /**
+     * @dataProvider pathProvider
+     */
+    public function testPath($path = null, $alias = null, $args = null)
+    {
+        $req = $this->app;
+        $req->route('GET home /home/{bar}', 'foo');
+        $expected = $req['BASE'].$req['ENTRY'].($alias ? $req->alias($alias, $args) : $path ?? $req['PATH']);
+
+        $this->assertEquals($expected, $this->app->path($alias ?? $path ?? $req['PATH'], $args));
     }
 }

@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 /**
  * This file is part of the eghojansu/stick library.
  *
@@ -11,9 +9,9 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace Fal\Stick;
+declare(strict_types=1);
 
-use Fal\Stick\Sql\Mapper;
+namespace Fal\Stick;
 
 /**
  * Main framework class.
@@ -85,14 +83,31 @@ final class App implements \ArrayAccess
     const EVENT_REROUTE = 'app.reroute';
     const EVENT_ERROR = 'app.error';
 
-    // Default rule
-    const RULE_DEFAULT = [
-        'class' => null,
-        'use' => null,
-        'args' => null,
-        'service' => true,
-        'constructor' => null,
-        'boot' => null,
+    // Log frequency
+    const LOG_DAILY = 'daily';
+    const LOG_WEEKLY = 'weekly';
+    const LOG_MONTHLY = 'monthly';
+
+    // Log level
+    const LEVEL_EMERGENCY = 'emergency';
+    const LEVEL_ALERT = 'alert';
+    const LEVEL_CRITICAL = 'critical';
+    const LEVEL_ERROR = 'error';
+    const LEVEL_WARNING = 'warning';
+    const LEVEL_NOTICE = 'notice';
+    const LEVEL_INFO = 'info';
+    const LEVEL_DEBUG = 'debug';
+
+    // Log level value
+    const LEVELS = [
+        self::LEVEL_EMERGENCY => 0,
+        self::LEVEL_ALERT => 1,
+        self::LEVEL_CRITICAL => 2,
+        self::LEVEL_ERROR => 3,
+        self::LEVEL_WARNING => 4,
+        self::LEVEL_NOTICE => 5,
+        self::LEVEL_INFO => 6,
+        self::LEVEL_DEBUG => 7,
     ];
 
     // Default group
@@ -105,16 +120,12 @@ final class App implements \ArrayAccess
         'suffix' => '',
     ];
 
-    // Config map
-    const CONFIG_MAP = [
-        'configs' => 'config',
-        'routes' => 'route',
-        'maps' => 'map',
-        'redirects' => 'redirect',
-        'rules' => 'set',
-        'listeners' => 'on',
-        'groups' => 'group',
-    ];
+    /**
+     * Variable hive.
+     *
+     * @var array
+     */
+    private $hive;
 
     /**
      * Initial value.
@@ -124,19 +135,11 @@ final class App implements \ArrayAccess
     private $init;
 
     /**
-     * Variable hive.
-     *
-     * @var array
-     */
-    private $hive;
-
-    /**
      * Prepare system environment.
      */
     public function __construct()
     {
         ini_set('default_charset', 'UTF-8');
-        ini_set('display_errors', 'off');
         session_cache_limiter('');
         // Intercept errors/exceptions; PHP5.3-compatible
         error_reporting((E_ALL | E_STRICT) & ~(E_NOTICE | E_USER_NOTICE));
@@ -147,40 +150,43 @@ final class App implements \ArrayAccess
         ];
 
         foreach ($_SERVER as $key => $val) {
-            if ($header = Helper::cutafter($key, 'HTTP_')) {
-                $headers[Helper::toHKey($header)] = $val;
+            if ('HTTP_' === substr($key, 0, 5)) {
+                $headers[self::toHKey(substr($key, 5))] = $val;
             }
         }
 
         $cli = PHP_SAPI === 'cli';
-        $domain = $_SERVER['SERVER_NAME'] ?? gethostname();
-        $urireq = $_SERVER['REQUEST_URI'] ?? '/';
-        $uridomain = preg_match('~^\w+://~', $urireq) ? '' : '//'.$domain;
-        $uri = parse_url($uridomain.$urireq) + ['query' => '', 'fragment' => ''];
-        $base = $cli ? '' : rtrim(Helper::fixslashes(dirname($_SERVER['SCRIPT_NAME'])), '/');
+        $host = $_SERVER['SERVER_NAME'] ?? gethostname();
+        $uriReq = $_SERVER['REQUEST_URI'] ?? '/';
+        $uriHost = preg_match('~^\w+://~', $uriReq) ? '' : '//'.$host;
+        $uri = parse_url($uriHost.$uriReq) + ['query' => '', 'fragment' => ''];
+        $base = $cli ? '' : rtrim(self::fixslashes(dirname($_SERVER['SCRIPT_NAME'])), '/');
         $entry = '/'.basename($_SERVER['SCRIPT_NAME']);
-        $port = $headers['X-Forwarded-Port'] ?? $_SERVER['SERVER_PORT'] ?? 80;
+        $port = (int) ($headers['X-Forwarded-Port'] ?? $_SERVER['SERVER_PORT'] ?? 80);
         $secure = ($_SERVER['HTTPS'] ?? '') === 'on' || ($headers['X-Forwarded-Proto'] ?? '') === 'https';
         $scheme = $secure ? 'https' : 'http';
-        $cpath = urldecode(Helper::cutafter($uri['path'], $base, $uri['path']));
-        $path = Helper::cutafter($cpath, $entry, $cpath) ?: '/';
+        $path = urldecode($uri['path']);
+        // This part won't be tested as we test in CLI environment
+        // @codeCoverageIgnoreStart
+        if ($base && substr($path, 0, $cut = strlen($base)) === $base) {
+            $path = substr($path, $cut);
+        }
 
-        // Early assignment
-        $this->hive = [
-            'BASE' => $base,
-            'ENTRY' => $cli ? '' : $entry,
-            'HEADERS' => $headers,
-            'HOST' => $domain,
-            'PATH' => $path,
-            'PORT' => $port,
-            'SCHEME' => $scheme,
-        ];
-        // Full assignment
-        $this->hive = [
+        if (substr($path, 0, $cut = strlen($entry)) === $entry) {
+            $path = substr($path, $cut) ?: '/';
+        }
+
+        if ($cli) {
+            $trace = self::fixslashes(realpath(dirname($_SERVER['SCRIPT_FILENAME']).'/..').'/');
+        } else {
+            $trace = is_dir($_SERVER['DOCUMENT_ROOT']) ? $_SERVER['DOCUMENT_ROOT'] : dirname($_SERVER['DOCUMENT_ROOT']);
+        }
+        // @codeCoverageIgnoreEnd
+
+        $this->hive = $this->init = [
             '_BOOTED' => false,
             '_GROUP' => [],
             '_GROUP_DEPTH' => 0,
-            '_HANDLE_MAPPER' => false,
             '_LISTENERS' => [],
             '_ONCE' => [],
             '_ROUTE_ALIASES' => [],
@@ -194,31 +200,25 @@ final class App implements \ArrayAccess
                         'fallback' => '%TEMP%cache/',
                     ],
                 ],
-                'logger' => [
-                    'class' => Logger::class,
-                    'args' => [
-                        'dir' => '%TEMP%log/',
-                        'logLevelThreshold' => '%THRESHOLD%',
-                    ],
-                ],
             ],
             '_SERVICE_ALIASES' => [
                 Cache::class => 'cache',
-                Logger::class => 'logger',
             ],
             '_SERVICES' => [],
             '_SESSION_DRY' => true,
             '_SESSION_INVALID' => false,
             '_SESSION_FLY' => true,
-            'AGENT' => $this->agent(),
-            'AJAX' => $this->ajax(),
+            'AGENT' => self::agent(),
+            'AJAX' => self::ajax(),
             'ALIAS' => '',
+            'ASSET_TIMESTAMP' => false,
             'BASE' => $base,
             'BODY' => '',
             'CACHE' => '',
             'CASELESS' => false,
             'CLI' => $cli,
             'CODE' => 200,
+            'COOKIE' => $_COOKIE,
             'CORS' => [
                 'HEADERS' => '',
                 'ORIGIN' => false,
@@ -230,46 +230,58 @@ final class App implements \ArrayAccess
             'DNSBL' => '',
             'ENCODING' => 'UTF-8',
             'ENTRY' => $cli ? '' : $entry,
+            'ENV' => $_ENV,
             'ERROR' => [],
             'EXEMPT' => [],
+            'FILES' => $_FILES,
             'FRAGMENT' => $uri['fragment'],
+            'GET' => $_GET,
             'HEADERS' => $headers,
-            'HOST' => $domain,
-            'IP' => $this->ip(),
+            'HOST' => $host,
+            'IP' => self::ip(),
             'JAR' => [
                 'EXPIRE' => 0,
                 'PATH' => $base ?: '/',
-                'DOMAIN' => (false === strpos($domain, '.') || filter_var($domain, FILTER_VALIDATE_IP)) ? '' : $domain,
+                'DOMAIN' => (false === strpos($host, '.') || filter_var($host, FILTER_VALIDATE_IP)) ? '' : $host,
                 'SECURE' => $secure,
                 'HTTPONLY' => true,
             ],
             'KBPS' => 0,
             'LANGUAGE' => $headers['Accept-Language'] ?? '',
+            'LOG' => [
+                'DATE_FORMAT' => 'Y-m-d G:i:s.u',
+                'REL' => true,
+                'DIR' => 'log/',
+                'EXT' => '.log',
+                'PREFIX' => 'log_',
+                'FREQUENCY' => self::LOG_DAILY,
+                'THRESHOLD' => self::LEVEL_ERROR,
+            ],
             'MATCH' => '',
-            'MAPPER' => false,
-            'NAMESPACE' => [],
             'OUTPUT' => '',
             'PACKAGE' => self::PACKAGE,
             'PARAMS' => [],
             'PATTERN' => '',
             'PATH' => $path,
             'PORT' => $port,
+            'POST' => $_POST,
             'PREMAP' => '',
             'PROTOCOL' => $_SERVER['SERVER_PROTOCOL'] ?? 'HTTP/1.0',
             'QUERY' => $uri['query'],
             'QUIET' => false,
             'RAW' => false,
-            'REALM' => $this->path($path, null, true, $uri['query'], $uri['fragment']),
+            'REALM' => self::buildRealm($scheme, $host, $port, $base, $entry, $path, $uri['query'], $uri['fragment']),
             'RESPONSE' => [],
             'ROOT' => realpath($_SERVER['DOCUMENT_ROOT']),
             'SCHEME' => $scheme,
-            'SEED' => Helper::hash($domain.$base),
+            'SEED' => self::hash($host.$base),
             'SENT' => false,
+            'SERVER' => $_SERVER,
+            'SESSION' => [],
             'STATUS' => self::HTTP_200,
             'TEMP' => './var/',
             'TIME' => microtime(true),
-            'TRACE' => is_dir($_SERVER['DOCUMENT_ROOT']) ? $_SERVER['DOCUMENT_ROOT'] : dirname($_SERVER['DOCUMENT_ROOT']),
-            'THRESHOLD' => Logger::LEVEL_ERROR,
+            'TRACE' => $trace,
             'TZ' => date_default_timezone_get(),
             'URI' => $uri['path'].rtrim('?'.$uri['query'], '?').rtrim('#'.$uri['fragment'], '#'),
             'VERB' => $_SERVER['REQUEST_METHOD'] ?? 'GET',
@@ -277,26 +289,32 @@ final class App implements \ArrayAccess
             'XFRAME' => 'SAMEORIGIN',
         ];
 
-        // Save a copy of hive
-        $this->init = $this->hive;
-
-        // Copy globals initial value
-        $this->hive['GET'] = $GLOBALS['_GET'];
-        $this->hive['POST'] = $GLOBALS['_POST'];
-        $this->hive['COOKIE'] = $GLOBALS['_COOKIE'];
-        $this->hive['SESSION'] = [];
-        $this->hive['FILES'] = $GLOBALS['_FILES'];
-        $this->hive['SERVER'] = $GLOBALS['_SERVER'];
-        $this->hive['ENV'] = $GLOBALS['_ENV'];
-
-        // Copy some initial globals env
+        // We do not need the value of these member on initialization
         $this->init['GET'] = [];
         $this->init['POST'] = [];
-        $this->init['COOKIE'] = $GLOBALS['_COOKIE'];
-        $this->init['SESSION'] = [];
         $this->init['FILES'] = [];
-        $this->init['SERVER'] = $GLOBALS['_SERVER'];
-        $this->init['ENV'] = $GLOBALS['_ENV'];
+    }
+
+    /**
+     * Simplify app construction.
+     *
+     * @return App
+     */
+    public static function create(): App
+    {
+        return new static();
+    }
+
+    /**
+     * Hash string to 13-length string.
+     *
+     * @param string $str
+     *
+     * @return string
+     */
+    public static function hash(string $str): string
+    {
+        return str_pad(base_convert(substr(sha1($str), -16), 16, 36), 11, '0', STR_PAD_LEFT);
     }
 
     /**
@@ -304,11 +322,14 @@ final class App implements \ArrayAccess
      *
      * @return string
      */
-    public function agent(): string
+    public static function agent(): string
     {
-        $use = $this->hive['HEADERS'];
-
-        return $use['X-Operamini-Phone-Ua'] ?? $use['X-Skyfire-Phone'] ?? $use['User-Agent'] ?? '';
+        return
+            $_SERVER['HTTP_X_OPERAMINI_PHONE_UA'] ??
+            $_SERVER['HTTP_X_SKYFIRE_PHONE'] ??
+            $_SERVER['HTTP_USER_AGENT'] ??
+            ''
+        ;
     }
 
     /**
@@ -316,11 +337,9 @@ final class App implements \ArrayAccess
      *
      * @return bool
      */
-    public function ajax(): bool
+    public static function ajax(): bool
     {
-        $use = $this->hive['HEADERS'];
-
-        return 'xmlhttprequest' === strtolower($use['X-Requested-With'] ?? '');
+        return 'XMLHttpRequest' === ($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '');
     }
 
     /**
@@ -328,11 +347,386 @@ final class App implements \ArrayAccess
      *
      * @return string
      */
-    public function ip(): string
+    public static function ip(): string
     {
-        $use = $this->hive['HEADERS'];
+        return
+            $_SERVER['HTTP_CLIENT_IP'] ?? (
+                isset($_SERVER['HTTP_X_FORWARDED_FOR']) ?
+                    self::shift(explode(',', $_SERVER['HTTP_X_FORWARDED_FOR'])) :
+                    $_SERVER['REMOTE_ADDR'] ?? ''
+            )
+        ;
+    }
 
-        return $use['Client-Ip'] ?? (isset($use['X-Forwarded-For']) ? Helper::split($use['X-Forwarded-For'])[0] : $_SERVER['REMOTE_ADDR'] ?? '');
+    /**
+     * Convert HEADER_KEY to Header-Key.
+     *
+     * @param string $str
+     *
+     * @return string
+     */
+    public static function toHKey(string $str): string
+    {
+        return str_replace(' ', '-', ucwords(str_replace('_', ' ', strtolower($str))));
+    }
+
+    /**
+     * Convert Header-Key to HEADER_KEY.
+     *
+     * @param string $str
+     *
+     * @return string
+     */
+    public static function fromHKey(string $str): string
+    {
+        return str_replace('-', '_', strtoupper($str));
+    }
+
+    /**
+     * Fix path slashes.
+     *
+     * @param string $str
+     *
+     * @return string
+     */
+    public static function fixslashes(string $str): string
+    {
+        return strtr($str, '\\', '/');
+    }
+
+    /**
+     * Proxy to native array shifting that require parameter to be passed by reference.
+     *
+     * @param array $arr
+     *
+     * @return mixed
+     */
+    public static function shift(array $arr)
+    {
+        return array_shift($arr);
+    }
+
+    /**
+     * Proxy to native array popping that require parameter to be passed by reference.
+     *
+     * @param array $arr
+     *
+     * @return mixed
+     */
+    public static function pop(array $arr)
+    {
+        return array_pop($arr);
+    }
+
+    /**
+     * Split string by comma, semicolon or pipe.
+     *
+     * @param string $str
+     * @param bool   $noEmpty
+     *
+     * @return array
+     */
+    public static function split(string $str, bool $noEmpty = true): array
+    {
+        return array_map('trim', preg_split('/[,;|]/', $str, 0, $noEmpty ? PREG_SPLIT_NO_EMPTY : 0));
+    }
+
+    /**
+     * Ensure var is array.
+     *
+     * @param mixed $var
+     * @param bool  $noempty
+     *
+     * @return array
+     */
+    public static function reqarr($var, bool $noempty = true): array
+    {
+        return is_array($var) ? $var : self::split($var ?? '', $noempty);
+    }
+
+    /**
+     * Ensure var is string.
+     *
+     * @param mixed  $var
+     * @param string $glue
+     *
+     * @return string
+     */
+    public static function reqstr($var, string $glue = ','): string
+    {
+        return is_string($var) ? $var : implode($glue, $var);
+    }
+
+    /**
+     * Exclusive include.
+     *
+     * @param string $file
+     */
+    public static function xinclude(string $file): void
+    {
+        include_once $file;
+    }
+
+    /**
+     * Exclusive require.
+     *
+     * @param string $file
+     * @param mixed  $default
+     *
+     * @return mixed
+     */
+    public static function xrequire(string $file, $default = null)
+    {
+        $result = require $file;
+
+        return $result ?: $default;
+    }
+
+    /**
+     * PHP error code to log level.
+     *
+     * @param int $code
+     *
+     * @return string
+     */
+    public static function errorCodeToLogLevel(int $code): string
+    {
+        switch ($code) {
+            case E_ERROR:
+            case E_PARSE:
+            case E_CORE_ERROR:
+            case E_COMPILE_ERROR:
+                return self::LEVEL_EMERGENCY;
+            case E_WARNING:
+            case E_CORE_WARNING:
+                return self::LEVEL_ALERT;
+            case E_STRICT:
+                return self::LEVEL_CRITICAL;
+            case E_USER_ERROR:
+                return self::LEVEL_ERROR;
+            case E_USER_WARNING:
+                return self::LEVEL_WARNING;
+            case E_NOTICE:
+            case E_COMPILE_WARNING:
+            case E_USER_NOTICE:
+                return self::LEVEL_NOTICE;
+            case E_RECOVERABLE_ERROR:
+            case E_DEPRECATED:
+            case E_USER_DEPRECATED:
+                return self::LEVEL_INFO;
+            default:
+                return self::LEVEL_DEBUG;
+        }
+    }
+
+    /**
+     * Mkdir if not exists.
+     *
+     * @param string $path
+     * @param int    $mode
+     * @param bool   $recursive
+     *
+     * @return bool
+     */
+    public static function mkdir(string $path, int $mode = 0755, bool $recursive = true): bool
+    {
+        return file_exists($path) ? true : mkdir($path, $mode, $recursive);
+    }
+
+    /**
+     * Read file content.
+     *
+     * @param string $file
+     * @param bool   $lf
+     *
+     * @return string
+     */
+    public static function read(string $file, bool $lf = false): string
+    {
+        $out = file_exists($file) ? file_get_contents($file) : '';
+
+        return $lf ? preg_replace('/\r\n|\r/', "\n", $out) : $out;
+    }
+
+    /**
+     * Write to file.
+     *
+     * @param string $file
+     * @param string $data
+     * @param bool   $append
+     *
+     * @return mixed
+     */
+    public static function write(string $file, string $data, bool $append = false)
+    {
+        return file_put_contents($file, $data, LOCK_EX | ($append ? FILE_APPEND : 0));
+    }
+
+    /**
+     * Delete file if exists.
+     *
+     * @param string $file
+     *
+     * @return bool
+     */
+    public static function delete(string $file): bool
+    {
+        return file_exists($file) ? unlink($file) : false;
+    }
+
+    /**
+     * Convert array to string.
+     *
+     * @param array $args
+     *
+     * @return string
+     */
+    public static function csv(array $args): string
+    {
+        return implode(',', array_map('stripcslashes', array_map([self::class, 'stringify'], $args)));
+    }
+
+    /**
+     * Context to string.
+     *
+     * @param array $context
+     *
+     * @return string
+     */
+    public static function contexttostring(array $context): string
+    {
+        $export = '';
+
+        foreach ($context as $key => $value) {
+            $export .= "{$key}: ";
+            $export .= preg_replace([
+                '/=>\s+([a-zA-Z])/im',
+                '/array\(\s+\)/im',
+                '/^  |\G  /m',
+            ], [
+                '=> $1',
+                'array()',
+                '    ',
+            ], str_replace('array (', 'array(', var_export($value, true)));
+            $export .= PHP_EOL;
+        }
+
+        return str_replace(['\\\\', '\\\''], ['\\', '\''], rtrim($export));
+    }
+
+    /**
+     * Stringify if not scalar.
+     *
+     * @param mixed $arg
+     *
+     * @return mixed
+     */
+    public static function stringifyignorescalar($arg)
+    {
+        return is_scalar($arg) ? $arg : self::stringify($arg);
+    }
+
+    /**
+     * Stringify PHP-value.
+     *
+     * @param mixed $arg
+     * @param array $stack
+     *
+     * @return string
+     */
+    public static function stringify($arg, array $stack = []): string
+    {
+        foreach ($stack as $node) {
+            if ($arg === $node) {
+                return '*RECURSION*';
+            }
+        }
+
+        switch (gettype($arg)) {
+            case 'object':
+                $str = '';
+                foreach (get_object_vars($arg) as $key => $val) {
+                    $str .= ','.var_export($key, true).'=>'.self::stringify($val, array_merge($stack, [$arg]));
+                }
+                $str = ltrim($str, ',');
+
+                return addslashes(get_class($arg)).'::__set_state(['.$str.'])';
+            case 'array':
+                $str = '';
+                $num = isset($arg[0]) && ctype_digit(implode('', array_keys($arg)));
+                foreach ($arg as $key => $val) {
+                    $str .= ','.($num ? '' : (var_export($key, true).'=>')).self::stringify($val, array_merge($stack, [$arg]));
+                }
+                $str = ltrim($str, ',');
+
+                return '['.$str.']';
+            default:
+                return var_export($arg, true);
+        }
+    }
+
+    /**
+     * Get ref from var, provide dot access notation.
+     *
+     * @param string $key
+     * @param array  &$var
+     * @param bool   $add
+     *
+     * @return mixed
+     */
+    public static function &ref(string $key, array &$var, bool $add = true)
+    {
+        $null = null;
+        $parts = explode('.', $key);
+
+        foreach ($parts as $part) {
+            if (!is_array($var)) {
+                $var = [];
+            }
+
+            if ($add || array_key_exists($part, $var)) {
+                $var = &$var[$part];
+            } else {
+                $var = &$null;
+                break;
+            }
+        }
+
+        return $var;
+    }
+
+    /**
+     * Build full url.
+     *
+     * @param string      $scheme
+     * @param string      $host
+     * @param int         $port
+     * @param string      $base
+     * @param string|null $entry
+     * @param string|null $path
+     * @param string|null $query
+     * @param string|null $fragment
+     *
+     * @return string
+     */
+    public static function buildRealm(string $scheme, string $host, int $port, string $base, string $entry = null, string $path = null, string $query = null, string $fragment = null): string
+    {
+        return
+            $scheme.'://'.$host.(in_array($port, [80, 443]) ? '' : ':'.$port).
+            $base.$entry.$path.
+            rtrim('?'.$query, '?').
+            rtrim('#'.$fragment, '#')
+        ;
+    }
+
+    /**
+     * Count ellapsed time since initial TIME.
+     *
+     * @return string
+     */
+    public function ellapsedTime(): string
+    {
+        return number_format(microtime(true) - $this->hive['TIME'], 5).' seconds';
     }
 
     /**
@@ -345,8 +739,8 @@ final class App implements \ArrayAccess
     public function blacklisted(string $ip = null): bool
     {
         $use = $ip ?? $this->hive['IP'];
-        $dnsbl = Helper::reqarr($this->hive['DNSBL'] ?? '');
-        $exempt = Helper::reqarr($this->hive['EXEMPT'] ?? '');
+        $dnsbl = self::reqarr($this->hive['DNSBL'] ?? '');
+        $exempt = self::reqarr($this->hive['EXEMPT'] ?? '');
 
         if ($dnsbl && !in_array($use, $exempt)) {
             // We skip this part to test
@@ -363,61 +757,6 @@ final class App implements \ArrayAccess
         }
 
         return false;
-    }
-
-    /**
-     * Mimic composer autoload behaviour, can be used as class autoloader.
-     *
-     * @param string $class
-     *
-     * @return mixed
-     */
-    public function autoload($class)
-    {
-        $logicalPath = Helper::fixslashes($class).'.php';
-        $subPath = $class;
-
-        while (false !== $lastPos = strrpos($subPath, '\\')) {
-            $subPath = substr($subPath, 0, $lastPos);
-            $paths = $this->hive['NAMESPACE'][$subPath.'\\'] ?? null;
-
-            if ($paths) {
-                $pathEnd = substr($logicalPath, $lastPos + 1);
-
-                foreach (Helper::reqarr($paths) as $dir) {
-                    if (file_exists($file = $dir.$pathEnd)) {
-                        Helper::exinclude($file);
-
-                        return true;
-                    }
-                }
-            }
-        }
-
-        // fallback (root)
-        foreach (Helper::reqarr($this->hive['NAMESPACE']['\\'] ?? []) as $dir) {
-            if (file_exists($file = $dir.$logicalPath)) {
-                Helper::exinclude($file);
-
-                return true;
-            }
-        }
-    }
-
-    /**
-     * Register autoloader.
-     *
-     * In case you do not need composer full feature, register this autoloader.
-     *
-     * @return App
-     *
-     * @codeCoverageIgnore
-     */
-    public function registerAutoloader(): App
-    {
-        spl_autoload_register([$this, 'autoload']);
-
-        return $this;
     }
 
     /**
@@ -627,7 +966,8 @@ final class App implements \ArrayAccess
             throw new \LogicException('Route rule should contain at least request method and path, given "'.$rule.'"');
         }
 
-        $type = Helper::constant(self::class.'::REQ_'.strtoupper($match[4] ?? $group['mode']), 0);
+        $typeName = 'self::REQ_'.strtoupper($match[4] ?? $group['mode']);
+        $type = defined($typeName) ? constant($typeName) : 0;
         $pattern = '/'.trim($pattern, '/');
         $use = $handler;
 
@@ -639,7 +979,7 @@ final class App implements \ArrayAccess
             }
         }
 
-        foreach (Helper::split(strtoupper($match[1])) as $verb) {
+        foreach (self::split(strtoupper($match[1])) as $verb) {
             $this->hive['_ROUTES'][$pattern][$type][$verb] = [$use, $ttl, $kbps, $alias];
         }
 
@@ -681,7 +1021,7 @@ final class App implements \ArrayAccess
         $str = is_string($class);
         $prefix = $this->hive['PREMAP'];
 
-        foreach (Helper::split(self::VERBS) as $verb) {
+        foreach (self::split(self::VERBS) as $verb) {
             $this->route($verb.' '.$rule, $str ? $class.'->'.$prefix.$verb : [$class, $prefix.$verb], $ttl, $kbps);
         }
 
@@ -731,14 +1071,14 @@ final class App implements \ArrayAccess
      */
     public function status(int $code): App
     {
-        $status = Helper::constant(self::class.'::HTTP_'.$code);
+        $name = 'self::HTTP_'.$code;
 
-        if (!$status) {
-            throw new \DomainException('Unsupported http code: '.$code);
+        if (!defined($name)) {
+            throw new \DomainException('Unsupported HTTP code: '.$code);
         }
 
         $this->hive['CODE'] = $code;
-        $this->hive['STATUS'] = $status;
+        $this->hive['STATUS'] = constant($name);
 
         return $this;
     }
@@ -774,33 +1114,31 @@ final class App implements \ArrayAccess
     }
 
     /**
-     * Count ellapsed time since initial TIME.
+     * Return asset url.
+     *
+     * @param string $path
      *
      * @return string
      */
-    public function ellapsedTime(): string
+    public function asset(string $path): string
     {
-        return number_format(microtime(true) - $this->hive['TIME'], 5).' seconds';
+        return $this->hive['BASE'].$path.($this->hive['ASSET_TIMESTAMP'] ? '?'.time() : '');
     }
 
     /**
-     * Build absolute or relative url path.
+     * Return url.
      *
-     * @param string       $path     Path or alias (alias will check first)
-     * @param array|null   $args
-     * @param bool         $abs
-     * @param string|array $query
-     * @param string       $fragment
+     * @param string     $path  Path or alias (alias will check first)
+     * @param array|null $args
+     * @param array|null $query
      *
      * @return string
      */
-    public function path(string $path = null, array $args = null, bool $abs = false, $query = null, string $fragment = null): string
+    public function path(string $path, array $args = null, array $query = null): string
     {
-        $use = $path ? (isset($this->hive['_ROUTE_ALIASES'][$path]) ? $this->alias($path, $args) : $path) : $this->hive['PATH'];
-        $host = $abs ? $this->hive['SCHEME'].'://'.$this->hive['HOST'].(in_array($this->hive['PORT'], [80, 443]) ? '' : (':'.$this->hive['PORT'])) : '';
-        $useQuery = is_array($query) ? http_build_query($query) : $query;
+        $use = isset($this->hive['_ROUTE_ALIASES'][$path]) ? $this->alias($path, $args) : $path;
 
-        return $host.rtrim(rtrim($this->hive['BASE'].$this->hive['ENTRY'].$use.'?'.$useQuery, '?').'#'.$fragment, '#');
+        return $this->hive['BASE'].$this->hive['ENTRY'].$use.($query ? '?'.http_build_query($query) : '');
     }
 
     /**
@@ -845,7 +1183,7 @@ final class App implements \ArrayAccess
         $fragment = $match[2] ?? '';
         $defArgs = $match[3] ?? '';
 
-        foreach (Helper::split($defArgs) as $arg) {
+        foreach (self::split($defArgs) as $arg) {
             $pair = explode('=', $arg);
             $args[trim($pair[0])] = trim($pair[1] ?? '');
         }
@@ -863,7 +1201,7 @@ final class App implements \ArrayAccess
     {
         $this->mclear('OUTPUT', 'CODE', 'STATUS');
 
-        $use = $url ? (is_array($url) ? $this->alias(...$url) : $this->build($url)) : $this->hive['REALM'];
+        $use = $url ? (is_array($url) ? $this->alias(...$url) : $this->build($url)) : $this->hive['PATH'];
 
         $this->sessionCommit();
 
@@ -871,14 +1209,21 @@ final class App implements \ArrayAccess
             return;
         }
 
-        if ('/' === $use[0] && (empty($use[1]) || '/' !== $use[1])) {
-            $use = $this->path($use, null, true);
-        }
-
         if ($this->hive['CLI']) {
             $this->mock('GET '.$use.' cli');
 
             return;
+        }
+
+        if ('/' === $use[0] && (empty($use[1]) || '/' !== $use[1])) {
+            $use = self::buildRealm(...[
+                $this->hive['SCHEME'],
+                $this->hive['HOST'],
+                (int) $this->hive['PORT'],
+                $this->hive['BASE'],
+                $this->hive['ENTRY'],
+                $use,
+            ]);
         }
 
         $this->hive['RESPONSE']['Location'] = $use;
@@ -921,36 +1266,35 @@ final class App implements \ArrayAccess
             throw new \LogicException('Mock pattern should contain at least request method and path, given "'.$pattern.'"');
         }
 
-        $method = strtoupper($match[1]);
+        $verb = strtoupper($match[1]);
         $path = $this->build($match[2]);
         $mode = strtolower($match[3] ?? '');
         $uri = parse_url($path) + ['query' => '', 'fragment' => ''];
 
-        $this->hive['VERB'] = $method;
-        $this->hive['PATH'] = $uri['path'];
+        $this->hive['VERB'] = $verb;
         $this->hive['URI'] = $this->hive['BASE'].$uri['path'];
         $this->hive['FRAGMENT'] = $uri['fragment'];
         $this->hive['AJAX'] = 'ajax' === $mode;
         $this->hive['CLI'] = 'cli' === $mode;
         $this->hive['HEADERS'] = (array) $headers;
-        $this->hive['REALM'] = $this->path($uri['path'], null, true, $uri['query'], $uri['fragment']);
         $this->hive['TIME'] = microtime(true);
 
         parse_str($uri['query'], $this->hive['GET']);
 
-        if (in_array($method, ['GET', 'HEAD']) && $args) {
+        if (in_array($verb, ['GET', 'HEAD']) && $args) {
             $this->hive['GET'] = array_merge($this->hive['GET'], $args);
         } else {
             $this->hive['BODY'] = $body ?? ($args ? http_build_query($args) : '');
         }
 
-        $this->hive['POST'] = 'POST' === $method ? ($args ?? []) : [];
+        $this->hive['POST'] = 'POST' === $verb ? ($args ?? []) : [];
 
         if ($this->hive['GET']) {
             $this->hive['QUERY'] = http_build_query($this->hive['GET']);
             $this->hive['URI'] .= '?'.$this->hive['QUERY'];
         }
 
+        $this->offsetSet('PATH', $uri['path']);
         $this->mclear('RESPONSE', 'OUTPUT', 'CODE', 'STATUS', 'ERROR');
 
         return $this->run();
@@ -965,7 +1309,7 @@ final class App implements \ArrayAccess
      */
     public function handleException(\Throwable $e): App
     {
-        if ($e instanceof ResponseErrorException) {
+        if ($e instanceof ResponseException) {
             $httpCode = $e->getCode();
             $code = E_RECOVERABLE_ERROR;
         } else {
@@ -994,7 +1338,7 @@ final class App implements \ArrayAccess
         $text = $message ?: 'HTTP '.$httpCode.' ('.rtrim($this->hive['VERB'].' '.$this->hive['PATH'].'?'.$this->hive['QUERY'], '?').')';
         $sTrace = $this->tracify($trace);
 
-        $this->get('logger')->logByCode($code, $text.PHP_EOL.$sTrace);
+        $this->logByCode($code, $text.PHP_EOL.$sTrace);
 
         $prior = $this->hive['ERROR'];
         $this->hive['ERROR'] = [
@@ -1030,10 +1374,10 @@ final class App implements \ArrayAccess
             ));
         } elseif ($this->hive['CLI']) {
             $this->hive['RESPONSE']['Content-Type'] = 'text/plain';
-            $this->hive['OUTPUT'] = Helper::contexttostring(array_diff_key(
+            $this->hive['OUTPUT'] = self::contexttostring(array_diff_key(
                 $this->hive['ERROR'],
                 $this->hive['DEBUG'] ? [] : ['trace' => 1]
-            ));
+            )).PHP_EOL;
         } else {
             $this->hive['RESPONSE']['Content-Type'] = 'text/html';
             $this->hive['OUTPUT'] = '<!DOCTYPE html>'.
@@ -1081,7 +1425,7 @@ final class App implements \ArrayAccess
             } else {
                 $message = '['.$error['type'].'] '.$error['message'].' in '.$error['file'].' on '.$error['line'];
 
-                $this->get('logger')->logByCode($error['type'], $message);
+                $this->logByCode($error['type'], $message);
             }
         }
     }
@@ -1251,14 +1595,10 @@ final class App implements \ArrayAccess
         } elseif (is_string($rule)) {
             $use = ['class' => $rule];
         } else {
-            $use = $rule;
+            $use = $rule ?? [];
         }
 
-        $this->hive['_SERVICE_RULES'][$id] = array_filter(array_replace(self::RULE_DEFAULT, [
-            'class' => $id,
-        ], $use ?? []), function ($val) {
-            return null !== $val;
-        });
+        $this->hive['_SERVICE_RULES'][$id] = $use + ['class' => $id, 'service' => true];
         $this->hive['_SERVICE_ALIASES'][$this->hive['_SERVICE_RULES'][$id]['class']] = $id;
 
         return $this;
@@ -1286,7 +1626,7 @@ final class App implements \ArrayAccess
             }
         }
 
-        return $this->create($id, $args);
+        return $this->instance($id, $args);
     }
 
     /**
@@ -1299,13 +1639,13 @@ final class App implements \ArrayAccess
      *
      * @throws LogicException If instance is not instantiable, eg: Interface, Abstract class
      */
-    public function create(string $id, array $args = null)
+    public function instance(string $id, array $args = null)
     {
         $rule = ($this->hive['_SERVICE_RULES'][$id] ?? []) + [
             'class' => $id,
             'args' => $args,
             'service' => false,
-        ] + self::RULE_DEFAULT;
+        ];
 
         $ref = new \ReflectionClass($rule['use'] ?? $rule['class']);
 
@@ -1327,7 +1667,7 @@ final class App implements \ArrayAccess
 
         unset($ref);
 
-        if ($rule['boot'] && is_callable($rule['boot'])) {
+        if (isset($rule['boot']) && is_callable($rule['boot'])) {
             call_user_func_array($rule['boot'], [$instance, $this]);
         }
 
@@ -1369,11 +1709,22 @@ final class App implements \ArrayAccess
      */
     public function config(string $file): App
     {
-        foreach (file_exists($file) ? Helper::exrequire($file, []) : [] as $key => $val) {
+        // Config map
+        static $maps = [
+            'configs' => 'config',
+            'routes' => 'route',
+            'maps' => 'map',
+            'redirects' => 'redirect',
+            'rules' => 'set',
+            'listeners' => 'on',
+            'groups' => 'group',
+        ];
+
+        foreach (file_exists($file) ? self::xrequire($file, []) : [] as $key => $val) {
             $lkey = strtolower($key);
 
-            if (isset(self::CONFIG_MAP[$lkey])) {
-                $call = self::CONFIG_MAP[$lkey];
+            if (isset($maps[$lkey])) {
+                $call = $maps[$lkey];
 
                 foreach ((array) $val as $arg) {
                     $args = array_values((array) $arg);
@@ -1523,6 +1874,7 @@ final class App implements \ArrayAccess
 
         $out = '';
         $eol = "\n";
+        $cut = $this->hive['TRACE'];
 
         // Analyze stack trace
         foreach ($trace as $frame) {
@@ -1534,15 +1886,213 @@ final class App implements \ArrayAccess
 
             if (isset($frame['function'])) {
                 $line .= $frame['function'].'('.
-                         ($this->hive['DEBUG'] > 2 && isset($frame['args']) ? Helper::csv($frame['args']) : '').
+                         ($this->hive['DEBUG'] > 2 && isset($frame['args']) ? self::csv($frame['args']) : '').
                          ')';
             }
 
-            $src = Helper::fixslashes(str_replace($this->hive['TRACE'].'/', '', $frame['file']));
-            $out .= '['.$src.':'.$frame['line'].'] '.$line.$eol;
+            $src = self::fixslashes($frame['file']);
+            $out .= '['.($cut ? str_replace($cut, '', $src) : $src).':'.$frame['line'].'] '.$line.$eol;
         }
 
         return $out;
+    }
+
+    /**
+     * Log message.
+     *
+     * @param string $level
+     * @param string $message
+     * @param array  $context
+     *
+     * @return App
+     */
+    public function log(string $level, string $message, array $context = []): App
+    {
+        if (self::LEVELS[$this->hive['LOG']['THRESHOLD']] < (self::LEVELS[$level] ?? 100)) {
+            return $this;
+        }
+
+        $this->writeLog($message, $context, $level);
+
+        return $this;
+    }
+
+    /**
+     * Log message by error code.
+     *
+     * @param int    $code
+     * @param string $message
+     * @param array  $context
+     *
+     * @return App
+     */
+    public function logByCode(int $code, string $message, array $context = []): App
+    {
+        return $this->log(self::errorCodeToLogLevel($code), $message, $context);
+    }
+
+    /**
+     * Get log files.
+     *
+     * @param DateTime|null $from
+     * @param DateTime|null $to
+     *
+     * @return array
+     */
+    public function logFiles(\DateTime $from = null, \DateTime $to = null): array
+    {
+        $pattern = $this->logDir().$this->hive['LOG']['PREFIX'].'*'.$this->hive['LOG']['EXT'];
+        $start = strlen($this->hive['LOG']['PREFIX']);
+        $end = 10;
+        $to = $to ?? $from;
+
+        return array_filter(glob($pattern), function ($file) use ($from, $to, $start, $end) {
+            try {
+                $createdAt = new \DateTime(substr(basename($file), $start, $end));
+
+                return $from ? $createdAt >= $from && $createdAt <= $to : true;
+            } catch (\Exception $e) {
+                return false;
+            }
+        });
+    }
+
+    /**
+     * Clear log files.
+     *
+     * @param DateTime|null $from
+     * @param DateTime|null $to
+     *
+     * @return App
+     */
+    public function logClear(\DateTime $from = null, \DateTime $to = null): App
+    {
+        foreach ($this->logFiles($from, $to) as $file) {
+            unlink($file);
+        }
+
+        return $this;
+    }
+
+    /**
+     * Write message to file.
+     *
+     * @param string $message
+     * @param array  $context
+     * @param string $level
+     */
+    private function writeLog(string $message, array $context, string $level): void
+    {
+        $formattedMessage = $context ? self::interpolate($message, $context) : $message;
+        $content = date($this->hive['LOG']['DATE_FORMAT']).' '.$level.' '.$formattedMessage.PHP_EOL;
+        $file = $this->resolveLogFile();
+
+        self::mkdir(dirname($file));
+        self::write($file, $content, true);
+    }
+
+    /**
+     * Get log dir.
+     *
+     * @return string
+     */
+    private function logDir(): string
+    {
+        return $this->hive['LOG']['REL'] ? $this->hive['TEMP'].$this->hive['LOG']['DIR'] : $this->hive['LOG']['DIR'];
+    }
+
+    /**
+     * Resolve log file based on log frequency.
+     *
+     * @return string
+     */
+    private function resolveLogFile(): string
+    {
+        $prefix = $this->logDir().$this->hive['LOG']['PREFIX'];
+        $ext = $this->hive['LOG']['EXT'];
+
+        switch ($this->hive['LOG']['FREQUENCY']) {
+            case self::LOG_DAILY:
+                return $prefix.date('Y-m-d').$ext;
+            case self::LOG_WEEKLY:
+                return self::findLogFileThisWeek($prefix, $ext);
+            case self::LOG_MONTHLY:
+                return self::findLogFileThisMonth($prefix, $ext);
+            default:
+                return self::findLogFileDefault($prefix, $ext);
+        }
+    }
+
+    /**
+     * Find log file for this week.
+     *
+     * @param string $prefix
+     * @param string $ext
+     *
+     * @return string
+     */
+    private static function findLogFileThisWeek(string $prefix, string $ext): string
+    {
+        $start = strlen($prefix) + 8;
+        $currentWeek = floor(date('d') / 7);
+
+        foreach (glob($prefix.date('Y-m').'*'.$ext) as $file) {
+            $day = substr($file, $start, 2);
+            $week = floor($day / 7);
+
+            if ($week === $currentWeek) {
+                return $file;
+            }
+        }
+
+        return $prefix.date('Y-m-d').$ext;
+    }
+
+    /**
+     * Find log file for this month.
+     *
+     * @param string $prefix
+     * @param string $ext
+     *
+     * @return string
+     */
+    private static function findLogFileThisMonth(string $prefix, string $ext): string
+    {
+        $files = glob($prefix.date('Y-m').'*'.$ext);
+
+        return $files ? $files[0] : $prefix.date('Y-m-d').$ext;
+    }
+
+    /**
+     * Get default file.
+     *
+     * @param string $prefix
+     * @param string $ext
+     *
+     * @return string
+     */
+    private static function findLogFileDefault(string $prefix, string $ext): string
+    {
+        $files = glob($prefix.'*'.$ext);
+
+        return $files ? $files[0] : $prefix.date('Y-m-d').$ext;
+    }
+
+    /**
+     * Interpolate message.
+     *
+     * @param string $str
+     * @param array  $args
+     * @param string $quote
+     *
+     * @return string
+     */
+    private static function interpolate(string $str, array $args = []): string
+    {
+        $use = ['{', '}'];
+        $keys = array_filter(explode(',', ($args ? $use[0] : '').implode($use[1].','.$use[0], array_keys($args)).($args ? $use[1] : '')));
+
+        return strtr($str, array_combine($keys, array_map([self::class, 'stringifyignorescalar'], $args)));
     }
 
     /**
@@ -1559,13 +2109,13 @@ final class App implements \ArrayAccess
         // @codeCoverageIgnoreStart
         if ($this->blacklisted()) {
             // Spammer detected
-            throw new ResponseErrorException("Sorry, you're not allowed to visit this site.", 403);
+            throw new ResponseException("Sorry, you're not allowed to visit this site.", 403);
         }
         // @codeCoverageIgnoreEnd
 
         if (!$this->hive['_ROUTES']) {
             // No routes defined
-            throw new ResponseErrorException('No route specified');
+            throw new ResponseException('No route specified');
         }
 
         $verb = $this->hive['VERB'];
@@ -1573,7 +2123,7 @@ final class App implements \ArrayAccess
         $headers = $this->hive['HEADERS'];
         $type = $this->hive['CLI'] ? self::REQ_CLI : ((int) $this->hive['AJAX']) + 1;
         $modifier = $this->hive['CASELESS'] ? 'i' : '';
-        $path = Helper::cutbefore($this->hive['PATH'], '/') ?: $this->hive['PATH'];
+        $path = rtrim($this->hive['PATH'], '/') ?: '/';
         $preflight = false;
         $cors = null;
         $allowed = [];
@@ -1583,7 +2133,7 @@ final class App implements \ArrayAccess
             $preflight = isset($headers['Access-Control-Request-Method']);
 
             $this->hive['RESPONSE']['Access-Control-Allow-Origin'] = $cors['ORIGIN'];
-            $this->hive['RESPONSE']['Access-Control-Allow-Credentials'] = Helper::reqstr($cors['CREDENTIALS']);
+            $this->hive['RESPONSE']['Access-Control-Allow-Credentials'] = self::reqstr($cors['CREDENTIALS']);
         }
 
         foreach ($this->hive['_ROUTES'] as $pattern => $routes) {
@@ -1614,16 +2164,16 @@ final class App implements \ArrayAccess
 
             // Expose if defined
             if ($cors && $cors['EXPOSE']) {
-                $this->hive['RESPONSE']['Access-Control-Expose-Headers'] = Helper::reqstr($cors['EXPOSE']);
+                $this->hive['RESPONSE']['Access-Control-Expose-Headers'] = self::reqstr($cors['EXPOSE']);
             }
 
             if (is_string($handler)) {
                 // Replace route pattern tokens in handler if any
-                $handler = Helper::interpolate($handler, $args, '{}');
+                $handler = self::interpolate($handler, $args, '{}');
                 $check = $this->grab($handler, false);
 
                 if (is_array($check) && !class_exists($check[0])) {
-                    throw new ResponseErrorException(null, 404);
+                    throw new ResponseException(null, 404);
                 }
             }
 
@@ -1639,7 +2189,7 @@ final class App implements \ArrayAccess
             if ($ttl && in_array($verb, ['GET', 'HEAD'])) {
                 // Only GET and HEAD requests are cacheable
                 $cache = $this->get('cache');
-                $hash = Helper::hash($verb.' '.$this->hive['URI']).'.url';
+                $hash = self::hash($verb.' '.$this->hive['URI']).'.url';
 
                 if ($cache->exists($hash)) {
                     if (isset($headers['If-Modified-Since']) && strtotime($headers['If-Modified-Since']) + $ttl > $now) {
@@ -1670,7 +2220,7 @@ final class App implements \ArrayAccess
                 $call = is_string($handler) ? $this->grab($handler) : $handler;
 
                 if (!is_callable($call)) {
-                    throw new ResponseErrorException(null, 405);
+                    throw new ResponseException(null, 405);
                 }
 
                 $this->hive['_HANDLE_MAPPER'] = $this->hive['MAPPER'];
@@ -1714,12 +2264,12 @@ final class App implements \ArrayAccess
 
         if (!$allowed) {
             // URL doesn't match any route
-            throw new ResponseErrorException(null, 404);
+            throw new ResponseException(null, 404);
         }
 
         if (!$this->hive['CLI']) {
             // Unhandled HTTP method
-            $allowed = Helper::reqstr(array_unique($allowed));
+            $allowed = self::reqstr(array_unique($allowed));
 
             $this->hive['RESPONSE']['Allow'] = $allowed;
 
@@ -1727,7 +2277,7 @@ final class App implements \ArrayAccess
                 $this->hive['RESPONSE']['Access-Control-Allow-Methods'] = 'OPTIONS,'.$allowed;
 
                 if ($cors['HEADERS']) {
-                    $this->hive['RESPONSE']['Access-Control-Allow-Headers'] = Helper::reqstr($cors['HEADERS']);
+                    $this->hive['RESPONSE']['Access-Control-Allow-Headers'] = self::reqstr($cors['HEADERS']);
                 }
 
                 if ($cors['TTL'] > 0) {
@@ -1736,7 +2286,7 @@ final class App implements \ArrayAccess
             }
 
             if ('OPTIONS' !== $verb) {
-                throw new ResponseErrorException(null, 405);
+                throw new ResponseException(null, 405);
             }
         }
 
@@ -1789,7 +2339,7 @@ final class App implements \ArrayAccess
             return $this->get($val);
         } elseif (preg_match('/(.+)?%(.+)%(.+)?/', $val, $match)) {
             // assume it does exists in hive
-            $var = Helper::ref($match[2], $this->hive, false);
+            $var = self::ref($match[2], $this->hive, false);
 
             if (isset($var)) {
                 return ($match[1] ?? '').$var.($match[3] ?? '');
@@ -1823,45 +2373,7 @@ final class App implements \ArrayAccess
             return $this->get($classname);
         }
 
-        // special handling for converting REQ.PARAMS to mapper instance
-        if ($this->hive['_HANDLE_MAPPER'] && is_subclass_of($classname, Mapper::class)) {
-            return $this->resolveMapperArg($classname, $ref->name, $lookup);
-        }
-
         return is_string($lookup[$ref->name]) ? $this->resolveArg($lookup[$ref->name]) : $lookup[$ref->name];
-    }
-
-    /**
-     * Resolve mapper parameter.
-     *
-     * @param string $className
-     * @param string $paramName
-     * @param array  &$lookup
-     *
-     * @return Mapper
-     */
-    private function resolveMapperArg(string $className, string $paramName, array &$lookup): Mapper
-    {
-        $mapper = $this->get($className);
-        $keys = $mapper->getKeys();
-        $kcount = count($keys);
-        $vals = Helper::pickstartsat($lookup, $paramName, $kcount);
-        $vcount = count($vals);
-
-        if ($vcount !== $kcount) {
-            throw new ResponseErrorException('Insufficient primary keys value, expect value of "'.implode(', ', $keys).'"');
-        }
-
-        $use = array_values($vals);
-        $lookup = array_diff_key($lookup, $vals);
-
-        $mapper->find(...$use);
-
-        if ($mapper->dry()) {
-            throw new ResponseErrorException('Record of '.$mapper->getTable().' not found ('.$this->hive['VERB'].' '.$this->hive['PATH'].')', 404);
-        }
-
-        return $mapper;
     }
 
     /**
@@ -2035,8 +2547,24 @@ final class App implements \ArrayAccess
             case 'ENCODING':
                 ini_set('default_charset', $value);
                 break;
+            case 'BASE':
             case 'ENTRY':
-                $this->hive['REALM'] = $this->path($this->hive['PATH'], null, true, $this->hive['QUERY'], $this->hive['FRAGMENT']);
+            case 'FRAGMENT':
+            case 'HOST':
+            case 'PATH':
+            case 'PORT':
+            case 'SCHEME':
+            case 'QUERY':
+                $this->hive['REALM'] = self::buildRealm(...[
+                    $this->hive['SCHEME'],
+                    $this->hive['HOST'],
+                    (int) $this->hive['PORT'],
+                    $this->hive['BASE'],
+                    $this->hive['ENTRY'],
+                    $this->hive['PATH'],
+                    $this->hive['QUERY'],
+                    $this->hive['FRAGMENT'],
+                ]);
                 break;
             case 'TZ':
                 date_default_timezone_set($value);

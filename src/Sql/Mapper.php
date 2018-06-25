@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 /**
  * This file is part of the eghojansu/stick library.
  *
@@ -11,8 +9,11 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
+declare(strict_types=1);
+
 namespace Fal\Stick\Sql;
 
+use Fal\Stick\App;
 use Fal\Stick\Helper;
 
 /**
@@ -205,7 +206,7 @@ class Mapper implements \ArrayAccess
      */
     public function one($events, callable $trigger): Mapper
     {
-        foreach (Helper::reqarr($events) as $event) {
+        foreach (App::reqarr($events) as $event) {
             $this->triggers[$event][] = $trigger;
             $this->one[$event] = true;
         }
@@ -225,7 +226,7 @@ class Mapper implements \ArrayAccess
      */
     public function on($events, callable $trigger): Mapper
     {
-        foreach (Helper::reqarr($events) as $event) {
+        foreach (App::reqarr($events) as $event) {
             $this->triggers[$event][] = $trigger;
         }
 

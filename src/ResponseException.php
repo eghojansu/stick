@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 /**
  * This file is part of the eghojansu/stick library.
  *
@@ -11,6 +9,8 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
+declare(strict_types=1);
+
 namespace Fal\Stick;
 
 /**
@@ -18,7 +18,7 @@ namespace Fal\Stick;
  *
  * @author Eko Kurniawan <ekokurniawanbs@gmail.com>
  */
-class ResponseErrorException extends \Exception
+class ResponseException extends \Exception
 {
     /**
      * Class constructor.

@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 /**
  * This file is part of the eghojansu/stick library.
  *
@@ -11,8 +9,11 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
+declare(strict_types=1);
+
 namespace Fal\Stick\Validation;
 
+use Fal\Stick\App;
 use Fal\Stick\Helper;
 use Fal\Stick\Translator;
 
@@ -74,7 +75,7 @@ final class Validator
         foreach ($rules as $field => $fieldRules) {
             foreach (Helper::parsexpr($fieldRules) as $rule => $args) {
                 $validator = $this->findValidator($rule);
-                $value = array_key_exists($field, $validated) ? $validated[$field] : Helper::ref($field, $data, false);
+                $value = array_key_exists($field, $validated) ? $validated[$field] : App::ref($field, $data, false);
                 $result = $validator->validate($rule, $value, $args, $field, $validated, $data);
 
                 if (false === $result) {
@@ -82,10 +83,10 @@ final class Validator
                     $errors[$field][] = $this->message($rule, $value, $args, $field, $messages[$field.'.'.$rule] ?? null);
                     break;
                 } elseif (true === $result) {
-                    $ref = &Helper::ref($field, $validated);
+                    $ref = &App::ref($field, $validated);
                     $ref = $value;
                 } else {
-                    $ref = &Helper::ref($field, $validated);
+                    $ref = &App::ref($field, $validated);
                     $ref = $result;
                 }
             }
@@ -141,7 +142,7 @@ final class Validator
         $data = [];
 
         foreach (compact('field', 'rule', 'value') + $args as $k => $v) {
-            $data['{'.$k.'}'] = Helper::stringifyignorescalar($v);
+            $data['{'.$k.'}'] = App::stringifyignorescalar($v);
         }
 
         return $this->translator->transAlt($key, $data, $fallback, $alt);

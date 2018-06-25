@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 /**
  * This file is part of the eghojansu/stick library.
  *
@@ -10,6 +8,8 @@ declare(strict_types=1);
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
  */
+
+declare(strict_types=1);
 
 namespace Fal\Stick;
 
@@ -24,7 +24,7 @@ namespace Fal\Stick;
  *  * memcached
  *  * redis
  *
- * To disable cache pass empty DSN string.
+ * To disable cache, pass empty DSN string.
  *
  * @author Eko Kurniawan <ekokurniawanbs@gmail.com>
  */
@@ -87,15 +87,15 @@ final class Cache
     {
         if (null === $hash) {
             if (!$args) {
-                throw new \LogicException(self::class.'::isCached expect at least a hash parameter, none given');
+                throw new \LogicException(__METHOD__.' expect at least a hash parameter, none given');
             }
 
             $str = '';
             foreach ($args as $arg) {
-                $str .= (is_string($arg) ? $arg : Helper::stringify($arg)).'.';
+                $str .= (is_string($arg) ? $arg : App::stringify($arg)).'.';
             }
 
-            $hash = Helper::hash(rtrim($str, '.')).'.'.$suffix;
+            $hash = App::hash(rtrim($str, '.')).'.'.$suffix;
         }
 
         $exists = $this->exists($hash);
@@ -127,7 +127,7 @@ final class Cache
             case 'apcu':
                 return apcu_exists($ndx);
             case 'folder':
-                return (bool) $this->parse($key, Helper::read($this->cacheRef.$ndx));
+                return (bool) $this->parse($key, App::read($this->cacheRef.$ndx));
             case 'memcached':
                 return (bool) $this->cacheRef->get($ndx);
             case 'redis':
@@ -158,7 +158,7 @@ final class Cache
                 $raw = apcu_fetch($ndx);
                 break;
             case 'folder':
-                $raw = Helper::read($this->cacheRef.$ndx);
+                $raw = App::read($this->cacheRef.$ndx);
                 break;
             case 'memcached':
                 $raw = $this->cacheRef->get($ndx);
@@ -198,7 +198,7 @@ final class Cache
                 apcu_store($ndx, $content, $ttl);
                 break;
             case 'folder':
-                Helper::write($this->cacheRef.str_replace(['/', '\\'], '', $ndx), $content);
+                App::write($this->cacheRef.str_replace(['/', '\\'], '', $ndx), $content);
                 break;
             case 'memcached':
                 $this->cacheRef->set($ndx, $content);
@@ -230,7 +230,7 @@ final class Cache
             case 'apcu':
                 return apcu_delete($ndx);
             case 'folder':
-                return Helper::delete($this->cacheRef.$ndx);
+                return App::delete($this->cacheRef.$ndx);
             case 'memcached':
                 return $this->cacheRef->delete($ndx);
             case 'redis':
@@ -427,7 +427,7 @@ final class Cache
         }
 
         if ($fallback === $this->cache) {
-            Helper::mkdir($this->cacheRef = $this->fallback);
+            App::mkdir($this->cacheRef = $this->fallback);
         }
     }
 

@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 /**
  * This file is part of the eghojansu/stick library.
  *
@@ -11,9 +9,11 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
+declare(strict_types=1);
+
 namespace Fal\Stick\Security;
 
-use Fal\Stick\Helper;
+use Fal\Stick\App;
 
 /**
  * Simple user class.
@@ -61,7 +61,7 @@ final class SimpleUser implements UserInterface
         $this->id = $id;
         $this->username = $username;
         $this->password = $password;
-        $this->roles = Helper::reqarr($roles);
+        $this->roles = App::reqarr($roles);
         $this->expired = (bool) $expired;
     }
 

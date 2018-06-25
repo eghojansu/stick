@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 /**
  * This file is part of the eghojansu/stick library.
  *
@@ -11,10 +9,11 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
+declare(strict_types=1);
+
 namespace Fal\Stick\Test\Sql;
 
-use Fal\Stick\Cache;
-use Fal\Stick\Logger;
+use Fal\Stick\App;
 use Fal\Stick\Sql\Connection;
 use Fal\Stick\Sql\MapperValidator;
 use PHPUnit\Framework\TestCase;
@@ -25,13 +24,13 @@ class MapperValidatorTest extends TestCase
 
     public function setUp()
     {
-        $cache = new Cache('', 'test', TEMP.'cache/');
+        $app = App::create()->mset([
+            'TEMP' => TEMP,
+        ])->logClear();
+        $cache = $app->get('cache');
         $cache->reset();
 
-        $logger = new Logger(TEMP.'mappervalidatorlog/');
-        $logger->clear();
-
-        $conn = new Connection($cache, $logger, [
+        $conn = new Connection($app, $cache, [
             'driver' => 'sqlite',
             'location' => ':memory:',
             'commands' => <<<SQL1

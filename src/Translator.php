@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 /**
  * This file is part of the eghojansu/stick library.
  *
@@ -10,6 +8,8 @@ declare(strict_types=1);
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
  */
+
+declare(strict_types=1);
 
 namespace Fal\Stick;
 
@@ -168,7 +168,7 @@ class Translator
      */
     public function setLocales($locales): Translator
     {
-        $this->locales = array_unique(array_merge([__DIR__.'/dict/'], Helper::reqarr($locales)));
+        $this->locales = array_unique(array_merge([__DIR__.'/dict/'], App::reqarr($locales)));
         $this->reset();
 
         return $this;
@@ -262,12 +262,12 @@ class Translator
         $this->load();
 
         if ($add) {
-            $ref = &Helper::ref($key, $this->dict);
+            $ref = &App::ref($key, $this->dict);
 
             return $ref;
         }
 
-        $ref = Helper::ref($key, $this->dict, false);
+        $ref = App::ref($key, $this->dict, false);
 
         if ($ref && !is_string($ref)) {
             throw new \UnexpectedValueException('Message reference is not a string');
@@ -292,7 +292,7 @@ class Translator
         foreach (array_reverse($this->languages) as $lang) {
             foreach ($this->locales as $dir) {
                 if (file_exists($file = $dir.$lang.'.php')) {
-                    $this->dict = array_replace_recursive($this->dict, Helper::exrequire($file, []));
+                    $this->dict = array_replace_recursive($this->dict, App::xrequire($file, []));
                 }
             }
         }

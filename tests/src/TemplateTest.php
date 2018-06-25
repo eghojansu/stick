@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 /**
  * This file is part of the eghojansu/stick library.
  *
@@ -10,6 +8,8 @@ declare(strict_types=1);
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
  */
+
+declare(strict_types=1);
 
 namespace Fal\Stick\Test;
 
@@ -144,7 +144,6 @@ class TemplateTest extends TestCase
         return [
             [FIXTURE.'template/include.html', 'include'],
             [FIXTURE.'template/single.html', 'single', ['pageTitle' => 'Foo']],
-            [FIXTURE.'template/exception.html', 'exception'],
         ];
     }
 
@@ -158,11 +157,22 @@ class TemplateTest extends TestCase
         $this->assertEquals(file_get_contents($expected), $this->template->render($template, $data));
     }
 
+    public function testRenderViewException()
+    {
+        $str = '<pre>Template parsing error: [Exception] Template render trigger error in ';
+
+        $this->assertContains($str, $this->template->render('exception'));
+    }
+
     public function testRenderTrace()
     {
+        $before = $this->template->render('exception');
+
         $this->app['DEBUG'] = 3;
 
-        $this->assertNotEquals(file_get_contents(FIXTURE.'template/exception.html'), $this->template->render('exception'));
+        $after = $this->template->render('exception');
+
+        $this->assertNotEquals($after, $before);
     }
 
     /**

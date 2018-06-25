@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 /**
  * This file is part of the eghojansu/stick library.
  *
@@ -10,6 +8,8 @@ declare(strict_types=1);
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
  */
+
+declare(strict_types=1);
 
 namespace Fal\Stick\Test\Validation;
 
@@ -28,6 +28,11 @@ class ValidatorTest extends TestCase
         $this->validator = new Validator(new Translator());
         $this->validator->add(new SimpleValidator());
         $this->validator->add(new NativeValidator());
+    }
+
+    public function testAdd()
+    {
+        $this->assertEquals($this->validator, $this->validator->add(new NativeValidator()));
     }
 
     public function validateProvider()

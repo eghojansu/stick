@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 /**
  * This file is part of the eghojansu/stick library.
  *
@@ -11,10 +9,11 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
+declare(strict_types=1);
+
 namespace Fal\Stick\Test\Security;
 
-use Fal\Stick\Cache;
-use Fal\Stick\Logger;
+use Fal\Stick\App;
 use Fal\Stick\Security\SimpleUser;
 use Fal\Stick\Security\SimpleUserTransformer;
 use Fal\Stick\Security\SqlUserProvider;
@@ -32,13 +31,13 @@ class SqlUserProviderTest extends TestCase
 
     protected function db()
     {
-        $cache = new Cache('', 'test', TEMP.'cache/');
+        $app = App::create()->mset([
+            'TEMP' => TEMP,
+        ])->logClear();
+        $cache = $app->get('cache');
         $cache->reset();
 
-        $logger = new Logger(TEMP.'sqlproviderlog/');
-        $logger->clear();
-
-        return new Connection($cache, $logger, [
+        return new Connection($app, $cache, [
             'driver' => 'sqlite',
             'location' => ':memory:',
             'commands' => [

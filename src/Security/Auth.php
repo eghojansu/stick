@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 /**
  * This file is part of the eghojansu/stick library.
  *
@@ -11,10 +9,11 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
+declare(strict_types=1);
+
 namespace Fal\Stick\Security;
 
 use Fal\Stick\App;
-use Fal\Stick\Helper;
 
 /**
  * Authentication utils.
@@ -185,7 +184,7 @@ final class Auth
     /**
      * Do guard.
      *
-     * Return true if request has been rerouted.
+     * Return true if request has been redirected.
      *
      * @return bool
      */
@@ -215,7 +214,7 @@ final class Auth
     }
 
     /**
-     * Check roles agains current user roles.
+     * Check roles against current user roles.
      *
      * @param string|array $checkRoles
      *
@@ -230,7 +229,7 @@ final class Auth
             return false;
         }
 
-        $use = Helper::reqarr($checkRoles);
+        $use = App::reqarr($checkRoles);
 
         if (count(array_intersect($use, $userRoles))) {
             return true;
@@ -317,7 +316,7 @@ final class Auth
         }
 
         $roles = [];
-        $children = Helper::reqarr($this->options['roleHierarchy'][$role]);
+        $children = App::reqarr($this->options['roleHierarchy'][$role]);
 
         foreach ($children as $child) {
             $roles = array_merge($roles, $this->getRoleHierarchy($child));

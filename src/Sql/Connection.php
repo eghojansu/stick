@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 /**
  * This file is part of the eghojansu/stick library.
  *
@@ -11,11 +9,13 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
+declare(strict_types=1);
+
 namespace Fal\Stick\Sql;
 
+use Fal\Stick\App;
 use Fal\Stick\Cache;
 use Fal\Stick\Helper;
-use Fal\Stick\Logger;
 
 /**
  * PDO Wrapper.
@@ -49,14 +49,14 @@ final class Connection
     private $pdo;
 
     /**
+     * @var App
+     */
+    private $app;
+
+    /**
      * @var Cache
      */
     private $cache;
-
-    /**
-     * @var Logger
-     */
-    private $logger;
 
     /**
      * Driver name.
@@ -77,7 +77,7 @@ final class Connection
      *
      * @var string
      */
-    private $logLevel = Logger::LEVEL_INFO;
+    private $logLevel = App::LEVEL_INFO;
 
     /**
      * Transaction status.
@@ -94,14 +94,14 @@ final class Connection
     /**
      * Class constructor.
      *
-     * @param Cache  $cache
-     * @param Logger $logger
-     * @param array  $options
+     * @param App   $app
+     * @param Cache $cache
+     * @param array $options
      */
-    public function __construct(Cache $cache, Logger $logger, array $options)
+    public function __construct(App $app, Cache $cache, array $options)
     {
+        $this->app = $app;
         $this->cache = $cache;
-        $this->logger = $logger;
         $this->setOptions($options);
     }
 
@@ -136,23 +136,23 @@ final class Connection
     }
 
     /**
-     * Get cache.
+     * Get App instance.
+     *
+     * @return App
+     */
+    public function getApp(): App
+    {
+        return $this->app;
+    }
+
+    /**
+     * Get Cache instance.
      *
      * @return Cache
      */
     public function getCache(): Cache
     {
         return $this->cache;
-    }
-
-    /**
-     * Get logger.
-     *
-     * @return Logger
-     */
-    public function getLogger(): Logger
-    {
-        return $this->logger;
     }
 
     /**
@@ -440,7 +440,7 @@ final class Connection
                 continue;
             }
 
-            $raw = is_string($value) && Helper::startswith($value, '```');
+            $raw = is_string($value) && '```' === substr($value, 0, 3);
             $expr = $raw ? substr($value, 3) : $value;
             // clear column from comments format
             $ccol = (false === ($pos = strpos($key, '#'))) ? $key : substr($key, 0, $pos);
@@ -524,7 +524,7 @@ final class Connection
         $message = '(%.1f) %sRetrieving table "%s" schema';
 
         if ($ttl && $this->cache->isCached($hash, $data, 'schema', $table, $fields)) {
-            $this->logger->log($this->logLevel, sprintf('(%.1fms) [CACHED] Retrieving schema of %s table', 1e3 * (microtime(true) - $start), $table));
+            $this->app->log($this->logLevel, sprintf('(%.1fms) [CACHED] Retrieving schema of %s table', 1e3 * (microtime(true) - $start), $table));
 
             return $data[0];
         }
@@ -561,7 +561,7 @@ final class Connection
             $this->cache->set($hash, $rows, $ttl);
         }
 
-        $this->logger->log($this->logLevel, sprintf('(%.1fms) Retrieving schema of %s table (%s)', 1e3 * (microtime(true) - $start), $table, $cmd[0]));
+        $this->app->log($this->logLevel, sprintf('(%.1fms) Retrieving schema of %s table (%s)', 1e3 * (microtime(true) - $start), $table, $cmd[0]));
 
         return $rows;
     }
@@ -601,7 +601,7 @@ final class Connection
     {
         switch ($this->getDriver()) {
             case self::DB_ODBC:
-                return is_string($val) ? Helper::stringify(str_replace('\'', '\'\'', $val)) : (string) $val;
+                return is_string($val) ? App::stringify(str_replace('\'', '\'\'', $val)) : (string) $val;
             default:
                 return $this->pdo()->quote($val, $type ?? \PDO::PARAM_STR);
         }
@@ -736,7 +736,7 @@ final class Connection
             if ($ttl && $this->cache->isCached($hash, $data, 'sql', $cmd, $arg)) {
                 $res[$i] = $data[0];
 
-                $this->logger->log($this->logLevel, $this->buildLog([$cmd, $arg, $start, true]));
+                $this->app->log($this->logLevel, $this->buildLog([$cmd, $arg, $start, true]));
 
                 continue;
             }
@@ -765,7 +765,7 @@ final class Connection
 
             $log = $this->buildLog([$cmd, $arg]);
             $query->execute();
-            $this->logger->log($this->logLevel, $this->buildLog([], $start, $log));
+            $this->app->log($this->logLevel, $this->buildLog([], $start, $log));
 
             $error = $query->errorinfo();
 
@@ -863,9 +863,9 @@ final class Connection
         foreach ($use[1] as $key => $val) {
             if (is_array($val)) {
                 // User-specified data type
-                $vals[] = Helper::stringify($use[3] ? $val[0] : $this->phpValue($val[1], $val[0]));
+                $vals[] = App::stringify($use[3] ? $val[0] : $this->phpValue($val[1], $val[0]));
             } else {
-                $vals[] = Helper::stringify($use[3] ? $val : $this->phpValue($this->realPdoType($val), $val));
+                $vals[] = App::stringify($use[3] ? $val : $this->phpValue($this->realPdoType($val), $val));
             }
             $keys[] = '/'.preg_quote(is_numeric($key) ? chr(0).'?' : $key).'/';
         }

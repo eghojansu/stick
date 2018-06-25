@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 /**
  * This file is part of the eghojansu/stick library.
  *
@@ -11,11 +9,11 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
+declare(strict_types=1);
+
 namespace Fal\Stick\Test\Sql;
 
 use Fal\Stick\App;
-use Fal\Stick\Cache;
-use Fal\Stick\Logger;
 use Fal\Stick\Security\Auth;
 use Fal\Stick\Security\AuthValidator;
 use Fal\Stick\Security\PlainPasswordEncoder;
@@ -32,15 +30,13 @@ class AuthValidatorTest extends TestCase
 
     public function setUp()
     {
-        $this->app = new App();
-
-        $cache = new Cache('', 'test', TEMP.'cache/');
+        $this->app = App::create()->mset([
+            'TEMP' => TEMP,
+        ])->logClear();
+        $cache = $this->app->get('cache');
         $cache->reset();
 
-        $logger = new Logger(TEMP.'authvalidatorlog/');
-        $logger->clear();
-
-        $db = new Connection($cache, $logger, [
+        $db = new Connection($this->app, $cache, [
             'driver' => 'sqlite',
             'location' => ':memory:',
             'debug' => true,

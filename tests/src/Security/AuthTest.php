@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 /**
  * This file is part of the eghojansu/stick library.
  *
@@ -11,11 +9,11 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
+declare(strict_types=1);
+
 namespace Fal\Stick\Test\Security;
 
 use Fal\Stick\App;
-use Fal\Stick\Cache;
-use Fal\Stick\Logger;
 use Fal\Stick\Security\Auth;
 use Fal\Stick\Security\PlainPasswordEncoder;
 use Fal\Stick\Security\SimpleUserTransformer;
@@ -30,17 +28,15 @@ class AuthTest extends TestCase
 
     public function setUp()
     {
-        $this->app = new App();
-        $this->app->on(App::EVENT_REROUTE, function (App $app, $url) {
+        $this->app = App::create()->mset([
+            'TEMP' => TEMP,
+        ])->logClear()->on(App::EVENT_REROUTE, function (App $app, $url) {
             $app['rerouted'] = $url;
         });
-        $cache = new Cache('', 'test', TEMP.'cache/');
+        $cache = $this->app->get('cache');
         $cache->reset();
 
-        $logger = new Logger(TEMP.'authlog/');
-        $logger->clear();
-
-        $db = new Connection($cache, $logger, [
+        $db = new Connection($this->app, $cache, [
             'driver' => 'sqlite',
             'location' => ':memory:',
             'debug' => true,

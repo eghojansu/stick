@@ -21,15 +21,14 @@ Example usage.
 ```php
 <?php
 
-use Fal\Stick\App;
-
 require 'vendor/autoload.php';
 
-$app = new App;
-$app->route('GET home /', function() {
-    return 'Welcome home, Vanilla lover!';
-});
-$app->run();
+Fal\Stick\App::create()
+    ->route('GET home /', function() {
+        return 'Welcome home, Vanilla lover!';
+    })
+    ->run()
+;
 
 ```
 

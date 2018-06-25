@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 /**
  * This file is part of the eghojansu/stick library.
  *
@@ -10,6 +8,8 @@ declare(strict_types=1);
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
  */
+
+declare(strict_types=1);
 
 namespace Fal\Stick;
 
@@ -84,8 +84,8 @@ class Template implements \ArrayAccess
     {
         $this->app = $app;
         $this->translator = $translator;
-        $this->dirs = Helper::reqarr($dirs);
-        $this->macros = Helper::reqarr($macros);
+        $this->dirs = App::reqarr($dirs);
+        $this->macros = App::reqarr($macros);
     }
 
     /**
@@ -378,9 +378,15 @@ class Template implements \ArrayAccess
         } elseif (isset($this->aliases[$func])) {
             // call alias
             return call_user_func_array([$this, $this->aliases[$func]], $args);
-        } elseif (is_callable($lib = Helper::class.'::'.$func)) {
-            // try from library namespace (helper)
+        } elseif (is_callable($lib = [Helper::class, $func])) {
+            // static method of Helper
             return call_user_func_array($lib, $args);
+        } elseif (is_callable([$this->translator, $func])) {
+            // translator methods
+            return $this->translator->$func(...$args);
+        } elseif (is_callable([$this->app, $func])) {
+            // app instance methods
+            return $this->app->$func(...$args);
         } elseif (is_callable($func)) {
             // from globals
             return call_user_func_array($func, $args);
@@ -397,12 +403,6 @@ class Template implements \ArrayAccess
             }
 
             return trim($this->render($filepath, $args));
-        } elseif (method_exists($this->translator, $func)) {
-            // translator methods
-            return $this->translator->$func(...$args);
-        } elseif (method_exists($this->app, $func)) {
-            // app methods
-            return $this->app->$func(...$args);
         }
 
         throw new \BadFunctionCallException('Call to undefined function '.$func);

@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 /**
  * This file is part of the eghojansu/stick library.
  *
@@ -11,10 +9,12 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
+declare(strict_types=1);
+
 namespace Fal\Stick\Test\Sql;
 
+use Fal\Stick\App;
 use Fal\Stick\Cache;
-use Fal\Stick\Logger;
 use Fal\Stick\Sql\Connection;
 use PHPUnit\Framework\TestCase;
 
@@ -34,13 +34,17 @@ class ConnectionTest extends TestCase
 
     private function build(string $dsn = '')
     {
-        $cache = new Cache($dsn, 'test', TEMP.'cache/');
+        $app = App::create()->mset([
+            'TEMP' => TEMP,
+            'CACHE' => $dsn,
+            'LOG' => [
+                'THRESHOLD' => App::LEVEL_DEBUG,
+            ],
+        ])->logClear();
+        $cache = $app->get('cache');
         $cache->reset();
 
-        $logger = new Logger(TEMP.'conlog/', Logger::LEVEL_DEBUG);
-        $logger->clear();
-
-        $this->conn = new Connection($cache, $logger, [
+        $this->conn = new Connection($app, $cache, [
             'driver' => 'sqlite',
             'location' => ':memory:',
             'commands' => <<<SQL1
@@ -78,16 +82,16 @@ SQL1
 
     public function testGetCache()
     {
-        $this->assertInstanceof(Cache::class, $this->conn->getCache());
+        $this->assertInstanceOf(Cache::class, $this->conn->getCache());
     }
 
-    public function testGetLogger()
+    public function testGetApp()
     {
         $this->conn->exec('select * from user');
         $this->conn->exec('insert into user (username) values (?)', ['quux']);
         $this->conn->exec('insert into user (id,username) values (?,?)', [['5', \PDO::PARAM_INT], 'bleh']);
 
-        $logs = $this->conn->getLogger()->files();
+        $logs = $this->conn->getApp()->logFiles();
         $this->assertCount(1, $logs);
 
         $log = file_get_contents($logs[0]);
@@ -231,7 +235,7 @@ SQL1
 
     public function testGetLogLevel()
     {
-        $this->assertEquals(Logger::LEVEL_INFO, $this->conn->getLogLevel());
+        $this->assertEquals(App::LEVEL_INFO, $this->conn->getLogLevel());
     }
 
     public function testSetLogLevel()

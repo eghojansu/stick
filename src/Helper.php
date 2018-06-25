@@ -1,9 +1,7 @@
 <?php
 
-declare(strict_types=1);
-
 /**
- * This file is part of the eghojansu/stick library.
+ * This file is part of the eghojansu/stick project.
  *
  * (c) Eko Kurniawan <ekokurniawanbs@gmail.com>
  *
@@ -11,10 +9,12 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
+declare(strict_types=1);
+
 namespace Fal\Stick;
 
 /**
- * Common helper.
+ * Common helper, to make our life easier.
  *
  * @author Eko Kurniawan <ekokurniawanbs@gmail.com>
  */
@@ -35,23 +35,6 @@ final class Helper
         $close = $quote[1] ?? '';
 
         return $open.implode($close.$delim.$open, (array) $data).$close;
-    }
-
-    /**
-     * Interpolate message.
-     *
-     * @param string $str
-     * @param array  $args
-     * @param string $quote
-     *
-     * @return string
-     */
-    public static function interpolate(string $str, array $args = [], string $quote = ''): string
-    {
-        $use = str_split($quote) + [1 => ''];
-        $keys = array_filter(explode(',', ($args ? $use[0] : '').implode($use[1].','.$use[0], array_keys($args)).($args ? $use[1] : '')));
-
-        return strtr($str, array_combine($keys, array_map([self::class, 'stringifyignorescalar'], $args)));
     }
 
     /**
@@ -100,7 +83,7 @@ final class Helper
      */
     public static function camelcase(string $str): string
     {
-        return lcfirst(str_replace(' ', '', ucwords(str_replace('_', ' ', $str))));
+        return lcfirst(str_replace(' ', '', ucwords(strtr($str, '_', ' '))));
     }
 
     /**
@@ -113,54 +96,6 @@ final class Helper
     public static function snakecase(string $str): string
     {
         return strtolower(preg_replace('/(?!^)\p{Lu}/u', '_\0', $str));
-    }
-
-    /**
-     * Convert HEADER_KEY to Header-Key.
-     *
-     * @param string $str
-     *
-     * @return string
-     */
-    public static function toHKey(string $str): string
-    {
-        return str_replace(' ', '-', ucwords(str_replace('_', ' ', strtolower($str))));
-    }
-
-    /**
-     * Convert Header-Key to HEADER_KEY.
-     *
-     * @param string $str
-     *
-     * @return string
-     */
-    public static function fromHKey(string $str): string
-    {
-        return str_replace('-', '_', strtoupper($str));
-    }
-
-    /**
-     * Fix path slash.
-     *
-     * @param string $str
-     *
-     * @return string
-     */
-    public static function fixslashes(string $str): string
-    {
-        return str_replace('\\', '/', $str);
-    }
-
-    /**
-     * Hash string to 13-length string.
-     *
-     * @param string $str
-     *
-     * @return string
-     */
-    public static function hash(string $str): string
-    {
-        return str_pad(base_convert(substr(sha1($str), -16), 16, 36), 11, '0', STR_PAD_LEFT);
     }
 
     /**
@@ -280,301 +215,6 @@ final class Helper
     }
 
     /**
-     * Pick array values start at key.
-     *
-     * @param array    $arr
-     * @param string   $start
-     * @param int|null $count
-     *
-     * @return array
-     */
-    public static function pickstartsat(array $arr, string $start, int $count = null): array
-    {
-        $res = [];
-        $used = 0;
-        $started = false;
-        $use = $count ?? count($arr);
-
-        foreach ($arr as $key => $value) {
-            if (!$started) {
-                $started = $key === $start;
-            }
-
-            if ($started) {
-                if ($used++ >= $use) {
-                    return $res;
-                }
-
-                $res[$key] = $value;
-            }
-        }
-
-        return $res;
-    }
-
-    /**
-     * Extract array contents which starts with prefix.
-     *
-     * @param array  $arr
-     * @param string $prefix
-     *
-     * @return array
-     */
-    public static function extract(array $arr, string $prefix): array
-    {
-        if (!$prefix) {
-            return $arr;
-        }
-
-        $out = [];
-        $cut = strlen($prefix);
-
-        foreach ($arr as $key => $value) {
-            if (substr($key, 0, $cut) === $prefix) {
-                $out[substr($key, $cut)] = $value;
-            }
-        }
-
-        return $out;
-    }
-
-    /**
-     * Get constant value.
-     *
-     * @param string $var
-     * @param mixed  $default
-     *
-     * @return mixed
-     */
-    public static function constant(string $var, $default = null)
-    {
-        return defined($var) ? \constant($var) : $default;
-    }
-
-    /**
-     * Get constants.
-     *
-     * @param string|object $class
-     * @param string        $prefix
-     *
-     * @return array
-     */
-    public static function constants($class, string $prefix = ''): array
-    {
-        return self::extract((new \ReflectionClass($class))->getconstants(), $prefix);
-    }
-
-    /**
-     * Split string by comma, semicolon or pipe.
-     *
-     * @param string $str
-     * @param bool   $noempty
-     *
-     * @return array
-     */
-    public static function split(string $str, bool $noempty = true): array
-    {
-        return array_map('trim', preg_split('/[,;|]/', $str, 0, $noempty ? PREG_SPLIT_NO_EMPTY : 0));
-    }
-
-    /**
-     * Ensure var is array.
-     *
-     * @param mixed $var
-     * @param bool  $noempty
-     *
-     * @return array
-     */
-    public static function reqarr($var, bool $noempty = true): array
-    {
-        return is_array($var) ? $var : self::split($var ?? '', $noempty);
-    }
-
-    /**
-     * Ensure var is string.
-     *
-     * @param mixed  $var
-     * @param string $glue
-     *
-     * @return string
-     */
-    public static function reqstr($var, string $glue = ','): string
-    {
-        return is_string($var) ? $var : implode($glue, $var);
-    }
-
-    /**
-     * Exclusive include.
-     *
-     * @param string $file
-     */
-    public static function exinclude(string $file): void
-    {
-        include $file;
-    }
-
-    /**
-     * Exclusive require.
-     *
-     * @param string $file
-     * @param mixed  $default
-     *
-     * @return mixed
-     */
-    public static function exrequire(string $file, $default = null)
-    {
-        $result = require $file;
-
-        return $result ?: $default;
-    }
-
-    /**
-     * Mkdir if not exists.
-     *
-     * @param string $path
-     * @param int    $mode
-     * @param bool   $recursive
-     *
-     * @return bool
-     */
-    public static function mkdir(string $path, int $mode = 0755, bool $recursive = true): bool
-    {
-        return file_exists($path) ? true : mkdir($path, $mode, $recursive);
-    }
-
-    /**
-     * Read file content.
-     *
-     * @param string $file
-     * @param bool   $lf
-     *
-     * @return string
-     */
-    public static function read(string $file, bool $lf = false): string
-    {
-        $out = file_exists($file) ? file_get_contents($file) : '';
-
-        return $lf ? preg_replace('/\r\n|\r/', "\n", $out) : $out;
-    }
-
-    /**
-     * Write to file.
-     *
-     * @param string $file
-     * @param string $data
-     * @param bool   $append
-     *
-     * @return mixed
-     */
-    public static function write(string $file, string $data, bool $append = false)
-    {
-        return file_put_contents($file, $data, LOCK_EX | ($append ? FILE_APPEND : 0));
-    }
-
-    /**
-     * Delete file if exists.
-     *
-     * @param string $file
-     *
-     * @return bool
-     */
-    public static function delete(string $file): bool
-    {
-        return file_exists($file) ? unlink($file) : false;
-    }
-
-    /**
-     * Convert array to string.
-     *
-     * @param array $args
-     *
-     * @return string
-     */
-    public static function csv(array $args): string
-    {
-        return implode(',', array_map('stripcslashes', array_map([self::class, 'stringify'], $args)));
-    }
-
-    /**
-     * Context to string.
-     *
-     * @param array $context
-     *
-     * @return string
-     */
-    public static function contexttostring(array $context): string
-    {
-        $export = '';
-
-        foreach ($context as $key => $value) {
-            $export .= "{$key}: ";
-            $export .= preg_replace([
-                '/=>\s+([a-zA-Z])/im',
-                '/array\(\s+\)/im',
-                '/^  |\G  /m',
-            ], [
-                '=> $1',
-                'array()',
-                '    ',
-            ], str_replace('array (', 'array(', var_export($value, true)));
-            $export .= PHP_EOL;
-        }
-
-        return str_replace(['\\\\', '\\\''], ['\\', '\''], rtrim($export));
-    }
-
-    /**
-     * Stringify if not scalar.
-     *
-     * @param mixed $arg
-     *
-     * @return mixed
-     */
-    public static function stringifyignorescalar($arg)
-    {
-        return is_scalar($arg) ? $arg : self::stringify($arg);
-    }
-
-    /**
-     * Stringify PHP-value.
-     *
-     * @param mixed $arg
-     * @param array $stack
-     *
-     * @return string
-     */
-    public static function stringify($arg, array $stack = []): string
-    {
-        foreach ($stack as $node) {
-            if ($arg === $node) {
-                return '*RECURSION*';
-            }
-        }
-
-        switch (gettype($arg)) {
-            case 'object':
-                $str = '';
-                foreach (get_object_vars($arg) as $key => $val) {
-                    $str .= ','.var_export($key, true).'=>'.self::stringify($val, array_merge($stack, [$arg]));
-                }
-                $str = ltrim($str, ',');
-
-                return addslashes(get_class($arg)).'::__set_state(['.$str.'])';
-            case 'array':
-                $str = '';
-                $num = isset($arg[0]) && ctype_digit(implode('', array_keys($arg)));
-                foreach ($arg as $key => $val) {
-                    $str .= ','.($num ? '' : (var_export($key, true).'=>')).self::stringify($val, array_merge($stack, [$arg]));
-                }
-                $str = ltrim($str, ',');
-
-                return '['.$str.']';
-            default:
-                return var_export($arg, true);
-        }
-    }
-
-    /**
      * Parse string expression.
      *
      * Example:
@@ -663,35 +303,5 @@ final class Helper
         }
 
         return $res;
-    }
-
-    /**
-     * Get ref from var, provide dot access notation.
-     *
-     * @param string $key
-     * @param array  &$var
-     * @param bool   $add
-     *
-     * @return mixed
-     */
-    public static function &ref(string $key, array &$var, bool $add = true)
-    {
-        $null = null;
-        $parts = explode('.', $key);
-
-        foreach ($parts as $part) {
-            if (!is_array($var)) {
-                $var = [];
-            }
-
-            if ($add || array_key_exists($part, $var)) {
-                $var = &$var[$part];
-            } else {
-                $var = &$null;
-                break;
-            }
-        }
-
-        return $var;
     }
 }
