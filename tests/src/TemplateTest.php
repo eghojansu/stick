@@ -15,7 +15,6 @@ namespace Fal\Stick\Test;
 
 use Fal\Stick\App;
 use Fal\Stick\Template;
-use Fal\Stick\Translator;
 use PHPUnit\Framework\TestCase;
 
 class TemplateTest extends TestCase
@@ -26,7 +25,7 @@ class TemplateTest extends TestCase
     public function setUp()
     {
         $this->app = new App();
-        $this->template = new Template($this->app, new Translator(), FIXTURE.'template/');
+        $this->template = new Template($this->app, FIXTURE.'template/');
     }
 
     public function testExists()
@@ -103,9 +102,6 @@ class TemplateTest extends TestCase
 
         $expected = '/path';
         $this->assertStringEndsWith($expected, $this->template->path($expected));
-
-        $expected = 'This value should not be blank.';
-        $this->assertEquals($expected, $this->template->trans('validation.required'));
     }
 
     /**

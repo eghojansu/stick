@@ -26,11 +26,6 @@ class Template implements \ArrayAccess
     private $app;
 
     /**
-     * @var Translator
-     */
-    private $translator;
-
-    /**
      * @var array
      */
     private $context = [];
@@ -76,14 +71,12 @@ class Template implements \ArrayAccess
      * Class constructor.
      *
      * @param App        $app
-     * @param Translator $translator
      * @param string     $dirs       template dirs
      * @param string     $macros     macro dirs
      */
-    public function __construct(App $app, Translator $translator, string $dirs = './ui/', string $macros = 'macros')
+    public function __construct(App $app, string $dirs = './ui/', string $macros = 'macros')
     {
         $this->app = $app;
-        $this->translator = $translator;
         $this->dirs = App::reqarr($dirs);
         $this->macros = App::reqarr($macros);
     }
@@ -381,9 +374,6 @@ class Template implements \ArrayAccess
         } elseif (is_callable($lib = [Helper::class, $func])) {
             // static method of Helper
             return call_user_func_array($lib, $args);
-        } elseif (is_callable([$this->translator, $func])) {
-            // translator methods
-            return $this->translator->$func(...$args);
         } elseif (is_callable([$this->app, $func])) {
             // app instance methods
             return $this->app->$func(...$args);
