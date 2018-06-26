@@ -142,7 +142,7 @@ final class Validator
         $data = [];
 
         foreach (compact('field', 'rule', 'value') + $args as $k => $v) {
-            $data['{'.$k.'}'] = App::stringifyignorescalar($v);
+            $data['{'.$k.'}'] = App::stringifyIgnoreScalar($v);
         }
 
         return $this->translator->transAlt($key, $data, $fallback, $alt);

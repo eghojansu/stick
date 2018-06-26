@@ -1544,18 +1544,18 @@ class AppTest extends TestCase
         $this->assertEquals("1,2,'3'", App::csv([1, 2, '3']));
     }
 
-    public function testContexttostring()
+    public function testContextToString()
     {
-        $this->assertEquals("foo: 'bar'", App::contexttostring(['foo' => 'bar']));
-        $this->assertEquals("foo: 'bar'\nbar: 'baz'", App::contexttostring(['foo' => 'bar', 'bar' => 'baz']));
-        $this->assertEquals("foo: array(\n    0 => 'bar',\n)", App::contexttostring(['foo' => ['bar']]));
+        $this->assertEquals("foo: 'bar'", App::contextToString(['foo' => 'bar']));
+        $this->assertEquals("foo: 'bar'\nbar: 'baz'", App::contextToString(['foo' => 'bar', 'bar' => 'baz']));
+        $this->assertEquals("foo: array(\n    0 => 'bar',\n)", App::contextToString(['foo' => ['bar']]));
     }
 
-    public function testStringifyignorescalar()
+    public function testStringifyIgnoreScalar()
     {
-        $this->assertEquals('foo', App::stringifyignorescalar('foo'));
-        $this->assertEquals('0', App::stringifyignorescalar(0));
-        $this->assertEquals("['foo']", App::stringifyignorescalar(['foo']));
+        $this->assertEquals('foo', App::stringifyIgnoreScalar('foo'));
+        $this->assertEquals('0', App::stringifyIgnoreScalar(0));
+        $this->assertEquals("['foo']", App::stringifyIgnoreScalar(['foo']));
     }
 
     public function testStringify()

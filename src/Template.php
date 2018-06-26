@@ -70,9 +70,9 @@ class Template implements \ArrayAccess
     /**
      * Class constructor.
      *
-     * @param App        $app
-     * @param string     $dirs       template dirs
-     * @param string     $macros     macro dirs
+     * @param App    $app
+     * @param string $dirs   template dirs
+     * @param string $macros macro dirs
      */
     public function __construct(App $app, string $dirs = './ui/', string $macros = 'macros')
     {

@@ -80,6 +80,7 @@ final class App implements \ArrayAccess
     const EVENT_SHUTDOWN = 'app.shutdown';
     const EVENT_PREROUTE = 'app.preroute';
     const EVENT_POSTROUTE = 'app.postroute';
+    const EVENT_CONTROLLER_ARGS = 'app.resolve_controller_args';
     const EVENT_REROUTE = 'app.reroute';
     const EVENT_ERROR = 'app.error';
 
@@ -211,6 +212,7 @@ final class App implements \ArrayAccess
             'AGENT' => self::agent(),
             'AJAX' => self::ajax(),
             'ALIAS' => '',
+            'ARGS' => [],
             'ASSET_TIMESTAMP' => false,
             'BASE' => $base,
             'BODY' => '',
@@ -593,7 +595,7 @@ final class App implements \ArrayAccess
      *
      * @return string
      */
-    public static function contexttostring(array $context): string
+    public static function contextToString(array $context): string
     {
         $export = '';
 
@@ -621,7 +623,7 @@ final class App implements \ArrayAccess
      *
      * @return mixed
      */
-    public static function stringifyignorescalar($arg)
+    public static function stringifyIgnoreScalar($arg)
     {
         return is_scalar($arg) ? $arg : self::stringify($arg);
     }
@@ -1374,7 +1376,7 @@ final class App implements \ArrayAccess
             ));
         } elseif ($this->hive['CLI']) {
             $this->hive['RESPONSE']['Content-Type'] = 'text/plain';
-            $this->hive['OUTPUT'] = self::contexttostring(array_diff_key(
+            $this->hive['OUTPUT'] = self::contextToString(array_diff_key(
                 $this->hive['ERROR'],
                 $this->hive['DEBUG'] ? [] : ['trace' => 1]
             )).PHP_EOL;
@@ -2092,7 +2094,7 @@ final class App implements \ArrayAccess
         $use = ['{', '}'];
         $keys = array_filter(explode(',', ($args ? $use[0] : '').implode($use[1].','.$use[0], array_keys($args)).($args ? $use[1] : '')));
 
-        return strtr($str, array_combine($keys, array_map([self::class, 'stringifyignorescalar'], $args)));
+        return strtr($str, array_combine($keys, array_map([self::class, 'stringifyIgnoreScalar'], $args)));
     }
 
     /**
@@ -2158,6 +2160,7 @@ final class App implements \ArrayAccess
             // Capture values of route pattern tokens
             $this->hive['MATCH'] = array_shift($args);
             $this->hive['PARAMS'] = $args;
+            $this->hive['ARGS'] = array_values($args);
             // Save matching route
             $this->hive['ALIAS'] = $alias;
             $this->hive['PATTERN'] = $pattern;
@@ -2177,7 +2180,7 @@ final class App implements \ArrayAccess
                 }
             }
 
-            if ($this->trigger(self::EVENT_PREROUTE, $args)) {
+            if ($this->trigger(self::EVENT_PREROUTE)) {
                 return;
             }
 
@@ -2223,9 +2226,17 @@ final class App implements \ArrayAccess
                     throw new ResponseException(null, 405);
                 }
 
-                $this->hive['_HANDLE_MAPPER'] = $this->hive['MAPPER'];
-                $result = $this->call($call, $args);
-                $this->hive['_HANDLE_MAPPER'] = false;
+                if (is_array($call)) {
+                    $ref = new \ReflectionMethod($call[0], $call[1]);
+                } else {
+                    $ref = new \ReflectionFunction($call);
+                }
+
+                $this->hive['ARGS'] = $this->resolveArgs($ref, $args);
+                $this->trigger(self::EVENT_CONTROLLER_ARGS, [$ref]);
+
+                $ref = null;
+                $result = call_user_func_array($call, $this->hive['ARGS']);
 
                 if (is_scalar($result)) {
                     $body = (string) $result;
@@ -2247,7 +2258,7 @@ final class App implements \ArrayAccess
                     $cache->set($hash, [$headers, $body], $ttl);
                 }
 
-                if ($this->trigger(self::EVENT_POSTROUTE, $args)) {
+                if ($this->trigger(self::EVENT_POSTROUTE)) {
                     return;
                 }
             }
