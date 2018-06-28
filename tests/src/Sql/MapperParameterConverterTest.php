@@ -51,7 +51,7 @@ SQL1
 
         $ref = new \ReflectionFunction($cb);
 
-        $this->converter = new MapperParameterConverter(new Translator(), $conn, $ref, $raw, $params);
+        $this->converter = new MapperParameterConverter($conn, new Translator(), $ref, $raw, $params);
     }
 
     public function testResolve()

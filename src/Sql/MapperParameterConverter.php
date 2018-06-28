@@ -56,13 +56,13 @@ final class MapperParameterConverter
     /**
      * Class constructor.
      *
-     * @param Translator                 $translator
      * @param Connection                 $db
+     * @param Translator                 $translator
      * @param ReflectionFunctionAbstract $ref
      * @param array                      $raw
      * @param array                      $params
      */
-    public function __construct(Translator $translator, Connection $db, \ReflectionFunctionAbstract $ref, array $raw, array $params)
+    public function __construct(Connection $db, Translator $translator, \ReflectionFunctionAbstract $ref, array $raw, array $params)
     {
         $this->translator = $translator;
         $this->db = $db;
