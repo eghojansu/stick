@@ -153,6 +153,12 @@ class Html
                 continue;
             }
 
+            if (is_numeric($key)) {
+                $str .= is_string($value) ? ' '.$value : '';
+
+                continue;
+            }
+
             $str .= ' '.$key;
 
             if (true === $value) {

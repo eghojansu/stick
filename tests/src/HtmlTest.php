@@ -59,6 +59,9 @@ class HtmlTest extends TestCase
             [' foo="1"', [
                 'foo' => 1,
             ]],
+            [' foo="1"', [
+                'foo="1"',
+            ]],
             [' foo="\\"bar\\":\\"baz\\",\\"no\\":1"', [
                 'foo' => ['bar' => 'baz', 'no' => 1],
             ]],
