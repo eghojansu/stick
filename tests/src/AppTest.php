@@ -948,11 +948,12 @@ class AppTest extends TestCase
 
     public function testErrorListener()
     {
+        $internal = 'Internal server error';
         $this->app->one(App::EVENT_ERROR, function (App $app, $error) {
             $app['myerror'] = $error['text'];
         });
-        $this->app->error(500, 'Internal server error');
-        $this->assertEquals('Internal server error', $this->app['myerror']);
+        $this->app->error(500, $internal);
+        $this->assertEquals($internal, $this->app['myerror']);
 
         // listener trigger error
         $message = 'Error triggered from app error listener';
@@ -962,10 +963,11 @@ class AppTest extends TestCase
             throw new \Exception($message);
         });
 
-        $this->app->error(404, 'Internal server error');
-        $this->assertEquals(500, $this->app['CODE']);
-        $this->assertContains($message, $this->app['ERROR']);
-        $this->assertContains($message, $this->app['OUTPUT']);
+        $this->app->error(404, $internal);
+        $this->assertEquals(404, $this->app['CODE']);
+        $this->assertNotContains($message, $this->app['ERROR']);
+        $this->assertNotContains($message, $this->app['OUTPUT']);
+        $this->assertContains($internal, $this->app['ERROR']);
     }
 
     public function testErrorEnsureLogged()
@@ -1884,7 +1886,7 @@ class AppTest extends TestCase
 
     public function testAsset()
     {
-        $this->assertEquals('/foo', $this->app->asset('/foo'));
+        $this->assertEquals('/foo', $this->app->asset('foo'));
     }
 
     public function pathProvider()

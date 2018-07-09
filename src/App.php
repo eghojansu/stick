@@ -1150,7 +1150,7 @@ final class App implements \ArrayAccess
      */
     public function asset(string $path): string
     {
-        return $this->hive['BASE'].$path.($this->hive['ASSET_TIMESTAMP'] ? '?'.time() : '');
+        return $this->hive['BASE'].'/'.$path.($this->hive['ASSET_TIMESTAMP'] ? '?'.time() : '');
     }
 
     /**
@@ -1384,7 +1384,7 @@ final class App implements \ArrayAccess
             $handled = $this->trigger(self::EVENT_ERROR, [$this->hive['ERROR'], $prior]);
         } catch (\Throwable $e) {
             // Error handler triggering another error? Destroy it!
-            unset($this->hive['_LISTENERS'][self::EVENT_ERROR], $this['ERROR']);
+            unset($this->hive['_LISTENERS'][self::EVENT_ERROR]);
         }
 
         if ($handled || $prior) {
