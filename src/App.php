@@ -1913,7 +1913,12 @@ final class App implements \ArrayAccess
             }
 
             if (isset($frame['function'])) {
-                $args = $this->hive['DEBUG'] > 2 && isset($frame['args']) ? self::csv($frame['args']) : '';
+                $args = '';
+
+                if ($this->hive['DEBUG'] > 2 && isset($frame['args']) && $frame['args']) {
+                    $args = self::csv($frame['args']);
+                }
+
                 $line .= $frame['function'].'('.$args.')';
             }
 
