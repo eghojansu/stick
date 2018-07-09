@@ -142,8 +142,6 @@ final class App implements \ArrayAccess
     {
         ini_set('default_charset', 'UTF-8');
         session_cache_limiter('');
-        // Intercept errors/exceptions; PHP5.3-compatible
-        error_reporting((E_ALL | E_STRICT) & ~(E_NOTICE | E_USER_NOTICE));
 
         $headers = [
             'Content-Type' => $_SERVER['CONTENT_TYPE'] ?? null,
@@ -172,15 +170,8 @@ final class App implements \ArrayAccess
         if ($base && substr($path, 0, $cut = strlen($base)) === $base) {
             $path = substr($path, $cut);
         }
-
-        if (substr($path, 0, $cut = strlen($entry)) === $entry) {
+        if ($path !== '/' && substr($path, 0, $cut = strlen($entry)) === $entry) {
             $path = substr($path, $cut) ?: '/';
-        }
-
-        if ($cli) {
-            $trace = self::fixslashes(realpath(dirname($_SERVER['SCRIPT_FILENAME']).'/..').'/');
-        } else {
-            $trace = is_dir($_SERVER['DOCUMENT_ROOT']) ? $_SERVER['DOCUMENT_ROOT'] : dirname($_SERVER['DOCUMENT_ROOT']);
         }
         // @codeCoverageIgnoreEnd
 
@@ -283,7 +274,7 @@ final class App implements \ArrayAccess
             'STATUS' => self::HTTP_200,
             'TEMP' => './var/',
             'TIME' => microtime(true),
-            'TRACE' => $trace,
+            'TRACE' => self::fixslashes(realpath(dirname($_SERVER['SCRIPT_FILENAME']).'/..').'/'),
             'TZ' => date_default_timezone_get(),
             'URI' => $uri['path'].rtrim('?'.$uri['query'], '?').rtrim('#'.$uri['fragment'], '#'),
             'VERB' => $_SERVER['REQUEST_METHOD'] ?? 'GET',
@@ -358,6 +349,18 @@ final class App implements \ArrayAccess
                     $_SERVER['REMOTE_ADDR'] ?? ''
             )
         ;
+    }
+
+    /**
+     * Is array numeric.
+     *
+     * @param  array  $arr
+     *
+     * @return bool
+     */
+    public static function arrNumeric(array $arr): bool
+    {
+        return isset($arr[0]) && ctype_digit(implode('', array_keys($arr)));
     }
 
     /**
@@ -545,7 +548,7 @@ final class App implements \ArrayAccess
      */
     public static function read(string $file, bool $lf = false): string
     {
-        $out = file_exists($file) ? file_get_contents($file) : '';
+        $out = is_file($file) ? file_get_contents($file) : '';
 
         return $lf ? preg_replace('/\r\n|\r/', "\n", $out) : $out;
     }
@@ -573,7 +576,7 @@ final class App implements \ArrayAccess
      */
     public static function delete(string $file): bool
     {
-        return file_exists($file) ? unlink($file) : false;
+        return is_file($file) ? unlink($file) : false;
     }
 
     /**
@@ -633,6 +636,7 @@ final class App implements \ArrayAccess
      *
      * @param mixed $arg
      * @param array $stack
+     * @param array &$cache
      *
      * @return string
      */
@@ -655,7 +659,7 @@ final class App implements \ArrayAccess
                 return addslashes(get_class($arg)).'::__set_state(['.$str.'])';
             case 'array':
                 $str = '';
-                $num = isset($arg[0]) && ctype_digit(implode('', array_keys($arg)));
+                $num = self::arrNumeric($arg);
                 foreach ($arg as $key => $val) {
                     $str .= ','.($num ? '' : (var_export($key, true).'=>')).self::stringify($val, array_merge($stack, [$arg]));
                 }
@@ -695,6 +699,28 @@ final class App implements \ArrayAccess
         }
 
         return $var;
+    }
+
+    /**
+     * Interpolate message.
+     *
+     * @param string      $str
+     * @param array|null  $args
+     * @param string|null $quote
+     *
+     * @return string
+     */
+    public static function interpolate(string $str, array $args = null, string $quote = null): string
+    {
+        if (!$args) {
+            return $str;
+        }
+
+        $defaults = ['{', '}'];
+        $use = $quote ? str_split($quote) + $defaults : $defaults;
+        $keys = explode(',', $use[0].implode($use[1].','.$use[0], array_keys($args)).$use[1]);
+
+        return strtr($str, array_combine($keys, array_map([self::class, 'stringifyIgnoreScalar'], $args)));
     }
 
     /**
@@ -1864,11 +1890,11 @@ final class App implements \ArrayAccess
             return
                 isset($frame['file']) &&
                 (
-                    $this->hive['DEBUG'] > 1
-                    || (__FILE__ !== $frame['file'] || $this->hive['DEBUG'])
-                    && (
-                        empty($frame['function'])
-                        || !preg_match('/^(?:(?:trigger|user)_error|__call|call_user_func)/', $frame['function'])
+                    $this->hive['DEBUG'] > 1 ||
+                    (__FILE__ !== $frame['file'] || $this->hive['DEBUG']) &&
+                    (
+                        empty($frame['function']) ||
+                        !preg_match('/^(?:(?:trigger|user)_error|__call|call_user_func)/', $frame['function'])
                     )
                 )
             ;
@@ -1887,9 +1913,8 @@ final class App implements \ArrayAccess
             }
 
             if (isset($frame['function'])) {
-                $line .= $frame['function'].'('.
-                         ($this->hive['DEBUG'] > 2 && isset($frame['args']) ? self::csv($frame['args']) : '').
-                         ')';
+                $args = $this->hive['DEBUG'] > 2 && isset($frame['args']) ? self::csv($frame['args']) : '';
+                $line .= $frame['function'].'('.$args.')';
             }
 
             $src = self::fixslashes($frame['file']);
@@ -2078,23 +2103,6 @@ final class App implements \ArrayAccess
         $files = glob($prefix.'*'.$ext);
 
         return $files ? $files[0] : $prefix.date('Y-m-d').$ext;
-    }
-
-    /**
-     * Interpolate message.
-     *
-     * @param string $str
-     * @param array  $args
-     * @param string $quote
-     *
-     * @return string
-     */
-    private static function interpolate(string $str, array $args = []): string
-    {
-        $use = ['{', '}'];
-        $keys = array_filter(explode(',', ($args ? $use[0] : '').implode($use[1].','.$use[0], array_keys($args)).($args ? $use[1] : '')));
-
-        return strtr($str, array_combine($keys, array_map([self::class, 'stringifyIgnoreScalar'], $args)));
     }
 
     /**

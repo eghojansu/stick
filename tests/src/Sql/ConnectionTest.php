@@ -318,18 +318,13 @@ SQL1
         $this->conn->schema('noschema');
     }
 
-    public function testGetQuote()
-    {
-        $this->assertEquals(['`', '`'], $this->conn->getQuote());
-
-        $this->changeDriver('odbc');
-        $this->assertEquals(['[', ']'], $this->conn->getQuote());
-    }
-
     public function testQuotekey()
     {
         $this->assertEquals('`foo`', $this->conn->quotekey('foo'));
         $this->assertEquals('`foo`.`bar`', $this->conn->quotekey('foo.bar'));
+
+        $this->changeDriver('odbc');
+        $this->assertEquals('[foo]', $this->conn->quotekey('foo'));
 
         $this->changeDriver('unknown');
         $this->assertEquals('foo.bar', $this->conn->quotekey('foo.bar', true));

@@ -1869,6 +1869,19 @@ class AppTest extends TestCase
         $this->assertEquals('http://foo/bar/baz.php/qux?quux=corge#grault', $url);
     }
 
+    public function testArrNumeric()
+    {
+        $this->assertTrue(App::arrNumeric(['foo','bar']));
+        $this->assertFalse(App::arrNumeric(['foo','bar','baz'=>'qux']));
+    }
+
+    public function testInterpolate()
+    {
+        $this->assertEquals('foo baz', App::interpolate('foo {bar}', ['bar' => 'baz']));
+        $this->assertEquals('foo {bar}', App::interpolate('foo {bar}'));
+        $this->assertEquals('foo ', App::interpolate('foo {bar}', ['bar' => '']));
+    }
+
     public function testAsset()
     {
         $this->assertEquals('/foo', $this->app->asset('/foo'));

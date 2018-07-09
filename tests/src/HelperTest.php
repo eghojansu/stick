@@ -18,17 +18,6 @@ use PHPUnit\Framework\TestCase;
 
 class HelperTest extends TestCase
 {
-    public function testQuote()
-    {
-        $src = ['foo', 'bar'];
-        $this->assertEquals('foobar', Helper::quote('foobar'));
-        $this->assertEquals('foobar', Helper::quote($src));
-        $this->assertEquals(':foo:,:bar:', Helper::quote($src, [':', ':'], ','));
-        $this->assertEquals(':foo:|:bar:|:qux,:', Helper::quote($src + [2 => 'qux,'], [':', ':'], '|'));
-        $this->assertEquals(':u_foo,:u_bar', Helper::quote($src, [':u_'], ','));
-        $this->assertEquals('foo_u:,bar_u:', Helper::quote($src, ['', '_u:'], ','));
-    }
-
     public function testClassname()
     {
         $this->assertEquals('HelperTest', Helper::classname($this));

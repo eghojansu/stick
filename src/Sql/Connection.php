@@ -567,29 +567,6 @@ final class Connection
     }
 
     /**
-     * Get quote char (open and close).
-     *
-     * @return array
-     */
-    public function getQuote(): array
-    {
-        $quotes = [
-            '``' => [self::DB_SQLITE, self::DB_SQLITE2, self::DB_MYSQL],
-            '""' => [self::DB_PGSQL, self::DB_OCI],
-            '[]' => [self::DB_MSSQL, self::DB_SQLSRV, self::DB_ODBC, self::DB_SYBASE, self::DB_DBLIB],
-        ];
-        $driver = $this->getDriver();
-
-        foreach ($quotes as $quote => $engines) {
-            if (in_array($driver, $engines)) {
-                return str_split($quote);
-            }
-        }
-
-        return ['', ''];
-    }
-
-    /**
      * Quote string.
      *
      * @param string $val
@@ -617,7 +594,23 @@ final class Connection
      */
     public function quotekey(string $key, bool $split = true): string
     {
-        return Helper::quote($split ? explode('.', $key) : $key, $this->getQuote(), '.');
+        $quotes = [
+            '``' => [self::DB_SQLITE, self::DB_SQLITE2, self::DB_MYSQL],
+            '""' => [self::DB_PGSQL, self::DB_OCI],
+            '[]' => [self::DB_MSSQL, self::DB_SQLSRV, self::DB_ODBC, self::DB_SYBASE, self::DB_DBLIB],
+        ];
+        $driver = $this->getDriver();
+
+        foreach ($quotes as $quote => $engines) {
+            if (in_array($driver, $engines)) {
+                return
+                    $quote[0].
+                    implode($quote[1].'.'.$quote[0], $split ? explode('.', $key) : [$key]).
+                    $quote[1];
+            }
+        }
+
+        return $key;
     }
 
     /**

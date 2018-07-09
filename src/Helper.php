@@ -21,23 +21,6 @@ namespace Fal\Stick;
 final class Helper
 {
     /**
-     * Quote data with specified character.
-     *
-     * @param string|array $data
-     * @param array        $quote
-     * @param string       $delim
-     *
-     * @return string
-     */
-    public static function quote($data, array $quote = [], string $delim = ''): string
-    {
-        $open = $quote[0] ?? '';
-        $close = $quote[1] ?? '';
-
-        return $open.implode($close.$delim.$open, (array) $data).$close;
-    }
-
-    /**
      * Get class classname.
      *
      * @param string|object $class

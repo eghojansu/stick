@@ -348,7 +348,14 @@ final class SimpleValidator extends AbstractValidator
      */
     protected function _date($val): bool
     {
-        return (bool) preg_match('/^\d{4}-\d{2}-\d{2}$/', $val);
+        return
+            $val &&
+            is_string($val) &&
+            preg_match('/^([0-9]{4})-([0-9]{2})-([0-9]{2})$/', $val, $match) &&
+            $match[1] > 1900 &&
+            $match[2] > 0 && $match[2] < 13 &&
+            $match[3] > 0 && $match[3] <= date('j', mktime(0, 0, 0, $match[2]+1, 0, $match[1]+0))
+        ;
     }
 
     /**
@@ -360,7 +367,17 @@ final class SimpleValidator extends AbstractValidator
      */
     protected function _datetime($val): bool
     {
-        return (bool) preg_match('/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/', $val);
+        return
+            $val &&
+            is_string($val) &&
+            preg_match('/^([0-9]{4})-([0-9]{2})-([0-9]{2}) ([0-9]{2}):([0-9]{2}):([0-9]{2})$/', $val, $match) &&
+            $match[1] > 1900 &&
+            $match[2] > 0 && $match[2] < 13 &&
+            $match[3] > 0 && $match[3] <= date('j', mktime(0, 0, 0, $match[2]+1, 0, $match[1]+0)) &&
+            $match[4] >= 0 && $match[4] < 24 &&
+            $match[5] >= 0 && $match[5] <= 60 &&
+            $match[6] >= 0 && $match[6] <= 60
+        ;
     }
 
     /**
