@@ -1871,8 +1871,8 @@ class AppTest extends TestCase
 
     public function testArrNumeric()
     {
-        $this->assertTrue(App::arrNumeric(['foo','bar']));
-        $this->assertFalse(App::arrNumeric(['foo','bar','baz'=>'qux']));
+        $this->assertTrue(App::arrNumeric(['foo', 'bar']));
+        $this->assertFalse(App::arrNumeric(['foo', 'bar', 'baz' => 'qux']));
     }
 
     public function testInterpolate()

@@ -170,7 +170,7 @@ final class App implements \ArrayAccess
         if ($base && substr($path, 0, $cut = strlen($base)) === $base) {
             $path = substr($path, $cut);
         }
-        if ($path !== '/' && substr($path, 0, $cut = strlen($entry)) === $entry) {
+        if ('/' !== $path && substr($path, 0, $cut = strlen($entry)) === $entry) {
             $path = substr($path, $cut) ?: '/';
         }
         // @codeCoverageIgnoreEnd
@@ -354,7 +354,7 @@ final class App implements \ArrayAccess
     /**
      * Is array numeric.
      *
-     * @param  array  $arr
+     * @param array $arr
      *
      * @return bool
      */
