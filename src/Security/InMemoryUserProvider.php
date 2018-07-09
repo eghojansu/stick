@@ -18,7 +18,7 @@ namespace Fal\Stick\Security;
  *
  * @author Eko Kurniawan <ekokurniawanbs@gmail.com>
  */
-final class InMemoryUserProvider implements UserProviderInterface
+class InMemoryUserProvider implements UserProviderInterface
 {
     /**
      * @var array

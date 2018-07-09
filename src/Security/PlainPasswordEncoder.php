@@ -18,7 +18,7 @@ namespace Fal\Stick\Security;
  *
  * @author Eko Kurniawan <ekokurniawanbs@gmail.com>
  */
-final class PlainPasswordEncoder implements PasswordEncoderInterface
+class PlainPasswordEncoder implements PasswordEncoderInterface
 {
     /**
      * {@inheritdoc}

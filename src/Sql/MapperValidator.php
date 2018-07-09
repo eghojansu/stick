@@ -20,7 +20,7 @@ use Fal\Stick\Validation\AbstractValidator;
  *
  * @author Eko Kurniawan <ekokurniawanbs@gmail.com>
  */
-final class MapperValidator extends AbstractValidator
+class MapperValidator extends AbstractValidator
 {
     /**
      * @var Connection

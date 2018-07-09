@@ -20,7 +20,7 @@ namespace Fal\Stick\Validation;
  *
  * @author Eko Kurniawan <ekokurniawanbs@gmail.com>
  */
-final class NativeValidator extends AbstractValidator
+class NativeValidator extends AbstractValidator
 {
     /**
      * {@inheritdoc}

@@ -20,7 +20,7 @@ use Fal\Stick\App;
  *
  * @author Eko Kurniawan <ekokurniawanbs@gmail.com>
  */
-final class Auth
+class Auth
 {
     // Error messages
     const ERROR_CREDENTIAL_INVALID = 'Invalid credentials.';

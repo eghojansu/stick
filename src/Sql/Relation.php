@@ -20,7 +20,7 @@ namespace Fal\Stick\Sql;
  *
  * @author Eko Kurniawan <ekokurniawanbs@gmail.com>
  */
-final class Relation implements \Iterator, \Countable, \ArrayAccess
+class Relation implements \Iterator, \Countable, \ArrayAccess
 {
     /**
      * @var Mapper

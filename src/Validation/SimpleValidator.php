@@ -18,7 +18,7 @@ namespace Fal\Stick\Validation;
  *
  * @author Eko Kurniawan <ekokurniawanbs@gmail.com>
  */
-final class SimpleValidator extends AbstractValidator
+class SimpleValidator extends AbstractValidator
 {
     /**
      * Proxy to trim, prevent trimming null value.

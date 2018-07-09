@@ -20,7 +20,7 @@ use Fal\Stick\Validation\AbstractValidator;
  *
  * @author Eko Kurniawan <ekokurniawanbs@gmail.com>
  */
-final class AuthValidator extends AbstractValidator
+class AuthValidator extends AbstractValidator
 {
     /**
      * @var Auth

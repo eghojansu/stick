@@ -20,7 +20,7 @@ use Fal\Stick\Sql\Connection;
  *
  * @author Eko Kurniawan <ekokurniawanbs@gmail.com>
  */
-final class SqlUserProvider implements UserProviderInterface
+class SqlUserProvider implements UserProviderInterface
 {
     /**
      * @var Connection

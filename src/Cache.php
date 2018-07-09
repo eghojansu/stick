@@ -28,7 +28,7 @@ namespace Fal\Stick;
  *
  * @author Eko Kurniawan <ekokurniawanbs@gmail.com>
  */
-final class Cache
+class Cache
 {
     /**
      * @var string

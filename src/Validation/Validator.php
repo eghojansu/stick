@@ -22,7 +22,7 @@ use Fal\Stick\Translator;
  *
  * @author Eko Kurniawan <ekokurniawanbs@gmail.com>
  */
-final class Validator
+class Validator
 {
     /**
      * @var Translator

@@ -24,7 +24,7 @@ use Fal\Stick\Translator;
  *
  * @author Eko Kurniawan <ekokurniawanbs@gmail.com>
  */
-final class MapperParameterConverter
+class MapperParameterConverter
 {
     /**
      * @var Translator

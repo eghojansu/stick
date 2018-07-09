@@ -23,7 +23,7 @@ namespace Fal\Stick\Security;
  *
  * @author Eko Kurniawan <ekokurniawanbs@gmail.com>
  */
-final class Jwt
+class Jwt
 {
     // Available algorithm
     const ALG_HS256 = 'HS256';

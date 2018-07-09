@@ -16,7 +16,7 @@ namespace Fal\Stick\Security;
 /**
  * Password encoder using bcrypt algorithm.
  */
-final class BcryptPasswordEncoder implements PasswordEncoderInterface
+class BcryptPasswordEncoder implements PasswordEncoderInterface
 {
     /**
      * {@inheritdoc}

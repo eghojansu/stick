@@ -22,7 +22,7 @@ use Fal\Stick\Helper;
  *
  * @author Eko Kurniawan <ekokurniawanbs@gmail.com>
  */
-final class Connection
+class Connection
 {
     // Supported databases
     const DB_SQLITE = 'sqlite';

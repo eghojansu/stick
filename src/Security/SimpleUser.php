@@ -20,7 +20,7 @@ use Fal\Stick\App;
  *
  * @author Eko Kurniawan <ekokurniawanbs@gmail.com>
  */
-final class SimpleUser implements UserInterface
+class SimpleUser implements UserInterface
 {
     /**
      * @var string
