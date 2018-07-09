@@ -1383,11 +1383,8 @@ final class App implements \ArrayAccess
         try {
             $handled = $this->trigger(self::EVENT_ERROR, [$this->hive['ERROR'], $prior]);
         } catch (\Throwable $e) {
-            // clear handler
+            // Error handler triggering another error? Destroy it!
             unset($this->hive['_LISTENERS'][self::EVENT_ERROR], $this['ERROR']);
-
-            $this->handleException($e);
-            $handled = true;
         }
 
         if ($handled || $prior) {
