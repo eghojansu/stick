@@ -2229,7 +2229,7 @@ final class App implements \ArrayAccess
         $this->expire(-1);
         $this->logByCode($level ?: E_USER_ERROR, $text.PHP_EOL.$traceStr);
 
-        $event = new GetResponseForErrorEvent($httpCode, $status, $traceStr);
+        $event = new GetResponseForErrorEvent($httpCode, $status, $message, $traceStr);
         $this->trigger(self::EVENT_ERROR, $event)->off(self::EVENT_ERROR);
 
         if ($prior) {

@@ -32,4 +32,9 @@ class GetResponseForErrorEventTest extends TestCase
     {
         $this->assertNull($this->event->getTrace());
     }
+
+    public function testGetMessage()
+    {
+        $this->assertNull($this->event->getMessage());
+    }
 }

@@ -31,6 +31,13 @@ class GetResponseForErrorEvent extends GetResponseEvent
     private $status;
 
     /**
+     * Error message.
+     *
+     * @var string|null
+     */
+    private $message;
+
+    /**
      * Error trace.
      *
      * @var string
@@ -42,13 +49,15 @@ class GetResponseForErrorEvent extends GetResponseEvent
      *
      * @param int         $code
      * @param string      $status
+     * @param string|null $message
      * @param string|null $trace
      */
-    public function __construct($code, $status, $trace = null)
+    public function __construct($code, $status, $message = null, $trace = null)
     {
         parent::__construct($code);
 
         $this->status = $status;
+        $this->message = $message;
         $this->trace = $trace;
     }
 
@@ -60,6 +69,16 @@ class GetResponseForErrorEvent extends GetResponseEvent
     public function getStatus()
     {
         return $this->status;
+    }
+
+    /**
+     * Returns error message.
+     *
+     * @return string|null
+     */
+    public function getMessage()
+    {
+        return $this->message;
     }
 
     /**
