@@ -9,8 +9,6 @@
  * file that was distributed with this source code.
  */
 
-declare(strict_types=1);
-
 namespace Fal\Stick\Test\Security;
 
 use Fal\Stick\Security\SimpleUser;
@@ -28,19 +26,13 @@ class SimpleUserTransformerTest extends TestCase
 
     public function testTransform()
     {
-        $expected = new SimpleUser('1', 'foo', 'bar');
-        $res = $this->transfomer->transform(['id' => '1', 'username' => 'foo', 'password' => 'bar']);
+        $user = $this->transfomer->transform(array(
+            'id' => '1',
+            'username' => 'foo',
+            'password' => 'bar',
+        ));
+        $manual = new SimpleUser('1', 'foo', 'bar');
 
-        $this->assertEquals($expected, $res);
-
-        $expected = new SimpleUser('1', 'foo', 'bar');
-        $res = $this->transfomer->transform(['username' => 'foo', 'password' => 'bar', 'id' => '1']);
-
-        $this->assertEquals($expected, $res);
-
-        $expected = new SimpleUser('1', 'foo', 'bar', ['qux'], true);
-        $res = $this->transfomer->transform(['id' => '1', 'username' => 'foo', 'password' => 'bar', 'roles' => ['qux'], 'expired' => true]);
-
-        $this->assertEquals($expected, $res);
+        $this->assertEquals($manual, $user);
     }
 }

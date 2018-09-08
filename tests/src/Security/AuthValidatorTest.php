@@ -9,98 +9,62 @@
  * file that was distributed with this source code.
  */
 
-declare(strict_types=1);
-
-namespace Fal\Stick\Test\Sql;
+namespace Fal\Stick\Test\Security;
 
 use Fal\Stick\App;
 use Fal\Stick\Security\Auth;
 use Fal\Stick\Security\AuthValidator;
+use Fal\Stick\Security\InMemoryUserProvider;
 use Fal\Stick\Security\PlainPasswordEncoder;
+use Fal\Stick\Security\SimpleUser;
 use Fal\Stick\Security\SimpleUserTransformer;
-use Fal\Stick\Security\SqlUserProvider;
-use Fal\Stick\Sql\Connection;
 use PHPUnit\Framework\TestCase;
 
 class AuthValidatorTest extends TestCase
 {
-    private $app;
-    private $auth;
     private $validator;
+    private $auth;
 
     public function setUp()
     {
-        $this->app = App::create()->mset([
-            'TEMP' => TEMP,
-        ])->logClear();
-        $cache = $this->app->get('cache');
-        $cache->reset();
+        $app = new App();
+        $provider = new InMemoryUserProvider(new SimpleUserTransformer());
+        $this->auth = new Auth($app, $provider, new PlainPasswordEncoder());
 
-        $db = new Connection($this->app, $cache, [
-            'driver' => 'sqlite',
-            'location' => ':memory:',
-            'debug' => true,
-            'commands' => [
-                <<<SQL1
-CREATE TABLE `user` (
-    `id` INTEGER NOT null PRIMARY KEY AUTOINCREMENT,
-    `username` TEXT NOT null,
-    `password` TEXT NOT NULL DEFAULT NULL,
-    `roles` TEXT NOT NULL,
-    `expired` INTEGER NOT NULL
-);
-insert into user (username,password,expired,roles)
-    values ("foo","bar",0,"role_foo,role_bar"), ("baz","qux",1,"role_foo")
-SQL1
-,
-            ],
-        ]);
-        $this->auth = new Auth($this->app, new SqlUserProvider($db, new SimpleUserTransformer()), new PlainPasswordEncoder());
+        $provider->addUser('foo', 'bar');
+        $provider->addUser('bar', 'baz');
 
         $this->validator = new AuthValidator($this->auth);
     }
 
-    public function tearDown()
+    private function createUser($username, $password)
     {
-        session_destroy();
+        return new SimpleUser('1', $username, $password);
     }
 
-    public function passwordProvider()
+    public function testHas()
     {
-        return [
-            [true, null],
-            [true, 'bar', 'foo', 'bar'],
-            [true, 'qux', 'baz', 'qux'],
-            [false, 'quux', 'foo', 'bar'],
-            [false, '', 'foo', 'bar'],
-        ];
+        $this->assertTrue($this->validator->has('password'));
+        $this->assertFalse($this->validator->has('foo'));
     }
 
-    /**
-     * @dataProvider passwordProvider
-     */
-    public function testPassword($expected, $value, $username = null, $password = null)
+    public function validatePasswordProvider()
     {
-        if ($username && $password) {
-            $this->auth->attempt($username, $password);
-        }
-
-        $this->assertEquals($expected, $this->validator->validate('password', $value));
-    }
-
-    public function hasProvider()
-    {
-        return [
-            ['password'],
-            ['foo', false],
-        ];
+        return array(
+            array(null, 'bar'),
+            array($this->createUser('foo', 'bar'), 'bar'),
+            array($this->createUser('foo', 'baz'), 'baz'),
+            array($this->createUser('foo', 'bar'), 'baz', false),
+        );
     }
 
     /**
-     * @dataProvider hasProvider
+     * @dataProvider validatePasswordProvider
      */
-    public function testHas($rule, $expected = true)
+    public function testValidatePassword($user, $password, $expected = true)
     {
-        $this->assertEquals($expected, $this->validator->has($rule));
+        $this->auth->setUser($user);
+
+        $this->assertEquals($expected, $this->validator->validate('password', $password));
     }
 }

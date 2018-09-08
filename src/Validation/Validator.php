@@ -9,39 +9,35 @@
  * file that was distributed with this source code.
  */
 
-declare(strict_types=1);
-
 namespace Fal\Stick\Validation;
 
 use Fal\Stick\App;
-use Fal\Stick\Helper;
-use Fal\Stick\Translator;
 
 /**
  * Validator wrapper.
  *
  * @author Eko Kurniawan <ekokurniawanbs@gmail.com>
  */
-class Validator
+final class Validator
 {
     /**
-     * @var Translator
+     * @var App
      */
-    private $translator;
+    private $app;
 
     /**
      * @var array
      */
-    private $validators = [];
+    private $validators = array();
 
     /**
      * Class constructor.
      *
-     * @param Translator $translator
+     * @param App $app
      */
-    public function __construct(Translator $translator)
+    public function __construct(App $app)
     {
-        $this->translator = $translator;
+        $this->app = $app->prepend('LOCALES', __DIR__.'/dict/;');
     }
 
     /**
@@ -51,7 +47,7 @@ class Validator
      *
      * @return Validator
      */
-    public function add(ValidatorInterface $validator): Validator
+    public function add(ValidatorInterface $validator)
     {
         $this->validators[] = $validator;
 
@@ -59,7 +55,7 @@ class Validator
     }
 
     /**
-     * Do validate.
+     * Returns validation result.
      *
      * @param array $data
      * @param array $rules
@@ -67,36 +63,36 @@ class Validator
      *
      * @return array
      */
-    public function validate(array $data, array $rules, array $messages = []): array
+    public function validate(array $data, array $rules, array $messages = null)
     {
-        $validated = [];
-        $errors = [];
+        $validated = array();
+        $errors = array();
 
         foreach ($rules as $field => $fieldRules) {
-            foreach (Helper::parsexpr($fieldRules) as $rule => $args) {
+            foreach (App::parseExpr($fieldRules) as $rule => $args) {
+                $value = array_key_exists($field, $validated) ? $validated[$field] : $this->app->ref($field, false, $data);
                 $validator = $this->findValidator($rule);
-                $value = array_key_exists($field, $validated) ? $validated[$field] : App::ref($field, $data, false);
                 $result = $validator->validate($rule, $value, $args, $field, $validated, $data);
 
                 if (false === $result) {
                     // validation fail
-                    $errors[$field][] = $this->message($rule, $value, $args, $field, $messages[$field.'.'.$rule] ?? null);
+                    $messageKey = $field.'.'.$rule;
+                    $custom = $messages && isset($messages[$messageKey]) ? $messages[$messageKey] : null;
+                    $errors[$field][] = $this->message($rule, $value, $args, $field, $custom);
+
                     break;
-                } elseif (true === $result) {
-                    $ref = &App::ref($field, $validated);
-                    $ref = $value;
                 } else {
-                    $ref = &App::ref($field, $validated);
-                    $ref = $result;
+                    $ref = &$this->app->ref($field, true, $validated);
+                    $ref = true === $result ? $value : $result;
                 }
             }
         }
 
-        return [
-            'success' => 0 === count($errors),
+        return array(
+            'success' => empty($errors),
             'errors' => $errors,
             'data' => $validated,
-        ];
+        );
     }
 
     /**
@@ -108,7 +104,7 @@ class Validator
      *
      * @throws DomainException If no validator supports the rule
      */
-    private function findValidator(string $rule): ValidatorInterface
+    private function findValidator($rule)
     {
         foreach ($this->validators as $validator) {
             if ($validator->has($rule)) {
@@ -116,7 +112,7 @@ class Validator
             }
         }
 
-        throw new \DomainException('Rule "'.$rule.'" does not exists');
+        throw new \DomainException('Rule "'.$rule.'" not exists.');
     }
 
     /**
@@ -130,7 +126,7 @@ class Validator
      *
      * @return string
      */
-    private function message(string $rule, $value = null, array $args = [], string $field = '', string $message = null): string
+    private function message($rule, $value = null, array $args = null, $field = null, $message = null)
     {
         if ($message && false === strpos($message, '{')) {
             return $message;
@@ -139,12 +135,12 @@ class Validator
         $key = 'validation.'.strtolower($rule);
         $alt = 'validation.default';
         $fallback = 'This value is not valid.';
-        $data = [];
+        $data = array();
 
         foreach (compact('field', 'rule', 'value') + $args as $k => $v) {
-            $data['{'.$k.'}'] = App::stringifyIgnoreScalar($v);
+            $data['{'.$k.'}'] = is_array($v) ? implode(',', $v) : (string) $v;
         }
 
-        return $this->translator->transAlt($key, $data, $fallback, $alt);
+        return $this->app->transAlt($key, $data, $fallback, array($alt));
     }
 }

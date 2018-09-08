@@ -9,8 +9,6 @@
  * file that was distributed with this source code.
  */
 
-declare(strict_types=1);
-
 namespace Fal\Stick\Security;
 
 /**
@@ -18,22 +16,22 @@ namespace Fal\Stick\Security;
  *
  * @author Eko Kurniawan <ekokurniawanbs@gmail.com>
  */
-class SimpleUserTransformer implements UserTransformerInterface
+final class SimpleUserTransformer implements UserTransformerInterface
 {
     /**
      * {@inheritdoc}
      */
-    public function transform(array $args): UserInterface
+    public function transform(array $args)
     {
-        $default = [
+        $default = array(
             'id' => '',
             'username' => '',
             'password' => '',
-            'roles' => ['ROLE_ANONYMOUS'],
-            'expired' => false,
-        ];
-        $use = array_values(array_replace($default, $args));
+            'roles' => 'ROLE_ANONYMOUS',
+            'credentialsExpired' => false,
+        );
+        $fix = $args + $default;
 
-        return new SimpleUser(...$use);
+        return new SimpleUser($fix['id'], $fix['username'], $fix['password'], $fix['roles'], $fix['credentialsExpired']);
     }
 }

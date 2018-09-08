@@ -9,9 +9,9 @@
  * file that was distributed with this source code.
  */
 
-declare(strict_types=1);
-
 namespace Fal\Stick\Security;
+
+use Fal\Stick\App;
 
 /**
  * JWT utils.
@@ -33,34 +33,39 @@ class Jwt
     const ALG_RS384 = 'RS384';
     const ALG_RS512 = 'RS512';
 
-    const AVAILABLE_ALGORITHM = [
+    /**
+     * Available algorithms.
+     *
+     * @var array
+     */
+    protected static $availableAlgorithms = array(
         self::ALG_HS256 => 'SHA256',
         self::ALG_HS384 => 'SHA384',
         self::ALG_HS512 => 'SHA512',
         self::ALG_RS256 => 'SHA256',
         self::ALG_RS384 => 'SHA384',
         self::ALG_RS512 => 'SHA512',
-    ];
+    );
 
     /**
      * @var array
      */
-    private $supportedAlgorithms;
+    protected $supportedAlgorithms;
 
     /**
      * @var string
      */
-    private $algorithm;
+    protected $algorithm;
 
     /**
      * @var string|resource
      */
-    private $encodeKey;
+    protected $encodeKey;
 
     /**
      * @var string|resource
      */
-    private $decodeKey;
+    protected $decodeKey;
 
     /**
      * Leeway time.
@@ -73,7 +78,7 @@ class Jwt
      *
      * @var int
      */
-    private $leeway = 0;
+    protected $leeway = 0;
 
     /**
      * Class constructor.
@@ -83,7 +88,7 @@ class Jwt
      * @param string|null     $algorithm
      * @param array|null      $supportedAlgorithms
      */
-    public function __construct($encodeKey, $decodeKey = null, string $algorithm = null, array $supportedAlgorithms = null)
+    public function __construct($encodeKey, $decodeKey = null, $algorithm = null, array $supportedAlgorithms = null)
     {
         $this->setKey($encodeKey, $decodeKey);
         $this->setAlgorithm($algorithm);
@@ -91,47 +96,47 @@ class Jwt
     }
 
     /**
-     * Get algorithm.
+     * Returns algorithm.
      *
      * @return string
      */
-    public function getAlgorithm(): string
+    public function getAlgorithm()
     {
         return $this->algorithm;
     }
 
     /**
-     * Set algorithm.
+     * Sets algorithm.
      *
      * @param string|null $algorithm
      *
      * @return Jwt
      */
-    public function setAlgorithm(string $algorithm = null): Jwt
+    public function setAlgorithm($algorithm = null)
     {
-        $this->algorithm = $algorithm ?? self::ALG_HS256;
+        $this->algorithm = $algorithm ?: self::ALG_HS256;
 
         return $this;
     }
 
     /**
-     * Get supportedAlgorithms.
+     * Returns supportedAlgorithms.
      *
      * @return array
      */
-    public function getSupportedAlgorithms(): ?array
+    public function getSupportedAlgorithms()
     {
         return $this->supportedAlgorithms;
     }
 
     /**
-     * Set supportedAlgorithms.
+     * Sets supportedAlgorithms.
      *
      * @param array $supportedAlgorithms
      *
      * @return Jwt
      */
-    public function setSupportedAlgorithms(array $supportedAlgorithms = null): Jwt
+    public function setSupportedAlgorithms(array $supportedAlgorithms = null)
     {
         $this->supportedAlgorithms = $supportedAlgorithms;
 
@@ -139,7 +144,7 @@ class Jwt
     }
 
     /**
-     * Get encodeKey.
+     * Returns encodeKey.
      *
      * @return string|resource
      */
@@ -149,7 +154,7 @@ class Jwt
     }
 
     /**
-     * Get decodeKey.
+     * Returns decodeKey.
      *
      * @return string|resource
      */
@@ -159,45 +164,43 @@ class Jwt
     }
 
     /**
-     * Set key.
+     * Sets key.
      *
      * @param string|resource $encodeKey
      * @param string|resource $decodeKey
      *
      * @return Jwt
      *
-     * @throws InvalidArgumentException If key is empty
+     * @throws LogicException If key is empty
      */
-    public function setKey($encodeKey, $decodeKey = null): Jwt
+    public function setKey($encodeKey, $decodeKey = null)
     {
-        if (empty($encodeKey)) {
-            throw new \InvalidArgumentException('Key may not be empty');
-        }
+        App::throws(empty($encodeKey), 'Key may not be empty.');
 
         $this->encodeKey = $encodeKey;
-        $this->decodeKey = $decodeKey ?? $encodeKey;
+        $this->decodeKey = $decodeKey ?: $encodeKey;
 
         return $this;
     }
 
     /**
-     * Get leeway.
+     * Returns leeway.
      *
      * @return int
      */
-    public function getLeeway(): int
+    public function getLeeway()
     {
         return $this->leeway;
     }
 
     /**
-     * Set leeway.
+     * Sets leeway.
      *
      * @param int $leeway
      *
      * @return Jwt
      */
-    public function setLeeway(int $leeway): Jwt
+    public function setLeeway($leeway)
     {
         $this->leeway = $leeway;
 
@@ -207,16 +210,16 @@ class Jwt
     /**
      * Encode payload.
      *
-     * @param array|object $payload
+     * @param array $payload
      *
      * @return string
      */
-    public function encode($payload): string
+    public function encode(array $payload)
     {
-        $header = [
+        $header = array(
             'typ' => 'JWT',
             'alg' => $this->algorithm,
-        ];
+        );
 
         $token = $this->urlencode(json_encode($header)).'.'.$this->urlencode(json_encode($payload));
         $token .= '.'.$this->urlencode($this->sign($token, $this->algorithm, $this->encodeKey));
@@ -230,64 +233,58 @@ class Jwt
      * @param string $token
      * @param bool   $assoc
      *
-     * @return array|object
+     * @return array
      *
      * @throws UnexpectedValueException If given token is invalid or signature verification failed
      * @throws DomainException          If header contains no algorithm or algorithm is not allowed
      * @throws RuntimeException         If token expired or token is invalid
      */
-    public function decode(string $token, bool $assoc = true)
+    public function decode($token)
     {
         $use = explode('.', $token);
 
-        if (3 !== count($use)) {
-            throw new \UnexpectedValueException('Wrong number of segments');
-        }
+        App::throws(3 !== count($use), 'Wrong number of segments.', 'UnexpectedValueException');
 
-        $header = json_decode($this->urldecode($use[0]));
-        $payload = json_decode($this->urldecode($use[1]));
+        $header = json_decode($this->urldecode($use[0]), true);
+        $payload = json_decode($this->urldecode($use[1]), true);
         $signature = $this->urldecode($use[2]);
 
-        if (null === $header) {
-            throw new \UnexpectedValueException('Invalid header encoding');
-        }
+        App::throws(null === $header, 'Invalid header encoding.', 'UnexpectedValueException');
+        App::throws(null === $payload, 'Invalid claims encoding.', 'UnexpectedValueException');
+        App::throws(empty($header['alg']), 'Empty algorithm.', 'DomainException');
 
-        if (null === $payload) {
-            throw new \UnexpectedValueException('Invalid claims encoding');
-        }
-
-        if (empty($header->alg)) {
-            throw new \DomainException('Empty algorithm');
-        }
-
-        if ($this->supportedAlgorithms && !in_array($header->alg, $this->supportedAlgorithms)) {
-            throw new \DomainException('Algorithm is not allowed');
-        }
+        $throw = $this->supportedAlgorithms && !in_array($header['alg'], $this->supportedAlgorithms);
+        App::throws($throw, 'Algorithm is not allowed.', 'DomainException');
 
         // Check the signature
-        if (!$this->verify($use[0].'.'.$use[1], $signature, $header->alg, $this->decodeKey)) {
-            throw new \UnexpectedValueException('Signature verification failed');
-        }
+        $throw = !$this->verify($use[0].'.'.$use[1], $signature, $header['alg'], $this->decodeKey);
+        App::throws($throw, 'Signature verification failed.', 'UnexpectedValueException');
+
+        $defaultPayload = array(
+            'nbf' => null,
+            'iat' => null,
+            'exp' => null,
+        );
+        $fix = $payload + $defaultPayload;
 
         // Check if the nbf if it is defined. This is the time that the
         // token can actually be used. If it's not yet that time, abort.
-        if (isset($payload->nbf) && $payload->nbf > (time() + $this->leeway)) {
-            throw new \RuntimeException('Cannot handle token prior to '.date(\DateTime::ISO8601, $payload->nbf));
-        }
+        $throw = $fix['nbf'] && $fix['nbf'] > (time() + $this->leeway);
+        $message = 'Cannot handle token prior to '.date(\DateTime::ISO8601, $fix['nbf']).'.';
+        App::throws($throw, $message, 'RuntimeException');
 
         // Check that this token has been created before 'now'. This prevents
         // using tokens that have been created for later use (and haven't
         // correctly used the nbf claim).
-        if (isset($payload->iat) && $payload->iat > (time() + $this->leeway)) {
-            throw new \RuntimeException('Cannot handle token prior to '.date(\DateTime::ISO8601, $payload->iat));
-        }
+        $throw = $fix['iat'] && $fix['iat'] > (time() + $this->leeway);
+        $message = 'Cannot handle token prior to '.date(\DateTime::ISO8601, $fix['iat']).'.';
+        App::throws($throw, $message, 'RuntimeException');
 
         // Check if this token has expired.
-        if (isset($payload->exp) && (time() - $this->leeway) >= $payload->exp) {
-            throw new \RuntimeException('Expired token');
-        }
+        $throw = $fix['exp'] && (time() - $this->leeway) >= $fix['exp'];
+        App::throws($throw, 'Expired token.', 'RuntimeException');
 
-        return $assoc ? (array) $payload : $payload;
+        return $payload;
     }
 
     /**
@@ -301,9 +298,9 @@ class Jwt
      *
      * @throws DomainException If algorithm is not supported
      */
-    private function sign(string $message, string $algorithm, $key): string
+    protected function sign($message, $algorithm, $key)
     {
-        $usedAlgorithm = self::AVAILABLE_ALGORITHM[$algorithm] ?? null;
+        $usedAlgorithm = App::pick(self::$availableAlgorithms, $algorithm);
 
         switch ($algorithm) {
             case self::ALG_HS256:
@@ -314,9 +311,9 @@ class Jwt
             case self::ALG_RS384:
             case self::ALG_RS512:
                 return $this->generateRsa($usedAlgorithm, $message, $key);
-            default:
-                throw new \DomainException('Algorithm is not supported');
         }
+
+        throw new \DomainException('Algorithm is not supported.');
     }
 
     /**
@@ -332,7 +329,7 @@ class Jwt
      *
      * @throws DomainException If algorithm is not supported
      */
-    private function verify(string $message, string $signature, string $algorithm, $key): bool
+    protected function verify($message, $signature, $algorithm, $key)
     {
         switch ($algorithm) {
             case self::ALG_HS256:
@@ -342,12 +339,12 @@ class Jwt
             case self::ALG_RS256:
             case self::ALG_RS384:
             case self::ALG_RS512:
-                $usedAlgorithm = self::AVAILABLE_ALGORITHM[$algorithm];
+                $usedAlgorithm = App::pick(self::$availableAlgorithms, $algorithm);
 
                 return $this->verifyRsa($signature, $usedAlgorithm, $message, $key);
-            default:
-                throw new \DomainException('Algorithm is not supported');
         }
+
+        throw new \DomainException('Algorithm is not supported.');
     }
 
     /**
@@ -360,7 +357,7 @@ class Jwt
      *
      * @return bool
      */
-    private function verifyRsa(string $signature, string $algorithm, string $message, $key): bool
+    protected function verifyRsa($signature, $algorithm, $message, $key)
     {
         return openssl_verify($message, $signature, $key, $algorithm) > 0;
     }
@@ -374,12 +371,12 @@ class Jwt
      *
      * @return string
      */
-    private function generateRsa(string $algorithm, string $message, $key): string
+    protected function generateRsa($algorithm, $message, $key)
     {
         $signature = '';
         openssl_sign($message, $signature, $key, $algorithm);
 
-        return $signature ?? '';
+        return $signature ?: '';
     }
 
     /**
@@ -389,7 +386,7 @@ class Jwt
      *
      * @return string A decoded string
      */
-    private function urldecode(string $str): string
+    protected function urldecode($str)
     {
         $remainder = strlen($str) % 4;
 
@@ -408,7 +405,7 @@ class Jwt
      *
      * @return string The base64 encode of what you passed in
      */
-    private function urlencode(string $str): string
+    protected function urlencode($str)
     {
         return str_replace('=', '', strtr(base64_encode($str), '+/', '-_'));
     }

@@ -9,8 +9,6 @@
  * file that was distributed with this source code.
  */
 
-declare(strict_types=1);
-
 namespace Fal\Stick\Validation;
 
 /**
@@ -20,12 +18,12 @@ namespace Fal\Stick\Validation;
  *
  * @author Eko Kurniawan <ekokurniawanbs@gmail.com>
  */
-class NativeValidator extends AbstractValidator
+final class NativeValidator implements ValidatorInterface
 {
     /**
      * {@inheritdoc}
      */
-    public function has(string $rule): bool
+    public function has($rule)
     {
         return is_callable($rule);
     }
@@ -33,8 +31,10 @@ class NativeValidator extends AbstractValidator
     /**
      * {@inheritdoc}
      */
-    public function validate(string $rule, $value, array $args = [], string $field = '', array $validated = [], array $raw = [])
+    public function validate($rule, $value, array $args = null, $field = null, array $validated = null, array $raw = null)
     {
-        return $rule($value, ...$args);
+        $passedArgs = array_merge(array($value), (array) $args);
+
+        return call_user_func_array($rule, $passedArgs);
     }
 }

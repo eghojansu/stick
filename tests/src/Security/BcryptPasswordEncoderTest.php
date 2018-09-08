@@ -9,8 +9,6 @@
  * file that was distributed with this source code.
  */
 
-declare(strict_types=1);
-
 namespace Fal\Stick\Test\Security;
 
 use Fal\Stick\Security\BcryptPasswordEncoder;
@@ -25,22 +23,30 @@ class BcryptPasswordEncoderTest extends TestCase
         $this->encoder = new BcryptPasswordEncoder();
     }
 
-    public function testHash()
+    public function hashProvider()
     {
-        $plain = 'foo';
-        $hash = '$2y$10$aUK89Pqc3T8AJbpTBlBLB.zPS3wOG3gKAPO4zk9GZQv9Cs1Vrwnjm';
-        $hash2 = $this->encoder->hash($plain);
+        return array(
+            array('foo'),
+            array('foobar'),
+            array('foobarbaz'),
+        );
+    }
 
-        $this->assertTrue($this->encoder->verify($plain, $hash));
-        $this->assertTrue($this->encoder->verify($plain, $hash2));
-        $this->assertNotEquals($hash, $hash2);
+    /**
+     * @dataProvider hashProvider
+     */
+    public function testHash($plain)
+    {
+        $hash = $this->encoder->hash($plain);
+
+        $this->assertEquals(60, strlen($hash));
     }
 
     public function testVerify()
     {
-        $plain = 'foo';
-        $hash = '$2y$10$aUK89Pqc3T8AJbpTBlBLB.zPS3wOG3gKAPO4zk9GZQv9Cs1Vrwnjm';
+        $hash = $this->encoder->hash('foo');
 
-        $this->assertTrue($this->encoder->verify($plain, $hash));
+        $this->assertTrue($this->encoder->verify('foo', $hash));
+        $this->assertFalse($this->encoder->verify('bar', $hash));
     }
 }

@@ -1,1 +1,0 @@
-<input type="<?= $arg1 ?? 'text' ?>" name="<?= $arg2 ?? 'noname' ?>">

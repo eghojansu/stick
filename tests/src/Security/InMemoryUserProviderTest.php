@@ -9,12 +9,9 @@
  * file that was distributed with this source code.
  */
 
-declare(strict_types=1);
-
 namespace Fal\Stick\Test\Security;
 
 use Fal\Stick\Security\InMemoryUserProvider;
-use Fal\Stick\Security\SimpleUser;
 use Fal\Stick\Security\SimpleUserTransformer;
 use PHPUnit\Framework\TestCase;
 
@@ -24,28 +21,28 @@ class InMemoryUserProviderTest extends TestCase
 
     public function setUp()
     {
-        $this->provider = new InMemoryUserProvider(['foo' => 'bar', 'baz' => 'qux'], new SimpleUserTransformer());
+        $this->provider = new InMemoryUserProvider(new SimpleUserTransformer());
     }
 
     public function testAddUser()
     {
-        $this->provider->addUser('quux', 'bleh');
-        $user = new SimpleUser('quux', 'quux', 'bleh');
-
-        $this->assertEquals($user, $this->provider->findByUsername('quux'));
+        $this->assertSame($this->provider, $this->provider->addUser('foo', 'bar'));
     }
 
     public function testFindByUsername()
     {
-        $user = new SimpleUser('foo', 'foo', 'bar');
+        $this->provider->addUser('foo', 'bar');
 
-        $this->assertEquals($user, $this->provider->findByUsername('foo'));
+        $this->assertNull($this->provider->findByUsername('bar'));
+        $this->assertEquals('foo', $this->provider->findByUsername('foo')->getUsername());
     }
 
     public function testFindById()
     {
-        $user = new SimpleUser('foo', 'foo', 'bar');
+        $this->provider->addUser('foo', 'bar');
+        $this->provider->addUser('bar', 'baz', array('id' => '1'));
 
-        $this->assertEquals($user, $this->provider->findById('foo'));
+        $this->assertEquals('foo', $this->provider->findById('foo')->getUsername());
+        $this->assertEquals('bar', $this->provider->findById('1')->getUsername());
     }
 }

@@ -9,8 +9,6 @@
  * file that was distributed with this source code.
  */
 
-declare(strict_types=1);
-
 namespace Fal\Stick\Test\Security;
 
 use Fal\Stick\Security\Jwt;
@@ -27,12 +25,12 @@ class JwtTest extends TestCase
 
     public function testGetAlgorithm()
     {
-        $this->assertEquals(Jwt::ALG_HS256, $this->jwt->getAlgorithm());
+        $this->assertEquals('HS256', $this->jwt->getAlgorithm());
     }
 
     public function testSetAlgorithm()
     {
-        $this->assertEquals(Jwt::ALG_HS384, $this->jwt->setAlgorithm(Jwt::ALG_HS384)->getAlgorithm());
+        $this->assertEquals('HS384', $this->jwt->setAlgorithm('HS384')->getAlgorithm());
     }
 
     public function testGetSupportedAlgorithms()
@@ -42,7 +40,7 @@ class JwtTest extends TestCase
 
     public function testSetSupportedAlgorithms()
     {
-        $set = [Jwt::ALG_HS384];
+        $set = array('HS384');
 
         $this->assertEquals($set, $this->jwt->setSupportedAlgorithms($set)->getSupportedAlgorithms());
     }
@@ -65,8 +63,8 @@ class JwtTest extends TestCase
     }
 
     /**
-     * @expectedException \InvalidArgumentException
-     * @expectedExceptionMessage Key may not be empty
+     * @expectedException \LogicException
+     * @expectedExceptionMessage Key may not be empty.
      */
     public function testSetKeyException()
     {
@@ -85,50 +83,53 @@ class JwtTest extends TestCase
 
     public function decodeEncodeProvider()
     {
-        return [
-            [
-                ['foo' => 'bar'],
+        $private = openssl_get_privatekey('file:///'.FIXTURE.'files/private.key');
+        $public = openssl_get_publickey('file:///'.FIXTURE.'files/public.pem');
+
+        return array(
+            array(
+                array('foo' => 'bar'),
                 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJmb28iOiJiYXIifQ.MekmeDm4rnoablDhbHYq06RqWmaRcjNsdGfHAkXqOk4',
                 'foo',
                 null,
-                Jwt::ALG_HS256,
-            ],
-            [
-                ['foo' => 'bar'],
+                'HS256',
+            ),
+            array(
+                array('foo' => 'bar'),
                 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzM4NCJ9.eyJmb28iOiJiYXIifQ.9SHQiEMFss4OWYjjDe4dZSK3i9W_S4UTlZp9uv2cyWmck6o7XIEHmriwuQLAk8-o',
                 'foo',
                 null,
-                Jwt::ALG_HS384,
-            ],
-            [
-                ['foo' => 'bar'],
+                'HS384',
+            ),
+            array(
+                array('foo' => 'bar'),
                 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJmb28iOiJiYXIifQ.QDZd0vch2-eMuIUc9q3FnfNHwk8aYarxDEJwkKRpkh8l4Nk2Xn3F7x2swe52jO8MO7M39e-Phgqo_WuE8adj9Q',
                 'foo',
                 null,
-                Jwt::ALG_HS512,
-            ],
-            [
-                ['foo' => 'bar'],
+                'HS512',
+            ),
+            array(
+                array('foo' => 'bar'),
                 'eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJmb28iOiJiYXIifQ.MrO2rlSt5l1T8kgilGJh41Dv7ETUUmztYjOsjXx2q-cSWRhbv3ciWwhF_vyzvn7GEBUlTjWIIUQapl2dSicTcc_6MkDsIJl9MNTq6-ueeng4ACfX1ehy1rZ2lo3ql3zUEuSdLom9_0p3SXBJrw1xFAGGMW4ymXyRnjnN-qEQA0o',
-                openssl_get_privatekey('file:///'.FIXTURE.'key/private.key'),
-                openssl_get_publickey('file:///'.FIXTURE.'key/public.pem'),
-                Jwt::ALG_RS256,
-            ],
-            [
-                ['foo' => 'bar'],
+                $private,
+                $public,
+                'RS256',
+            ),
+            array(
+                array('foo' => 'bar'),
                 'eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzM4NCJ9.eyJmb28iOiJiYXIifQ.T0aslk80zM0VGKWb-ngtx86-67v1LczPRAX-BRqgy1igduj4rwueIxX4Zp4zfZmOGCc43vzE9Codj4JnfokIxlQnnfiRMAOtFeSuGsZZy_s9oYZ6QppBe5RHKivpurlMpWkNwD_c-i0laf4TuSKGjJqaPaESL1kCbSxvmBt2byw',
-                openssl_get_privatekey('file:///'.FIXTURE.'key/private.key'),
-                openssl_get_publickey('file:///'.FIXTURE.'key/public.pem'),
-                Jwt::ALG_RS384,
-            ],
-            [
-                ['foo' => 'bar'],
+                $private,
+                $public,
+                'RS384',
+            ),
+            array(
+                array('foo' => 'bar'),
                 'eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzUxMiJ9.eyJmb28iOiJiYXIifQ.IN0N6Ehp6x89V2Pl4hKuIxJZvr_-Rh_RZPnbEcsZoBiDh3Wp8wehLteecqlE_RNzaaU9GaU9JrzVpyic9ybP1RK1XdxXPoHxokgRMatr-NHpxLks9TnXAnfkt51lqbHUQTVZsui-z15z2_-LlpTatattZL6qzjqTmZvZHoqMkuM',
-                openssl_get_privatekey('file:///'.FIXTURE.'key/private.key'),
-                openssl_get_publickey('file:///'.FIXTURE.'key/public.pem'),
-                Jwt::ALG_RS512,
-            ],
-        ];
+                $private,
+                $public,
+                'RS512',
+            ),
+        );
     }
 
     /** @dataProvider decodeEncodeProvider */
@@ -154,18 +155,18 @@ class JwtTest extends TestCase
     }
 
     /**
-     * @expectedException \DomainException
-     * @expectedExceptionMessage Algorithm is not supported
+     * @expectedException \LogicException
+     * @expectedExceptionMessage Algorithm is not supported.
      */
     public function testEncodeException()
     {
         $this->jwt->setAlgorithm('foo');
-        $this->jwt->encode(['foo' => 'bar']);
+        $this->jwt->encode(array('foo' => 'bar'));
     }
 
     /**
      * @expectedException \UnexpectedValueException
-     * @expectedExceptionMessage Wrong number of segments
+     * @expectedExceptionMessage Wrong number of segments.
      */
     public function testDecodeException()
     {
@@ -174,49 +175,49 @@ class JwtTest extends TestCase
 
     /**
      * @expectedException \UnexpectedValueException
-     * @expectedExceptionMessage Invalid header encoding
+     * @expectedExceptionMessage Invalid header encoding.
      */
     public function testDecodeException2()
     {
         $token = base64_encode(json_encode(null)).'.'.
-               base64_encode(json_encode([])).'.'.'foo';
+               base64_encode(json_encode(array())).'.'.'foo';
 
         $this->jwt->decode($token);
     }
 
     /**
      * @expectedException \UnexpectedValueException
-     * @expectedExceptionMessage Invalid claims encoding
+     * @expectedExceptionMessage Invalid claims encoding.
      */
     public function testDecodeException3()
     {
-        $token = base64_encode(json_encode([])).'.'.
+        $token = base64_encode(json_encode(array())).'.'.
                base64_encode(json_encode(null)).'.'.'foo';
 
         $this->jwt->decode($token);
     }
 
     /**
-     * @expectedException \DomainException
-     * @expectedExceptionMessage Empty algorithm
+     * @expectedException \LogicException
+     * @expectedExceptionMessage Empty algorithm.
      */
     public function testDecodeException4()
     {
-        $token = base64_encode(json_encode([])).'.'.
-               base64_encode(json_encode([])).'.'.'foo';
+        $token = base64_encode(json_encode(array())).'.'.
+               base64_encode(json_encode(array())).'.'.'foo';
 
         $this->jwt->decode($token);
     }
 
     /**
-     * @expectedException \DomainException
-     * @expectedExceptionMessage Algorithm is not allowed
+     * @expectedException \LogicException
+     * @expectedExceptionMessage Algorithm is not allowed.
      */
     public function testDecodeException5()
     {
         $token = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJmb28iOiJiYXIifQ.MekmeDm4rnoablDhbHYq06RqWmaRcjNsdGfHAkXqOk4';
 
-        $this->jwt->setSupportedAlgorithms([Jwt::ALG_RS256]);
+        $this->jwt->setSupportedAlgorithms(array('RS256'));
         $this->jwt->decode($token);
     }
 
@@ -258,7 +259,7 @@ class JwtTest extends TestCase
 
     /**
      * @expectedException \RuntimeException
-     * @expectedExceptionMessage Expired token
+     * @expectedExceptionMessage Expired token.
      */
     public function testDecodeException9()
     {
@@ -269,8 +270,8 @@ class JwtTest extends TestCase
     }
 
     /**
-     * @expectedException \DomainException
-     * @expectedExceptionMessage Algorithm is not supported
+     * @expectedException \LogicException
+     * @expectedExceptionMessage Algorithm is not supported.
      */
     public function testDecodeException10()
     {

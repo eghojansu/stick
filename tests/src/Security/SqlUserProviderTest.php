@@ -9,12 +9,9 @@
  * file that was distributed with this source code.
  */
 
-declare(strict_types=1);
-
 namespace Fal\Stick\Test\Security;
 
 use Fal\Stick\App;
-use Fal\Stick\Security\SimpleUser;
 use Fal\Stick\Security\SimpleUserTransformer;
 use Fal\Stick\Security\SqlUserProvider;
 use Fal\Stick\Sql\Connection;
@@ -26,67 +23,49 @@ class SqlUserProviderTest extends TestCase
 
     public function setUp()
     {
-        $this->provider = new SqlUserProvider($this->db(), new SimpleUserTransformer());
+        $app = new App();
+        $conn = new Connection($app, array(
+            'dsn' => 'sqlite::memory:',
+            'commands' => file_get_contents(FIXTURE.'files/schema.sql'),
+        ));
+        $conn->pdo()->exec('insert into user (username, password) values ("foo", "foo"), ("bar", "bar"), ("baz", "baz")');
+
+        $this->provider = new SqlUserProvider($conn, new SimpleUserTransformer());
     }
 
-    protected function db()
+    public function testGetOptions()
     {
-        $app = App::create()->mset([
-            'TEMP' => TEMP,
-        ])->logClear();
-        $cache = $app->get('cache');
-        $cache->reset();
-
-        return new Connection($app, $cache, [
-            'driver' => 'sqlite',
-            'location' => ':memory:',
-            'commands' => [
-                <<<SQL1
-CREATE TABLE `user` (
-    `id` INTEGER NOT null PRIMARY KEY AUTOINCREMENT,
-    `username` TEXT NOT null,
-    `password` TEXT null DEFAULT null
-);
-insert into user (username,password) values ("foo","bar")
-SQL1
-,
-            ],
-        ]);
-    }
-
-    public function testGetOption()
-    {
-        $expected = [
+        $this->assertEquals(array(
             'table' => 'user',
             'username' => 'username',
             'id' => 'id',
-        ];
-
-        $this->assertEquals($expected, $this->provider->getOption());
+        ), $this->provider->getOptions());
     }
 
-    public function testSetOption()
+    public function testSetOptions()
     {
-        $expected = [
+        $this->assertEquals(array(
             'table' => 'foo',
             'username' => 'username',
             'id' => 'id',
-        ];
-
-        $this->assertEquals($expected, $this->provider->setOption(['table' => 'foo'])->getOption());
+        ), $this->provider->setOptions(array('table' => 'foo'))->getOptions());
     }
 
     public function testFindByUsername()
     {
-        $user = new SimpleUser('1', 'foo', 'bar');
+        $user = $this->provider->findByUsername('foo');
+        $user0 = $this->provider->findByUsername('qux');
 
-        $this->assertEquals($user, $this->provider->findByUsername('foo'));
+        $this->assertEquals('1', $user->getId());
+        $this->assertNull($user0);
     }
 
     public function testFindById()
     {
-        $user = new SimpleUser('1', 'foo', 'bar');
+        $user = $this->provider->findById('1');
+        $user0 = $this->provider->findById('qux');
 
-        $this->assertEquals($user, $this->provider->findById('1'));
+        $this->assertEquals('foo', $user->getUsername());
+        $this->assertNull($user0);
     }
 }

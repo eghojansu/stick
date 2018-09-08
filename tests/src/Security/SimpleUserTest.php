@@ -9,8 +9,6 @@
  * file that was distributed with this source code.
  */
 
-declare(strict_types=1);
-
 namespace Fal\Stick\Test\Security;
 
 use Fal\Stick\Security\SimpleUser;
@@ -25,19 +23,9 @@ class SimpleUserTest extends TestCase
         $this->user = new SimpleUser('1', 'foo', 'bar');
     }
 
-    public function testSetId()
-    {
-        $this->assertEquals('2', $this->user->setId('2')->getId());
-    }
-
     public function testGetId()
     {
         $this->assertEquals('1', $this->user->getId());
-    }
-
-    public function testSetUsername()
-    {
-        $this->assertEquals('bar', $this->user->setUsername('bar')->getUsername());
     }
 
     public function testGetUsername()
@@ -45,33 +33,43 @@ class SimpleUserTest extends TestCase
         $this->assertEquals('foo', $this->user->getUsername());
     }
 
-    public function testSetPassword()
-    {
-        $this->assertEquals('foo', $this->user->setPassword('foo')->getPassword());
-    }
-
     public function testGetPassword()
     {
         $this->assertEquals('bar', $this->user->getPassword());
     }
 
-    public function testSetRoles()
-    {
-        $this->assertEquals(['foo'], $this->user->setRoles(['foo'])->getRoles());
-    }
-
     public function testGetRoles()
     {
-        $this->assertEquals(['ROLE_ANONYMOUS'], $this->user->getRoles());
+        $this->assertEquals(array('ROLE_ANONYMOUS'), $this->user->getRoles());
     }
 
-    public function testSetExpired()
+    public function testIsCredentialsExpired()
     {
-        $this->assertTrue($this->user->setExpired(true)->isExpired());
+        $this->assertFalse($this->user->isCredentialsExpired());
     }
 
-    public function testIsExpired()
+    public function testSetId()
     {
-        $this->assertFalse($this->user->isExpired());
+        $this->assertEquals('foo', $this->user->setId('foo')->getId());
+    }
+
+    public function testSetUsername()
+    {
+        $this->assertEquals('foo', $this->user->setUsername('foo')->getUsername());
+    }
+
+    public function testSetPassword()
+    {
+        $this->assertEquals('foo', $this->user->setPassword('foo')->getPassword());
+    }
+
+    public function testSetRoles()
+    {
+        $this->assertEquals(array('FOO'), $this->user->setRoles(array('FOO'))->getRoles());
+    }
+
+    public function testSetCredentialsExpired()
+    {
+        $this->assertTrue($this->user->setCredentialsExpired(true)->isCredentialsExpired());
     }
 }

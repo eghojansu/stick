@@ -9,8 +9,6 @@
  * file that was distributed with this source code.
  */
 
-declare(strict_types=1);
-
 namespace Fal\Stick\Security;
 
 use Fal\Stick\Sql\Connection;
@@ -20,7 +18,7 @@ use Fal\Stick\Sql\Connection;
  *
  * @author Eko Kurniawan <ekokurniawanbs@gmail.com>
  */
-class SqlUserProvider implements UserProviderInterface
+final class SqlUserProvider implements UserProviderInterface
 {
     /**
      * @var Connection
@@ -44,37 +42,37 @@ class SqlUserProvider implements UserProviderInterface
      * @param callable                 $transformer
      * @param UserTransformerInterface $options
      */
-    public function __construct(Connection $db, UserTransformerInterface $transformer, array $options = [])
+    public function __construct(Connection $db, UserTransformerInterface $transformer, array $options = null)
     {
         $this->db = $db;
         $this->transformer = $transformer;
-        $this->setOption($options);
+        $this->setOptions((array) $options);
     }
 
     /**
-     * Get options.
+     * Returns options.
      *
      * @return array
      */
-    public function getOption(): array
+    public function getOptions()
     {
         return $this->options;
     }
 
     /**
-     * Set options.
+     * Sets options.
      *
      * @param array $options
      *
      * @return SqlUserProvider
      */
-    public function setOption(array $options): SqlUserProvider
+    public function setOptions(array $options)
     {
-        $this->options = $options + [
+        $this->options = $options + array(
             'table' => 'user',
             'username' => 'username',
             'id' => 'id',
-        ];
+        );
 
         return $this;
     }
@@ -82,17 +80,17 @@ class SqlUserProvider implements UserProviderInterface
     /**
      * {@inheritdoc}
      */
-    public function findByUsername(string $username): ?UserInterface
+    public function findByUsername($username)
     {
-        return $this->transform($this->options['username'], $username);
+        return $this->find($this->options['username'], $username);
     }
 
     /**
      * {@inheritdoc}
      */
-    public function findById(string $id): ?UserInterface
+    public function findById($id)
     {
-        return $this->transform($this->options['id'], $id);
+        return $this->find($this->options['id'], $id);
     }
 
     /**
@@ -103,12 +101,12 @@ class SqlUserProvider implements UserProviderInterface
      *
      * @return UserInterface|null
      */
-    private function transform(string $key, $val): ?UserInterface
+    private function find($key, $val)
     {
         $user = $this->db->exec(
             'SELECT * FROM '.$this->db->quotekey($this->options['table']).
             ' WHERE '.$this->db->quotekey($key).' = ? LIMIT 1',
-            [$val]
+            array($val)
         );
 
         return $user ? $this->transformer->transform($user[0]) : null;

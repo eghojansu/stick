@@ -9,8 +9,6 @@
  * file that was distributed with this source code.
  */
 
-declare(strict_types=1);
-
 namespace Fal\Stick\Security;
 
 /**
@@ -23,22 +21,20 @@ class InMemoryUserProvider implements UserProviderInterface
     /**
      * @var array
      */
-    private $users;
+    protected $users;
 
     /**
      * @var UserTransformerInterface
      */
-    private $transformer;
+    protected $transformer;
 
     /**
      * Class constructor.
      *
-     * @param array                    $users
      * @param UserTransformerInterface $transformer
      */
-    public function __construct(array $users, UserTransformerInterface $transformer)
+    public function __construct(UserTransformerInterface $transformer)
     {
-        $this->users = $users;
         $this->transformer = $transformer;
     }
 
@@ -47,12 +43,14 @@ class InMemoryUserProvider implements UserProviderInterface
      *
      * @param string $username
      * @param string $password
+     * @param array  $extra
      *
      * @return InMemoryUserProvider
      */
-    public function addUser(string $username, string $password): InMemoryUserProvider
+    public function addUser($username, $password, array $extra = null)
     {
-        $this->users[$username] = $password;
+        $id = array('id' => $username);
+        $this->users[$username] = compact('username', 'password') + ((array) $extra) + $id;
 
         return $this;
     }
@@ -60,22 +58,18 @@ class InMemoryUserProvider implements UserProviderInterface
     /**
      * {@inheritdoc}
      */
-    public function findByUsername(string $username): ?UserInterface
+    public function findByUsername($username)
     {
-        return array_key_exists($username, $this->users) ?
-            $this->transformer->transform([
-                'id' => $username,
-                'username' => $username,
-                'password' => $this->users[$username],
-            ]) : null
-        ;
+        return array_key_exists($username, $this->users) ? $this->transformer->transform($this->users[$username]) : null;
     }
 
     /**
      * {@inheritdoc}
      */
-    public function findById(string $id): ?UserInterface
+    public function findById($id)
     {
-        return $this->findByUsername($id);
+        $found = array_column($this->users, 'username', 'id');
+
+        return isset($found[$id]) ? $this->findByUsername($found[$id]) : null;
     }
 }

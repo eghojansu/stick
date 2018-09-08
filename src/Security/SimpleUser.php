@@ -9,8 +9,6 @@
  * file that was distributed with this source code.
  */
 
-declare(strict_types=1);
-
 namespace Fal\Stick\Security;
 
 use Fal\Stick\App;
@@ -20,7 +18,7 @@ use Fal\Stick\App;
  *
  * @author Eko Kurniawan <ekokurniawanbs@gmail.com>
  */
-class SimpleUser implements UserInterface
+final class SimpleUser implements UserInterface
 {
     /**
      * @var string
@@ -45,7 +43,7 @@ class SimpleUser implements UserInterface
     /**
      * @var bool
      */
-    private $expired;
+    private $credentialsExpired;
 
     /**
      * Class constructor.
@@ -54,47 +52,79 @@ class SimpleUser implements UserInterface
      * @param string $username
      * @param string $password
      * @param mixed  $roles
-     * @param mixed  $expired
+     * @param mixed  $credentialsExpired
      */
-    public function __construct(string $id, string $username, string $password, $roles = ['ROLE_ANONYMOUS'], $expired = false)
+    public function __construct($id, $username, $password, $roles = null, $credentialsExpired = false)
     {
         $this->id = $id;
         $this->username = $username;
         $this->password = $password;
-        $this->roles = App::reqarr($roles);
-        $this->expired = (bool) $expired;
-    }
-
-    /**
-     * Set id.
-     *
-     * @param string $id
-     *
-     * @return SimpleUser
-     */
-    public function setId(string $id): SimpleUser
-    {
-        $this->id = $id;
-
-        return $this;
+        $this->roles = $roles ? App::arr($roles) : array('ROLE_ANONYMOUS');
+        $this->credentialsExpired = (bool) $credentialsExpired;
     }
 
     /**
      * {@inheritdoc}
      */
-    public function getId(): string
+    public function getId()
     {
         return $this->id;
     }
 
     /**
-     * Set username.
+     * {@inheritdoc}
+     */
+    public function getUsername()
+    {
+        return $this->username;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getPassword()
+    {
+        return $this->password;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getRoles()
+    {
+        return $this->roles;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function isCredentialsExpired()
+    {
+        return $this->credentialsExpired;
+    }
+
+    /**
+     * Sets id.
+     *
+     * @param string $id
+     *
+     * @return SimpleUser
+     */
+    public function setId($id)
+    {
+        $this->id = $id;
+
+        return $this;
+    }
+
+    /**
+     * Sets username.
      *
      * @param string $username
      *
      * @return SimpleUser
      */
-    public function setUsername(string $username): SimpleUser
+    public function setUsername($username)
     {
         $this->username = $username;
 
@@ -102,21 +132,13 @@ class SimpleUser implements UserInterface
     }
 
     /**
-     * {@inheritdoc}
-     */
-    public function getUsername(): string
-    {
-        return $this->username;
-    }
-
-    /**
-     * Set password.
+     * Sets password.
      *
      * @param string $password
      *
      * @return SimpleUser
      */
-    public function setPassword(string $password): SimpleUser
+    public function setPassword($password)
     {
         $this->password = $password;
 
@@ -124,21 +146,13 @@ class SimpleUser implements UserInterface
     }
 
     /**
-     * {@inheritdoc}
-     */
-    public function getPassword(): string
-    {
-        return $this->password;
-    }
-
-    /**
-     * Set roles.
+     * Sets roles.
      *
      * @param array $roles
      *
      * @return SimpleUser
      */
-    public function setRoles(array $roles): SimpleUser
+    public function setRoles(array $roles)
     {
         $this->roles = $roles;
 
@@ -146,32 +160,16 @@ class SimpleUser implements UserInterface
     }
 
     /**
-     * {@inheritdoc}
-     */
-    public function getRoles(): array
-    {
-        return $this->roles;
-    }
-
-    /**
-     * Set expired.
+     * Sets credentialsExpired.
      *
-     * @param bool $expired
+     * @param bool $credentialsExpired
      *
      * @return SimpleUser
      */
-    public function setExpired(bool $expired): SimpleUser
+    public function setCredentialsExpired($credentialsExpired)
     {
-        $this->expired = $expired;
+        $this->credentialsExpired = $credentialsExpired;
 
         return $this;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function isExpired(): bool
-    {
-        return $this->expired;
     }
 }

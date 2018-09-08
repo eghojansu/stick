@@ -23,7 +23,10 @@ Example usage.
 
 require 'vendor/autoload.php';
 
-Fal\Stick\App::create()
+Fal\Stick\App::createFromGlobals()
+    // if running on php 7, method call below is not neccesary
+    // but you need to call "run7" method instead of "run" method.
+    ->registerErrorExceptionHandler()
     ->route('GET home /', function() {
         return 'Welcome home, Vanilla lover!';
     })
@@ -34,18 +37,27 @@ Fal\Stick\App::create()
 
 ## Features
 
+- Class autoloader.
+- Dependency injection.
+- Event listener and dispatcher.
 - Simple routing like Fatfree Framework.
 - Cache utils.
 - Logger.
-- Dependency injection.
-- Event listener and dispatcher.
+- Console output formatter helper.
 - Sql connection and mapper.
 - Validation utils.
 - Security utils.
 - PHP template engine.
 - Translator.
 
+> Logger, Translator, Class Autoloader, Dependency Injection, Event listeners, Routing and Cache utils is bundled in main App class.
+
+## Example
+
+Example of framework usage as an CMS: [Stick-Bootstrap][4].
+
 
 [1]: http://fatfreeframework.com
 [2]: http://symfony.com
 [3]: http://laravel.com
+[4]: http://github.com/eghojansu/stick-bootstrap

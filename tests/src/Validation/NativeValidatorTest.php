@@ -9,8 +9,6 @@
  * file that was distributed with this source code.
  */
 
-declare(strict_types=1);
-
 namespace Fal\Stick\Test\Validation;
 
 use Fal\Stick\Validation\NativeValidator;
@@ -25,38 +23,15 @@ class NativeValidatorTest extends TestCase
         $this->validator = new NativeValidator();
     }
 
-    public function hasProvider()
+    public function testHas()
     {
-        return [
-            ['is_string'],
-            ['trim'],
-            ['foo', false],
-        ];
+        $this->assertTrue($this->validator->has('is_numeric'));
+        $this->assertFalse($this->validator->has('foo'));
     }
 
-    /**
-     * @dataProvider hasProvider
-     */
-    public function testHas($rule, $expected = true)
+    public function testValidate()
     {
-        $this->assertEquals($expected, $this->validator->has($rule));
-    }
-
-    public function validateProvider()
-    {
-        return [
-            ['is_string', false, [1]],
-            ['is_string', true, ['str']],
-            ['trim', ',foo,', [',foo,']],
-            ['trim', 'foo', [',foo,', ',']],
-        ];
-    }
-
-    /**
-     * @dataProvider validateProvider
-     */
-    public function testValidate($rule, $expected, $args = [], $validated = [])
-    {
-        $this->assertEquals($expected, $this->validator->validate($rule, array_shift($args), $args, '', $validated));
+        $this->assertTrue($this->validator->validate('is_numeric', '12'));
+        $this->assertEquals('foo', $this->validator->validate('trim', ' foo '));
     }
 }

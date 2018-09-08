@@ -9,12 +9,10 @@
  * file that was distributed with this source code.
  */
 
-declare(strict_types=1);
-
 namespace Fal\Stick\Sql;
 
+use Fal\Stick\App;
 use Fal\Stick\ResponseException;
-use Fal\Stick\Translator;
 
 /**
  * Helper to convert parameter to Mapper.
@@ -24,12 +22,12 @@ use Fal\Stick\Translator;
  *
  * @author Eko Kurniawan <ekokurniawanbs@gmail.com>
  */
-class MapperParameterConverter
+final class MapperParameterConverter
 {
     /**
-     * @var Translator
+     * @var App
      */
-    private $translator;
+    private $app;
 
     /**
      * @var Connection
@@ -42,13 +40,6 @@ class MapperParameterConverter
     private $ref;
 
     /**
-     * Raw params.
-     *
-     * @var array
-     */
-    private $raw;
-
-    /**
      * @var array
      */
     private $params;
@@ -56,18 +47,16 @@ class MapperParameterConverter
     /**
      * Class constructor.
      *
-     * @param Connection                 $db
-     * @param Translator                 $translator
-     * @param ReflectionFunctionAbstract $ref
-     * @param array                      $raw
-     * @param array                      $params
+     * @param App        $app
+     * @param Connection $db
+     * @param mixed      $handler
+     * @param array      $params
      */
-    public function __construct(Connection $db, Translator $translator, \ReflectionFunctionAbstract $ref, array $raw, array $params)
+    public function __construct(App $app, Connection $db, $handler, array $params)
     {
-        $this->translator = $translator;
+        $this->app = $app;
         $this->db = $db;
-        $this->ref = $ref;
-        $this->raw = $raw;
+        $this->ref = is_array($handler) ? new \ReflectionMethod($handler[0], $handler[1]) : new \ReflectionFunction($handler);
         $this->params = $params;
     }
 
@@ -76,14 +65,18 @@ class MapperParameterConverter
      *
      * @return array
      */
-    public function resolve(): array
+    public function resolve()
     {
-        $resolved = [];
-        $pos = 0;
+        $resolved = array();
 
         foreach ($this->ref->getParameters() as $param) {
-            $resolved[$pos] = $this->wants($param) ? $this->doResolve($param) : $this->params[$pos];
-            ++$pos;
+            if ($this->wants($param)) {
+                $resolved[] = $this->doResolve($param);
+            } elseif (isset($this->params[$param->name])) {
+                $resolved[] = $this->params[$param->name];
+            } else {
+                $resolved[] = null;
+            }
         }
 
         return $resolved;
@@ -96,11 +89,11 @@ class MapperParameterConverter
      *
      * @return bool
      */
-    private function wants(\ReflectionParameter $param): bool
+    private function wants(\ReflectionParameter $param)
     {
         $class = $param->getClass();
 
-        return $class && is_subclass_of($class->name, Mapper::class) && isset($this->raw[$param->name]);
+        return $class && is_subclass_of($class->name, Mapper::class) && isset($this->params[$param->name]);
     }
 
     /**
@@ -112,29 +105,30 @@ class MapperParameterConverter
      *
      * @throws ResponseException if primary keys insufficient or record not found
      */
-    private function doResolve(\ReflectionParameter $param): Mapper
+    private function doResolve(\ReflectionParameter $param)
     {
         $classname = $param->getClass()->name;
 
         $mapper = new $classname($this->db);
-        $keys = $mapper->getKeys();
+        $keys = array_keys($mapper->keys());
         $kcount = count($keys);
         $vals = $this->pickstartsat($param->name, $kcount);
         $vcount = count($vals);
 
         if ($vcount !== $kcount) {
-            throw new ResponseException('Insufficient primary keys value, expect value of "'.implode(', ', $keys).'".');
+            $message = 'Insufficient primary keys value, expect value of "'.implode(', ', $keys).'".';
+
+            throw new ResponseException(500, $message);
         }
 
-        $use = array_values($vals);
-        $mapper->find(...$use);
+        call_user_func_array(array($mapper, 'withId'), array($vals));
 
         if ($mapper->dry()) {
-            $message = 'Record of '.$mapper->getTable().' not found.';
+            $message = 'Record of '.$mapper->getTable().' is not found.';
             $args = array_combine(explode(',', '%'.implode('%,%', $keys).'%'), $vals);
-            $use = $this->translator->transAlt('message.record_not_found', $args, $message);
+            $response = $this->app->transAlt('message.record_not_found', $args, $message);
 
-            throw new ResponseException($use, 404);
+            throw new ResponseException(404, $response);
         }
 
         return $mapper;
@@ -148,13 +142,13 @@ class MapperParameterConverter
      *
      * @return array
      */
-    private function pickstartsat(string $start, int $count): array
+    private function pickstartsat($start, $count)
     {
-        $res = [];
+        $res = array();
         $used = 0;
         $started = false;
 
-        foreach ($this->raw as $key => $value) {
+        foreach ($this->params as $key => $value) {
             if (!$started) {
                 $started = $key === $start;
             }
@@ -164,7 +158,7 @@ class MapperParameterConverter
                     return $res;
                 }
 
-                $res[$key] = $value;
+                $res[] = $value;
             }
         }
 

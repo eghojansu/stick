@@ -9,8 +9,6 @@
  * file that was distributed with this source code.
  */
 
-declare(strict_types=1);
-
 namespace Fal\Stick\Sql;
 
 use Fal\Stick\Validation\AbstractValidator;
@@ -25,16 +23,16 @@ class MapperValidator extends AbstractValidator
     /**
      * @var Connection
      */
-    private $connection;
+    private $db;
 
     /**
      * Class constructor.
      *
-     * @param Connection $connection
+     * @param Connection $db
      */
-    public function __construct(Connection $connection)
+    public function __construct(Connection $db)
     {
-        $this->connection = $connection;
+        $this->db = $db;
     }
 
     /**
@@ -46,9 +44,12 @@ class MapperValidator extends AbstractValidator
      *
      * @return bool
      */
-    protected function _exists($val, string $table, string $column): bool
+    protected function _exists($val, $table, $column)
     {
-        return (new Mapper($this->connection, $table))->load([$column => $val])->valid();
+        $mapper = new Mapper($this->db, $table);
+        $mapper->load(array($column => $val), array('limit' => 1));
+
+        return $mapper->valid();
     }
 
     /**
@@ -62,9 +63,10 @@ class MapperValidator extends AbstractValidator
      *
      * @return bool
      */
-    protected function _unique($val, string $table, string $column, string $fid = null, $id = null): bool
+    protected function _unique($val, $table, $column, $fid = null, $id = null)
     {
-        $mapper = (new Mapper($this->connection, $table))->load([$column => $val]);
+        $mapper = new Mapper($this->db, $table);
+        $mapper->load(array($column => $val), array('limit' => 1));
 
         return $mapper->dry() || ($fid && (!$mapper->exists($fid) || $mapper->get($fid) == $id));
     }

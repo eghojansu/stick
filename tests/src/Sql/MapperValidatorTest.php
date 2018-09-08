@@ -9,9 +9,7 @@
  * file that was distributed with this source code.
  */
 
-declare(strict_types=1);
-
-namespace Fal\Stick\Test\Sql;
+namespace Fal\Stick\Test\Validation;
 
 use Fal\Stick\App;
 use Fal\Stick\Sql\Connection;
@@ -24,66 +22,61 @@ class MapperValidatorTest extends TestCase
 
     public function setUp()
     {
-        $app = App::create()->mset([
-            'TEMP' => TEMP,
-        ])->logClear();
-        $cache = $app->get('cache');
-        $cache->reset();
-
-        $conn = new Connection($app, $cache, [
-            'driver' => 'sqlite',
-            'location' => ':memory:',
-            'commands' => <<<SQL1
-CREATE TABLE `user` (
-    `id` INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-    `username` TEXT NOT NULL,
-    `password` TEXT NULL DEFAULT NULL,
-    `active` INTEGER NOT NULL DEFAULT 1
-);
-insert into user (username) values ("foo"), ("bar"), ("baz");
-SQL1
-        ]);
-
+        $app = App::create();
+        $conn = new Connection($app, array(
+            'dsn' => 'sqlite::memory:',
+            'commands' => file_get_contents(FIXTURE.'files/schema.sql'),
+        ));
+        $conn->pdo()->exec('insert into user (username, password) values ("foo", "foo"), ("bar", "bar"), ("baz", "baz")');
         $this->validator = new MapperValidator($conn);
     }
 
-    public function hasProvider()
+    public function testHas()
     {
-        return [
-            ['exists'],
-            ['unique'],
-            ['foo', false],
-        ];
+        $this->assertTrue($this->validator->has('exists'));
+        $this->assertTrue($this->validator->has('unique'));
+        $this->assertFalse($this->validator->has('foo'));
+    }
+
+    public function validateExistsProvider()
+    {
+        return array(
+            array('foo'),
+            array('bar'),
+            array('baz'),
+            array('qux', false),
+        );
     }
 
     /**
-     * @dataProvider hasProvider
+     * @dataProvider validateExistsProvider
      */
-    public function testHas($rule, $expected = true)
+    public function testValidateExists($value, $expected = true)
     {
-        $this->assertEquals($expected, $this->validator->has($rule));
+        $args = array('user', 'username');
+
+        $this->assertEquals($expected, $this->validator->validate('exists', $value, $args));
     }
 
-    public function validateProvider()
+    public function validateUniqueProvider()
     {
-        return [
-            ['exists', true, [1, 'user', 'id']],
-            ['exists', true, ['foo', 'user', 'username']],
-            ['exists', true, [1, 'user', 'active']],
-            ['exists', false, ['bleh', 'user', 'username']],
-            ['unique', false, [1, 'user', 'id']],
-            ['unique', false, ['foo', 'user', 'username']],
-            ['unique', false, [1, 'user', 'active']],
-            ['unique', true, ['foo', 'user', 'username', 'id', 1]],
-            ['unique', true, ['bleh', 'user', 'username']],
-        ];
+        return array(
+            array('foo'),
+            array('bar'),
+            array('baz'),
+            array('foo', true, 'id', '1'),
+            array('foo', false, 'id', '2'),
+            array('qux', true),
+        );
     }
 
     /**
-     * @dataProvider validateProvider
+     * @dataProvider validateUniqueProvider
      */
-    public function testValidate($rule, $expected, $args = [], $validated = [])
+    public function testValidateUnique($value, $expected = false, $fid = null, $id = null)
     {
-        $this->assertEquals($expected, $this->validator->validate($rule, array_shift($args), $args, '', $validated));
+        $args = array('user', 'username', $fid, $id);
+
+        $this->assertEquals($expected, $this->validator->validate('unique', $value, $args));
     }
 }

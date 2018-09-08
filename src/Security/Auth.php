@@ -9,8 +9,6 @@
  * file that was distributed with this source code.
  */
 
-declare(strict_types=1);
-
 namespace Fal\Stick\Security;
 
 use Fal\Stick\App;
@@ -22,44 +20,46 @@ use Fal\Stick\App;
  */
 class Auth
 {
+    const SESSION_KEY = 'SESSION.user_login_id';
+
     // Error messages
     const ERROR_CREDENTIAL_INVALID = 'Invalid credentials.';
     const ERROR_CREDENTIAL_EXPIRED = 'Your credentials is expired.';
 
     // Supported events
-    const EVENT_LOGIN = 'auth.login';
-    const EVENT_LOGOUT = 'auth.logout';
-    const EVENT_LOADUSER = 'auth.loaduser';
+    const EVENT_LOGIN = 'auth_login';
+    const EVENT_LOGOUT = 'auth_logout';
+    const EVENT_LOAD_USER = 'auth_load_user';
 
     /**
      * @var App
      */
-    private $app;
+    protected $app;
 
     /**
      * @var UserProviderInterface
      */
-    private $provider;
+    protected $provider;
 
     /**
      * @var PasswordEncoderInterface
      */
-    private $encoder;
+    protected $encoder;
 
     /**
      * @var array
      */
-    private $options;
+    protected $options;
 
     /**
      * @var UserInterface
      */
-    private $user;
+    protected $user;
 
     /**
      * @var bool
      */
-    private $userLoaded;
+    protected $userLoaded;
 
     /**
      * Class constructor.
@@ -69,13 +69,12 @@ class Auth
      * @param PasswordEncoderInterface $encoder
      * @param array                    $options
      */
-    public function __construct(App $app, UserProviderInterface $provider, PasswordEncoderInterface $encoder, array $options = [])
+    public function __construct(App $app, UserProviderInterface $provider, PasswordEncoderInterface $encoder, array $options = null)
     {
         $this->app = $app;
         $this->provider = $provider;
         $this->encoder = $encoder;
-        $this->setOptions($options);
-        $this->getUser();
+        $this->setOptions((array) $options);
     }
 
     /**
@@ -87,14 +86,14 @@ class Auth
      *
      * @return bool
      */
-    public function attempt(string $username, string $password, string &$message = null): bool
+    public function attempt($username, $password, &$message = null)
     {
         $result = false;
         $user = $this->provider->findByUsername($username);
 
         if (!$user || !$this->encoder->verify($password, $user->getPassword())) {
             $message = self::ERROR_CREDENTIAL_INVALID;
-        } elseif ($user->isExpired()) {
+        } elseif ($user->isCredentialsExpired()) {
             $message = self::ERROR_CREDENTIAL_EXPIRED;
         } else {
             $result = true;
@@ -109,29 +108,35 @@ class Auth
      * Set current user and trigger login event.
      *
      * @param UserInterface $user
+     *
+     * @return Auth
      */
-    public function login(UserInterface $user): void
+    public function login(UserInterface $user)
     {
-        if ($this->app->trigger(self::EVENT_LOGIN, [$user, $this])) {
-            return;
-        }
+        $event = new AuthEvent($user);
+        $this->app->trigger(self::EVENT_LOGIN, $event);
 
         $this->user = $user;
-        $this->app['SESSION']['user_login_id'] = $user->getId();
+        $this->app->set(self::SESSION_KEY, $user->getId());
+
+        return $this;
     }
 
     /**
      * Finish user session.
+     *
+     * @return Auth
      */
-    public function logout(): void
+    public function logout()
     {
-        if ($this->app->trigger(self::EVENT_LOGOUT, [$this->getUser(), $this])) {
-            return;
-        }
+        $event = new AuthEvent($this->getUser());
+        $this->app->trigger(self::EVENT_LOGOUT, $event);
 
         $this->userLoaded = false;
         $this->user = null;
-        unset($this->app['SESSION']['user_login_id']);
+        $this->app->clear(self::SESSION_KEY);
+
+        return $this;
     }
 
     /**
@@ -139,32 +144,34 @@ class Auth
      *
      * @return UserInterface|null
      */
-    public function getUser(): ?UserInterface
+    public function getUser()
     {
-        if ($this->userLoaded || $this->user || $this->app->trigger(self::EVENT_LOADUSER, [$this])) {
+        if ($this->userLoaded || $this->user) {
             return $this->user;
         }
 
-        $userId = $this->app['SESSION']['user_login_id'] ?? null;
-        $this->userLoaded = true;
+        $event = new AuthEvent();
+        $this->app->trigger(self::EVENT_LOAD_USER, $event);
 
-        if (!$userId) {
-            return null;
+        if ($event->isPropagationStopped()) {
+            $this->user = $event->getUser();
+        } elseif ($userId = $this->getSessionUserId()) {
+            $this->user = $this->provider->findById($userId);
         }
 
-        $this->user = $this->provider->findById($userId);
+        $this->userLoaded = true;
 
         return $this->user;
     }
 
     /**
-     * Set user.
+     * Directly sets user.
      *
      * @param UserInterface|null $user
      *
      * @return Auth
      */
-    public function setUser(UserInterface $user = null): Auth
+    public function setUser(UserInterface $user = null)
     {
         $this->user = $user;
 
@@ -172,45 +179,48 @@ class Auth
     }
 
     /**
+     * Returns user session id.
+     *
+     * @return string|null
+     */
+    public function getSessionUserId()
+    {
+        return $this->app->get(self::SESSION_KEY);
+    }
+
+    /**
      * Check user login.
      *
      * @return bool
      */
-    public function isLogged(): bool
+    public function isLogged()
     {
-        return isset($this->user);
+        return null !== $this->getUser();
     }
 
     /**
      * Do guard.
      *
      * Return true if request has been redirected.
-     *
-     * @return bool
      */
-    public function guard(): bool
+    public function guard()
     {
-        $path = $this->app['PATH'];
+        $path = $this->app->get('PATH');
 
         if ($path === $this->options['loginPath']) {
             if ($this->isLogged()) {
                 $this->app->reroute($this->options['redirect']);
-
-                return true;
             }
 
-            return false;
+            return;
         }
 
         foreach ($this->options['rules'] as $check => $roles) {
             if (preg_match('#'.$check.'#', $path) && !$this->isGranted($roles)) {
                 $this->app->reroute($this->options['loginPath']);
-
-                return true;
+                break;
             }
         }
-
-        return false;
     }
 
     /**
@@ -220,30 +230,27 @@ class Auth
      *
      * @return bool
      */
-    public function isGranted($checkRoles): bool
+    public function isGranted($checkRoles)
     {
         $user = $this->getUser();
-        $userRoles = $user ? $user->getRoles() : [];
 
-        if (!$user || !$userRoles) {
+        if (!$user || !($userRoles = $user->getRoles())) {
             return false;
         }
 
-        $use = App::reqarr($checkRoles);
+        $use = App::arr($checkRoles);
 
-        if (count(array_intersect($use, $userRoles))) {
+        if (array_intersect($use, $userRoles)) {
             return true;
         }
 
-        $roles = [];
+        $roles = array();
 
         foreach ($userRoles as $userRole) {
-            $roles = array_merge($roles, [$userRole], $this->getRoleHierarchy($userRole));
+            $roles = array_merge($roles, array($userRole), $this->getRoleHierarchy($userRole));
         }
 
-        $roles = array_unique($roles);
-
-        return count(array_intersect($use, $roles)) > 0;
+        return (bool) array_intersect($use, $roles);
     }
 
     /**
@@ -251,7 +258,7 @@ class Auth
      *
      * @return UserProviderInterface
      */
-    public function getProvider(): UserProviderInterface
+    public function getProvider()
     {
         return $this->provider;
     }
@@ -261,7 +268,7 @@ class Auth
      *
      * @return PasswordEncoderInterface
      */
-    public function getEncoder(): PasswordEncoderInterface
+    public function getEncoder()
     {
         return $this->encoder;
     }
@@ -271,7 +278,7 @@ class Auth
      *
      * @return array
      */
-    public function getOptions(): array
+    public function getOptions()
     {
         return $this->options;
     }
@@ -290,14 +297,14 @@ class Auth
      *
      * @return Auth
      */
-    public function setOptions(array $options): Auth
+    public function setOptions(array $options)
     {
-        $this->options = $options + [
+        $this->options = $options + array(
             'loginPath' => '/login',
             'redirect' => '/',
-            'rules' => [],
-            'roleHierarchy' => [],
-        ];
+            'rules' => array(),
+            'roleHierarchy' => array(),
+        );
 
         return $this;
     }
@@ -309,19 +316,19 @@ class Auth
      *
      * @return array
      */
-    private function getRoleHierarchy($role): array
+    protected function getRoleHierarchy($role)
     {
-        if (!array_key_exists($role, $this->options['roleHierarchy'])) {
-            return [];
-        }
+        $roles = array();
 
-        $roles = [];
-        $children = App::reqarr($this->options['roleHierarchy'][$role]);
+        if (array_key_exists($role, $this->options['roleHierarchy'])) {
+            $children = App::arr($this->options['roleHierarchy'][$role]);
 
-        foreach ($children as $child) {
-            $roles = array_merge($roles, $this->getRoleHierarchy($child));
+            foreach ($children as $child) {
+                $roles = array_merge($roles, $this->getRoleHierarchy($child));
+            }
+
+            return array_merge($roles, $children);
         }
-        $roles = array_merge($roles, $children);
 
         return $roles;
     }

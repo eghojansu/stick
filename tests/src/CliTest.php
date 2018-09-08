@@ -9,8 +9,6 @@
  * file that was distributed with this source code.
  */
 
-declare(strict_types=1);
-
 namespace Fal\Stick\Test;
 
 use Fal\Stick\Cli;
@@ -25,79 +23,24 @@ class CliTest extends TestCase
         $this->cli = new Cli();
     }
 
-    public function tearDown()
+    public function writelnProvider()
     {
-        error_clear_last();
+        return array(
+            array('foo'.PHP_EOL, 'foo'),
+            array("\033[0;31m\033[43mfoo\033[0m".PHP_EOL.PHP_EOL, 'foo', 'red:yellow', 2),
+        );
     }
 
-    public function testGetWidth()
+    /**
+     * @dataProvider writelnProvider
+     */
+    public function testWriteln($expected, $line, $color = null, $newline = 1)
     {
-        $this->assertEquals(80, $this->cli->getWidth());
-    }
-
-    public function testSetWidth()
-    {
-        $this->assertEquals(70, $this->cli->setWidth(70)->getWidth());
-    }
-
-    public function testGetConsoleWidth()
-    {
-        $this->assertEquals(80, $this->cli->getConsoleWidth());
-    }
-
-    public function testSetExprColorMap()
-    {
-        $this->assertEquals($this->cli, $this->cli->setExprColorMap('success', 'blue'));
-    }
-
-    public function testSuccess()
-    {
-        $line = str_repeat(' ', 80);
-        $this->expectOutputRegex('/Success!/');
-        $this->cli->success('foo');
-    }
-
-    public function testDanger()
-    {
-        $line = str_repeat(' ', 80);
-        $this->expectOutputRegex('/!!!Alert!!!/');
-        $this->cli->danger('foo');
-    }
-
-    public function testWarning()
-    {
-        $line = str_repeat(' ', 80);
-        $this->expectOutputRegex('/Warning:/');
-        $this->cli->warning('foo');
-    }
-
-    public function testInfo()
-    {
-        $line = str_repeat(' ', 80);
-        $this->expectOutputRegex('/Info:/');
-        $this->cli->info('foo');
-    }
-
-    public function testBlock()
-    {
-        $line = str_repeat(' ', 80);
-        $this->expectOutputRegex('/foo/');
-        $this->cli->block('foo', 'white:cyan');
-    }
-
-    public function testWriteln()
-    {
-        $this->expectOutputString("\033[1;37m\033[46mfoo\033[0m\n");
-        $this->cli->writeln('foo', 'white:cyan');
+        $this->expectOutputString($expected);
+        $this->cli->writeln($line, $color, $newline);
     }
 
     public function testWrite()
-    {
-        $this->expectOutputString("\033[1;37m\033[46mfoo\033[0m");
-        $this->cli->write('foo', 'white:cyan');
-    }
-
-    public function testWriteNoColor()
     {
         $this->expectOutputString('foo');
         $this->cli->write('foo');

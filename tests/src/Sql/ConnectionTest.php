@@ -9,22 +9,19 @@
  * file that was distributed with this source code.
  */
 
-declare(strict_types=1);
-
 namespace Fal\Stick\Test\Sql;
 
 use Fal\Stick\App;
-use Fal\Stick\Cache;
 use Fal\Stick\Sql\Connection;
 use PHPUnit\Framework\TestCase;
 
 class ConnectionTest extends TestCase
 {
-    private $expected = [
-        'r1' => ['id' => '1', 'username' => 'foo', 'password' => null, 'active' => '1'],
-        'r2' => ['id' => '2', 'username' => 'bar', 'password' => null, 'active' => '1'],
-        'r3' => ['id' => '3', 'username' => 'baz', 'password' => null, 'active' => '1'],
-    ];
+    private $expected = array(
+        'r1' => array('id' => '1', 'username' => 'foo', 'password' => null, 'active' => '1'),
+        'r2' => array('id' => '2', 'username' => 'bar', 'password' => null, 'active' => '1'),
+        'r3' => array('id' => '3', 'username' => 'baz', 'password' => null, 'active' => '1'),
+    );
     private $conn;
 
     public function setUp()
@@ -32,35 +29,19 @@ class ConnectionTest extends TestCase
         $this->build();
     }
 
-    private function build(string $dsn = '')
+    private function build($cacheDsn = null)
     {
-        $app = App::create()->mset([
+        $app = App::create()->mset(array(
             'TEMP' => TEMP,
-            'CACHE' => $dsn,
-            'LOG' => [
-                'THRESHOLD' => App::LEVEL_DEBUG,
-            ],
-        ])->logClear();
-        $cache = $app->get('cache');
-        $cache->reset();
+            'CACHE' => $cacheDsn,
+            'LOG' => 'logs-connection/',
+            'THRESHOLD' => App::LOG_LEVEL_DEBUG,
+        ))->logClear()->cacheReset();
 
-        $this->conn = new Connection($app, $cache, [
-            'driver' => 'sqlite',
-            'location' => ':memory:',
-            'commands' => <<<SQL1
-CREATE TABLE `user` (
-    `id` INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-    `username` TEXT NOT NULL,
-    `password` TEXT NULL DEFAULT NULL,
-    `active` INTEGER NOT NULL DEFAULT 1
-);
-CREATE TABLE `profile` (
-    `id` INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-    `fullname` TEXT NOT NULL,
-    `user_id` INTEGER NOT NULL
-);
-SQL1
-        ]);
+        $this->conn = new Connection($app, array(
+            'dsn' => 'sqlite::memory:',
+            'commands' => file_get_contents(FIXTURE.'files/schema.sql'),
+        ));
     }
 
     private function filldb()
@@ -70,26 +51,21 @@ SQL1
 
     private function enableDebug()
     {
-        $this->conn->setOptions(['debug' => true] + $this->conn->getOptions());
+        $this->conn->setOptions(array('debug' => true) + $this->conn->getOptions());
     }
 
-    private function changeDriver(string $driver)
+    private function changeDriver($driver)
     {
         $ref = new \ReflectionProperty($this->conn, 'driver');
         $ref->setAccessible(true);
         $ref->setValue($this->conn, $driver);
     }
 
-    public function testGetCache()
-    {
-        $this->assertInstanceOf(Cache::class, $this->conn->getCache());
-    }
-
     public function testGetApp()
     {
         $this->conn->exec('select * from user');
-        $this->conn->exec('insert into user (username) values (?)', ['quux']);
-        $this->conn->exec('insert into user (id,username) values (?,?)', [['5', \PDO::PARAM_INT], 'bleh']);
+        $this->conn->exec('insert into user (username) values (?)', array('quux'));
+        $this->conn->exec('insert into user (id,username) values (?,?)', array(array('5', \PDO::PARAM_INT), 'bleh'));
 
         $logs = $this->conn->getApp()->logFiles();
         $this->assertCount(1, $logs);
@@ -104,105 +80,46 @@ SQL1
     {
         $options = $this->conn->getOptions();
         $this->assertContains('sqlite::memory:', $options);
-        $this->assertContains('sqlite', $options);
     }
 
     public function testSetOptions()
     {
-        $options = $this->conn->setOptions([
-            'driver' => 'mysql',
-            'dbname' => 'test_stick',
+        $options = $this->conn->setOptions(array(
+            'dsn' => 'mysql:host=localhost;dbname=test_stick',
             'username' => 'root',
             'password' => 'pass',
-        ])->getOptions();
+        ))->getOptions();
 
-        $this->assertContains('mysql', $options);
-        $this->assertContains('test_stick', $options);
-        $this->assertContains('127.0.0.1', $options);
-        $this->assertContains(3306, $options);
         $this->assertContains('root', $options);
         $this->assertContains('pass', $options);
-        $this->assertContains('mysql:host=127.0.0.1;port=3306;dbname=test_stick', $options);
+        $this->assertContains('mysql:host=localhost;dbname=test_stick', $options);
+        $this->assertEquals('test_stick', $this->conn->getDbName());
     }
 
-    public function testSetOptionDsn()
+    public function testGetDbName()
     {
-        $this->conn->setOptions(['dsn' => 'mysql:host=localhost;dbname=foo']);
-        $this->assertContains('foo', $this->conn->getOptions());
-    }
-
-    /**
-     * @expectedException \LogicException
-     * @expectedExceptionMessage There is no logic for unknown DSN creation, please provide a valid one
-     */
-    public function testSetOptionsException1()
-    {
-        $this->conn->setOptions([]);
-    }
-
-    /**
-     * @expectedException \LogicException
-     * @expectedExceptionMessage Invalid mysql driver configuration
-     */
-    public function testSetOptionsException2()
-    {
-        $this->conn->setOptions([
-            'driver' => 'mysql',
-        ]);
-    }
-
-    /**
-     * @expectedException \LogicException
-     * @expectedExceptionMessage Invalid sqlite driver configuration
-     */
-    public function testSetOptionsException3()
-    {
-        $this->conn->setOptions([
-            'driver' => 'sqlite',
-        ]);
+        $this->assertEquals('', $this->conn->getDbName());
     }
 
     public function testPdo()
     {
-        $this->conn->setOptions([
-            'driver' => 'sqlite',
-            'location' => ':memory:',
-        ]);
-
         $pdo = $this->conn->pdo();
         $this->assertInstanceOf(\PDO::class, $pdo);
-        $this->assertEquals($pdo, $this->conn->pdo());
+        $this->assertSame($pdo, $this->conn->pdo());
     }
 
     /**
      * @expectedException \LogicException
-     * @expectedExceptionMessage Invalid database configuration
+     * @expectedExceptionMessage Invalid database configuration.
      */
-    public function testPdoException1()
+    public function testPdoException()
     {
-        $this->conn->setOptions([
+        $this->conn->setOptions(array(
             'driver' => 'mysql',
             'dbname' => 'test_stick',
             'username' => 'root',
             'password' => 'pass',
-        ]);
-
-        $this->conn->pdo();
-    }
-
-    /**
-     * @expectedException \PDOException
-     * @expectedExceptionMessageRegExp /^SQLSTATE\[HY000\]/
-     */
-    public function testPdoException2()
-    {
-        $this->conn->setOptions([
-            'driver' => 'mysql',
-            'dbname' => 'test_stick',
-            'username' => 'root',
-            'password' => 'pass',
-            'debug' => true,
-        ]);
+        ));
 
         $this->conn->pdo();
     }
@@ -216,7 +133,7 @@ SQL1
 
     public function testExistsCache()
     {
-        $this->build('auto');
+        $this->build('fallback');
 
         // with cache
         $this->assertTrue($this->conn->exists('user', 5));
@@ -235,7 +152,7 @@ SQL1
 
     public function testGetLogLevel()
     {
-        $this->assertEquals(App::LEVEL_INFO, $this->conn->getLogLevel());
+        $this->assertEquals(App::LOG_LEVEL_INFO, $this->conn->getLogLevel());
     }
 
     public function testSetLogLevel()
@@ -246,52 +163,52 @@ SQL1
     public function testSchema()
     {
         $schema = $this->conn->schema('user');
-        $expected = [
-            'id' => [
+        $expected = array(
+            'id' => array(
                 'type' => 'INTEGER',
                 'pdo_type' => \PDO::PARAM_INT,
                 'default' => null,
                 'nullable' => false,
                 'pkey' => true,
-            ],
-            'username' => [
+            ),
+            'username' => array(
                 'type' => 'TEXT',
                 'pdo_type' => \PDO::PARAM_STR,
                 'default' => null,
                 'nullable' => false,
                 'pkey' => false,
-            ],
-            'password' => [
+            ),
+            'password' => array(
                 'type' => 'TEXT',
                 'pdo_type' => \PDO::PARAM_STR,
                 'default' => null,
                 'nullable' => true,
                 'pkey' => false,
-            ],
-            'active' => [
+            ),
+            'active' => array(
                 'type' => 'INTEGER',
                 'pdo_type' => \PDO::PARAM_INT,
                 'default' => 1,
                 'nullable' => false,
                 'pkey' => false,
-            ],
-        ];
+            ),
+        );
         $this->assertEquals($expected, $schema);
 
         // second schema
         $schema = $this->conn->schema('profile');
-        $this->assertEquals(['id', 'fullname', 'user_id'], array_keys($schema));
+        $this->assertEquals(array('id', 'fullname', 'user_id'), array_keys($schema));
     }
 
     public function testSchemaWithFields()
     {
-        $schema = $this->conn->schema('user', ['username', 'password']);
+        $schema = $this->conn->schema('user', array('username', 'password'));
         $this->assertCount(2, $schema);
     }
 
     public function testSchemaCache()
     {
-        $this->build('auto');
+        $this->build('fallback');
 
         $init = $this->conn->schema('user', null, 5);
         $cached = $this->conn->schema('user', null, 5);
@@ -356,51 +273,51 @@ SQL1
     {
         extract($this->expected);
 
-        return [
-            [
+        return array(
+            array(
                 'select * from user',
                 null,
-                [$r1, $r2, $r3],
-            ],
-            [
+                array($r1, $r2, $r3),
+            ),
+            array(
                 'select * from user where id = ?',
-                [1],
-                [$r1],
-            ],
-            [
+                array(1),
+                array($r1),
+            ),
+            array(
                 'select * from user where id = :id',
-                [':id' => 1],
-                [$r1],
-            ],
-            [
+                array(':id' => 1),
+                array($r1),
+            ),
+            array(
                 'select * from user where id = ?',
-                [1],
-                [$r1],
-            ],
-            [
+                array(1),
+                array($r1),
+            ),
+            array(
                 'insert into user (username) values ("bleh")',
                 null,
                 1,
-            ],
-            [
+            ),
+            array(
                 'insert into user (username) values (?)',
-                ['one'],
+                array('one'),
                 1,
-            ],
-            [
-                [
+            ),
+            array(
+                array(
                     'select * from user where id = ?',
                     'select * from user where id = ?',
-                ],
+                ),
                 1,
-                [[$r1], [$r1]],
-            ],
-            [
+                array(array($r1), array($r1)),
+            ),
+            array(
                 '',
                 null,
                 null,
-            ],
-        ];
+            ),
+        );
     }
 
     /** @dataProvider execProvider */
@@ -417,8 +334,8 @@ SQL1
         $this->filldb();
 
         $sql = 'select * from user limit 1';
-        $this->assertEquals([$this->expected['r1']], $this->conn->exec($sql, null, 5));
-        $this->assertEquals([$this->expected['r1']], $this->conn->exec($sql, null, 5));
+        $this->assertEquals(array($this->expected['r1']), $this->conn->exec($sql, null, 5));
+        $this->assertEquals(array($this->expected['r1']), $this->conn->exec($sql, null, 5));
     }
 
     /**
@@ -438,85 +355,85 @@ SQL1
     public function testExecException2()
     {
         $this->conn->begin();
-        $this->conn->exec('select * from user where id = ?', [1, 2]);
+        $this->conn->exec('select * from user where id = ?', array(1, 2));
     }
 
     public function buildFilterProvider()
     {
-        $filter = [];
+        $filter = array();
 
-        $filter[] = [
-            ['`foo` = :foo', ':foo' => 'bar'],
-            ['foo' => 'bar'],
-        ];
-        $filter[] = [
-            ['`foo` = :foo AND (`bar` = :bar)', ':foo' => 'bar', ':bar' => 'baz'],
-            ['foo' => 'bar', ['bar' => 'baz']],
-        ];
-        $filter[] = [
-            ['`foo` = :foo AND (`bar` = :bar) OR baz = 2', ':foo' => 'bar', ':bar' => 'baz'],
-            ['foo' => 'bar', ['bar' => 'baz'], '|' => 'baz = 2'],
-        ];
-        $filter[] = [
-            ['`foo` = :foo AND (`bar` = :bar) OR baz = 2 OR qux = 3', ':foo' => 'bar', ':bar' => 'baz'],
-            ['foo' => 'bar', ['bar' => 'baz'], '|' => 'baz = 2', '| #qux' => 'qux = 3'],
-        ];
-        $filter[] = [
-            ['`foo` = :foo AND (`bar` = :bar)', ':foo' => 'bar', ':bar' => 'baz'],
-            ['foo' => 'bar', '&' => ['bar' => 'baz']],
-        ];
-        $filter[] = [
-            ['`foo` = :foo AND (`bar` = :bar OR `baz` = :baz)', ':foo' => 'bar', ':bar' => 'baz', ':baz' => 'qux'],
-            ['foo' => 'bar', '&' => ['bar' => 'baz', '| baz' => 'qux']],
-        ];
-        $filter[] = [
-            ['foo = 1 OR `bar` != :bar', ':bar' => 'baz'],
-            ['foo = 1', '| bar !=' => 'baz'],
-        ];
-        $filter[] = [
-            ['foo = 1 OR `bar` != :bar AND (baz = 2)', ':bar' => 'baz'],
-            ['foo = 1', '| bar !=' => 'baz', ['baz = 2']],
-        ];
-        $filter[] = [
-            ['`foo` = :foo AND `bar` = :bar', ':foo' => 'bar', ':bar' => 'baz'],
-            ['foo' => 'bar', 'bar' => 'baz'],
-        ];
-        $filter[] = [
-            ['`foo` = :foo AND `bar` <> :bar', ':foo' => 'bar', ':bar' => 'baz'],
-            ['foo' => 'bar', 'bar <>' => 'baz'],
-        ];
-        $filter[] = [
-            ['`foo` LIKE :foo', ':foo' => 'bar'],
-            ['foo ~' => 'bar'],
-        ];
-        $filter[] = [
-            ['`foo` NOT LIKE :foo', ':foo' => 'bar'],
-            ['foo !~' => 'bar'],
-        ];
-        $filter[] = [
-            ['`foo` SOUNDS LIKE :foo', ':foo' => 'bar'],
-            ['foo @' => 'bar'],
-        ];
-        $filter[] = [
-            ['`foo` BETWEEN :foo1 AND :foo2', ':foo1' => 1, ':foo2' => 3],
-            ['foo ><' => [1, 3]],
-        ];
-        $filter[] = [
-            ['`foo` NOT BETWEEN :foo1 AND :foo2', ':foo1' => 1, ':foo2' => 3],
-            ['foo !><' => [1, 3]],
-        ];
-        $filter[] = [
-            ['`foo` IN (:foo1, :foo2, :foo3)', ':foo1' => 'foo', ':foo2' => 'bar', ':foo3' => 'baz'],
-            ['foo []' => ['foo', 'bar', 'baz']],
-        ];
-        $filter[] = [
-            ['`foo` NOT IN (:foo1, :foo2, :foo3)', ':foo1' => 'foo', ':foo2' => 'bar', ':foo3' => 'baz'],
-            ['foo ![]' => ['foo', 'bar', 'baz']],
-        ];
-        $filter[] = [
-            ['`foo` = bar + 1'],
-            ['foo' => '```bar + 1'],
-        ];
+        $filter[] = array(
+            array('`foo` = :foo', ':foo' => 'bar'),
+            array('foo' => 'bar'),
+        );
+        $filter[] = array(
+            array('`foo` = :foo AND (`bar` = :bar)', ':foo' => 'bar', ':bar' => 'baz'),
+            array('foo' => 'bar', array('bar' => 'baz')),
+        );
+        $filter[] = array(
+            array('`foo` = :foo AND (`bar` = :bar) OR baz = 2', ':foo' => 'bar', ':bar' => 'baz'),
+            array('foo' => 'bar', array('bar' => 'baz'), '|' => 'baz = 2'),
+        );
+        $filter[] = array(
+            array('`foo` = :foo AND (`bar` = :bar) OR baz = 2 OR qux = 3', ':foo' => 'bar', ':bar' => 'baz'),
+            array('foo' => 'bar', array('bar' => 'baz'), '|' => 'baz = 2', '| #qux' => 'qux = 3'),
+        );
+        $filter[] = array(
+            array('`foo` = :foo AND (`bar` = :bar)', ':foo' => 'bar', ':bar' => 'baz'),
+            array('foo' => 'bar', '&' => array('bar' => 'baz')),
+        );
+        $filter[] = array(
+            array('`foo` = :foo AND (`bar` = :bar OR `baz` = :baz)', ':foo' => 'bar', ':bar' => 'baz', ':baz' => 'qux'),
+            array('foo' => 'bar', '&' => array('bar' => 'baz', '| baz' => 'qux')),
+        );
+        $filter[] = array(
+            array('foo = 1 OR `bar` != :bar', ':bar' => 'baz'),
+            array('foo = 1', '| bar !=' => 'baz'),
+        );
+        $filter[] = array(
+            array('foo = 1 OR `bar` != :bar AND (baz = 2)', ':bar' => 'baz'),
+            array('foo = 1', '| bar !=' => 'baz', array('baz = 2')),
+        );
+        $filter[] = array(
+            array('`foo` = :foo AND `bar` = :bar', ':foo' => 'bar', ':bar' => 'baz'),
+            array('foo' => 'bar', 'bar' => 'baz'),
+        );
+        $filter[] = array(
+            array('`foo` = :foo AND `bar` <> :bar', ':foo' => 'bar', ':bar' => 'baz'),
+            array('foo' => 'bar', 'bar <>' => 'baz'),
+        );
+        $filter[] = array(
+            array('`foo` LIKE :foo', ':foo' => 'bar'),
+            array('foo ~' => 'bar'),
+        );
+        $filter[] = array(
+            array('`foo` NOT LIKE :foo', ':foo' => 'bar'),
+            array('foo !~' => 'bar'),
+        );
+        $filter[] = array(
+            array('`foo` SOUNDS LIKE :foo', ':foo' => 'bar'),
+            array('foo @' => 'bar'),
+        );
+        $filter[] = array(
+            array('`foo` BETWEEN :foo1 AND :foo2', ':foo1' => 1, ':foo2' => 3),
+            array('foo ><' => array(1, 3)),
+        );
+        $filter[] = array(
+            array('`foo` NOT BETWEEN :foo1 AND :foo2', ':foo1' => 1, ':foo2' => 3),
+            array('foo !><' => array(1, 3)),
+        );
+        $filter[] = array(
+            array('`foo` IN (:foo1, :foo2, :foo3)', ':foo1' => 'foo', ':foo2' => 'bar', ':foo3' => 'baz'),
+            array('foo []' => array('foo', 'bar', 'baz')),
+        );
+        $filter[] = array(
+            array('`foo` NOT IN (:foo1, :foo2, :foo3)', ':foo1' => 'foo', ':foo2' => 'bar', ':foo3' => 'baz'),
+            array('foo ![]' => array('foo', 'bar', 'baz')),
+        );
+        $filter[] = array(
+            array('`foo` = bar + 1'),
+            array('foo' => '```bar + 1'),
+        );
 
         return $filter;
     }
@@ -529,21 +446,16 @@ SQL1
 
     public function testBuildFilterEmpty()
     {
-        $this->assertEquals([], $this->conn->buildFilter(null));
+        $this->assertEquals(array(), $this->conn->buildFilter(null));
     }
 
     /**
      * @expectedException \LogicException
-     * @expectedExceptionMessage BETWEEN operator needs an array operand, string given
+     * @expectedExceptionMessage BETWEEN operator needs an array operand, string given.
      */
     public function testBuildFilterException1()
     {
-        $this->conn->buildFilter(['foo ><' => 'str']);
-    }
-
-    public function testGetName()
-    {
-        $this->assertEquals('', $this->conn->getName());
+        $this->conn->buildFilter(array('foo ><' => 'str'));
     }
 
     public function testPdoType()
@@ -553,7 +465,7 @@ SQL1
         $this->assertEquals(\PDO::PARAM_INT, $this->conn->pdoType(1));
         $this->assertEquals(Connection::PARAM_FLOAT, $this->conn->pdoType(0.0));
         $this->assertEquals(\PDO::PARAM_STR, $this->conn->pdoType('foo'));
-        $fp = fopen(FIXTURE.'long.txt', 'rb');
+        $fp = fopen(FIXTURE.'files/long.txt', 'rb');
         $this->assertEquals(\PDO::PARAM_LOB, $this->conn->pdoType($fp));
     }
 
@@ -571,7 +483,7 @@ SQL1
         $this->assertEquals(1, $this->conn->phpValue(\PDO::PARAM_INT, '1'));
         $this->assertEquals('1', $this->conn->phpValue(\PDO::PARAM_STR, '1'));
         $this->assertEquals('1', $this->conn->phpValue('foo', '1'));
-        $fp = fopen(FIXTURE.'long.txt', 'rb');
+        $fp = fopen(FIXTURE.'files/long.txt', 'rb');
         $this->assertEquals((binary) $fp, $this->conn->phpValue(\PDO::PARAM_LOB, $fp));
     }
 
@@ -579,7 +491,7 @@ SQL1
     {
         $this->assertEquals("'foo'", $this->conn->quote('foo'));
         $this->changeDriver(Connection::DB_ODBC);
-        $this->assertEquals("'foo'", $this->conn->quote('foo'));
+        $this->assertEquals('foo', $this->conn->quote('foo'));
     }
 
     public function testGetRows()
@@ -588,5 +500,17 @@ SQL1
         $out = $this->conn->exec('insert into user (username) values ("foo")');
         $this->assertEquals(1, $out);
         $this->assertEquals(1, $this->conn->getRows());
+    }
+
+    public function testSafeRollback()
+    {
+        $this->conn->begin();
+        $this->assertFalse($this->conn->safeRollback()->isTrans());
+    }
+
+    public function testSafeBegin()
+    {
+        $this->assertTrue($this->conn->safeBegin()->isTrans());
+        $this->conn->rollBack();
     }
 }

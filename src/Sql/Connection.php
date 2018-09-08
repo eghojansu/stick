@@ -9,13 +9,9 @@
  * file that was distributed with this source code.
  */
 
-declare(strict_types=1);
-
 namespace Fal\Stick\Sql;
 
 use Fal\Stick\App;
-use Fal\Stick\Cache;
-use Fal\Stick\Helper;
 
 /**
  * PDO Wrapper.
@@ -54,11 +50,6 @@ class Connection
     private $app;
 
     /**
-     * @var Cache
-     */
-    private $cache;
-
-    /**
      * Driver name.
      *
      * @var string
@@ -73,18 +64,25 @@ class Connection
     private $version;
 
     /**
+     * Database name.
+     *
+     * @var string
+     */
+    private $dbname = '';
+
+    /**
      * Log level.
      *
      * @var string
      */
-    private $logLevel = App::LEVEL_INFO;
+    private $logLevel = App::LOG_LEVEL_INFO;
 
     /**
      * Transaction status.
      *
      * @var bool
      */
-    private $trans;
+    private $trans = false;
 
     /**
      * @var int
@@ -95,72 +93,68 @@ class Connection
      * Class constructor.
      *
      * @param App   $app
-     * @param Cache $cache
      * @param array $options
      */
-    public function __construct(App $app, Cache $cache, array $options)
+    public function __construct(App $app, array $options)
     {
         $this->app = $app;
-        $this->cache = $cache;
         $this->setOptions($options);
     }
 
     /**
-     * Get database driver name.
+     * Returns database driver name.
      *
      * @return string
      */
-    public function getDriver(): string
+    public function getDriver()
     {
-        return $this->driver ?? $this->driver = $this->pdo()->getAttribute(\PDO::ATTR_DRIVER_NAME);
+        if (null === $this->driver) {
+            $this->driver = $this->pdo()->getAttribute(\PDO::ATTR_DRIVER_NAME);
+        }
+
+        return $this->driver;
     }
 
     /**
-     * Get database driver version.
+     * Returns database driver version.
      *
      * @return string
      */
-    public function getVersion(): string
+    public function getVersion()
     {
-        return $this->version ?? $this->version = $this->pdo()->getAttribute(\PDO::ATTR_SERVER_VERSION);
+        if (null === $this->version) {
+            $this->version = $this->pdo()->getAttribute(\PDO::ATTR_SERVER_VERSION);
+        }
+
+        return $this->version;
     }
 
     /**
-     * Get current database name.
+     * Returns current database name.
      *
      * @return string
      */
-    public function getName(): string
+    public function getDbName()
     {
-        return $this->options['dbname'] ?? '';
+        return $this->dbname;
     }
 
     /**
-     * Get App instance.
+     * Returns App instance.
      *
      * @return App
      */
-    public function getApp(): App
+    public function getApp()
     {
         return $this->app;
     }
 
     /**
-     * Get Cache instance.
-     *
-     * @return Cache
-     */
-    public function getCache(): Cache
-    {
-        return $this->cache;
-    }
-
-    /**
-     * Get logLevel.
+     * Returns logLevel.
      *
      * @return string
      */
-    public function getLogLevel(): string
+    public function getLogLevel()
     {
         return $this->logLevel;
     }
@@ -174,7 +168,7 @@ class Connection
      *
      * @return Connection
      */
-    public function setLogLevel(string $logLevel): Connection
+    public function setLogLevel($logLevel)
     {
         $this->logLevel = $logLevel;
 
@@ -182,11 +176,11 @@ class Connection
     }
 
     /**
-     * Get options.
+     * Returns options.
      *
      * @return array
      */
-    public function getOptions(): array
+    public function getOptions()
     {
         return $this->options;
     }
@@ -198,14 +192,9 @@ class Connection
      *
      *     debug    bool    false           enable debug mode
      *     encoding string  UTF8
-     *     driver   string  void|unknown    database driver name, eg: mysql, sqlite
      *     dsn      string  void            valid dsn
-     *     server   string  127.0.0.1
-     *     port     int     3306
      *     password string  null
      *     username string  null
-     *     dbname   string  void
-     *     location string  void            for sqlite driver
      *     options  array   []              A key=>value array of driver-specific connection options
      *     commands array   void            Commands to be executed
      *
@@ -213,73 +202,63 @@ class Connection
      *
      * @return Connection
      */
-    public function setOptions(array $options): Connection
+    public function setOptions(array $options)
     {
-        $defaults = [
+        $defaults = array(
             'debug' => false,
             'encoding' => 'UTF8',
-            'server' => '127.0.0.1',
-            'port' => 3306,
+            'dsn' => null,
             'username' => null,
             'password' => null,
-            'options' => [],
-            'commands' => [],
-        ];
+            'options' => array(),
+            'commands' => null,
+        );
         $pattern = '/^.+?(?:dbname|database)=(.+?)(?=;|$)/is';
-        $use = $options + $defaults;
-        $dsn = $use['dsn'] ?? null;
-        $driver = strtolower($use['driver'] ?? 'unknown');
-        $driverDefaults = [
-            self::DB_MYSQL => ['options' => [
-                \PDO::MYSQL_ATTR_INIT_COMMAND => 'SET NAMES '.strtolower(str_replace('-', '', $use['encoding'])).';',
-            ]],
-        ];
+        $fix = $options + $defaults;
+        $dsn = $fix['dsn'];
+        $driver = 'unknown';
+        $driverDefaults = array(
+            self::DB_MYSQL => array('options' => array(
+                \PDO::MYSQL_ATTR_INIT_COMMAND => 'SET NAMES '.strtolower(str_replace('-', '', $fix['encoding'])).';',
+            )),
+        );
 
-        if (empty($dsn)) {
-            $use['dsn'] = $this->createDsn($driver, $use);
-        } elseif (preg_match($pattern, $dsn, $match)) {
-            $driver = $use['driver'] ?? strstr($dsn, ':', true);
-            $use['dbname'] = $use['dbname'] ?? $match[1];
-            $use['driver'] = $driver;
+        if ($dsn && preg_match($pattern, $dsn, $match)) {
+            $driver = strstr($dsn, ':', true);
+            $this->dbname = $match[1];
         }
 
-        $this->options = array_replace_recursive($driverDefaults[$driver] ?? [], $use);
+        $this->options = array_replace_recursive($fix, App::pick($driverDefaults, $driver, array()));
         $this->pdo = null;
         $this->driver = null;
         $this->version = null;
-        $this->trans = null;
+        $this->trans = false;
 
         return $this;
     }
 
     /**
-     * Get pdo.
+     * Returns pdo.
      *
      * @return PDO
      *
      * @throws LogicException If construct failed and not in debug mode
      * @throws PDOException   If construct failed and in debug mode
      */
-    public function pdo(): \PDO
+    public function pdo()
     {
-        if ($this->pdo) {
-            return $this->pdo;
-        }
+        if (null === $this->pdo) {
+            $o = $this->options;
 
-        $o = $this->options;
+            try {
+                $this->pdo = new \PDO($o['dsn'], $o['username'], $o['password'], $o['options']);
 
-        try {
-            $this->pdo = new \PDO($o['dsn'], $o['username'], $o['password'], $o['options']);
+                App::walk((array) $o['commands'], array($this->pdo, 'exec'));
+            } catch (\PDOException $e) {
+                $this->app->log(App::LOG_LEVEL_EMERGENCY, $e->getMessage());
 
-            foreach ((array) $o['commands'] as $cmd) {
-                $this->pdo->exec($cmd);
+                throw new \LogicException('Invalid database configuration.');
             }
-        } catch (\PDOException $e) {
-            if ($o['debug']) {
-                throw $e;
-            }
-
-            throw new \LogicException('Invalid database configuration');
         }
 
         return $this->pdo;
@@ -293,9 +272,9 @@ class Connection
      *
      * @return mixed
      */
-    public function pdoType($val = null, string $type = null)
+    public function pdoType($val = null, $type = null)
     {
-        static $types = [
+        $types = array(
             'null' => \PDO::PARAM_NULL,
             'resource' => \PDO::PARAM_LOB,
             'int' => \PDO::PARAM_INT,
@@ -312,9 +291,10 @@ class Connection
             'decimal' => self::PARAM_FLOAT,
             'numeric' => self::PARAM_FLOAT,
             'default' => \PDO::PARAM_STR,
-        ];
+        );
+        $check = strtolower($type ?: gettype($val));
 
-        return $types[strtolower($type ?? gettype($val))] ?? $types['default'];
+        return App::pick($types, $check, $types['default']);
     }
 
     /**
@@ -327,9 +307,9 @@ class Connection
      */
     public function realPdoType($val, $type = null)
     {
-        $use = $type ?? $this->pdoType($val);
+        $check = $type ?: $this->pdoType($val);
 
-        return self::PARAM_FLOAT === $use ? \PDO::PARAM_STR : $use;
+        return self::PARAM_FLOAT === $check ? \PDO::PARAM_STR : $check;
     }
 
     /**
@@ -344,19 +324,29 @@ class Connection
     {
         if (self::PARAM_FLOAT === $type) {
             return is_string($val) ? $val : str_replace(',', '.', $val);
-        } elseif (\PDO::PARAM_NULL === $type) {
-            return null;
-        } elseif (\PDO::PARAM_INT === $type) {
-            return (int) $val;
-        } elseif (\PDO::PARAM_BOOL === $type) {
-            return (bool) $val;
-        } elseif (\PDO::PARAM_STR === $type) {
-            return (string) $val;
-        } elseif (\PDO::PARAM_LOB === $type) {
-            return (binary) $val;
-        } else {
-            return $val;
         }
+
+        if (\PDO::PARAM_NULL === $type) {
+            return null;
+        }
+
+        if (\PDO::PARAM_INT === $type) {
+            return (int) $val;
+        }
+
+        if (\PDO::PARAM_BOOL === $type) {
+            return (bool) $val;
+        }
+
+        if (\PDO::PARAM_STR === $type) {
+            return (string) $val;
+        }
+
+        if (\PDO::PARAM_LOB === $type) {
+            return (binary) $val;
+        }
+
+        return $val;
     }
 
     /**
@@ -394,14 +384,14 @@ class Connection
      *
      * @return array
      */
-    public function buildFilter($filter): array
+    public function buildFilter($filter)
     {
         if (!$filter) {
-            return [];
+            return array();
         }
 
         // operator map
-        $map = [
+        $map = array(
             '=' => '=',
             '>' => '>',
             '<' => '<',
@@ -420,12 +410,12 @@ class Connection
             '![]' => 'NOT IN',
             '><' => 'BETWEEN',
             '!><' => 'NOT BETWEEN',
-        ];
+        );
         $mapkeys = '=<>&|^!~@[] ';
 
         $ctr = 0;
         $str = '';
-        $result = [];
+        $result = array();
 
         foreach ((array) $filter as $key => $value) {
             if (is_numeric($key)) {
@@ -453,20 +443,20 @@ class Connection
             $b2 = substr($ccol, -2);
             $b3 = substr($ccol, -3);
 
-            $str .= ' '.($map[$a3] ?? $map[$a2] ?? $map[$a1] ?? ($ctr > 0 ? 'AND' : ''));
+            $str .= ' '.App::pickFirst($map, array($a3, $a2, $a1), $ctr ? 'AND' : '');
 
             if ($col) {
                 $str .= ' '.$this->quotekey($col);
-                $str .= ' '.($map[$b3] ?? $map[$b2] ?? $map[$b1] ?? '=');
+                $str .= ' '.App::pickFirst($map, array($b3, $b2, $b1), '=');
             }
 
             if ($raw) {
                 $str .= ' '.$expr;
             } else {
                 if ('!><' === $b3 || '><' === $b2) {
-                    if (!is_array($expr)) {
-                        throw new \LogicException('BETWEEN operator needs an array operand, '.gettype($expr).' given');
-                    }
+                    $throw = !is_array($expr);
+                    $message = 'BETWEEN operator needs an array operand, '.gettype($expr).' given.';
+                    App::throws($throw, $message);
 
                     $str .= " :{$kcol}1 AND :{$kcol}2";
                     $result[":{$kcol}1"] = array_shift($expr);
@@ -508,23 +498,26 @@ class Connection
     }
 
     /**
-     * Get table schema.
+     * Returns table schema.
      *
-     * @param string     $table
-     * @param array|null $fields
-     * @param int        $ttl
+     * @param string $table
+     * @param mixed  $fields
+     * @param int    $ttl
      *
      * @return array
      *
      * @throws LogicException If schema contains nothing
      */
-    public function schema(string $table, array $fields = null, int $ttl = 0): array
+    public function schema($table, $fields = null, $ttl = 0)
     {
         $start = microtime(true);
         $message = '(%.1f) %sRetrieving table "%s" schema';
+        $hash = App::hash($table.var_export($fields, true)).'.schema';
+        $db = $this->getDbName();
 
-        if ($ttl && $this->cache->isCached($hash, $data, 'schema', $table, $fields)) {
-            $this->app->log($this->logLevel, sprintf('(%.1fms) [CACHED] Retrieving schema of %s table', 1e3 * (microtime(true) - $start), $table));
+        if ($ttl && $this->app->isCached($hash, $data)) {
+            $message = sprintf('(%.1fms) [CACHED] Retrieving schema of %s table', 1e3 * (microtime(true) - $start), $table);
+            $this->app->log($this->logLevel, $message);
 
             return $data[0];
         }
@@ -533,35 +526,33 @@ class Connection
             list($db, $table) = explode('.', $table);
         }
 
-        $cmd = $this->schemaCmd($table, $db ?? $this->options['dbname'] ?? '');
+        $cmd = $this->schemaCmd($table, $db);
         $query = $this->pdo()->query($cmd[0]);
         $schema = $query->fetchAll(\PDO::FETCH_ASSOC);
-        $rows = [];
+        $rows = array();
+        $check = App::arr($fields);
 
         foreach ($schema as $row) {
-            if ($fields && !in_array($row[$cmd[1]], $fields)) {
-                continue;
+            if (!$check || in_array($row[$cmd[1]], $check)) {
+                $rows[$row[$cmd[1]]] = array(
+                    'type' => $row[$cmd[2]],
+                    'pdo_type' => $this->pdoType(null, $row[$cmd[2]]),
+                    'default' => is_string($row[$cmd[3]]) ? $this->schemaDefaultValue($row[$cmd[3]]) : $row[$cmd[3]],
+                    'nullable' => $row[$cmd[4]] == $cmd[5],
+                    'pkey' => $row[$cmd[6]] == $cmd[7],
+                );
             }
-
-            $rows[$row[$cmd[1]]] = [
-                'type' => $row[$cmd[2]],
-                'pdo_type' => $this->pdoType(null, $row[$cmd[2]]),
-                'default' => is_string($row[$cmd[3]]) ? $this->schemaDefaultValue($row[$cmd[3]]) : $row[$cmd[3]],
-                'nullable' => $row[$cmd[4]] == $cmd[5],
-                'pkey' => $row[$cmd[6]] == $cmd[7],
-            ];
         }
 
-        if (!$rows) {
-            throw new \LogicException('Table "'.$table.'" contains no defined schema');
-        }
+        App::throws(!$rows, 'Table "'.$table.'" contains no defined schema.');
 
         if ($ttl) {
             // Save to cache backend
-            $this->cache->set($hash, $rows, $ttl);
+            $this->app->cacheSet($hash, $rows, $ttl);
         }
 
-        $this->app->log($this->logLevel, sprintf('(%.1fms) Retrieving schema of %s table (%s)', 1e3 * (microtime(true) - $start), $table, $cmd[0]));
+        $message = sprintf('(%.1fms) Retrieving schema of %s table (%s)', 1e3 * (microtime(true) - $start), $table, $cmd[0]);
+        $this->app->log($this->logLevel, $message);
 
         return $rows;
     }
@@ -574,14 +565,13 @@ class Connection
      *
      * @return string
      */
-    public function quote($val, $type = null): string
+    public function quote($val, $type = null)
     {
-        switch ($this->getDriver()) {
-            case self::DB_ODBC:
-                return is_string($val) ? App::stringify(str_replace('\'', '\'\'', $val)) : (string) $val;
-            default:
-                return $this->pdo()->quote($val, $type ?? \PDO::PARAM_STR);
+        if (self::DB_ODBC === $this->getDriver()) {
+            return is_string($val) ? str_replace('\'', '\'\'', $val) : (string) $val;
         }
+
+        return $this->pdo()->quote($val, $type ?: \PDO::PARAM_STR);
     }
 
     /**
@@ -592,22 +582,29 @@ class Connection
      *
      * @return string
      */
-    public function quotekey(string $key, bool $split = true): string
+    public function quotekey($key, $split = true)
     {
-        $quotes = [
-            '``' => [self::DB_SQLITE, self::DB_SQLITE2, self::DB_MYSQL],
-            '""' => [self::DB_PGSQL, self::DB_OCI],
-            '[]' => [self::DB_MSSQL, self::DB_SQLSRV, self::DB_ODBC, self::DB_SYBASE, self::DB_DBLIB],
-        ];
         $driver = $this->getDriver();
+        $engines = array(
+            self::DB_SQLITE => '``',
+            self::DB_SQLITE2 => '``',
+            self::DB_MYSQL => '``',
+            self::DB_PGSQL => '""',
+            self::DB_OCI => '""',
+            self::DB_MSSQL => '[]',
+            self::DB_SQLSRV => '[]',
+            self::DB_ODBC => '[]',
+            self::DB_SYBASE => '[]',
+            self::DB_DBLIB => '[]',
+        );
 
-        foreach ($quotes as $quote => $engines) {
-            if (in_array($driver, $engines)) {
-                return
-                    $quote[0].
-                    implode($quote[1].'.'.$quote[0], $split ? explode('.', $key) : [$key]).
-                    $quote[1];
-            }
+        if ($key && isset($engines[$driver])) {
+            $quote = $engines[$driver];
+
+            return
+                $quote[0].
+                implode($quote[1].'.'.$quote[0], $split ? explode('.', $key) : array($key)).
+                $quote[1];
         }
 
         return $key;
@@ -618,7 +615,7 @@ class Connection
      *
      * @return bool
      */
-    public function begin(): bool
+    public function begin()
     {
         $out = $this->pdo()->beginTransaction();
         $this->trans = true;
@@ -631,7 +628,7 @@ class Connection
      *
      * @return bool
      */
-    public function commit(): bool
+    public function commit()
     {
         $out = $this->pdo()->commit();
         $this->trans = false;
@@ -644,7 +641,7 @@ class Connection
      *
      * @return bool
      */
-    public function rollback(): bool
+    public function rollback()
     {
         $out = $this->pdo()->rollBack();
         $this->trans = false;
@@ -653,13 +650,41 @@ class Connection
     }
 
     /**
-     * Get transaction status.
+     * Returns transaction status.
      *
      * @return bool
      */
-    public function isTrans(): bool
+    public function isTrans()
     {
-        return $this->trans ?? false;
+        return $this->trans;
+    }
+
+    /**
+     * Begin trans only if transaction mode is not enabled.
+     *
+     * @return Connection
+     */
+    public function safeBegin()
+    {
+        if (!$this->trans) {
+            $this->begin();
+        }
+
+        return $this;
+    }
+
+    /**
+     * Rollback only if transaction mode is enabled.
+     *
+     * @return Connection
+     */
+    public function safeRollback()
+    {
+        if ($this->trans) {
+            $this->rollback();
+        }
+
+        return $this;
     }
 
     /**
@@ -673,40 +698,38 @@ class Connection
      *
      * @throws LogicException If commands resulting error
      */
-    public function exec($cmds, $args = null, int $ttl = 0)
+    public function exec($cmds, $args = null, $ttl = 0)
     {
-        $res = [];
+        $res = array();
         $auto = false;
         $count = 1;
         $one = true;
         $driver = $this->getDriver();
-        $fetchPattern = [
+        $fetchPattern = array(
             '/(?:^[\s\(]*(?:EXPLAIN|SELECT|PRAGMA|SHOW)|RETURNING)\b/is',
             '/^\s*(?:CALL|EXEC)\b/is',
-        ];
+        );
 
         if (is_null($args)) {
-            $args = [];
+            $args = array();
         } elseif (is_scalar($args)) {
-            $args = [1 => $args];
+            $args = array(1 => $args);
         }
 
         if (is_array($cmds)) {
             $count = count($cmds);
             $one = 1 === $count;
+            $auto = !$this->trans;
 
             if (count($args) < $count) {
                 // Apply arguments to SQL commands
                 $args = array_fill(0, $count, $args);
             }
 
-            if (!$this->trans) {
-                $this->begin();
-                $auto = true;
-            }
+            $this->safeBegin();
         } else {
-            $cmds = [$cmds];
-            $args = [$args];
+            $cmds = array($cmds);
+            $args = array($args);
         }
 
         $this->pdo();
@@ -726,10 +749,12 @@ class Connection
                 unset($arg[0]);
             }
 
-            if ($ttl && $this->cache->isCached($hash, $data, 'sql', $cmd, $arg)) {
+            $hash = $cmd.var_export($arg, true).'.sql';
+
+            if ($ttl && $this->app->isCached($hash, $data)) {
                 $res[$i] = $data[0];
 
-                $this->app->log($this->logLevel, $this->buildLog([$cmd, $arg, $start, true]));
+                $this->app->log($this->logLevel, $this->buildLog(array($cmd, $arg, $start, true)));
 
                 continue;
             }
@@ -739,11 +764,9 @@ class Connection
 
             if (!is_object($query) || ($error && \PDO::ERR_NONE !== $error[0])) {
                 // PDO-level error occurred
-                if ($this->trans) {
-                    $this->rollback();
-                }
+                $this->safeRollback();
 
-                throw new \LogicException('PDO: '.$error[2]);
+                throw new \LogicException('PDO: '.$error[2].'.');
             }
 
             foreach ($arg as $key => $val) {
@@ -756,29 +779,27 @@ class Connection
                 }
             }
 
-            $log = $this->buildLog([$cmd, $arg]);
+            $log = $this->buildLog(array($cmd, $arg));
             $query->execute();
-            $this->app->log($this->logLevel, $this->buildLog([], $start, $log));
+            $this->app->log($this->logLevel, $this->buildLog(array(), $start, $log));
 
             $error = $query->errorinfo();
 
             if ($error && \PDO::ERR_NONE !== $error[0]) {
                 // Statement-level error occurred
-                if ($this->trans) {
-                    $this->rollback();
-                }
+                $this->safeRollback();
 
-                throw new \LogicException('PDOStatement: '.$error[2]);
+                throw new \LogicException('PDOStatement: '.$error[2].'.');
             }
 
             if (preg_match($fetchPattern[0], $cmd) || (preg_match($fetchPattern[1], $cmd) && $query->columnCount())) {
                 $res[$i] = $query->fetchall(\PDO::FETCH_ASSOC);
 
                 // Work around SQLite quote bug
-                if (in_array($driver, [self::DB_SQLITE, self::DB_SQLITE2])) {
+                if (in_array($driver, array(self::DB_SQLITE, self::DB_SQLITE2))) {
                     foreach ($res[$i] as $pos => $rec) {
                         unset($res[$i][$pos]);
-                        $res[$i][$pos] = [];
+                        $res[$i][$pos] = array();
                         foreach ($rec as $key => $val) {
                             $res[$i][$pos][trim($key, '\'"[]`')] = $val;
                         }
@@ -789,7 +810,7 @@ class Connection
 
                 if ($ttl) {
                     // Save to cache backend
-                    $this->cache->set($hash, $res[$i], $ttl);
+                    $this->app->cacheSet($hash, $res[$i], $ttl);
                 }
             } else {
                 $this->rows = $res[$i] = $query->rowcount();
@@ -803,15 +824,15 @@ class Connection
             $this->commit();
         }
 
-        return $one ? $res[0] ?? null : $res;
+        return $one ? array_shift($res) : $res;
     }
 
     /**
-     * Get rows count affected by last query.
+     * Returns rows count affected by last query.
      *
      * @return int
      */
-    public function getRows(): int
+    public function getRows()
     {
         return $this->rows;
     }
@@ -823,7 +844,7 @@ class Connection
      *
      * @return bool
      */
-    public function exists(string $table): bool
+    public function exists($table)
     {
         $mode = $this->pdo()->getAttribute(\PDO::ATTR_ERRMODE);
         $this->pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_SILENT);
@@ -842,24 +863,26 @@ class Connection
      *
      * @return string
      */
-    private function buildLog(array $data, float $update = 0, string $prior = null): string
+    private function buildLog(array $data, $update = 0, $prior = null)
     {
-        $use = $data + ['', [], $update, false];
+        $use = $data + array('', array(), $update, false);
         $time = '('.($use[2] ? sprintf('%.1f', 1e3 * (microtime(true) - $use[2])) : '-0').'ms)';
 
         if ($prior && $update) {
             return str_replace('(-0ms)', $time, $prior);
         }
 
-        $keys = $vals = [];
+        $keys = $vals = array();
 
         foreach ($use[1] as $key => $val) {
             if (is_array($val)) {
                 // User-specified data type
-                $vals[] = App::stringify($use[3] ? $val[0] : $this->phpValue($val[1], $val[0]));
+                $toStr = $use[3] ? $val[0] : $this->phpValue($val[1], $val[0]);
             } else {
-                $vals[] = App::stringify($use[3] ? $val : $this->phpValue($this->realPdoType($val), $val));
+                $toStr = $use[3] ? $val : $this->phpValue($this->realPdoType($val), $val);
             }
+
+            $vals[] = var_export($toStr, true);
             $keys[] = '/'.preg_quote(is_numeric($key) ? chr(0).'?' : $key).'/';
         }
 
@@ -867,46 +890,7 @@ class Connection
     }
 
     /**
-     * Create pdo dsn.
-     *
-     * @param string $driver
-     * @param array  $options
-     *
-     * @return string
-     *
-     * @throws LogicException If no logic found for creating driver DSN
-     */
-    private function createDsn(string $driver, array $options): string
-    {
-        switch ($driver) {
-            case self::DB_MYSQL:
-                if (isset($options['server'], $options['username'], $options['dbname'])) {
-                    return
-                        $driver.
-                        ':host='.$options['server'].
-                        ';port='.$options['port'].
-                        ';dbname='.$options['dbname'];
-                }
-
-                $error = 'Invalid mysql driver configuration';
-                break;
-
-            case self::DB_SQLITE:
-            case self::DB_SQLITE2:
-                if (isset($options['location'])) {
-                    // location can be full filepath or :memory:
-                    return $driver.':'.$options['location'];
-                }
-
-                $error = 'Invalid sqlite driver configuration';
-                break;
-        }
-
-        throw new \LogicException($error ?? 'There is no logic for '.$driver.' DSN creation, please provide a valid one');
-    }
-
-    /**
-     * Get schema command.
+     * Returns schema command.
      *
      * @param string $table
      * @param string $dbname
@@ -915,28 +899,32 @@ class Connection
      *
      * @throws LogicException
      */
-    private function schemaCmd(string $table, string $dbname): array
+    private function schemaCmd($table, $dbname)
     {
-        // Supported engines
-        static $groups = [
-            1 => [self::DB_SQLITE, self::DB_SQLITE2],
-            [self::DB_MYSQL],
-            [self::DB_MSSQL, self::DB_SQLSRV, self::DB_SYBASE, self::DB_DBLIB, self::DB_PGSQL, self::DB_ODBC],
-            [self::DB_OCI],
-        ];
-
         $tbl = $this->quotekey($table);
-        $db = $dbname ? $this->quotekey($dbname) : '';
-        $cmds = [
-            1 => [
+        $db = $this->quotekey($dbname);
+        $engines = array(
+            self::DB_SQLITE => 1,
+            self::DB_SQLITE2 => 1,
+            self::DB_MYSQL => 2,
+            self::DB_MSSQL => 3,
+            self::DB_SQLSRV => 3,
+            self::DB_SYBASE => 3,
+            self::DB_DBLIB => 3,
+            self::DB_PGSQL => 3,
+            self::DB_ODBC => 3,
+            self::DB_OCI => 4,
+        );
+        $cmds = array(
+            1 => array(
                 'PRAGMA table_info('.$tbl.')',
                 'name', 'type', 'dflt_value', 'notnull', 0, 'pk', true,
-            ],
-            [
+            ),
+            array(
                 'SHOW columns FROM '.$db.'.'.$tbl,
                 'Field', 'Type', 'Default', 'Null', 'YES', 'Key', 'PRI',
-            ],
-            [
+            ),
+            array(
                 'SELECT '.
                     'C.COLUMN_NAME AS field,'.
                     'C.DATA_TYPE AS type,'.
@@ -961,8 +949,8 @@ class Connection
                     'C.TABLE_NAME='.$tbl.
                     ($db ? ' AND C.TABLE_CATALOG='.$tbl : ''),
                 'field', 'type', 'defval', 'nullable', 'YES', 'pkey', 'PRIMARY KEY',
-            ],
-            [
+            ),
+            array(
                 'SELECT c.column_name AS field, '.
                     'c.data_type AS type, '.
                     'c.data_default AS defval, '.
@@ -977,17 +965,17 @@ class Connection
                 'FROM all_tab_cols c '.
                 'WHERE c.table_name='.$tbl,
                 'FIELD', 'TYPE', 'DEFVAL', 'NULLABLE', 'Y', 'PKEY', 'P',
-            ],
-        ];
+            ),
+        );
         $driver = $this->getDriver();
 
-        foreach ($groups as $id => $members) {
-            if (in_array($driver, $members)) {
-                return $cmds[$id];
-            }
+        if (isset($engines[$driver])) {
+            $id = $engines[$driver];
+
+            return $cmds[$id];
         }
 
-        throw new \DomainException('Driver '.$driver.' is not supported');
+        throw new \DomainException('Driver '.$driver.' is not supported.');
     }
 
     /**
@@ -997,14 +985,13 @@ class Connection
      *
      * @return mixed
      */
-    private function schemaDefaultValue(string $value)
+    private function schemaDefaultValue($value)
     {
-        return Helper::cast(preg_replace('/^\s*([\'"])(.*)\1\s*/', '\2', $value));
+        return App::cast(preg_replace('/^\s*([\'"])(.*)\1\s*/', '\2', $value));
     }
 
     /**
      * Prohibit cloning.
-     *
      *
      * @codeCoverageIgnore
      */

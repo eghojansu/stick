@@ -9,26 +9,24 @@
  * file that was distributed with this source code.
  */
 
-declare(strict_types=1);
-
 namespace Fal\Stick;
 
 /**
- * Base class for Response Error.
+ * Response exception.
  *
  * @author Eko Kurniawan <ekokurniawanbs@gmail.com>
  */
-class ResponseException extends \Exception
+class ResponseException extends \LogicException
 {
     /**
      * Class constructor.
      *
-     * @param string|null    $message
-     * @param int            $code
-     * @param Throwable|null $previous
+     * @param int    $code
+     * @param string $message
+     * @param mixed  $previous
      */
-    public function __construct(string $message = null, int $code = 500, \Throwable $previous = null)
+    public function __construct($code, $message = null, $previous = null)
     {
-        parent::__construct($message ?? '', $code, $previous);
+        parent::__construct($message, $code, $previous);
     }
 }

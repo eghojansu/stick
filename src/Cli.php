@@ -9,32 +9,23 @@
  * file that was distributed with this source code.
  */
 
-declare(strict_types=1);
-
 namespace Fal\Stick;
 
 /**
- * Cli helper.
+ * Console output helper.
  *
  * Color output from: https://www.if-not-true-then-false.com/2010/php-class-for-coloring-php-command-line-cli-scripts-output-php-output-colorizing-using-bash-shell-colors/
  *
  * @author Eko Kurniawan <ekokurniawanbs@gmail.com>
  */
-class Cli
+final class Cli
 {
-    /**
-     * Console width.
-     *
-     * @var int
-     */
-    private $width;
-
     /**
      * Foreground color.
      *
      * @var array
      */
-    private $fgColors = [
+    private static $fgColors = array(
         'black' => '0;30',
         'dark_gray' => '1;30',
         'blue' => '0;34',
@@ -51,14 +42,14 @@ class Cli
         'yellow' => '1;33',
         'light_gray' => '0;37',
         'white' => '1;37',
-    ];
+    );
 
     /**
      * Background color.
      *
      * @var array
      */
-    private $bgColors = [
+    private static $bgColors = array(
         'black' => '40',
         'red' => '41',
         'green' => '42',
@@ -67,130 +58,7 @@ class Cli
         'magenta' => '45',
         'cyan' => '46',
         'light_gray' => '47',
-    ];
-
-    /**
-     * Expression color map.
-     *
-     * @var array
-     */
-    private $exprColorMap = [
-        'success' => 'green',
-        'warning' => 'yellow',
-        'danger' => 'red',
-        'info' => 'cyan',
-    ];
-
-    /**
-     * Class constructor.
-     *
-     * @param int $width
-     */
-    public function __construct(int $width = 80)
-    {
-        $this->setWidth($width);
-    }
-
-    /**
-     * Get width.
-     *
-     * @return int
-     */
-    public function getWidth(): int
-    {
-        return $this->width;
-    }
-
-    /**
-     * Set width.
-     *
-     * @param int $width
-     *
-     * @return Cli
-     */
-    public function setWidth(int $width): Cli
-    {
-        $this->width = min($width, $this->getConsoleWidth());
-
-        return $this;
-    }
-
-    /**
-     * Get console width.
-     *
-     * @return int
-     */
-    public function getConsoleWidth(): int
-    {
-        return 80;
-    }
-
-    /**
-     * Update expr color map.
-     *
-     * @param string $expr
-     * @param string $color
-     *
-     * @return Cli
-     */
-    public function setExprColorMap(string $expr, string $color): Cli
-    {
-        $this->exprColorMap[$expr] = $color;
-
-        return $this;
-    }
-
-    /**
-     * Block success.
-     *
-     * @param string $line
-     * @param int    $newline
-     *
-     * @return Cli
-     */
-    public function success(string $line, int $newline = 1): Cli
-    {
-        return $this->block('Success!'.PHP_EOL.PHP_EOL.$line, 'white:success', $newline);
-    }
-
-    /**
-     * Block danger.
-     *
-     * @param string $line
-     * @param int    $newline
-     *
-     * @return Cli
-     */
-    public function danger(string $line, int $newline = 1): Cli
-    {
-        return $this->block('!!!Alert!!!'.PHP_EOL.PHP_EOL.$line, 'white:danger', $newline);
-    }
-
-    /**
-     * Block warning.
-     *
-     * @param string $line
-     * @param int    $newline
-     *
-     * @return Cli
-     */
-    public function warning(string $line, int $newline = 1): Cli
-    {
-        return $this->block('Warning:'.PHP_EOL.PHP_EOL.$line, 'white:warning', $newline);
-    }
-
-    /**
-     * Block info.
-     *
-     * @param string $line
-     * @param int    $newline
-     *
-     * @return Cli
-     */
-    public function info(string $line, int $newline = 1): Cli
-    {
-        return $this->block('Info:'.PHP_EOL.PHP_EOL.$line, 'white:info', $newline);
-    }
+    );
 
     /**
      * Write to console with new line.
@@ -201,41 +69,11 @@ class Cli
      *
      * @return Cli
      */
-    public function block(string $line, string $color = null, int $newline = 1): Cli
+    public function writeln($line, $color = null, $newline = 1)
     {
-        $lines = $this->parseLine($line, $this->width - 4);
-        $lens = array_map('strlen', $lines);
-        $max = max($lens);
-        $fmt = $this->parseColor($color);
-        $sep = str_repeat(' ', $this->width);
+        $c = $this->parseColor($color);
 
-        $out = $fmt[0].$fmt[1].$sep.PHP_EOL;
-
-        foreach ($lines as $single) {
-            $out .= '  '.str_pad($single, $this->width - 2).PHP_EOL;
-        }
-
-        $out .= $sep.$fmt[2].str_repeat(PHP_EOL, $newline);
-
-        echo $out;
-
-        return $this;
-    }
-
-    /**
-     * Write to console with new line.
-     *
-     * @param string      $line
-     * @param string|null $color   Foreground and background color, separated by colon
-     * @param int         $newline
-     *
-     * @return Cli
-     */
-    public function writeln(string $line, string $color = null, int $newline = 1): Cli
-    {
-        $fmt = $this->parseColor($color);
-
-        echo $fmt[0].$fmt[1].$line.$fmt[2].str_repeat(PHP_EOL, $newline);
+        echo $c[0].$c[1].$line.$c[2].str_repeat(PHP_EOL, $newline);
 
         return $this;
     }
@@ -248,45 +86,28 @@ class Cli
      *
      * @return Cli
      */
-    public function write(string $line, string $color = null): Cli
+    public function write($line, $color = null)
     {
         return $this->writeln($line, $color, 0);
     }
 
     /**
-     * Parse color.
+     * Returns parsed color.
      *
      * @param string|null $color
      *
      * @return array
      */
-    private function parseColor(string $color = null): array
+    private function parseColor($color = null)
     {
-        if (!$color) {
-            return array_fill(0, 3, '');
+        if ($color) {
+            list($fg, $bg) = explode(':', $color) + array(1 => 'none');
+            $fgFix = isset(self::$fgColors[$fg]) ? self::$fgColors[$fg] : self::$fgColors['white'];
+            $bgFix = isset(self::$bgColors[$bg]) ? "\033[".self::$bgColors[$bg].'m' : '';
+
+            return array("\033[".$fgFix.'m', $bgFix, "\033[0m");
         }
 
-        $x = explode(':', $color) + [1 => 1];
-        $fg = $this->exprColorMap[$x[0]] ?? $x[0];
-        $bg = $this->exprColorMap[$x[1]] ?? $x[1];
-
-        return [
-            "\033[".($this->fgColors[$fg] ?? $this->fgColors['white']).'m',
-            isset($this->bgColors[$bg]) ? "\033[".$this->bgColors[$bg].'m' : '',
-            "\033[0m",
-        ];
-    }
-
-    /**
-     * String line to array, after wrapped.
-     *
-     * @param string $line
-     * @param int    $width
-     *
-     * @return array
-     */
-    private function parseLine(string $line, int $width): array
-    {
-        return explode("\n", wordwrap(preg_replace('/\r\n|\r/', "\n", $line), $width));
+        return array('', '', '');
     }
 }

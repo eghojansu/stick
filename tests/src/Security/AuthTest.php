@@ -9,16 +9,14 @@
  * file that was distributed with this source code.
  */
 
-declare(strict_types=1);
-
 namespace Fal\Stick\Test\Security;
 
 use Fal\Stick\App;
 use Fal\Stick\Security\Auth;
+use Fal\Stick\Security\InMemoryUserProvider;
 use Fal\Stick\Security\PlainPasswordEncoder;
+use Fal\Stick\Security\SimpleUser;
 use Fal\Stick\Security\SimpleUserTransformer;
-use Fal\Stick\Security\SqlUserProvider;
-use Fal\Stick\Sql\Connection;
 use PHPUnit\Framework\TestCase;
 
 class AuthTest extends TestCase
@@ -28,211 +26,101 @@ class AuthTest extends TestCase
 
     public function setUp()
     {
-        $this->app = App::create()->mset([
-            'TEMP' => TEMP,
-        ])->logClear()->on(App::EVENT_REROUTE, function (App $app, $url) {
-            $app['rerouted'] = $url;
-        });
-        $cache = $this->app->get('cache');
-        $cache->reset();
+        $this->app = new App();
+        $provider = new InMemoryUserProvider(new SimpleUserTransformer());
 
-        $db = new Connection($this->app, $cache, [
-            'driver' => 'sqlite',
-            'location' => ':memory:',
-            'debug' => true,
-            'commands' => [
-                <<<SQL1
-CREATE TABLE `user` (
-    `id` INTEGER NOT null PRIMARY KEY AUTOINCREMENT,
-    `username` TEXT NOT null,
-    `password` TEXT NOT NULL DEFAULT NULL,
-    `roles` TEXT NOT NULL,
-    `expired` INTEGER NOT NULL
-);
-insert into user (username,password,expired,roles)
-    values ("foo","bar",0,"role_foo,role_bar"), ("baz","qux",1,"role_foo")
-SQL1
-,
-            ],
-        ]);
-        $this->auth = new Auth($this->app, new SqlUserProvider($db, new SimpleUserTransformer()), new PlainPasswordEncoder());
+        $this->auth = new Auth($this->app, $provider, new PlainPasswordEncoder());
     }
 
-    public function testAttempt()
+    private function createUser($roles = null, $expired = false)
     {
-        $this->auth->setOptions(['redirect' => '/secure']);
-
-        $this->assertTrue($this->auth->attempt('foo', 'bar', $message));
-        $this->assertNull($message);
-
-        $this->assertFalse($this->auth->attempt('baz', 'qux', $message));
-        $this->assertEquals(Auth::ERROR_CREDENTIAL_EXPIRED, $message);
-        $this->assertNull($this->app['rerouted']);
-
-        $this->assertFalse($this->auth->attempt('foo', 'quux', $message));
-        $this->assertEquals(Auth::ERROR_CREDENTIAL_INVALID, $message);
-        $this->assertNull($this->app['rerouted']);
-
-        $this->assertFalse($this->auth->attempt('foox', 'quux', $message));
-        $this->assertEquals(Auth::ERROR_CREDENTIAL_INVALID, $message);
-        $this->assertNull($this->app['rerouted']);
-    }
-
-    public function testLogin()
-    {
-        $user = $this->auth->getProvider()->findById('1');
-        $this->auth->login($user);
-        $this->assertEquals($user, $this->auth->getUser());
-        $this->assertEquals('1', $this->app['SESSION']['user_login_id']);
-    }
-
-    public function testLoginEvent()
-    {
-        $user = $this->auth->getProvider()->findById('1');
-        $user2 = $this->auth->getProvider()->findById('2');
-
-        $this->app->one(Auth::EVENT_LOGIN, function () {
-            return true;
-        });
-        $this->auth->login($user);
-        $this->assertEquals($user, $this->auth->getUser());
-        $this->assertEquals('1', $this->app['SESSION']['user_login_id']);
-        unset($this->app['SESSION']['user_login_id']);
-
-        $this->app->one(Auth::EVENT_LOGIN, function ($user, Auth $auth) use ($user2) {
-            $auth->setUser(clone $user2);
-        });
-        $this->auth->login($user);
-        $this->assertEquals($user2, $this->auth->getUser());
-        $this->assertFalse(isset($this->app['SESSION']['user_login_id']));
-    }
-
-    public function testLogout()
-    {
-        $user = $this->auth->getProvider()->findById('1');
-        $this->auth->login($user);
-        $this->assertEquals('1', $this->app['SESSION']['user_login_id']);
-
-        $this->auth->logout();
-        $this->assertFalse(isset($this->app['SESSION']['user_login_id']));
-
-        $this->app->on(Auth::EVENT_LOGOUT, function ($user, Auth $auth) {
-            $auth->setUser(null);
-        });
-        $this->auth->logout();
-        $this->assertNull($this->auth->getUser());
-    }
-
-    public function testGetUser()
-    {
-        $this->assertNull($this->auth->getUser());
-
-        $user = $this->auth->getProvider()->findById('1');
-        $user2 = $this->auth->getProvider()->findById('2');
-        $this->auth->setUser($user);
-
-        $this->assertEquals($user, $this->auth->getUser());
-
-        $this->auth->logout();
-        $this->app->one(Auth::EVENT_LOADUSER, function (Auth $auth) use ($user2) {
-            $auth->setUser(clone $user2);
-        });
-        $this->assertEquals($user2, $this->auth->getUser());
-
-        $this->auth->logout();
-        $this->app['SESSION']['user_login_id'] = '1';
-        $this->assertEquals($user, $this->auth->getUser());
-    }
-
-    public function testSetUser()
-    {
-        $user = $this->auth->getProvider()->findById('1');
-        $this->auth->setUser($user);
-
-        $this->assertEquals($user, $this->auth->getUser());
-
-        $this->auth->setUser(null);
-        $this->assertNull($this->auth->getUser());
+        return new SimpleUser('1', 'foo', 'bar', $roles, $expired);
     }
 
     public function testIsLogged()
     {
         $this->assertFalse($this->auth->isLogged());
-        $user = $this->auth->getProvider()->findById('1');
-        $this->auth->setUser($user);
-
-        $this->assertTrue($this->auth->isLogged());
     }
 
-    public function testGuard()
+    public function testGetOptions()
     {
-        $secure = '/secure';
-        $this->auth->setOptions(['rules' => [$secure => 'role_bar'], 'redirect' => $secure]);
-
-        $user = $this->auth->getProvider()->findById('1');
-        $this->auth->setUser($user);
-        $this->app['PATH'] = '/login';
-
-        $rerouted = $this->auth->guard();
-        $this->assertTrue($rerouted);
-        $this->assertEquals($secure, $this->app['rerouted']);
-        unset($this->app['rerouted']);
-
-        // valid access
-        $this->app['PATH'] = $secure;
-        $rerouted = $this->auth->guard();
-        $this->assertFalse($rerouted);
-        $this->assertNull($this->app['rerouted']);
-        unset($this->app['rerouted']);
-
-        // on un-protected path
-        $this->app['PATH'] = '/foo';
-        $rerouted = $this->auth->guard();
-        $this->assertFalse($rerouted);
-        $this->assertNull($this->app['rerouted']);
-        unset($this->app['rerouted']);
-
-        // reset, access secure
-        $this->auth->setUser(null);
-        $this->app['PATH'] = $secure;
-        $rerouted = $this->auth->guard();
-        $this->assertTrue($rerouted);
-        $this->assertEquals('/login', $this->app['rerouted']);
-        unset($this->app['rerouted']);
-
-        // access login
-        $this->app['PATH'] = '/login';
-        $rerouted = $this->auth->guard();
-        $this->assertFalse($rerouted);
-        $this->assertNull($this->app['rerouted']);
-        unset($this->app['rerouted']);
+        $this->assertEquals(array(
+            'loginPath' => '/login',
+            'redirect' => '/',
+            'rules' => array(),
+            'roleHierarchy' => array(),
+        ), $this->auth->getOptions());
     }
 
-    public function testIsGranted()
+    public function testSetOptions()
     {
-        $user = $this->auth->getProvider()->findById('1');
-        $this->auth->setUser($user);
+        $this->assertEquals(array(
+            'loginPath' => '/foo',
+            'redirect' => '/',
+            'rules' => array(),
+            'roleHierarchy' => array(),
+        ), $this->auth->setOptions(array(
+            'loginPath' => '/foo',
+        ))->getOptions());
+    }
 
-        $this->assertTrue($this->auth->isGranted('role_foo'));
-        $this->assertTrue($this->auth->isGranted('role_bar'));
-        $this->assertTrue($this->auth->isGranted('role_foo,role_bar'));
-        $this->assertTrue($this->auth->isGranted(['role_foo', 'role_bar']));
+    public function testGetSessionUserId()
+    {
+        $this->assertNull($this->auth->getSessionUserId());
+    }
 
-        $this->assertFalse($this->auth->isGranted(null));
-        $this->assertFalse($this->auth->isGranted(''));
-        $this->assertFalse($this->auth->isGranted('bar'));
-        $this->assertFalse($this->auth->isGranted(['bar']));
+    public function testGetUser()
+    {
+        $this->app->one('auth_load_user', function ($event) {
+            $event->setUser($this->createUser());
+        });
 
-        $user2 = $this->auth->getProvider()->findById('2');
-        $this->auth->setUser($user2);
-        $this->assertFalse($this->auth->isGranted('role_bar'));
-        $this->auth->setOptions(['roleHierarchy' => ['role_foo' => 'role_bar']]);
-        $this->assertTrue($this->auth->isGranted('role_bar'));
+        $user = $this->auth->getUser();
+        $this->assertEquals('1', $user->getId());
+
+        // second call
+        $this->assertSame($user, $this->auth->getUser());
+
+        // reset user
+        $this->auth->logout();
+        $this->auth->getProvider()->addUser('foo', 'bar');
+        $this->app->set('SESSION.user_login_id', 'foo');
+        $user = $this->auth->getUser();
+        $this->assertEquals('foo', $user->getId());
+        $this->assertEquals('foo', $user->getUsername());
+    }
+
+    public function testSetUser()
+    {
+        $user = $this->createUser();
+
+        $this->assertSame($user, $this->auth->setUser($user)->getUser());
+    }
+
+    public function testLogin()
+    {
+        $user = $this->createUser();
+        $this->app->one('auth_login', function ($event) {
+            $event->getUser()->setCredentialsExpired(true);
+        });
+
+        $user = $this->auth->login($user)->getUser();
+        $this->assertTrue($user->isCredentialsExpired());
+        $this->assertEquals($user->getId(), $this->app->get('SESSION.user_login_id'));
+    }
+
+    public function testLogout()
+    {
+        $user = $this->createUser();
+        $user = $this->auth->login($user)->getUser();
+        $this->assertEquals($user->getId(), $this->app->get('SESSION.user_login_id'));
+        $this->auth->logout();
+        $this->assertNull($this->app->get('SESSION.user_login_id'));
     }
 
     public function testGetProvider()
     {
-        $this->assertInstanceOf(SqlUserProvider::class, $this->auth->getProvider());
+        $this->assertInstanceOf(InMemoryUserProvider::class, $this->auth->getProvider());
     }
 
     public function testGetEncoder()
@@ -240,20 +128,98 @@ SQL1
         $this->assertInstanceOf(PlainPasswordEncoder::class, $this->auth->getEncoder());
     }
 
-    public function testGetOptions()
+    public function attemptProvider()
     {
-        $init = [
-            'loginPath' => '/login',
-            'redirect' => '/',
-            'rules' => [],
-            'roleHierarchy' => [],
-        ];
-
-        $this->assertEquals($init, $this->auth->getOptions());
+        return array(
+            array(true, 'foo', 'bar'),
+            array(false, 'bar', 'baz', 'Your credentials is expired.'),
+            array(false, 'foo', 'baz', 'Invalid credentials.'),
+        );
     }
 
-    public function testSetOptions()
+    /**
+     * @dataProvider attemptProvider
+     */
+    public function testAttempt($expected, $username, $password, $expectedMessage = null)
     {
-        $this->assertContains('foo', $this->auth->setOptions(['homepage' => 'foo'])->getOptions());
+        $provider = $this->auth->getProvider();
+        $provider->addUser('foo', 'bar');
+        $provider->addUser('bar', 'baz', array('credentialsExpired' => true));
+
+        $this->assertEquals($expected, $this->auth->attempt($username, $password, $message));
+        $this->assertEquals($expectedMessage, $message);
+    }
+
+    public function isGrantedProvider()
+    {
+        return array(
+            array(false, $this->createUser(), 'ROLE_USER'),
+            array(false, $this->createUser(), null),
+            array(false, null, 'ROLE_USER'),
+            array(true, $this->createUser('ROLE_USER'), 'ROLE_USER'),
+            array(true, $this->createUser('ROLE_ADMIN'), 'ROLE_USER|ROLE_ADMIN'),
+            array(true, $this->createUser('ROLE_SUPER_ADMIN'), 'ROLE_FOO|ROLE_USER|ROLE_ADMIN|ROLE_SUPER_ADMIN'),
+            array(true, $this->createUser('ROLE_SUPER_ADMIN'), 'ROLE_FOO'),
+            array(true, $this->createUser('ROLE_SUPER_ADMIN'), 'ROLE_USER'),
+            array(true, $this->createUser('ROLE_SUPER_ADMIN'), 'ROLE_ADMIN'),
+            array(true, $this->createUser('ROLE_SUPER_ADMIN'), 'ROLE_SUPER_ADMIN'),
+            array(true, $this->createUser('ROLE_FOO'), 'ROLE_FOO'),
+            array(true, $this->createUser('ROLE_USER|ROLE_FOO'), 'ROLE_FOO'),
+        );
+    }
+
+    /**
+     * @dataProvider isGrantedProvider
+     */
+    public function testIsGranted($expected, $user, $roles)
+    {
+        $this->auth->setUser($user);
+        $this->auth->setOptions(array(
+            'roleHierarchy' => array(
+                'ROLE_ADMIN' => 'ROLE_USER',
+                'ROLE_SUPER_ADMIN' => array('ROLE_ADMIN', 'ROLE_FOO'),
+            ),
+        ));
+
+        $this->assertEquals($expected, $this->auth->isGranted($roles));
+    }
+
+    public function guardProvider()
+    {
+        $admin = $this->createUser('ROLE_ADMIN');
+
+        return array(
+            array(null, $admin, '/'),
+            array('Home', $admin, '/login'),
+            array(null, null, '/login'),
+            array('Login', null, '/'),
+        );
+    }
+
+    /**
+     * @dataProvider guardProvider
+     */
+    public function testGuard($expected, $user, $path)
+    {
+        $this->app->mset(array(
+            'QUIET' => true,
+        ));
+        $this->app->route('GET /', function () {
+            return 'Home';
+        });
+        $this->app->route('GET /login', function () {
+            return 'Login';
+        });
+
+        $this->auth->setUser($user);
+        $this->auth->setOptions(array(
+            'rules' => array(
+                '/' => 'ROLE_ADMIN',
+            ),
+        ));
+
+        $this->app->set('PATH', $path);
+        $this->auth->guard();
+        $this->assertEquals($expected, $this->app->get('RESPONSE'));
     }
 }

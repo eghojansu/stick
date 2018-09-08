@@ -9,8 +9,6 @@
  * file that was distributed with this source code.
  */
 
-declare(strict_types=1);
-
 namespace Fal\Stick\Validation;
 
 /**
@@ -21,25 +19,25 @@ namespace Fal\Stick\Validation;
 interface ValidatorInterface
 {
     /**
-     * Check if validator exists.
+     * Returns true if validator can handle the specified rule.
      *
      * @param string $rule
      *
      * @return bool
      */
-    public function has(string $rule): bool;
+    public function has($rule);
 
     /**
-     * Perform validation with given rule.
+     * Returns the return value of performed rule.
      *
-     * @param string $rule
-     * @param mixed  $value
-     * @param array  $args
-     * @param string $field
-     * @param array  $validated
-     * @param array  $raw
+     * @param string      $rule
+     * @param mixed       $value
+     * @param array|null  $args
+     * @param string|null $field
+     * @param array|null  $validated
+     * @param array|null  $raw
      *
      * @return mixed
      */
-    public function validate(string $rule, $value, array $args = [], string $field = '', array $validated = [], array $raw = []);
+    public function validate($rule, $value, array $args = null, $field = null, array $validated = null, array $raw = null);
 }

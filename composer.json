@@ -7,6 +7,9 @@
         "name": "Eko Kurniawan",
         "email": "ekokurniawanbs@gmail.com"
     }],
+    "require": {
+        "php": ">=5.3"
+    },
     "autoload": {
         "psr-4": {
             "Fal\\Stick\\": "src/"
@@ -14,14 +17,10 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "Fal\\Stick\\Test\\": "tests/src/",
-            "Fal\\Stick\\Test\\fixture\\": "tests/fixture/"
+            "Fal\\Stick\\Test\\": "tests/src/"
         }
     },
-    "require": {
-        "php": ">=7.1"
-    },
     "require-dev": {
-        "phpunit/phpunit": "^7.0"
+        "phpunit/phpunit": "^5.7"
     }
 }

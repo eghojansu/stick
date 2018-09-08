@@ -9,8 +9,6 @@
  * file that was distributed with this source code.
  */
 
-declare(strict_types=1);
-
 namespace Fal\Stick\Security;
 
 /**
@@ -21,37 +19,37 @@ namespace Fal\Stick\Security;
 interface UserInterface
 {
     /**
-     * Get id.
+     * Returns id.
      *
      * @return string
      */
-    public function getId(): string;
+    public function getId();
 
     /**
-     * Get username.
+     * Returns username.
      *
      * @return string
      */
-    public function getUsername(): string;
+    public function getUsername();
 
     /**
-     * Get password.
+     * Returns password.
      *
      * @return string
      */
-    public function getPassword(): string;
+    public function getPassword();
 
     /**
-     * Get roles.
+     * Returns roles.
      *
      * @return array
      */
-    public function getRoles(): array;
+    public function getRoles();
 
     /**
-     * Is expired.
+     * Returns credential expired status.
      *
      * @return bool
      */
-    public function isExpired(): bool;
+    public function isCredentialsExpired();
 }

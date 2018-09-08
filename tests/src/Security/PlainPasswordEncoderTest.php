@@ -9,8 +9,6 @@
  * file that was distributed with this source code.
  */
 
-declare(strict_types=1);
-
 namespace Fal\Stick\Test\Security;
 
 use Fal\Stick\Security\PlainPasswordEncoder;
@@ -27,20 +25,12 @@ class PlainPasswordEncoderTest extends TestCase
 
     public function testHash()
     {
-        $plain = 'foo';
-        $hash = $plain;
-        $hash2 = $this->encoder->hash($plain);
-
-        $this->assertTrue($this->encoder->verify($plain, $hash));
-        $this->assertTrue($this->encoder->verify($plain, $hash2));
-        $this->assertEquals($hash, $hash2);
+        $this->assertEquals('foo', $this->encoder->hash('foo'));
     }
 
     public function testVerify()
     {
-        $plain = 'foo';
-        $hash = $plain;
-
-        $this->assertTrue($this->encoder->verify($plain, $hash));
+        $this->assertTrue($this->encoder->verify('foo', 'foo'));
+        $this->assertFalse($this->encoder->verify('bar', 'foo'));
     }
 }

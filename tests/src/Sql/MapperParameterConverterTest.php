@@ -9,126 +9,126 @@
  * file that was distributed with this source code.
  */
 
-declare(strict_types=1);
-
 namespace Fal\Stick\Test\Sql;
 
 use Fal\Stick\App;
 use Fal\Stick\Sql\Connection;
+use Fal\Stick\Sql\Mapper;
 use Fal\Stick\Sql\MapperParameterConverter;
-use Fal\Stick\Test\fixture\mapper\FooBar;
-use Fal\Stick\Translator;
+use FixtureMapper\Friends;
+use FixtureMapper\User;
 use PHPUnit\Framework\TestCase;
 
 class MapperParameterConverterTest extends TestCase
 {
-    /**
-     * @var MapperParameterConverter
-     */
     private $converter;
+    private $app;
 
-    private function create(\Closure $cb, array $raw, array $params)
+    public function tearDown()
     {
-        $app = App::create()->mset([
-            'TEMP' => TEMP,
-        ])->logClear();
-        $cache = $app->get('cache');
-        $cache->reset();
-
-        $conn = new Connection($app, $cache, [
-            'driver' => 'sqlite',
-            'location' => ':memory:',
-            'commands' => <<<SQL1
-CREATE TABLE IF NOT EXISTS `foo_bar` (
-    `foo` TEXT NOT NULL,
-    `bar` TEXT NOT NULL,
-    `val` TEXT,
-    PRIMARY KEY (`foo`,`bar`)
-);
-INSERT INTO foo_bar VALUES (1,1,1), (1,2,2), (1,3,3);
-SQL1
-        ]);
-
-        $ref = new \ReflectionFunction($cb);
-
-        $this->converter = new MapperParameterConverter($conn, new Translator(), $ref, $raw, $params);
+        spl_autoload_unregister(array($this->app, 'loadClass'));
     }
 
-    public function testResolve()
+    private function prepare($handler, array $params)
     {
-        $cb = function (FooBar $foo) {};
-        $raw = [
-            'foo' => 1,
-            'bar' => 1,
-        ];
-        $params = [
-            1,
-        ];
-        $this->create($cb, $raw, $params);
+        $this->app = new App();
+        $this->app->mset(array(
+            'AUTOLOAD' => array(
+                'FixtureMapper\\' => array(FIXTURE.'classes/mapper/'),
+            ),
+        ))->registerAutoloader();
+        $conn = new Connection($this->app, array(
+            'dsn' => 'sqlite::memory:',
+            'commands' => file_get_contents(FIXTURE.'files/schema.sql'),
+        ));
+        $conn->pdo()->exec('insert into user (username) values ("foo"), ("bar"), ("baz")');
+        $conn->pdo()->exec('insert into friends (user_id, friend_id, level) values (1, 2, 3), (2, 3, 4)');
+
+        $this->converter = new MapperParameterConverter($this->app, $conn, $handler, $params);
+    }
+
+    public function resolveProvider()
+    {
+        return array(
+            array(array(), function () {}, array()),
+            array(array('bar'), function ($foo) {}, array('foo' => 'bar')),
+            array(array('bar', 'baz'), function ($foo, $bar) {}, array('foo' => 'bar', 'bar' => 'baz')),
+            array(array('bar', null), function ($foo, $bar) {}, array('foo' => 'bar')),
+        );
+    }
+
+    /**
+     * @dataProvider resolveProvider
+     */
+    public function testResolve($expected, $handler, $params)
+    {
+        $this->prepare($handler, $params);
+
+        $this->assertEquals($expected, $this->converter->resolve());
+    }
+
+    public function testResolveMapper()
+    {
+        $handler = function (User $foo) {};
+        $params = array('foo' => 1);
+        $this->prepare($handler, $params);
+
         $args = $this->converter->resolve();
 
         $this->assertCount(1, $args);
-        $this->assertInstanceof(FooBar::class, $args[0]);
-        $this->assertTrue($args[0]->valid());
-        $this->assertEquals('1', $args[0]['val']);
+        $this->assertInstanceOf(Mapper::class, $args[0]);
+        $this->assertEquals('foo', $args[0]->get('username'));
     }
 
-    public function testResolve2()
+    public function testResolveMapperComposit()
     {
-        $cb = function ($baz, FooBar $foo) {};
-        $raw = [
-            'baz' => 3,
-            'foo' => 1,
-            'bar' => 2,
-            'qux' => 4,
-        ];
-        $params = [
-            3,
-            1,
-        ];
-        $this->create($cb, $raw, $params);
+        $handler = function (Friends $foo) {};
+        $params = array('foo' => 1, 'bar' => 2);
+        $this->prepare($handler, $params);
+
         $args = $this->converter->resolve();
 
-        $this->assertCount(2, $args);
-        $this->assertInstanceof(FooBar::class, $args[1]);
-        $this->assertTrue($args[1]->valid());
-        $this->assertEquals(3, $args[0]);
-        $this->assertEquals('2', $args[1]['val']);
+        $this->assertCount(1, $args);
+        $this->assertInstanceOf(Mapper::class, $args[0]);
+        $this->assertEquals(3, $args[0]->get('level'));
+    }
+
+    public function testResolveMapperOverflowParams()
+    {
+        $handler = function (User $foo) {};
+        $params = array('foo' => 1, 2 /* overflow */);
+        $this->prepare($handler, $params);
+
+        $args = $this->converter->resolve();
+
+        $this->assertCount(1, $args);
+        $this->assertInstanceOf(Mapper::class, $args[0]);
+        $this->assertEquals('foo', $args[0]->get('username'));
     }
 
     /**
      * @expectedException \Fal\Stick\ResponseException
-     * @expectedExceptionMessage Insufficient primary keys value, expect value of "foo, bar".
+     * @expectedExceptionMessage Insufficient primary keys value, expect value of "user_id, friend_id".
      */
-    public function testResolveException()
+    public function testResolveMapperException()
     {
-        $cb = function (FooBar $foo) {};
-        $raw = [
-            'foo' => 1,
-        ];
-        $params = [
-            1,
-        ];
-        $this->create($cb, $raw, $params);
+        $handler = function (Friends $foo) {};
+        $params = array('foo' => 1);
+        $this->prepare($handler, $params);
+
         $this->converter->resolve();
     }
 
     /**
      * @expectedException \Fal\Stick\ResponseException
-     * @expectedExceptionMessage Record of foo_bar not found.
+     * @expectedExceptionMessage Record of user is not found.
      */
-    public function testResolveException2()
+    public function testResolveMapperException2()
     {
-        $cb = function (FooBar $foo) {};
-        $raw = [
-            'foo' => 1,
-            'baz' => 4,
-            'bar' => 2,
-        ];
-        $params = [
-            1,
-        ];
-        $this->create($cb, $raw, $params);
+        $handler = function (User $foo) {};
+        $params = array('foo' => 4);
+        $this->prepare($handler, $params);
+
         $this->converter->resolve();
     }
 }

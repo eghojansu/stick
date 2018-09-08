@@ -9,26 +9,21 @@
  * file that was distributed with this source code.
  */
 
-declare(strict_types=1);
-
 namespace Fal\Stick\Validation;
 
-/**
- * Simplify validator implementation.
- *
- * @author Eko Kurniawan <ekokurniawanbs@gmail.com>
- */
 abstract class AbstractValidator implements ValidatorInterface
 {
     /**
+     * Current rule data.
+     *
      * @var array
      */
-    protected $currentData;
+    protected $data;
 
     /**
      * {@inheritdoc}
      */
-    public function has(string $rule): bool
+    public function has($rule)
     {
         return method_exists($this, '_'.$rule);
     }
@@ -36,13 +31,21 @@ abstract class AbstractValidator implements ValidatorInterface
     /**
      * {@inheritdoc}
      */
-    public function validate(string $rule, $value, array $args = [], string $field = '', array $validated = [], array $raw = [])
+    public function validate($rule, $value, array $args = null, $field = null, array $validated = null, array $raw = null)
     {
-        $use = '_'.$rule;
-        $this->currentData = ['rule' => $rule, 'field' => $field, 'validated' => $validated, 'raw' => $raw];
+        $this->data = array(
+            'rule' => $rule,
+            'field' => $field,
+            'validated' => (array) $validated,
+            'raw' => (array) $raw,
+        );
 
-        $result = $this->$use($value, ...$args);
-        $this->currentData = null;
+        $call = array($this, '_'.$rule);
+        $passedArgs = array_merge(array($value), (array) $args);
+
+        $result = call_user_func_array($call, $passedArgs);
+
+        $this->data = null;
 
         return $result;
     }

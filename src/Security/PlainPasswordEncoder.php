@@ -9,8 +9,6 @@
  * file that was distributed with this source code.
  */
 
-declare(strict_types=1);
-
 namespace Fal\Stick\Security;
 
 /**
@@ -18,12 +16,12 @@ namespace Fal\Stick\Security;
  *
  * @author Eko Kurniawan <ekokurniawanbs@gmail.com>
  */
-class PlainPasswordEncoder implements PasswordEncoderInterface
+final class PlainPasswordEncoder implements PasswordEncoderInterface
 {
     /**
      * {@inheritdoc}
      */
-    public function hash(string $plainText): string
+    public function hash($plainText)
     {
         return $plainText;
     }
@@ -31,8 +29,8 @@ class PlainPasswordEncoder implements PasswordEncoderInterface
     /**
      * {@inheritdoc}
      */
-    public function verify(string $plainText, string $hash): bool
+    public function verify($plainText, $hash)
     {
-        return $plainText === $hash;
+        return 0 === strcmp($hash, $plainText);
     }
 }
