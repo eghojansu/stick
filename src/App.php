@@ -1310,8 +1310,8 @@ final class App implements \ArrayAccess
     /**
      * Copy source to target.
      *
-     * @param  string $source
-     * @param  string $target
+     * @param string $source
+     * @param string $target
      *
      * @return App
      */
@@ -1323,8 +1323,8 @@ final class App implements \ArrayAccess
     /**
      * Copy source to target then remove the source.
      *
-     * @param  string $source
-     * @param  string $target
+     * @param string $source
+     * @param string $target
      *
      * @return App
      */

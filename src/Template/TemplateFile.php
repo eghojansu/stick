@@ -85,6 +85,13 @@ class TemplateFile
     protected $childBlocks;
 
     /**
+     * Real filepath.
+     *
+     * @var string
+     */
+    protected $viewFilepath;
+
+    /**
      * Class constructor.
      *
      * @param Template   $engine
@@ -107,13 +114,13 @@ class TemplateFile
      */
     public function render()
     {
-        $file = is_file($this->file) ? $this->file : $this->findFile();
+        $this->viewFilepath = is_file($this->file) ? $this->file : $this->findFile();
 
         extract($this->engine->getApp()->hive());
         extract($this->data);
         ob_start();
         $this->level = ob_get_level();
-        include $file;
+        include $this->viewFilepath;
         $this->content = ob_get_clean();
 
         return $this->finalizeOutput();
