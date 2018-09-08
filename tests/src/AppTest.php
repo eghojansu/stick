@@ -1753,4 +1753,22 @@ class AppTest extends TestCase
         $this->app->mock('GET /users/4/third-user');
         $this->assertContains($expected, $this->app->get('RESPONSE'));
     }
+
+    public function testCopy()
+    {
+        $this->app->set('foo', 'bar');
+        $this->app->copy('foo', 'bar');
+
+        $this->assertEquals('bar', $this->app->get('bar'));
+        $this->assertEquals('bar', $this->app->get('foo'));
+    }
+
+    public function testCut()
+    {
+        $this->app->set('foo', 'bar');
+        $this->app->cut('foo', 'bar');
+
+        $this->assertEquals('bar', $this->app->get('bar'));
+        $this->assertNull($this->app->get('foo'));
+    }
 }

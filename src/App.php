@@ -1308,6 +1308,32 @@ final class App implements \ArrayAccess
     }
 
     /**
+     * Copy source to target.
+     *
+     * @param  string $source
+     * @param  string $target
+     *
+     * @return App
+     */
+    public function copy($source, $target)
+    {
+        return $this->set($target, $this->ref($source, false));
+    }
+
+    /**
+     * Copy source to target then remove the source.
+     *
+     * @param  string $source
+     * @param  string $target
+     *
+     * @return App
+     */
+    public function cut($source, $target)
+    {
+        return $this->copy($source, $target)->clear($source);
+    }
+
+    /**
      * Load configuration from a file.
      *
      * Expect file which return multidimensional array.
