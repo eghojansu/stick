@@ -113,6 +113,34 @@ class Form
     }
 
     /**
+     * Returns single field value.
+     *
+     * @param string $field
+     * @param mixed  $default
+     *
+     * @return mixed
+     */
+    public function get($field, $default = null)
+    {
+        return array_key_exists($field, $this->data) ? $this->data[$field] : $default;
+    }
+
+    /**
+     * Sets field value.
+     *
+     * @param string $field
+     * @param mixed  $value
+     *
+     * @return Form
+     */
+    public function set($field, $value)
+    {
+        $this->data[$field] = $value;
+
+        return $this;
+    }
+
+    /**
      * Returns the form name.
      *
      * @return string

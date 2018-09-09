@@ -26,11 +26,6 @@ class TemplateTest extends TestCase
         $this->template = new Template($this->app, FIXTURE.'template/');
     }
 
-    public function testGetApp()
-    {
-        $this->assertInstanceOf(App::class, $this->template->getApp());
-    }
-
     public function testGetDirs()
     {
         $this->assertEquals(array(FIXTURE.'template/'), $this->template->getDirs());
@@ -124,5 +119,18 @@ class TemplateTest extends TestCase
         $actual = $this->template->call('macro', array(FIXTURE.'template/macros/foo.php'));
 
         $this->assertEquals($expected, $actual);
+    }
+
+    public function testRenderEvent()
+    {
+        $this->app->on('template_render', function ($event) {
+            $event->setContent('bar');
+        });
+        $this->app->on('template_after_render', function ($event) {
+            $event->setContent('baz');
+        });
+        $content = $this->template->render('foo.php');
+
+        $this->assertEquals('baz', $content);
     }
 }

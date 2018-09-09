@@ -20,6 +20,10 @@ use Fal\Stick\App;
  */
 final class Template
 {
+    // events
+    const EVENT_RENDER = 'template_render';
+    const EVENT_AFTER_RENDER = 'template_after_render';
+
     /**
      * @var App
      */
@@ -59,16 +63,6 @@ final class Template
     {
         $this->app = $app;
         $this->setDirs($dirs);
-    }
-
-    /**
-     * Returns App instance.
-     *
-     * @return App
-     */
-    public function getApp()
-    {
-        return $this->app;
     }
 
     /**
@@ -160,20 +154,31 @@ final class Template
     /**
      * Returns rendered template file.
      *
-     * @param string $file
-     * @param string $mime
+     * @param string     $file
+     * @param array|null $data
+     * @param string     $mime
      *
      * @return string
      */
-    public function render($file, $mime = 'text/html')
+    public function render($file, array $data = null, $mime = 'text/html')
     {
-        $template = new TemplateFile($this, $file);
-        $content = $template->render();
+        $event = new TemplateEvent($file, $data, $mime);
+        $this->app->trigger(self::EVENT_RENDER, $event);
 
-        $this->app->set('HEADERS.Content-Type', $mime);
-        $this->app->set('HEADERS.Content-Length', strlen($content));
+        if ($event->isPropagationStopped()) {
+            $content = $event->getContent();
+        } else {
+            $template = new TemplateFile($this, $this->app, $file, $event->getData());
+            $content = $template->render();
 
-        return $content;
+            $this->app->set('HEADERS.Content-Type', $mime);
+            $this->app->set('HEADERS.Content-Length', strlen($content));
+        }
+
+        $event = new TemplateEvent($file, $event->getData(), $mime, $content);
+        $this->app->trigger(self::EVENT_AFTER_RENDER, $event);
+
+        return $event->getContent();
     }
 
     /**
@@ -228,7 +233,7 @@ final class Template
             $args = array_combine($keys, $args);
         }
 
-        $template = new TemplateFile($this, $realpath, $args);
+        $template = new TemplateFile($this, $this->app, $realpath, $args);
 
         return $template->render();
     }

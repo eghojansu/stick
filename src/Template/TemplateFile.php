@@ -11,6 +11,8 @@
 
 namespace Fal\Stick\Template;
 
+use Fal\Stick\App;
+
 /**
  * Template file wrapper.
  *
@@ -20,6 +22,11 @@ class TemplateFile
 {
     const CLEAN_LEFT = 1;
     const CLEAN_RIGHT = 2;
+
+    /**
+     * @var App
+     */
+    private $app;
 
     /**
      * Template instance.
@@ -85,26 +92,29 @@ class TemplateFile
     protected $childBlocks;
 
     /**
-     * Real filepath.
+     * View realpath.
      *
      * @var string
      */
-    protected $viewFilepath;
+    protected $realpath;
 
     /**
      * Class constructor.
      *
      * @param Template   $engine
+     * @param App        $app
      * @param string     $file
      * @param array|null $data
      * @param array|null $childBlocks
      */
-    public function __construct(Template $engine, $file, array $data = null, array $childBlocks = null)
+    public function __construct(Template $engine, App $app, $file, array $data = null, array $childBlocks = null)
     {
         $this->engine = $engine;
+        $this->app = $app;
         $this->file = $file;
-        $this->data = $data ?: array();
-        $this->childBlocks = $childBlocks ?: array();
+        $this->data = (array) $data;
+        $this->childBlocks = (array) $childBlocks;
+        $this->realpath = is_file($this->file) ? $this->file : $this->findFile();
     }
 
     /**
@@ -114,13 +124,11 @@ class TemplateFile
      */
     public function render()
     {
-        $this->viewFilepath = is_file($this->file) ? $this->file : $this->findFile();
-
-        extract($this->engine->getApp()->hive());
+        extract($this->app->hive());
         extract($this->data);
         ob_start();
         $this->level = ob_get_level();
-        include $this->viewFilepath;
+        include $this->realpath;
         $this->content = ob_get_clean();
 
         return $this->finalizeOutput();
@@ -134,7 +142,7 @@ class TemplateFile
     protected function finalizeOutput()
     {
         if ($this->parent) {
-            $parent = new TemplateFile($this->engine, $this->parent, null, $this->blocks);
+            $parent = new TemplateFile($this->engine, $this->app, $this->parent, null, $this->blocks);
 
             return $parent->render();
         }
@@ -180,7 +188,7 @@ class TemplateFile
      */
     protected function load($file, array $args = null)
     {
-        $template = new TemplateFile($this->engine, $file, $args);
+        $template = new TemplateFile($this->engine, $this->app, $file, $args);
 
         return $template->render();
     }
@@ -287,7 +295,7 @@ class TemplateFile
      */
     protected function service($serviceName)
     {
-        return $this->engine->getApp()->service($serviceName);
+        return $this->app->service($serviceName);
     }
 
     /**
@@ -300,7 +308,7 @@ class TemplateFile
      */
     public function __call($func, $args)
     {
-        return $this->engine->call($func, (array) $args);
+        return $this->engine->call($func, $args);
     }
 
     /**

@@ -1082,7 +1082,7 @@ class AppTest extends TestCase
         $this->registerRoutes();
 
         // Intercept before route
-        $this->app->one('app_preroute', function ($event) {
+        $this->app->one('app_route', function ($event) {
             $event->setResponse('Intercepted');
         })->run();
         $this->assertEquals('Intercepted', $this->app->get('RESPONSE'));
@@ -1099,7 +1099,7 @@ class AppTest extends TestCase
             'ERROR' => false,
             'PATH' => '/str',
         ));
-        $this->app->one('app_postroute', function ($event) {
+        $this->app->one('app_after_route', function ($event) {
             $event->setResponse('Modified');
         })->run();
         $this->assertEquals('Modified', $this->app->get('RESPONSE'));
@@ -1770,5 +1770,13 @@ class AppTest extends TestCase
 
         $this->assertEquals('bar', $this->app->get('bar'));
         $this->assertNull($this->app->get('foo'));
+    }
+
+    public function testFlash()
+    {
+        $this->app->set('foo', 'bar');
+
+        $this->assertEquals('bar', $this->app->flash('foo'));
+        $this->assertFalse($this->app->exists('foo'));
     }
 }

@@ -21,6 +21,99 @@ use Fal\Stick\App;
 class Twbs3Form extends Form
 {
     /**
+     * Left column class name.
+     *
+     * @var string
+     */
+    protected $leftColClass = 'col-sm-2';
+
+    /**
+     * Right column offset class name.
+     *
+     * @var string
+     */
+    protected $rightOffsetColClass = 'col-sm-offset-2';
+
+    /**
+     * Right column class name.
+     *
+     * @var string
+     */
+    protected $rightColClass = 'col-sm-10';
+
+    /**
+     * Returns left column class name.
+     *
+     * @return string
+     */
+    public function getLeftColClass()
+    {
+        return $this->leftColClass;
+    }
+
+    /**
+     * Sets left column class name.
+     *
+     * @param string $leftColClass
+     *
+     * @return Twbs3Form
+     */
+    public function setLeftColClass($leftColClass)
+    {
+        $this->leftColClass = $leftColClass;
+
+        return $this;
+    }
+
+    /**
+     * Returns right column offset class name.
+     *
+     * @return string
+     */
+    public function getRightOffsetColClass()
+    {
+        return $this->rightOffsetColClass;
+    }
+
+    /**
+     * Sets right column offset class name.
+     *
+     * @param string $rightOffsetColClass
+     *
+     * @return Twbs3Form
+     */
+    public function setRightOffsetColClass($rightOffsetColClass)
+    {
+        $this->rightOffsetColClass = $rightOffsetColClass;
+
+        return $this;
+    }
+
+    /**
+     * Returns right column class name.
+     *
+     * @return string
+     */
+    public function getRightColClass()
+    {
+        return $this->rightColClass;
+    }
+
+    /**
+     * Sets right column class name.
+     *
+     * @param string $rightColClass
+     *
+     * @return Twbs3Form
+     */
+    public function setRightColClass($rightColClass)
+    {
+        $this->rightColClass = $rightColClass;
+
+        return $this;
+    }
+
+    /**
      * {@inheritdoc}
      */
     public function open(array $attr = null, $multipart = false)
@@ -117,9 +210,11 @@ class Twbs3Form extends Form
      */
     protected function renderRow($type, $input, $field = null, array $options = null)
     {
+        $rightOffset = $this->rightOffsetColClass.' '.$this->rightColClass;
+
         if ('buttons' === $type) {
             return
-                '<div class="form-group"><div class="col-sm-offset-2 col-sm-10">'.
+                '<div class="form-group"><div class="'.$rightOffset.'">'.
                 $input.
                 '</div></div>'.
                 PHP_EOL;
@@ -135,17 +230,17 @@ class Twbs3Form extends Form
 
         if (in_array($type, array('checkbox', 'radio'))) {
             return
-                '<div class="'.$wrapperClass.'"><div class="col-sm-offset-2 col-sm-10">'.
+                '<div class="'.$wrapperClass.'"><div class="'.$rightOffset.'">'.
                 $input.$errors.
                 '</div></div>'.PHP_EOL;
         }
 
-        $labelAttr = $options['label_attr'] + array('class' => 'control-label col-sm-2');
+        $labelAttr = $options['label_attr'] + array('class' => 'control-label '.$this->leftColClass);
 
         return
             '<div class="'.$wrapperClass.'">'.
             $this->html->label($options['label'], $this->formName($field), $labelAttr).
-            '<div class="col-sm-10">'.
+            '<div class="'.$this->rightColClass.'">'.
             $input.$errors.
             '</div>'.
             '</div>'.PHP_EOL;

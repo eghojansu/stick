@@ -32,8 +32,8 @@ final class App implements \ArrayAccess
     const REQ_SYNC = 4;
 
     const EVENT_BOOT = 'app_boot';
-    const EVENT_PREROUTE = 'app_preroute';
-    const EVENT_POSTROUTE = 'app_postroute';
+    const EVENT_ROUTE = 'app_route';
+    const EVENT_AFTER_ROUTE = 'app_after_route';
     const EVENT_CONTROLLER_ARGS = 'app_controller_args';
     const EVENT_REROUTE = 'app_reroute';
     const EVENT_ERROR = 'app_error';
@@ -1291,7 +1291,7 @@ final class App implements \ArrayAccess
      */
     public function prepend($key, $str)
     {
-        return $this->set($key, $str.$this->ref($key, false));
+        return $this->set($key, $str.$this->get($key));
     }
 
     /**
@@ -1304,7 +1304,7 @@ final class App implements \ArrayAccess
      */
     public function append($key, $str)
     {
-        return $this->set($key, $this->ref($key, false).$str);
+        return $this->set($key, $this->get($key).$str);
     }
 
     /**
@@ -1317,7 +1317,7 @@ final class App implements \ArrayAccess
      */
     public function copy($source, $target)
     {
-        return $this->set($target, $this->ref($source, false));
+        return $this->set($target, $this->get($source));
     }
 
     /**
@@ -1331,6 +1331,21 @@ final class App implements \ArrayAccess
     public function cut($source, $target)
     {
         return $this->copy($source, $target)->clear($source);
+    }
+
+    /**
+     * Get source value then remove from hive.
+     *
+     * @param string $source
+     *
+     * @return mixed
+     */
+    public function flash($source)
+    {
+        $val = $this->get($source);
+        $this->clear($source);
+
+        return $val;
     }
 
     /**
@@ -1922,10 +1937,12 @@ final class App implements \ArrayAccess
             $path = $target;
         }
 
-        if (!isset($url) && '/' === $path[0] && (empty($path[1]) || '/' !== $path[1])) {
-            $url = $this->hive['BASEURL'].$this->hive['ENTRY'].$path;
-        } else {
+        if (empty($url)) {
             $url = $path;
+
+            if ('/' === $path[0] && (empty($path[1]) || '/' !== $path[1])) {
+                $url = $this->hive['BASEURL'].$this->hive['ENTRY'].$path;
+            }
         }
 
         $event = new ReroutingEvent($url, $permanent);
@@ -2439,7 +2456,7 @@ final class App implements \ArrayAccess
         // @codeCoverageIgnoreEnd
 
         $event = new GetResponseEvent();
-        $this->trigger(self::EVENT_PREROUTE, $event);
+        $this->trigger(self::EVENT_ROUTE, $event);
 
         if ($event->isPropagationStopped()) {
             $code = $event->getCode();
@@ -2503,7 +2520,7 @@ final class App implements \ArrayAccess
                     $result = $this->call($controller, $args);
 
                     $event = new GetResponseForControllerEvent($result, $this->hive['HEADERS']);
-                    $this->trigger(self::EVENT_POSTROUTE, $event);
+                    $this->trigger(self::EVENT_AFTER_ROUTE, $event);
 
                     $result = $event->getResult();
 

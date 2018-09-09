@@ -21,16 +21,16 @@ use Fal\Stick\App;
 class Mapper implements \ArrayAccess
 {
     // Paginate perpage
-    const PERPAGE = 10;
+    const PAGINATE_LIMIT = 10;
 
     // Supported events
     const EVENT_LOAD = 'sql_mapper_load';
-    const EVENT_BEFOREINSERT = 'sql_mapper_before_insert';
     const EVENT_INSERT = 'sql_mapper_insert';
-    const EVENT_BEFOREUPDATE = 'sql_mapper_before_update';
+    const EVENT_AFTER_INSERT = 'sql_mapper_after_insert';
     const EVENT_UPDATE = 'sql_mapper_update';
-    const EVENT_BEFOREDELETE = 'sql_mapper_before_delete';
+    const EVENT_AFTER_UPDATE = 'sql_mapper_after_update';
     const EVENT_DELETE = 'sql_mapper_delete';
+    const EVENT_AFTER_DELETE = 'sql_mapper_after_delete';
 
     /**
      * @var Connection
@@ -395,7 +395,7 @@ class Mapper implements \ArrayAccess
     public function paginate($page = 1, $filter = null, array $options = null, $ttl = 0)
     {
         $use = (array) $options;
-        $limit = App::pick($use, 'perpage', static::PERPAGE);
+        $limit = App::pick($use, 'perpage', static::PAGINATE_LIMIT);
         $total = $this->count($filter, $options, $ttl);
         $pages = (int) ceil($total / $limit);
         $subset = array();
@@ -547,7 +547,7 @@ class Mapper implements \ArrayAccess
         $driver = $this->db->getDriver();
 
         $event = new MapperEvent($this);
-        $this->db->getApp()->trigger(self::EVENT_BEFOREINSERT, $event);
+        $this->db->getApp()->trigger(self::EVENT_INSERT, $event);
 
         if ($event->isPropagationStopped()) {
             return $this;
@@ -596,7 +596,7 @@ class Mapper implements \ArrayAccess
         }
 
         $event = new MapperEvent($this);
-        $this->db->getApp()->trigger(self::EVENT_INSERT, $event);
+        $this->db->getApp()->trigger(self::EVENT_AFTER_INSERT, $event);
 
         return $this;
     }
@@ -615,7 +615,7 @@ class Mapper implements \ArrayAccess
         $changes = array();
 
         $event = new MapperEvent($this);
-        $this->db->getApp()->trigger(self::EVENT_BEFOREUPDATE, $event);
+        $this->db->getApp()->trigger(self::EVENT_UPDATE, $event);
 
         if ($event->isPropagationStopped()) {
             return $this;
@@ -653,7 +653,7 @@ class Mapper implements \ArrayAccess
         $this->fields = $changes;
 
         $event = new MapperEvent($this);
-        $this->db->getApp()->trigger(self::EVENT_UPDATE, $event);
+        $this->db->getApp()->trigger(self::EVENT_AFTER_UPDATE, $event);
 
         return $this;
     }
@@ -701,7 +701,7 @@ class Mapper implements \ArrayAccess
         }
 
         $event = new MapperEvent($this);
-        $this->db->getApp()->trigger(self::EVENT_BEFOREDELETE, $event);
+        $this->db->getApp()->trigger(self::EVENT_DELETE, $event);
 
         if ($event->isPropagationStopped()) {
             return 0;
@@ -714,7 +714,7 @@ class Mapper implements \ArrayAccess
                        array_slice($this->query, $this->ptr, null, true);
 
         $event = new MapperEvent($this);
-        $this->db->getApp()->trigger(self::EVENT_DELETE, $event);
+        $this->db->getApp()->trigger(self::EVENT_AFTER_DELETE, $event);
         $this->first();
 
         return $out;

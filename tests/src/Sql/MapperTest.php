@@ -390,7 +390,7 @@ class MapperTest extends TestCase
     public function testDelete()
     {
         $this->filldb();
-        $this->mapper->db()->getApp()->one(Mapper::EVENT_BEFOREDELETE, function ($event) {
+        $this->mapper->db()->getApp()->one('sql_mapper_delete', function ($event) {
             $event->stopPropagation();
         });
 
@@ -409,7 +409,7 @@ class MapperTest extends TestCase
     {
         $this->filldb();
 
-        $this->mapper->db()->getApp()->one(Mapper::EVENT_BEFOREUPDATE, function ($event) {
+        $this->mapper->db()->getApp()->one('sql_mapper_update', function ($event) {
             $event->stopPropagation();
         });
 
@@ -428,7 +428,7 @@ class MapperTest extends TestCase
 
     public function testInsert()
     {
-        $this->mapper->db()->getApp()->one(Mapper::EVENT_BEFOREINSERT, function ($event) {
+        $this->mapper->db()->getApp()->one('sql_mapper_insert', function ($event) {
             $event->stopPropagation();
         });
 

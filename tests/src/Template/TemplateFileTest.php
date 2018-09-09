@@ -31,7 +31,7 @@ class TemplateFileTest extends TestCase
 
     private function prepareFile($file)
     {
-        $this->file = new TemplateFile($this->engine, $file);
+        $this->file = new TemplateFile($this->engine, $this->app, $file);
     }
 
     private function removeAllWhiteSpace($str)

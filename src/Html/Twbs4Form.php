@@ -20,6 +20,13 @@ use Fal\Stick\App;
  */
 class Twbs4Form extends Twbs3Form
 {
+    /**
+     * Returns validation class name.
+     *
+     * @param string $field
+     *
+     * @return string
+     */
     private function validationClass($field)
     {
         if ($this->submitted && isset($this->fields[$field]['options']['constraints'])) {
@@ -198,7 +205,7 @@ class Twbs4Form extends Twbs3Form
     {
         if ('buttons' === $type) {
             return
-                '<div class="form-group row"><div class="ml-auto col-sm-10">'.
+                '<div class="form-group row"><div class="ml-auto '.$this->rightColClass.'">'.
                 $input.
                 '</div></div>'.
                 PHP_EOL;
@@ -210,17 +217,17 @@ class Twbs4Form extends Twbs3Form
 
         if (in_array($type, array('checkbox', 'radio'))) {
             return
-                '<div class="'.$wrapperClass.'"><div class="ml-auto col-sm-10">'.
+                '<div class="'.$wrapperClass.'"><div class="ml-auto '.$this->rightColClass.'">'.
                 $input.$errors.
                 '</div></div>'.PHP_EOL;
         }
 
-        $labelAttr = $options['label_attr'] + array('class' => 'col-form-label col-sm-2');
+        $labelAttr = $options['label_attr'] + array('class' => 'col-form-label '.$this->leftColClass);
 
         return
             '<div class="'.$wrapperClass.'">'.
             $this->html->label($options['label'], $this->formName($field), $labelAttr).
-            '<div class="col-sm-10">'.
+            '<div class="'.$this->rightColClass.'">'.
             $input.$errors.
             '</div>'.
             '</div>'.PHP_EOL;

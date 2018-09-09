@@ -361,4 +361,14 @@ class FormTest extends TestCase
         ));
         $this->form->row('foo');
     }
+
+    public function testGet()
+    {
+        $this->assertNull($this->form->get('foo'));
+    }
+
+    public function testSet()
+    {
+        $this->assertEquals('bar', $this->form->set('foo', 'bar')->get('foo'));
+    }
 }

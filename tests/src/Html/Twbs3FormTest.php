@@ -215,4 +215,34 @@ class Twbs3FormTest extends TestCase
         $this->form->addButton('foo');
         $this->assertEquals($expected, $this->form->buttons());
     }
+
+    public function testGetLeftColClass()
+    {
+        $this->assertEquals('col-sm-2', $this->form->getLeftColClass());
+    }
+
+    public function testSetLeftColClass()
+    {
+        $this->assertEquals('foo', $this->form->setLeftColClass('foo')->getLeftColClass());
+    }
+
+    public function testGetRightOffsetColClass()
+    {
+        $this->assertEquals('col-sm-offset-2', $this->form->getRightOffsetColClass());
+    }
+
+    public function testSetRightOffsetColClass()
+    {
+        $this->assertEquals('foo', $this->form->setRightOffsetColClass('foo')->getRightOffsetColClass());
+    }
+
+    public function testGetRightColClass()
+    {
+        $this->assertEquals('col-sm-10', $this->form->getRightColClass());
+    }
+
+    public function testSetRightColClass()
+    {
+        $this->assertEquals('foo', $this->form->setRightColClass('foo')->getRightColClass());
+    }
 }
