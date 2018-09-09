@@ -861,17 +861,24 @@ final class App implements \ArrayAccess
      */
     public function handleException($e)
     {
-        $message = $e->getMessage().' '.'['.$e->getFile().':'.$e->getLine().']';
+        $message = $e->getMessage();
         $httpCode = 500;
         $errorCode = $e->getCode();
+        $trace = $e->getTrace();
+
+        array_unshift($trace, array(
+            'file' => $e->getFile(),
+            'line' => $e->getLine(),
+            'function' => '***emulated***',
+            'args' => array(),
+        ));
 
         if ($e instanceof ResponseException) {
-            $message = $e->getMessage() ? $message : null;
             $httpCode = $errorCode;
             $errorCode = E_USER_ERROR;
         }
 
-        $this->error($httpCode, $message, $e->gettrace(), $errorCode);
+        $this->error($httpCode, $message, $trace, $errorCode);
     }
 
     /**
@@ -2269,17 +2276,17 @@ final class App implements \ArrayAccess
         $prior = $this->hive['ERROR'];
         $this->hive['ERROR'] = true;
 
-        $this->expire(-1);
-        $this->logByCode($level ?: E_USER_ERROR, $text.PHP_EOL.$traceStr);
-
-        $event = new GetResponseForErrorEvent($httpCode, $status, $message, $traceStr);
-        $this->trigger(self::EVENT_ERROR, $event)->off(self::EVENT_ERROR);
-
         if ($prior) {
             return $this;
         }
 
-        $this->mclear('HEADERS,RESPONSE,KBPS');
+        $event = new GetResponseForErrorEvent($httpCode, $status, $message, $traceStr);
+        $this
+            ->expire(-1)
+            ->logByCode($level ?: E_USER_ERROR, $text.PHP_EOL.$traceStr)
+            ->trigger(self::EVENT_ERROR, $event)
+            ->off(self::EVENT_ERROR)
+            ->mclear('HEADERS,RESPONSE,KBPS');
 
         if ($event->isPropagationStopped()) {
             $this->hive['HEADERS'] = $event->getHeaders();
@@ -2661,7 +2668,7 @@ final class App implements \ArrayAccess
                 if (is_array($check) && !class_exists($check[0])) {
                     $controller = null;
                 } else {
-                    $controller = $this->grab($handler);
+                    $handler = $this->grab($handler);
                 }
             }
         }
