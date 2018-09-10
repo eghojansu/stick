@@ -109,7 +109,7 @@ final class MapperParameterConverter
     {
         $classname = $param->getClass()->name;
 
-        $mapper = new $classname($this->db);
+        $mapper = new $classname($this->app, $this->db);
         $keys = array_keys($mapper->keys());
         $kcount = count($keys);
         $vals = $this->pickstartsat($param->name, $kcount);

@@ -28,7 +28,7 @@ class MapperValidatorTest extends TestCase
             'commands' => file_get_contents(FIXTURE.'files/schema.sql'),
         ));
         $conn->pdo()->exec('insert into user (username, password) values ("foo", "foo"), ("bar", "bar"), ("baz", "baz")');
-        $this->validator = new MapperValidator($conn);
+        $this->validator = new MapperValidator($app, $conn);
     }
 
     public function testHas()

@@ -140,16 +140,6 @@ class Connection
     }
 
     /**
-     * Returns App instance.
-     *
-     * @return App
-     */
-    public function getApp()
-    {
-        return $this->app;
-    }
-
-    /**
      * Returns logLevel.
      *
      * @return string

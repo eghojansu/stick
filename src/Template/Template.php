@@ -168,7 +168,7 @@ final class Template
         if ($event->isPropagationStopped()) {
             $content = $event->getContent();
         } else {
-            $template = new TemplateFile($this, $this->app, $file, $event->getData());
+            $template = new TemplateFile($this->app, $this, $file, $event->getData());
             $content = $template->render();
 
             $this->app->set('HEADERS.Content-Type', $mime);
@@ -233,7 +233,7 @@ final class Template
             $args = array_combine($keys, $args);
         }
 
-        $template = new TemplateFile($this, $this->app, $realpath, $args);
+        $template = new TemplateFile($this->app, $this, $realpath, $args);
 
         return $template->render();
     }

@@ -61,21 +61,6 @@ class ConnectionTest extends TestCase
         $ref->setValue($this->conn, $driver);
     }
 
-    public function testGetApp()
-    {
-        $this->conn->exec('select * from user');
-        $this->conn->exec('insert into user (username) values (?)', array('quux'));
-        $this->conn->exec('insert into user (id,username) values (?,?)', array(array('5', \PDO::PARAM_INT), 'bleh'));
-
-        $logs = $this->conn->getApp()->logFiles();
-        $this->assertCount(1, $logs);
-
-        $log = file_get_contents($logs[0]);
-        $this->assertContains('select * from user', $log);
-        $this->assertContains("insert into user (username) values ('quux')", $log);
-        $this->assertContains("insert into user (id,username) values (5,'bleh')", $log);
-    }
-
     public function testGetOptions()
     {
         $options = $this->conn->getOptions();

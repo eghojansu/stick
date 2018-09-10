@@ -11,6 +11,7 @@
 
 namespace Fal\Stick\Sql;
 
+use Fal\Stick\App;
 use Fal\Stick\Validation\AbstractValidator;
 
 /**
@@ -21,6 +22,11 @@ use Fal\Stick\Validation\AbstractValidator;
 class MapperValidator extends AbstractValidator
 {
     /**
+     * @var App
+     */
+    private $app;
+
+    /**
      * @var Connection
      */
     private $db;
@@ -28,10 +34,12 @@ class MapperValidator extends AbstractValidator
     /**
      * Class constructor.
      *
+     * @param App        $app
      * @param Connection $db
      */
-    public function __construct(Connection $db)
+    public function __construct(App $app, Connection $db)
     {
+        $this->app = $app;
         $this->db = $db;
     }
 
@@ -46,7 +54,7 @@ class MapperValidator extends AbstractValidator
      */
     protected function _exists($val, $table, $column)
     {
-        $mapper = new Mapper($this->db, $table);
+        $mapper = new Mapper($this->app, $this->db, $table);
         $mapper->load(array($column => $val), array('limit' => 1));
 
         return $mapper->valid();
@@ -65,7 +73,7 @@ class MapperValidator extends AbstractValidator
      */
     protected function _unique($val, $table, $column, $fid = null, $id = null)
     {
-        $mapper = new Mapper($this->db, $table);
+        $mapper = new Mapper($this->app, $this->db, $table);
         $mapper->load(array($column => $val), array('limit' => 1));
 
         return $mapper->dry() || ($fid && (!$mapper->exists($fid) || $mapper->get($fid) == $id));

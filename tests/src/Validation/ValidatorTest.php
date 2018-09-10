@@ -46,7 +46,7 @@ class ValidatorTest extends TestCase
             'commands' => file_get_contents(FIXTURE.'files/schema.sql'),
         ));
         $conn->pdo()->exec('insert into user (username, password) values ("foo", "foo"), ("bar", "bar"), ("baz", "baz")');
-        $this->validator->add(new MapperValidator($conn));
+        $this->validator->add(new MapperValidator($this->app, $conn));
 
         $provider = new SqlUserProvider($conn, new SimpleUserTransformer());
         $auth = new Auth($this->app, $provider, new PlainPasswordEncoder());

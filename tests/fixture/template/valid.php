@@ -5,5 +5,5 @@ Valid Template Title
 <?php $this->endBlock() ?>
 
 <?php $this->block('body') ?>
-Valid Template content - <?= $this->section('title') ?>
+<?= $this->parent() ?> - Valid Template content - <?= $this->section('title') ?> - <?= $this->parent() ?>
 <?php $this->endBlock() ?>

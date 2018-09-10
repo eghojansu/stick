@@ -216,9 +216,12 @@ class FormTest extends TestCase
 
     public function testButtons()
     {
-        $expected = '<div><button type="submit" name="form[foo]" id="form_foo">Foo</button></div>'.PHP_EOL;
+        $expected = '<div>'.
+            '<button type="submit" name="form[foo]" id="form_foo">Foo</button>'.
+            ' <a href="#">Bar</a>'.
+            '</div>'.PHP_EOL;
 
-        $this->form->addButton('foo');
+        $this->form->addButton('foo')->addButton('bar', 'a');
         $this->assertEquals($expected, $this->form->buttons());
     }
 
@@ -370,5 +373,17 @@ class FormTest extends TestCase
     public function testSet()
     {
         $this->assertEquals('bar', $this->form->set('foo', 'bar')->get('foo'));
+    }
+
+    public function testMagicGet()
+    {
+        $this->assertNull($this->form->foo);
+    }
+
+    public function testMagicSet()
+    {
+        $this->form->foo = 'bar';
+
+        $this->assertEquals('bar', $this->form->foo);
     }
 }

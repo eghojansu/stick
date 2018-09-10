@@ -25,21 +25,21 @@ class Twbs3Form extends Form
      *
      * @var string
      */
-    protected $leftColClass = 'col-sm-2';
+    protected $_leftColClass = 'col-sm-2';
 
     /**
      * Right column offset class name.
      *
      * @var string
      */
-    protected $rightOffsetColClass = 'col-sm-offset-2';
+    protected $_rightOffsetColClass = 'col-sm-offset-2';
 
     /**
      * Right column class name.
      *
      * @var string
      */
-    protected $rightColClass = 'col-sm-10';
+    protected $_rightColClass = 'col-sm-10';
 
     /**
      * Returns left column class name.
@@ -48,19 +48,19 @@ class Twbs3Form extends Form
      */
     public function getLeftColClass()
     {
-        return $this->leftColClass;
+        return $this->_leftColClass;
     }
 
     /**
      * Sets left column class name.
      *
-     * @param string $leftColClass
+     * @param string $_leftColClass
      *
      * @return Twbs3Form
      */
-    public function setLeftColClass($leftColClass)
+    public function setLeftColClass($_leftColClass)
     {
-        $this->leftColClass = $leftColClass;
+        $this->_leftColClass = $_leftColClass;
 
         return $this;
     }
@@ -72,19 +72,19 @@ class Twbs3Form extends Form
      */
     public function getRightOffsetColClass()
     {
-        return $this->rightOffsetColClass;
+        return $this->_rightOffsetColClass;
     }
 
     /**
      * Sets right column offset class name.
      *
-     * @param string $rightOffsetColClass
+     * @param string $_rightOffsetColClass
      *
      * @return Twbs3Form
      */
-    public function setRightOffsetColClass($rightOffsetColClass)
+    public function setRightOffsetColClass($_rightOffsetColClass)
     {
-        $this->rightOffsetColClass = $rightOffsetColClass;
+        $this->_rightOffsetColClass = $_rightOffsetColClass;
 
         return $this;
     }
@@ -96,19 +96,19 @@ class Twbs3Form extends Form
      */
     public function getRightColClass()
     {
-        return $this->rightColClass;
+        return $this->_rightColClass;
     }
 
     /**
      * Sets right column class name.
      *
-     * @param string $rightColClass
+     * @param string $_rightColClass
      *
      * @return Twbs3Form
      */
-    public function setRightColClass($rightColClass)
+    public function setRightColClass($_rightColClass)
     {
-        $this->rightColClass = $rightColClass;
+        $this->_rightColClass = $_rightColClass;
 
         return $this;
     }
@@ -171,7 +171,7 @@ class Twbs3Form extends Form
         $wrapperAttr = App::pick($options, 'wrapper_attr', array());
         $default = array('class' => 'radio');
 
-        return $this->html->element('div', true, parent::inputRadio($field, $value, $options), $wrapperAttr + $default);
+        return $this->_html->element('div', true, parent::inputRadio($field, $value, $options), $wrapperAttr + $default);
     }
 
     /**
@@ -182,7 +182,7 @@ class Twbs3Form extends Form
         $wrapperAttr = App::pick($options, 'wrapper_attr', array());
         $default = array('class' => 'checkbox');
 
-        return $this->html->element('div', true, parent::inputCheckbox($field, $value, $options), $wrapperAttr + $default);
+        return $this->_html->element('div', true, parent::inputCheckbox($field, $value, $options), $wrapperAttr + $default);
     }
 
     /**
@@ -210,7 +210,7 @@ class Twbs3Form extends Form
      */
     protected function renderRow($type, $input, $field = null, array $options = null)
     {
-        $rightOffset = $this->rightOffsetColClass.' '.$this->rightColClass;
+        $rightOffset = $this->_rightOffsetColClass.' '.$this->_rightColClass;
 
         if ('buttons' === $type) {
             return
@@ -221,10 +221,10 @@ class Twbs3Form extends Form
         }
 
         $errorAttr = array('class' => 'help-block');
-        $errors = isset($this->errors[$field]) ? $this->html->element('span', true, implode(', ', $this->errors[$field]), $errorAttr) : '';
+        $errors = isset($this->_errors[$field]) ? $this->_html->element('span', true, implode(', ', $this->_errors[$field]), $errorAttr) : '';
         $wrapperClass = 'form-group';
 
-        if ($this->submitted && isset($this->fields[$field]['options']['constraints'])) {
+        if ($this->_submitted && isset($this->_fields[$field]['options']['constraints'])) {
             $wrapperClass .= $errors ? ' has-error' : ' has-success';
         }
 
@@ -235,12 +235,12 @@ class Twbs3Form extends Form
                 '</div></div>'.PHP_EOL;
         }
 
-        $labelAttr = $options['label_attr'] + array('class' => 'control-label '.$this->leftColClass);
+        $labelAttr = $options['label_attr'] + array('class' => 'control-label '.$this->_leftColClass);
 
         return
             '<div class="'.$wrapperClass.'">'.
-            $this->html->label($options['label'], $this->formName($field), $labelAttr).
-            '<div class="'.$this->rightColClass.'">'.
+            $this->_html->label($options['label'], $this->formName($field), $labelAttr).
+            '<div class="'.$this->_rightColClass.'">'.
             $input.$errors.
             '</div>'.
             '</div>'.PHP_EOL;

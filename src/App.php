@@ -113,14 +113,14 @@ final class App implements \ArrayAccess
      *
      * @var array
      */
-    private $hive;
+    private $_hive;
 
     /**
      * A copy of variables hive.
      *
      * @var array
      */
-    private $init;
+    private $_init;
 
     /**
      * Class constructor.
@@ -188,7 +188,7 @@ final class App implements \ArrayAccess
             'httponly' => true,
         );
 
-        $this->init = $this->hive = array(
+        $this->_init = $this->_hive = array(
             'AGENT' => self::pickFirst($fix, 'HTTP_X_OPERAMINI_PHONE_UA,HTTP_X_SKYFIRE_PHONE,HTTP_USER_AGENT'),
             'AJAX' => 'XMLHttpRequest' === $fix['HTTP_X_REQUESTED_WITH'],
             'ALIAS' => null,
@@ -257,7 +257,7 @@ final class App implements \ArrayAccess
             'VERSION' => self::VERSION,
             'XFRAME' => 'SAMEORIGIN',
         );
-        $this->init['QUERY'] = $this->init['REQUEST'] = null;
+        $this->_init['QUERY'] = $this->_init['REQUEST'] = null;
     }
 
     /**
@@ -783,7 +783,7 @@ final class App implements \ArrayAccess
      */
     public function ellapsedTime()
     {
-        return number_format(microtime(true) - $this->hive['TIME'], 5).' seconds';
+        return number_format(microtime(true) - $this->_hive['TIME'], 5).' seconds';
     }
 
     /**
@@ -793,13 +793,13 @@ final class App implements \ArrayAccess
      */
     public function overrideRequestMethod()
     {
-        $verb = $this->hive['SERVER']['HTTP_X_HTTP_METHOD_OVERRIDE'] ?: $this->hive['VERB'];
+        $verb = $this->_hive['SERVER']['HTTP_X_HTTP_METHOD_OVERRIDE'] ?: $this->_hive['VERB'];
 
-        if ('POST' === $verb && isset($this->hive['REQUEST']['_method'])) {
-            $verb = strtoupper($this->hive['REQUEST']['_method']);
+        if ('POST' === $verb && isset($this->_hive['REQUEST']['_method'])) {
+            $verb = strtoupper($this->_hive['REQUEST']['_method']);
         }
 
-        $this->hive['VERB'] = $verb;
+        $this->_hive['VERB'] = $verb;
 
         return $this;
     }
@@ -811,8 +811,8 @@ final class App implements \ArrayAccess
      */
     public function emulateCliRequest()
     {
-        if ($this->hive['CLI'] && isset($this->hive['SERVER']['argv'])) {
-            $argv = $this->hive['SERVER']['argv'] + array(1 => '/');
+        if ($this->_hive['CLI'] && isset($this->_hive['SERVER']['argv'])) {
+            $argv = $this->_hive['SERVER']['argv'] + array(1 => '/');
 
             if ('/' === $argv[1][0]) {
                 $req = $argv[1];
@@ -843,12 +843,12 @@ final class App implements \ArrayAccess
 
             $uri = parse_url($req) + array('query' => '', 'fragment' => '');
 
-            $this->hive['VERB'] = 'GET';
-            $this->hive['PATH'] = $uri['path'];
-            $this->hive['FRAGMENT'] = $uri['fragment'];
-            $this->hive['URI'] = $req;
-            $this->hive['REALM'] = $this->hive['BASEURL'].$req;
-            parse_str($uri['query'], $this->hive['QUERY']);
+            $this->_hive['VERB'] = 'GET';
+            $this->_hive['PATH'] = $uri['path'];
+            $this->_hive['FRAGMENT'] = $uri['fragment'];
+            $this->_hive['URI'] = $req;
+            $this->_hive['REALM'] = $this->_hive['BASEURL'].$req;
+            parse_str($uri['query'], $this->_hive['QUERY']);
         }
 
         return $this;
@@ -892,7 +892,10 @@ final class App implements \ArrayAccess
     public function handleError($level, $text, $file, $line)
     {
         if ($level & error_reporting()) {
-            $this->error(500, $text, null, $level);
+            $trace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);
+            array_shift($trace);
+
+            $this->error(500, $text, $trace, $level);
         }
     }
 
@@ -953,9 +956,9 @@ final class App implements \ArrayAccess
             $subPath = substr($subPath, 0, $lastPos);
             $search = $subPath.'\\';
 
-            if (isset($this->hive['AUTOLOAD'][$search])) {
+            if (isset($this->_hive['AUTOLOAD'][$search])) {
                 $pathEnd = substr($logicalPath, $lastPos + 1);
-                $dirs = self::arr($this->hive['AUTOLOAD'][$search]);
+                $dirs = self::arr($this->_hive['AUTOLOAD'][$search]);
 
                 foreach ($dirs as $dir) {
                     if (file_exists($file = $dir.$pathEnd)) {
@@ -979,11 +982,11 @@ final class App implements \ArrayAccess
      */
     public function blacklisted($ip)
     {
-        if ($this->hive['DNSBL'] && !in_array($ip, self::arr($this->hive['EXEMPT']))) {
+        if ($this->_hive['DNSBL'] && !in_array($ip, self::arr($this->_hive['EXEMPT']))) {
             // Reverse IPv4 dotted quad
             $rev = implode('.', array_reverse(explode('.', $ip)));
 
-            foreach (self::arr($this->hive['DNSBL']) as $server) {
+            foreach (self::arr($this->_hive['DNSBL']) as $server) {
                 // DNSBL lookup
                 if (checkdnsrr($rev.'.'.$server, 'A')) {
                     return true;
@@ -1001,7 +1004,7 @@ final class App implements \ArrayAccess
      */
     public function hive()
     {
-        return $this->hive;
+        return $this->_hive;
     }
 
     /**
@@ -1094,9 +1097,9 @@ final class App implements \ArrayAccess
 
         if (null === $var) {
             if ($add) {
-                $var = &$this->hive;
+                $var = &$this->_hive;
             } else {
-                $var = $this->hive;
+                $var = $this->_hive;
             }
         }
 
@@ -1135,7 +1138,7 @@ final class App implements \ArrayAccess
         $this->sessionStart('SESSION' === ($parts ? $parts[0] : $last));
 
         if (null === $var) {
-            $var = &$this->hive;
+            $var = &$this->_hive;
         }
 
         foreach ($parts as $part) {
@@ -1184,8 +1187,8 @@ final class App implements \ArrayAccess
 
         switch ($key) {
             case 'CACHE':
-                $this->hive['CACHE_ENGINE'] = null;
-                $this->hive['CACHE_REF'] = null;
+                $this->_hive['CACHE_ENGINE'] = null;
+                $this->_hive['CACHE_REF'] = null;
                 break;
             case 'ENCODING':
                 ini_set('charset', $val);
@@ -1193,7 +1196,7 @@ final class App implements \ArrayAccess
             case 'FALLBACK':
             case 'LANGUAGE':
             case 'LOCALES':
-                $this->hive['DICT'] = $this->langLoad();
+                $this->_hive['DICT'] = $this->langLoad();
                 break;
         }
 
@@ -1243,11 +1246,11 @@ final class App implements \ArrayAccess
             }
         } elseif ('COOKIE' === $parts[0]) {
             if (empty($parts[1])) {
-                $this->hive['COOKIE'] = array();
+                $this->_hive['COOKIE'] = array();
             }
-        } elseif (array_key_exists($parts[0], $this->init)) {
+        } elseif (array_key_exists($parts[0], $this->_init)) {
             $ref = &$this->ref($key);
-            $ref = $this->ref($key, false, $this->init);
+            $ref = $this->ref($key, false, $this->_init);
         }
 
         return $this;
@@ -1438,19 +1441,19 @@ final class App implements \ArrayAccess
     {
         $this->cacheLoad();
 
-        $ndx = $this->hive['SEED'].'.'.$key;
+        $ndx = $this->_hive['SEED'].'.'.$key;
 
-        switch ($this->hive['CACHE_ENGINE']) {
+        switch ($this->_hive['CACHE_ENGINE']) {
             case 'apc':
                 return apc_exists($ndx);
             case 'apcu':
                 return apcu_exists($ndx);
             case 'folder':
-                return (bool) $this->cacheParse($key, self::read($this->hive['CACHE_REF'].$ndx));
+                return (bool) $this->cacheParse($key, self::read($this->_hive['CACHE_REF'].$ndx));
             case 'memcached':
-                return (bool) $this->hive['CACHE_REF']->get($ndx);
+                return (bool) $this->_hive['CACHE_REF']->get($ndx);
             case 'redis':
-                return (bool) $this->hive['CACHE_REF']->exists($ndx);
+                return (bool) $this->_hive['CACHE_REF']->exists($ndx);
         }
 
         return false;
@@ -1467,10 +1470,10 @@ final class App implements \ArrayAccess
     {
         $this->cacheLoad();
 
-        $ndx = $this->hive['SEED'].'.'.$key;
+        $ndx = $this->_hive['SEED'].'.'.$key;
         $raw = null;
 
-        switch ($this->hive['CACHE_ENGINE']) {
+        switch ($this->_hive['CACHE_ENGINE']) {
             case 'apc':
                 $raw = apc_fetch($ndx);
                 break;
@@ -1478,13 +1481,13 @@ final class App implements \ArrayAccess
                 $raw = apcu_fetch($ndx);
                 break;
             case 'folder':
-                $raw = self::read($this->hive['CACHE_REF'].$ndx);
+                $raw = self::read($this->_hive['CACHE_REF'].$ndx);
                 break;
             case 'memcached':
-                $raw = $this->hive['CACHE_REF']->get($ndx);
+                $raw = $this->_hive['CACHE_REF']->get($ndx);
                 break;
             case 'redis':
-                $raw = $this->hive['CACHE_REF']->get($ndx);
+                $raw = $this->_hive['CACHE_REF']->get($ndx);
                 break;
         }
 
@@ -1504,20 +1507,20 @@ final class App implements \ArrayAccess
     {
         $this->cacheLoad();
 
-        $ndx = $this->hive['SEED'].'.'.$key;
+        $ndx = $this->_hive['SEED'].'.'.$key;
         $content = $this->cacheCompact($val, (int) microtime(true), $ttl);
 
-        switch ($this->hive['CACHE_ENGINE']) {
+        switch ($this->_hive['CACHE_ENGINE']) {
             case 'apc':
                 return apc_store($ndx, $content, $ttl);
             case 'apcu':
                 return apcu_store($ndx, $content, $ttl);
             case 'folder':
-                return false !== self::write($this->hive['CACHE_REF'].str_replace(array('/', '\\'), '', $ndx), $content);
+                return false !== self::write($this->_hive['CACHE_REF'].str_replace(array('/', '\\'), '', $ndx), $content);
             case 'memcached':
-                return $this->hive['CACHE_REF']->set($ndx, $content, $ttl);
+                return $this->_hive['CACHE_REF']->set($ndx, $content, $ttl);
             case 'redis':
-                return $this->hive['CACHE_REF']->set($ndx, $content, array_filter(array('ex' => $ttl)));
+                return $this->_hive['CACHE_REF']->set($ndx, $content, array_filter(array('ex' => $ttl)));
         }
 
         return true;
@@ -1534,19 +1537,19 @@ final class App implements \ArrayAccess
     {
         $this->cacheLoad();
 
-        $ndx = $this->hive['SEED'].'.'.$key;
+        $ndx = $this->_hive['SEED'].'.'.$key;
 
-        switch ($this->hive['CACHE_ENGINE']) {
+        switch ($this->_hive['CACHE_ENGINE']) {
             case 'apc':
                 return apc_delete($ndx);
             case 'apcu':
                 return apcu_delete($ndx);
             case 'folder':
-                return self::delete($this->hive['CACHE_REF'].$ndx);
+                return self::delete($this->_hive['CACHE_REF'].$ndx);
             case 'memcached':
-                return $this->hive['CACHE_REF']->delete($ndx);
+                return $this->_hive['CACHE_REF']->delete($ndx);
             case 'redis':
-                return (bool) $this->hive['CACHE_REF']->del($ndx);
+                return (bool) $this->_hive['CACHE_REF']->del($ndx);
         }
 
         return true;
@@ -1563,10 +1566,10 @@ final class App implements \ArrayAccess
     {
         $this->cacheLoad();
 
-        $prefix = $this->hive['SEED'];
+        $prefix = $this->_hive['SEED'];
         $regex = '/'.preg_quote($prefix, '/').'\..+'.preg_quote($suffix, '/').'/';
 
-        switch ($this->hive['CACHE_ENGINE']) {
+        switch ($this->_hive['CACHE_ENGINE']) {
             case 'apc':
                 $info = apc_cache_info('user');
                 if ($info && isset($info['cache_list']) && $info['cache_list']) {
@@ -1586,19 +1589,19 @@ final class App implements \ArrayAccess
                 }
                 break;
             case 'folder':
-                $files = glob($this->hive['CACHE_REF'].$prefix.'*'.$suffix) ?: array();
+                $files = glob($this->_hive['CACHE_REF'].$prefix.'*'.$suffix) ?: array();
 
                 self::walk($files, 'unlink');
                 break;
             case 'memcached':
-                $keys = preg_grep($regex, $this->hive['CACHE_REF']->getAllKeys() ?: array());
+                $keys = preg_grep($regex, $this->_hive['CACHE_REF']->getAllKeys() ?: array());
 
-                self::walk($keys, array($this->hive['CACHE_REF'], 'delete'));
+                self::walk($keys, array($this->_hive['CACHE_REF'], 'delete'));
                 break;
             case 'redis':
-                $keys = $this->hive['CACHE_REF']->keys($prefix.'*'.$suffix);
+                $keys = $this->_hive['CACHE_REF']->keys($prefix.'*'.$suffix);
 
-                self::walk($keys, array($this->hive['CACHE_REF'], 'del'));
+                self::walk($keys, array($this->_hive['CACHE_REF'], 'del'));
                 break;
         }
 
@@ -1690,13 +1693,13 @@ final class App implements \ArrayAccess
      */
     public function rule($id, $rule = null)
     {
-        unset($this->hive['SERVICES'][$id]);
+        unset($this->_hive['SERVICES'][$id]);
 
         if (is_callable($rule)) {
             $serviceRule = array('constructor' => $rule);
         } elseif (is_object($rule)) {
             $serviceRule = array('class' => get_class($rule));
-            $this->hive['SERVICES'][$id] = $rule;
+            $this->_hive['SERVICES'][$id] = $rule;
         } elseif (is_string($rule)) {
             $serviceRule = array('class' => $rule);
         } else {
@@ -1705,10 +1708,10 @@ final class App implements \ArrayAccess
 
         $serviceRule += array('class' => $id, 'service' => true);
 
-        $this->hive['SERVICE_RULES'][$id] = $serviceRule;
+        $this->_hive['SERVICE_RULES'][$id] = $serviceRule;
 
         if ($id !== $serviceRule['class']) {
-            $this->hive['SERVICE_ALIASES'][$id] = $serviceRule['class'];
+            $this->_hive['SERVICE_ALIASES'][$id] = $serviceRule['class'];
         }
 
         return $this;
@@ -1727,15 +1730,15 @@ final class App implements \ArrayAccess
             return $this;
         }
 
-        if (isset($this->hive['SERVICES'][$id])) {
-            return $this->hive['SERVICES'][$id];
+        if (isset($this->_hive['SERVICES'][$id])) {
+            return $this->_hive['SERVICES'][$id];
         }
 
-        if ($sid = array_search($id, $this->hive['SERVICE_ALIASES'])) {
+        if ($sid = array_search($id, $this->_hive['SERVICE_ALIASES'])) {
             $id = $sid;
 
-            if (isset($this->hive['SERVICES'][$id])) {
-                return $this->hive['SERVICES'][$id];
+            if (isset($this->_hive['SERVICES'][$id])) {
+                return $this->_hive['SERVICES'][$id];
             }
         }
 
@@ -1762,10 +1765,10 @@ final class App implements \ArrayAccess
             'boot' => null,
         );
 
-        if (isset($this->hive['SERVICE_RULES'][$id])) {
-            $rule = $this->hive['SERVICE_RULES'][$id] + $rule;
-        } elseif ($sid = array_search($id, $this->hive['SERVICE_ALIASES'])) {
-            $rule = $this->hive['SERVICE_RULES'][$sid] + $rule;
+        if (isset($this->_hive['SERVICE_RULES'][$id])) {
+            $rule = $this->_hive['SERVICE_RULES'][$id] + $rule;
+        } elseif ($sid = array_search($id, $this->_hive['SERVICE_ALIASES'])) {
+            $rule = $this->_hive['SERVICE_RULES'][$sid] + $rule;
         }
 
         $ref = new \ReflectionClass($rule['use'] ?: $rule['class']);
@@ -1792,7 +1795,7 @@ final class App implements \ArrayAccess
         }
 
         if ($rule['service']) {
-            $this->hive['SERVICES'][$sid] = $instance;
+            $this->_hive['SERVICES'][$sid] = $instance;
         }
 
         return $instance;
@@ -1808,7 +1811,7 @@ final class App implements \ArrayAccess
      */
     public function one($eventName, $handler)
     {
-        $this->hive['EVENTS_ONCE'][$eventName] = true;
+        $this->_hive['EVENTS_ONCE'][$eventName] = true;
 
         return $this->on($eventName, $handler);
     }
@@ -1823,7 +1826,7 @@ final class App implements \ArrayAccess
      */
     public function on($eventName, $handler)
     {
-        $this->hive['EVENTS'][$eventName] = $handler;
+        $this->_hive['EVENTS'][$eventName] = $handler;
 
         return $this;
     }
@@ -1837,7 +1840,7 @@ final class App implements \ArrayAccess
      */
     public function off($eventName)
     {
-        unset($this->hive['EVENTS'][$eventName], $this->hive['EVENTS_ONCE'][$eventName]);
+        unset($this->_hive['EVENTS'][$eventName], $this->_hive['EVENTS_ONCE'][$eventName]);
 
         return $this;
     }
@@ -1852,11 +1855,11 @@ final class App implements \ArrayAccess
      */
     public function trigger($eventName, Event $event)
     {
-        if (isset($this->hive['EVENTS'][$eventName])) {
-            $handler = $this->hive['EVENTS'][$eventName];
+        if (isset($this->_hive['EVENTS'][$eventName])) {
+            $handler = $this->_hive['EVENTS'][$eventName];
 
-            if (isset($this->hive['EVENTS_ONCE'][$eventName])) {
-                unset($this->hive['EVENTS'][$eventName], $this->hive['EVENTS_ONCE'][$eventName]);
+            if (isset($this->_hive['EVENTS_ONCE'][$eventName])) {
+                unset($this->_hive['EVENTS'][$eventName], $this->_hive['EVENTS_ONCE'][$eventName]);
             }
 
             $this->call($handler, array($event));
@@ -1875,8 +1878,8 @@ final class App implements \ArrayAccess
      */
     public function alias($alias, array $args = null)
     {
-        if (isset($this->hive['ROUTE_ALIASES'][$alias])) {
-            $pattern = $this->hive['ROUTE_ALIASES'][$alias];
+        if (isset($this->_hive['ROUTE_ALIASES'][$alias])) {
+            $pattern = $this->_hive['ROUTE_ALIASES'][$alias];
 
             if ($args) {
                 $keywordCount = substr_count($pattern, '@');
@@ -1905,7 +1908,7 @@ final class App implements \ArrayAccess
      */
     public function path($alias, array $args = null)
     {
-        return $this->hive['BASE'].$this->hive['ENTRY'].$this->alias($alias, $args);
+        return $this->_hive['BASE'].$this->_hive['ENTRY'].$this->alias($alias, $args);
     }
 
     /**
@@ -1917,7 +1920,7 @@ final class App implements \ArrayAccess
      */
     public function baseUrl($path)
     {
-        return $this->hive['BASEURL'].'/'.ltrim($path, '/');
+        return $this->_hive['BASEURL'].'/'.ltrim($path, '/');
     }
 
     /**
@@ -1931,12 +1934,12 @@ final class App implements \ArrayAccess
     public function reroute($target = null, $permanent = false)
     {
         if (!$target) {
-            $path = $this->hive['PATH'];
-            $url = $this->hive['REALM'];
+            $path = $this->_hive['PATH'];
+            $url = $this->_hive['REALM'];
         } elseif (is_array($target)) {
             $path = call_user_func_array(array($this, 'alias'), $target);
-        } elseif (isset($this->hive['ROUTE_ALIASES'][$target])) {
-            $path = $this->hive['ROUTE_ALIASES'][$target];
+        } elseif (isset($this->_hive['ROUTE_ALIASES'][$target])) {
+            $path = $this->_hive['ROUTE_ALIASES'][$target];
         } elseif (preg_match('/^(\w+)\(([^(]+)\)$/', $target, $match)) {
             parse_str(strtr($match[2], ',', '&'), $args);
             $path = $this->alias($match[1], $args);
@@ -1948,7 +1951,7 @@ final class App implements \ArrayAccess
             $url = $path;
 
             if ('/' === $path[0] && (empty($path[1]) || '/' !== $path[1])) {
-                $url = $this->hive['BASEURL'].$this->hive['ENTRY'].$path;
+                $url = $this->_hive['BASEURL'].$this->_hive['ENTRY'].$path;
             }
         }
 
@@ -1959,12 +1962,12 @@ final class App implements \ArrayAccess
             return $this;
         }
 
-        if ($this->hive['CLI']) {
+        if ($this->_hive['CLI']) {
             return $this->mock('GET '.$path.' cli');
         }
 
         $this->status($permanent ? 301 : 302);
-        $this->hive['HEADERS']['Location'] = $url;
+        $this->_hive['HEADERS']['Location'] = $url;
 
         return $this;
     }
@@ -2008,20 +2011,20 @@ final class App implements \ArrayAccess
         list($verbs, $alias, $path, $mode) = array_slice($match, 1) + array(1 => '', '', 'all');
 
         if (!$path) {
-            $throw = empty($this->hive['ROUTE_ALIASES'][$alias]);
+            $throw = empty($this->_hive['ROUTE_ALIASES'][$alias]);
             self::throws($throw, 'Route "'.$alias.'" not exists.');
 
-            $path = $this->hive['ROUTE_ALIASES'][$alias];
+            $path = $this->_hive['ROUTE_ALIASES'][$alias];
         }
 
-        $ptr = ++$this->hive['ROUTE_HANDLER_CTR'];
+        $ptr = ++$this->_hive['ROUTE_HANDLER_CTR'];
         $bitwiseMode = constant('self::REQ_'.strtoupper($mode));
 
         foreach (array_filter(explode('|', strtoupper($verbs))) as $verb) {
-            $this->hive['ROUTES'][$path][$bitwiseMode][$verb] = $ptr;
+            $this->_hive['ROUTES'][$path][$bitwiseMode][$verb] = $ptr;
         }
 
-        $this->hive['ROUTE_HANDLERS'][$ptr] = array(
+        $this->_hive['ROUTE_HANDLERS'][$ptr] = array(
             $handler,
             $alias,
             $ttl,
@@ -2029,7 +2032,7 @@ final class App implements \ArrayAccess
         );
 
         if ($alias) {
-            $this->hive['ROUTE_ALIASES'][$alias] = $path;
+            $this->_hive['ROUTE_ALIASES'][$alias] = $path;
         }
 
         return $this;
@@ -2061,8 +2064,8 @@ final class App implements \ArrayAccess
         $fragment = self::cutafter($targetExpr, '#', '', true);
         $path = $target;
 
-        if (isset($this->hive['ROUTE_ALIASES'][$target])) {
-            $path = $this->hive['ROUTE_ALIASES'][$target];
+        if (isset($this->_hive['ROUTE_ALIASES'][$target])) {
+            $path = $this->_hive['ROUTE_ALIASES'][$target];
         } elseif (preg_match('/^(\w+)\(([^(]+)\)$/', $target, $match)) {
             parse_str(strtr($match[2], ',', '&'), $args);
             $path = $this->alias($match[1], $args);
@@ -2070,23 +2073,23 @@ final class App implements \ArrayAccess
 
         $this->mclear('SENT,RESPONSE,HEADERS,BODY');
 
-        $this->hive['VERB'] = $verb;
-        $this->hive['PATH'] = $path;
-        $this->hive['URI'] = $this->hive['BASE'].$path.$query.$fragment;
-        $this->hive['AJAX'] = 'ajax' === $mode;
-        $this->hive['CLI'] = 'cli' === $mode;
-        $this->hive['REQUEST'] = 'POST' === $verb ? $args : array();
+        $this->_hive['VERB'] = $verb;
+        $this->_hive['PATH'] = $path;
+        $this->_hive['URI'] = $this->_hive['BASE'].$path.$query.$fragment;
+        $this->_hive['AJAX'] = 'ajax' === $mode;
+        $this->_hive['CLI'] = 'cli' === $mode;
+        $this->_hive['REQUEST'] = 'POST' === $verb ? $args : array();
 
-        parse_str(ltrim($query, '?'), $this->hive['QUERY']);
+        parse_str(ltrim($query, '?'), $this->_hive['QUERY']);
 
         if (in_array($verb, array('GET', 'HEAD'))) {
-            $this->hive['QUERY'] = array_merge($this->hive['QUERY'], $args ?: array());
+            $this->_hive['QUERY'] = array_merge($this->_hive['QUERY'], $args ?: array());
         } else {
-            $this->hive['BODY'] = $body ?: http_build_query($args ?: array());
+            $this->_hive['BODY'] = $body ?: http_build_query($args ?: array());
         }
 
         if ($server) {
-            $this->hive['SERVER'] = $server + $this->hive['SERVER'];
+            $this->_hive['SERVER'] = $server + $this->_hive['SERVER'];
         }
 
         return $this->run();
@@ -2146,7 +2149,7 @@ final class App implements \ArrayAccess
      */
     public function sendHeaders()
     {
-        if ($this->hive['CLI'] || headers_sent()) {
+        if ($this->_hive['CLI'] || headers_sent()) {
             return $this;
         }
 
@@ -2154,11 +2157,11 @@ final class App implements \ArrayAccess
             call_user_func_array('setcookie', $cookies);
         }
 
-        foreach (array_filter($this->hive['HEADERS'], 'is_scalar') as $name => $value) {
+        foreach (array_filter($this->_hive['HEADERS'], 'is_scalar') as $name => $value) {
             header($name.': '.$value);
         }
 
-        header($this->hive['PROTOCOL'].' '.$this->hive['CODE'].' '.$this->hive['STATUS'], true);
+        header($this->_hive['PROTOCOL'].' '.$this->_hive['CODE'].' '.$this->_hive['STATUS'], true);
 
         return $this;
     }
@@ -2170,23 +2173,23 @@ final class App implements \ArrayAccess
      */
     public function sendContent()
     {
-        if ($this->hive['QUIET'] || $this->hive['SENT']) {
+        if ($this->_hive['QUIET'] || $this->_hive['SENT']) {
             return $this;
         }
 
-        $this->hive['SENT'] = true;
+        $this->_hive['SENT'] = true;
 
-        if (0 >= $this->hive['KBPS']) {
-            echo $this->hive['RESPONSE'];
+        if (0 >= $this->_hive['KBPS']) {
+            echo $this->_hive['RESPONSE'];
 
             return $this;
         }
 
         $now = microtime(true);
         $ctr = 0;
-        $kbps = $this->hive['KBPS'];
+        $kbps = $this->_hive['KBPS'];
 
-        foreach (str_split($this->hive['RESPONSE'], 1024) as $part) {
+        foreach (str_split($this->_hive['RESPONSE'], 1024) as $part) {
             // Throttle output
             ++$ctr;
 
@@ -2210,14 +2213,14 @@ final class App implements \ArrayAccess
     public function expire($secs = 0)
     {
         $expire = (int) $secs;
-        $headers = &$this->hive['HEADERS'];
+        $headers = &$this->_hive['HEADERS'];
 
-        $headers['X-Powered-By'] = $this->hive['PACKAGE'];
-        $headers['X-Frame-Options'] = $this->hive['XFRAME'];
+        $headers['X-Powered-By'] = $this->_hive['PACKAGE'];
+        $headers['X-Frame-Options'] = $this->_hive['XFRAME'];
         $headers['X-XSS-Protection'] = '1; mode=block';
         $headers['X-Content-Type-Options'] = 'nosniff';
 
-        if ('GET' === $this->hive['VERB'] && $expire) {
+        if ('GET' === $this->_hive['VERB'] && $expire) {
             $time = microtime(true);
             unset($headers['Pragma']);
 
@@ -2248,8 +2251,8 @@ final class App implements \ArrayAccess
 
         self::throws($throw, $message, 'DomainException');
 
-        $this->hive['CODE'] = $code;
-        $this->hive['STATUS'] = constant($name);
+        $this->_hive['CODE'] = $code;
+        $this->_hive['STATUS'] = constant($name);
 
         return $this;
     }
@@ -2268,13 +2271,13 @@ final class App implements \ArrayAccess
     {
         $this->status($httpCode);
 
-        $debug = $this->hive['DEBUG'];
-        $status = $this->hive['STATUS'];
-        $text = $message ?: 'HTTP '.$httpCode.' ('.$this->hive['VERB'].' '.$this->hive['PATH'].')';
+        $debug = $this->_hive['DEBUG'];
+        $status = $this->_hive['STATUS'];
+        $text = $message ?: 'HTTP '.$httpCode.' ('.$this->_hive['VERB'].' '.$this->_hive['PATH'].')';
         $traceStr = $this->trace($trace);
 
-        $prior = $this->hive['ERROR'];
-        $this->hive['ERROR'] = true;
+        $prior = $this->_hive['ERROR'];
+        $this->_hive['ERROR'] = true;
 
         if ($prior) {
             return $this;
@@ -2289,27 +2292,27 @@ final class App implements \ArrayAccess
             ->mclear('HEADERS,RESPONSE,KBPS');
 
         if ($event->isPropagationStopped()) {
-            $this->hive['HEADERS'] = $event->getHeaders();
-            $this->hive['RESPONSE'] = $event->getResponse();
-        } elseif ($this->hive['AJAX']) {
+            $this->_hive['HEADERS'] = $event->getHeaders();
+            $this->_hive['RESPONSE'] = $event->getResponse();
+        } elseif ($this->_hive['AJAX']) {
             $traceInfo = $debug ? array('trace' => $traceStr) : array();
-            $this->hive['HEADERS']['Content-Type'] = 'application/json';
-            $this->hive['RESPONSE'] = json_encode(array(
+            $this->_hive['HEADERS']['Content-Type'] = 'application/json';
+            $this->_hive['RESPONSE'] = json_encode(array(
                 'status' => $status,
                 'text' => $text,
             ) + $traceInfo);
-        } elseif ($this->hive['CLI']) {
+        } elseif ($this->_hive['CLI']) {
             $traceInfo = $debug ? $traceStr.PHP_EOL : PHP_EOL;
-            $this->hive['RESPONSE'] = 'Status : '.$status.PHP_EOL.
+            $this->_hive['RESPONSE'] = 'Status : '.$status.PHP_EOL.
                                       'Text   : '.$text.PHP_EOL.
                                       $traceInfo;
         } else {
             $traceInfo = $debug ? '<pre>'.$traceStr.'</pre>' : '';
-            $this->hive['HEADERS']['Content-Type'] = 'text/html';
-            $this->hive['RESPONSE'] = '<!DOCTYPE html>'.
+            $this->_hive['HEADERS']['Content-Type'] = 'text/html';
+            $this->_hive['RESPONSE'] = '<!DOCTYPE html>'.
                 '<html>'.
                 '<head>'.
-                  '<meta charset="'.$this->hive['ENCODING'].'">'.
+                  '<meta charset="'.$this->_hive['ENCODING'].'">'.
                   '<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">'.
                   '<title>'.$httpCode.' '.$status.'</title>'.
                 '</head>'.
@@ -2334,7 +2337,7 @@ final class App implements \ArrayAccess
      */
     public function log($level, $message)
     {
-        if ($this->hive['LOG'] && isset(self::$logLevels[$level]) && self::$logLevels[$level] <= self::$logLevels[$this->hive['THRESHOLD']]) {
+        if ($this->_hive['LOG'] && isset(self::$logLevels[$level]) && self::$logLevels[$level] <= self::$logLevels[$this->_hive['THRESHOLD']]) {
             $this->logWrite($message, $level);
         }
 
@@ -2390,7 +2393,7 @@ final class App implements \ArrayAccess
      */
     public function logFiles($from = null, $to = null)
     {
-        if (!$this->hive['LOG']) {
+        if (!$this->_hive['LOG']) {
             return array();
         }
 
@@ -2447,17 +2450,17 @@ final class App implements \ArrayAccess
      */
     private function doRun()
     {
-        if ($this->hive['DRY']) {
+        if ($this->_hive['DRY']) {
             $this->trigger(self::EVENT_BOOT, new Event());
-            $this->hive['DRY'] = false;
+            $this->_hive['DRY'] = false;
         }
 
-        if (empty($this->hive['ROUTES'])) {
+        if (empty($this->_hive['ROUTES'])) {
             return $this->error(500, 'No route specified.');
         }
 
         // @codeCoverageIgnoreStart
-        if ($this->blacklisted($this->hive['IP'])) {
+        if ($this->blacklisted($this->_hive['IP'])) {
             return $this->error(403);
         }
         // @codeCoverageIgnoreEnd
@@ -2467,9 +2470,9 @@ final class App implements \ArrayAccess
 
         if ($event->isPropagationStopped()) {
             $code = $event->getCode();
-            $this->hive['HEADERS'] = $event->getHeaders();
-            $this->hive['RESPONSE'] = $event->getResponse();
-            $this->hive['KBPS'] = $event->getKbps();
+            $this->_hive['HEADERS'] = $event->getHeaders();
+            $this->_hive['RESPONSE'] = $event->getResponse();
+            $this->_hive['KBPS'] = $event->getKbps();
 
             return $this->status($code)->send();
         }
@@ -2481,12 +2484,12 @@ final class App implements \ArrayAccess
                 list($controller, $alias, $ttl, $kbps) = $foundController;
 
                 $now = microtime(true);
-                $verb = $this->hive['VERB'];
-                $hash = self::hash($verb.' '.$this->hive['URI']).'.url';
+                $verb = $this->_hive['VERB'];
+                $hash = self::hash($verb.' '.$this->_hive['URI']).'.url';
 
                 if ($ttl && in_array($verb, array('GET', 'HEAD'))) {
                     if ($this->isCached($hash, $cache)) {
-                        $expireDate = $this->hive['SERVER']['HTTP_IF_MODIFIED_SINCE'];
+                        $expireDate = $this->_hive['SERVER']['HTTP_IF_MODIFIED_SINCE'];
                         $notModified = $expireDate && strtotime($expireDate) + $ttl > $now;
 
                         if ($notModified) {
@@ -2497,8 +2500,8 @@ final class App implements \ArrayAccess
                         list($headers, $response) = $content;
 
                         $newExpireDate = $lastModified + $ttl - $now;
-                        $this->hive['HEADERS'] = $headers;
-                        $this->hive['RESPONSE'] = $response;
+                        $this->_hive['HEADERS'] = $headers;
+                        $this->_hive['RESPONSE'] = $response;
 
                         return $this->expire($newExpireDate);
                     }
@@ -2514,39 +2517,39 @@ final class App implements \ArrayAccess
                 $controller = $event->getController();
                 $args = $event->getArgs();
 
-                $this->hive['PATTERN'] = $pattern;
-                $this->hive['ALIAS'] = $alias;
-                $this->hive['PARAMS'] = $args;
-                $this->hive['KBPS'] = $kbps;
+                $this->_hive['PATTERN'] = $pattern;
+                $this->_hive['ALIAS'] = $alias;
+                $this->_hive['PARAMS'] = $args;
+                $this->_hive['KBPS'] = $kbps;
 
                 if (is_callable($controller)) {
-                    if (!$this->hive['RAW'] && !$this->hive['BODY']) {
-                        $this->hive['BODY'] = file_get_contents('php://input');
+                    if (!$this->_hive['RAW'] && !$this->_hive['BODY']) {
+                        $this->_hive['BODY'] = file_get_contents('php://input');
                     }
 
                     $result = $this->call($controller, $args);
 
-                    $event = new GetResponseForControllerEvent($result, $this->hive['HEADERS']);
+                    $event = new GetResponseForControllerEvent($result, $this->_hive['HEADERS']);
                     $this->trigger(self::EVENT_AFTER_ROUTE, $event);
 
                     $result = $event->getResult();
 
                     if ($event->isPropagationStopped()) {
-                        $this->hive['HEADERS'] = $event->getHeaders();
-                        $this->hive['RESPONSE'] = $event->getResponse();
+                        $this->_hive['HEADERS'] = $event->getHeaders();
+                        $this->_hive['RESPONSE'] = $event->getResponse();
                     } elseif (is_scalar($result)) {
-                        $this->hive['RESPONSE'] = (string) $result;
+                        $this->_hive['RESPONSE'] = (string) $result;
                     } elseif (is_array($result)) {
-                        $this->hive['HEADERS']['Content-Type'] = 'application/json';
-                        $this->hive['RESPONSE'] = json_encode($result);
+                        $this->_hive['HEADERS']['Content-Type'] = 'application/json';
+                        $this->_hive['RESPONSE'] = json_encode($result);
                     } elseif (is_callable($result)) {
                         call_user_func_array($result, array($this));
                     }
 
-                    if ($ttl && $this->hive['RESPONSE'] && is_string($this->hive['RESPONSE'])) {
+                    if ($ttl && $this->_hive['RESPONSE'] && is_string($this->_hive['RESPONSE'])) {
                         $this->cacheSet($hash, array(
-                            $this->hive['HEADERS'],
-                            $this->hive['RESPONSE'],
+                            $this->_hive['HEADERS'],
+                            $this->_hive['RESPONSE'],
                         ));
                     }
 
@@ -2569,10 +2572,10 @@ final class App implements \ArrayAccess
      */
     private function findRoute()
     {
-        $modifier = $this->hive['CASELESS'] ? 'i' : '';
+        $modifier = $this->_hive['CASELESS'] ? 'i' : '';
 
-        foreach ($this->hive['ROUTES'] as $pattern => $routes) {
-            if (preg_match($this->regexify($pattern, $modifier), $this->hive['PATH'], $match)) {
+        foreach ($this->_hive['ROUTES'] as $pattern => $routes) {
+            if (preg_match($this->regexify($pattern, $modifier), $this->_hive['PATH'], $match)) {
                 return array($pattern, $routes, $this->collectParams($match));
             }
         }
@@ -2653,9 +2656,9 @@ final class App implements \ArrayAccess
             $route = $routes[self::REQ_ALL];
         }
 
-        if ($route && isset($route[$this->hive['VERB']])) {
-            $handlerId = $route[$this->hive['VERB']];
-            $controller = $this->hive['ROUTE_HANDLERS'][$handlerId];
+        if ($route && isset($route[$this->_hive['VERB']])) {
+            $handlerId = $route[$this->_hive['VERB']];
+            $controller = $this->_hive['ROUTE_HANDLERS'][$handlerId];
             $handler = &$controller[0];
 
             if (is_string($handler)) {
@@ -2683,11 +2686,11 @@ final class App implements \ArrayAccess
      */
     private function requestMode()
     {
-        if ($this->hive['AJAX']) {
+        if ($this->_hive['AJAX']) {
             return self::REQ_AJAX;
         }
 
-        if ($this->hive['CLI']) {
+        if ($this->_hive['CLI']) {
             return self::REQ_CLI;
         }
 
@@ -2701,9 +2704,9 @@ final class App implements \ArrayAccess
      */
     private function cookies()
     {
-        $jar = array_combine(range(2, count($this->hive['JAR']) + 1), array_values($this->hive['JAR']));
-        $init = $this->init['COOKIE'] ?: array();
-        $current = $this->hive['COOKIE'] ?: array();
+        $jar = array_combine(range(2, count($this->_hive['JAR']) + 1), array_values($this->_hive['JAR']));
+        $init = $this->_init['COOKIE'] ?: array();
+        $current = $this->_hive['COOKIE'] ?: array();
         $cookies = array();
 
         foreach ($current as $name => $value) {
@@ -2733,7 +2736,7 @@ final class App implements \ArrayAccess
                 session_start();
             }
 
-            $this->hive['SESSION'] = &$GLOBALS['_SESSION'];
+            $this->_hive['SESSION'] = &$GLOBALS['_SESSION'];
         }
     }
 
@@ -2829,9 +2832,9 @@ final class App implements \ArrayAccess
      */
     private function cacheLoad()
     {
-        $dsn = $this->hive['CACHE'];
-        $engine = &$this->hive['CACHE_ENGINE'];
-        $ref = &$this->hive['CACHE_REF'];
+        $dsn = $this->_hive['CACHE'];
+        $engine = &$this->_hive['CACHE_ENGINE'];
+        $ref = &$this->_hive['CACHE_REF'];
 
         if ($engine || !$dsn) {
             return;
@@ -2843,7 +2846,7 @@ final class App implements \ArrayAccess
 
         // Fallback to filesystem cache
         $fallback = 'folder';
-        $fallbackDir = $this->hive['TEMP'].'cache/';
+        $fallbackDir = $this->_hive['TEMP'].'cache/';
 
         if ('redis' === $parts[0] && $parts[1] && extension_loaded('redis')) {
             list($host, $port, $db) = explode(':', $parts[1]) + array(1 => 0, 2 => null);
@@ -2935,9 +2938,9 @@ final class App implements \ArrayAccess
      */
     private function logDir()
     {
-        $dir = $this->hive['LOG'];
+        $dir = $this->_hive['LOG'];
 
-        return $dir && is_dir($dir) ? $dir : $this->hive['TEMP'].$dir;
+        return $dir && is_dir($dir) ? $dir : $this->_hive['TEMP'].$dir;
     }
 
     /**
@@ -2974,7 +2977,7 @@ final class App implements \ArrayAccess
         }
 
         $filteredTrace = array();
-        $debug = $this->hive['DEBUG'];
+        $debug = $this->_hive['DEBUG'];
 
         foreach ($trace as $key => $frame) {
             if (isset($frame['file']) &&
@@ -2992,7 +2995,7 @@ final class App implements \ArrayAccess
 
         $out = '';
         $eol = "\n";
-        $cut = $this->hive['TRACE'];
+        $cut = $this->_hive['TRACE'];
 
         // Analyze stack trace
         foreach ($trace as $frame) {
@@ -3039,7 +3042,7 @@ final class App implements \ArrayAccess
      */
     private function langLanguages()
     {
-        $langCode = ltrim(preg_replace('/\h+|;q=[0-9.]+/', '', $this->hive['LANGUAGE']).','.$this->hive['FALLBACK'], ',');
+        $langCode = ltrim(preg_replace('/\h+|;q=[0-9.]+/', '', $this->_hive['LANGUAGE']).','.$this->_hive['FALLBACK'], ',');
         $languages = array();
 
         foreach (self::split($langCode) as $lang) {
@@ -3067,7 +3070,7 @@ final class App implements \ArrayAccess
         $dict = array();
 
         foreach ($this->langLanguages() as $lang) {
-            foreach (self::arr($this->hive['LOCALES']) as $dir) {
+            foreach (self::arr($this->_hive['LOCALES']) as $dir) {
                 if (is_file($file = $dir.$lang.'.php')) {
                     $dict = array_replace_recursive($dict, self::requireFile($file, array()));
                 }
@@ -3115,6 +3118,48 @@ final class App implements \ArrayAccess
      * @see App::clear
      */
     public function offsetUnset($key)
+    {
+        $this->clear($key);
+    }
+
+    /**
+     * Convenience method for checking hive key.
+     *
+     * @see App::exists
+     */
+    public function __isset($key)
+    {
+        return $this->exists($key);
+    }
+
+    /**
+     * Convenience method for assigning hive value.
+     *
+     * @see App::set
+     */
+    public function __set($key, $value)
+    {
+        $this->set($key, $value);
+    }
+
+    /**
+     * Convenience method for retrieving hive value.
+     *
+     * @see App::get
+     */
+    public function &__get($key)
+    {
+        $ref = &$this->get($key);
+
+        return $ref;
+    }
+
+    /**
+     * Convenience method for removing hive key.
+     *
+     * @see App::clear
+     */
+    public function __unset($key)
     {
         $this->clear($key);
     }

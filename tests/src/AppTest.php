@@ -44,7 +44,7 @@ class AppTest extends TestCase
 
     private function updateInitialValue($name, $value)
     {
-        $ref = new \ReflectionProperty($this->app, 'init');
+        $ref = new \ReflectionProperty($this->app, '_init');
         $ref->setAccessible(true);
         $val = $ref->getValue($this->app);
         $val[$name] = $value;
@@ -396,23 +396,23 @@ class AppTest extends TestCase
 
     public function testOffsetExists()
     {
-        $this->assertTrue(isset($this->app['CLI']));
+        $this->assertTrue($this->app->offsetExists('CLI'));
     }
 
     public function testOffsetSet()
     {
-        $this->app['foo'] = 'bar';
+        $this->app->offsetSet('foo', 'bar');
 
         $this->assertEquals('bar', $this->app->get('foo'));
     }
 
     public function testOffsetGet()
     {
-        $this->assertTrue($this->app['CLI']);
+        $this->assertTrue($this->app->offsetGet('CLI'));
 
-        $foo = &$this->app['foo'];
+        $foo = &$this->app->offsetGet('foo');
         $foo = 'bar';
-        $this->assertEquals('bar', $this->app['foo']);
+        $this->assertEquals('bar', $this->app->offsetGet('foo'));
 
         $this->app['bar']['baz'] = 'qux';
         $this->assertEquals('qux', $this->app->get('bar.baz'));
@@ -423,7 +423,41 @@ class AppTest extends TestCase
         $this->app->mset(array(
             'foo' => 'bar',
         ));
-        unset($this->app['foo']);
+        $this->app->offsetUnset('foo');
+
+        $this->assertFalse($this->app->exists('foo'));
+    }
+
+    public function testMagicIsset()
+    {
+        $this->assertTrue(isset($this->app->CLI));
+    }
+
+    public function testMagicSet()
+    {
+        $this->app->foo = 'bar';
+
+        $this->assertEquals('bar', $this->app->get('foo'));
+    }
+
+    public function testMagicGet()
+    {
+        $this->assertTrue($this->app->CLI);
+
+        $foo = &$this->app->foo;
+        $foo = 'bar';
+        $this->assertEquals('bar', $this->app->foo);
+
+        $this->app->bar['baz'] = 'qux';
+        $this->assertEquals('qux', $this->app->get('bar.baz'));
+    }
+
+    public function testMagicUnset()
+    {
+        $this->app->mset(array(
+            'foo' => 'bar',
+        ));
+        unset($this->app->foo);
 
         $this->assertFalse($this->app->exists('foo'));
     }

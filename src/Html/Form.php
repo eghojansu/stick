@@ -24,73 +24,73 @@ class Form
     /**
      * @var App
      */
-    protected $app;
+    protected $_app;
 
     /**
      * @var Html
      */
-    protected $html;
+    protected $_html;
 
     /**
      * @var Validator
      */
-    protected $validator;
+    protected $_validator;
 
     /**
      * Form name.
      *
      * @var string
      */
-    protected $name;
+    protected $_name;
 
     /**
      * Submitted status.
      *
      * @var bool
      */
-    protected $submitted = false;
+    protected $_submitted = false;
 
     /**
      * Form method.
      *
      * @var string
      */
-    protected $verb = 'POST';
+    protected $_verb = 'POST';
 
     /**
      * Form data.
      *
      * @var array
      */
-    protected $data = array();
+    protected $_data = array();
 
     /**
      * Submitted data.
      *
      * @var array
      */
-    protected $submittedData;
+    protected $_submittedData;
 
     /**
      * Form fields.
      *
      * @var array
      */
-    protected $fields = array();
+    protected $_fields = array();
 
     /**
      * Form buttons.
      *
      * @var array
      */
-    protected $buttons = array();
+    protected $_buttons = array();
 
     /**
      * Form errors.
      *
      * @var array
      */
-    protected $errors = array();
+    protected $_errors = array();
 
     /**
      * Class constructor.
@@ -101,11 +101,11 @@ class Form
      */
     public function __construct(App $app, Html $html, Validator $validator)
     {
-        $this->app = $app;
-        $this->html = $html;
-        $this->validator = $validator;
+        $this->_app = $app;
+        $this->_html = $html;
+        $this->_validator = $validator;
 
-        if (!$this->name) {
+        if (!$this->_name) {
             $this->setName(App::snakeCase(App::classname(static::class)));
         }
 
@@ -122,7 +122,7 @@ class Form
      */
     public function get($field, $default = null)
     {
-        return array_key_exists($field, $this->data) ? $this->data[$field] : $default;
+        return array_key_exists($field, $this->_data) ? $this->_data[$field] : $default;
     }
 
     /**
@@ -135,7 +135,7 @@ class Form
      */
     public function set($field, $value)
     {
-        $this->data[$field] = $value;
+        $this->_data[$field] = $value;
 
         return $this;
     }
@@ -147,7 +147,7 @@ class Form
      */
     public function getName()
     {
-        return $this->name;
+        return $this->_name;
     }
 
     /**
@@ -159,7 +159,7 @@ class Form
      */
     public function setName($name)
     {
-        $this->name = $name;
+        $this->_name = $name;
 
         return $this;
     }
@@ -171,7 +171,7 @@ class Form
      */
     public function getVerb()
     {
-        return $this->verb;
+        return $this->_verb;
     }
 
     /**
@@ -183,7 +183,7 @@ class Form
      */
     public function setVerb($verb)
     {
-        $this->verb = strtoupper($verb);
+        $this->_verb = strtoupper($verb);
 
         return $this;
     }
@@ -195,7 +195,7 @@ class Form
      */
     public function getData()
     {
-        return $this->data;
+        return $this->_data;
     }
 
     /**
@@ -207,7 +207,7 @@ class Form
      */
     public function setData(array $data)
     {
-        $this->data = $data;
+        $this->_data = $data;
 
         return $this;
     }
@@ -219,19 +219,19 @@ class Form
      */
     public function getSubmittedData()
     {
-        if (null === $this->submittedData) {
+        if (null === $this->_submittedData) {
             $key = 'REQUEST';
 
-            if ('GET' === $this->verb) {
+            if ('GET' === $this->_verb) {
                 $key = 'QUERY';
-            } elseif ($this->app->exists($this->verb)) {
-                $key = $this->verb;
+            } elseif ($this->_app->exists($this->_verb)) {
+                $key = $this->_verb;
             }
 
-            $this->submittedData = $this->app->get($key.'.'.$this->name, array());
+            $this->_submittedData = $this->_app->get($key.'.'.$this->_name, array());
         }
 
-        return $this->submittedData;
+        return $this->_submittedData;
     }
 
     /**
@@ -243,7 +243,7 @@ class Form
      */
     public function setSubmittedData(array $submittedData = null)
     {
-        $this->submittedData = $submittedData;
+        $this->_submittedData = $submittedData;
 
         return $this;
     }
@@ -255,7 +255,7 @@ class Form
      */
     public function getFields()
     {
-        return $this->fields;
+        return $this->_fields;
     }
 
     /**
@@ -265,7 +265,7 @@ class Form
      */
     public function getButtons()
     {
-        return $this->buttons;
+        return $this->_buttons;
     }
 
     /**
@@ -275,7 +275,7 @@ class Form
      */
     public function getErrors()
     {
-        return $this->errors;
+        return $this->_errors;
     }
 
     /**
@@ -289,7 +289,7 @@ class Form
      */
     public function add($field, $type = 'text', array $options = null)
     {
-        $this->fields[$field] = compact('type', 'options') + array('rendered' => false);
+        $this->_fields[$field] = compact('type', 'options') + array('rendered' => false);
 
         return $this;
     }
@@ -306,7 +306,7 @@ class Form
      */
     public function addButton($name, $type = 'submit', $label = null, array $attr = null)
     {
-        $this->buttons[$name] = compact('type', 'label', 'attr');
+        $this->_buttons[$name] = compact('type', 'label', 'attr');
 
         return $this;
     }
@@ -320,9 +320,9 @@ class Form
     {
         $data = $this->getSubmittedData() + array('_form' => null);
 
-        $this->submitted = $this->verb === $this->app->get('VERB') && $data['_form'] === $this->name;
+        $this->_submitted = $this->_verb === $this->_app->get('VERB') && $data['_form'] === $this->_name;
 
-        return $this->submitted;
+        return $this->_submitted;
     }
 
     /**
@@ -334,15 +334,15 @@ class Form
      */
     public function valid()
     {
-        if ($this->submitted) {
+        if ($this->_submitted) {
             list($rules, $messages) = $this->findRules();
-            $valid = $this->validator->validate($this->submittedData, $rules, $messages);
+            $valid = $this->_validator->validate($this->_submittedData, $rules, $messages);
 
-            $no_validation_keys = array_diff(array_keys($this->fields), array_keys($rules));
-            $no_validation = array_intersect_key($this->submittedData, array_flip($no_validation_keys));
+            $no_validation_keys = array_diff(array_keys($this->_fields), array_keys($rules));
+            $no_validation = array_intersect_key($this->_submittedData, array_flip($no_validation_keys));
 
-            $this->data = $valid['data'] + $no_validation + $this->data;
-            $this->errors = $valid['errors'];
+            $this->_data = $valid['data'] + $no_validation + $this->_data;
+            $this->_errors = $valid['errors'];
 
             return $valid['success'];
         }
@@ -364,12 +364,12 @@ class Form
             'enctype' => $multipart ? 'multipart/form-data' : null,
         );
 
-        $attr['name'] = $this->name;
-        $attr['method'] = $this->verb;
+        $attr['name'] = $this->_name;
+        $attr['method'] = $this->_verb;
 
         return
-            $this->html->element('form', false, null, $attr + $default).PHP_EOL.
-            $this->html->hidden($this->formName('_form'), $this->name);
+            $this->_html->element('form', false, null, $attr + $default).PHP_EOL.
+            $this->_html->hidden($this->formName('_form'), $this->_name);
     }
 
     /**
@@ -394,10 +394,10 @@ class Form
      */
     public function row($name, array $overrideAttr = null)
     {
-        $throw = !isset($this->fields[$name]);
+        $throw = !isset($this->_fields[$name]);
         App::throws($throw, 'Field not exists: "'.$name.'".');
 
-        $field = &$this->fields[$name];
+        $field = &$this->_fields[$name];
 
         if ($field['rendered']) {
             return '';
@@ -407,7 +407,7 @@ class Form
 
         $type = strtolower($field['type']);
         $options = array_replace_recursive(((array) $field['options']) + array(
-            'label' => $this->app->trans($name, null, App::titleCase($name)),
+            'label' => $this->_app->trans($name, null, App::titleCase($name)),
             'label_attr' => array(),
             'attr' => array(),
         ), array('attr' => (array) $overrideAttr));
@@ -439,7 +439,7 @@ class Form
     {
         $fields = '';
 
-        foreach ($this->fields as $name => $definitions) {
+        foreach ($this->_fields as $name => $definitions) {
             $fields .= $this->row($name, $overrideAttr);
         }
 
@@ -455,14 +455,14 @@ class Form
     {
         $buttons = '';
 
-        foreach ($this->buttons as $name => $button) {
+        foreach ($this->_buttons as $name => $button) {
             $type = $button['type'];
-            $label = $button['label'] ?: $this->app->trans($name, null, App::titleCase($name));
+            $label = $button['label'] ?: $this->_app->trans($name, null, App::titleCase($name));
 
-            $buttons .= $this->inputButton($label, $type, $name, $button['attr']);
+            $buttons .= ' '.$this->inputButton($label, $type, $name, $button['attr']);
         }
 
-        return $this->renderRow('buttons', $buttons);
+        return $this->renderRow('buttons', trim($buttons));
     }
 
     /**
@@ -487,12 +487,9 @@ class Form
      * Build this form.
      *
      * Override this method to add fields.
-     *
-     * @return Form
      */
     protected function build()
     {
-        return $this;
     }
 
     /**
@@ -511,13 +508,13 @@ class Form
             return '<div>'.$input.'</div>'.PHP_EOL;
         }
 
-        $errors = isset($this->errors[$field]) ? '<div>'.implode(', ', $this->errors[$field]).'</div>' : '';
+        $errors = isset($this->_errors[$field]) ? '<div>'.implode(', ', $this->_errors[$field]).'</div>' : '';
 
         if (in_array($type, array('checkbox', 'radio'))) {
             return '<div>'.$input.$errors.'</div>'.PHP_EOL;
         }
 
-        $label = $this->html->label($options['label'], $this->formName($field), $options['label_attr']);
+        $label = $this->_html->label($options['label'], $this->formName($field), $options['label_attr']);
 
         return '<div>'.
             $label.
@@ -539,7 +536,11 @@ class Form
      */
     protected function inputButton($label, $type, $name, array $attr = null)
     {
-        return $this->html->button($label, $type, $this->formName($name), $attr);
+        if ('a' === $type) {
+            return $this->_html->element('a', true, $label, ((array) $attr) + array('href' => '#'));
+        }
+
+        return $this->_html->button($label, $type, $this->formName($name), $attr);
     }
 
     /**
@@ -554,7 +555,7 @@ class Form
      */
     protected function inputInput($field, $value, array $options, $type)
     {
-        return $this->html->input($type, $this->formName($field), $value, $options['attr']);
+        return $this->_html->input($type, $this->formName($field), $value, $options['attr']);
     }
 
     /**
@@ -568,7 +569,7 @@ class Form
      */
     protected function inputText($field, $value, array $options)
     {
-        return $this->html->text($this->formName($field), $value, $options['label'], $options['attr']);
+        return $this->_html->text($this->formName($field), $value, $options['label'], $options['attr']);
     }
 
     /**
@@ -582,7 +583,7 @@ class Form
      */
     protected function inputHidden($field, $value, array $options)
     {
-        return $this->html->hidden($this->formName($field), $value, $options['attr']);
+        return $this->_html->hidden($this->formName($field), $value, $options['attr']);
     }
 
     /**
@@ -596,7 +597,7 @@ class Form
      */
     protected function inputPassword($field, $value, array $options)
     {
-        return $this->html->password($this->formName($field), $options['label'], $options['attr']);
+        return $this->_html->password($this->formName($field), $options['label'], $options['attr']);
     }
 
     /**
@@ -624,12 +625,12 @@ class Form
             $raw = $this->rawValue($field);
             $default['checked'] = false;
 
-            if ($this->submitted) {
+            if ($this->_submitted) {
                 $default['checked'] = $raw ? $raw === $value : 'on' === $value;
             }
         }
 
-        return $this->html->checkbox($name, $raw, $options['label'], $options['attr'] + $default);
+        return $this->_html->checkbox($name, $raw, $options['label'], $options['attr'] + $default);
     }
 
     /**
@@ -650,12 +651,12 @@ class Form
             $raw = $this->rawValue($field);
             $default['checked'] = false;
 
-            if ($this->submitted) {
+            if ($this->_submitted) {
                 $default['checked'] = $raw ? $raw === $value : 'on' === $value;
             }
         }
 
-        return $this->html->radio($this->formName($field), $raw, $options['label'], $options['attr'] + $default);
+        return $this->_html->radio($this->formName($field), $raw, $options['label'], $options['attr'] + $default);
     }
 
     /**
@@ -669,7 +670,7 @@ class Form
      */
     protected function inputTextarea($field, $value, array $options)
     {
-        return $this->html->textarea($this->formName($field), $value, $options['label'], $options['attr']);
+        return $this->_html->textarea($this->formName($field), $value, $options['label'], $options['attr']);
     }
 
     /**
@@ -698,7 +699,7 @@ class Form
             ));
         }
 
-        return $this->html->element('div', true, $content, $wrapperAttr);
+        return $this->_html->element('div', true, $content, $wrapperAttr);
     }
 
     /**
@@ -725,7 +726,7 @@ class Form
             ));
         }
 
-        return $this->html->element('div', true, $content, $wrapperAttr);
+        return $this->_html->element('div', true, $content, $wrapperAttr);
     }
 
     /**
@@ -742,7 +743,7 @@ class Form
      */
     protected function inputSelect($name, $value, $label, array $attr, array $items = null, array $oAttr = null)
     {
-        return $this->html->select($this->formName($name), $value, $label, $attr, $items, $oAttr);
+        return $this->_html->select($this->formName($name), $value, $label, $attr, $items, $oAttr);
     }
 
     /**
@@ -771,7 +772,7 @@ class Form
         $items = $options['items'];
 
         if ($items && is_callable($items)) {
-            $items = $this->app->call($items, array($options));
+            $items = $this->_app->call($items, array($options));
 
             $throw = !is_array($items);
             App::throws($throw, 'The returned items should be an array.');
@@ -800,7 +801,7 @@ class Form
         $rules = array();
         $messages = array();
 
-        foreach ($this->fields as $field => $definitions) {
+        foreach ($this->_fields as $field => $definitions) {
             $options = ((array) $definitions['options']) + array(
                 'messages' => null,
                 'constraints' => null,
@@ -827,8 +828,8 @@ class Form
      */
     protected function fieldValue($field)
     {
-        if ($this->submitted) {
-            return isset($this->submittedData[$field]) ? $this->submittedData[$field] : null;
+        if ($this->_submitted) {
+            return isset($this->_submittedData[$field]) ? $this->_submittedData[$field] : null;
         }
 
         return $this->rawValue($field);
@@ -843,7 +844,7 @@ class Form
      */
     protected function rawValue($field)
     {
-        return isset($this->data[$field]) ? $this->data[$field] : null;
+        return isset($this->_data[$field]) ? $this->_data[$field] : null;
     }
 
     /**
@@ -855,6 +856,29 @@ class Form
      */
     protected function formName($field)
     {
-        return $this->name.'['.$field.']';
+        return $this->_name.'['.$field.']';
+    }
+
+    /**
+     * Convenience method to get single field value.
+     *
+     * @param string $field
+     *
+     * @return mixed
+     */
+    public function __get($field)
+    {
+        return $this->get($field);
+    }
+
+    /**
+     * Convenience method to sets single field value.
+     *
+     * @param string $field
+     * @param mixed  $value
+     */
+    public function __set($field, $value)
+    {
+        $this->set($field, $value);
     }
 }

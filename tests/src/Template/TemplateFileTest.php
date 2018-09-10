@@ -31,7 +31,7 @@ class TemplateFileTest extends TestCase
 
     private function prepareFile($file)
     {
-        $this->file = new TemplateFile($this->engine, $this->app, $file);
+        $this->file = new TemplateFile($this->app, $this->engine, $file);
     }
 
     private function removeAllWhiteSpace($str)
@@ -98,6 +98,17 @@ class TemplateFileTest extends TestCase
     public function testNestedBlock()
     {
         $this->prepareFile('nested_block.php');
+
+        $this->file->render();
+    }
+
+    /**
+     * @expectedException \LogicException
+     * @expectedExceptionMessage Please open block first before call parent method!
+     */
+    public function testParentCall()
+    {
+        $this->prepareFile('parent_call.php');
 
         $this->file->render();
     }

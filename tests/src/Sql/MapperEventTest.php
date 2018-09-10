@@ -28,7 +28,7 @@ class MapperEventTest extends TestCase
             'dsn' => 'sqlite::memory:',
             'commands' => file_get_contents(FIXTURE.'files/schema.sql'),
         ));
-        $mapper = new Mapper($conn, 'user');
+        $mapper = new Mapper($app, $conn, 'user');
         $this->event = new MapperEvent($mapper);
     }
 

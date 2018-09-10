@@ -45,9 +45,9 @@ class MapperTest extends TestCase
                     'FixtureMapper\\' => array(FIXTURE.'classes/mapper/'),
                 ),
             ))->registerAutoloader();
-            $this->mapper = new $source($conn);
+            $this->mapper = new $source($this->app, $conn);
         } else {
-            $this->mapper = new Mapper($conn, $source);
+            $this->mapper = new Mapper($this->app, $conn, $source);
         }
     }
 
@@ -301,6 +301,30 @@ class MapperTest extends TestCase
         $this->assertNull($this->mapper->offsetGet('username'));
     }
 
+    public function testMagicIsset()
+    {
+        $this->assertTrue(isset($this->mapper->id));
+        $this->assertFalse(isset($this->mapper->foo));
+    }
+
+    public function testMagicGet()
+    {
+        $this->assertNull($this->mapper->id);
+    }
+
+    public function testMagicSet()
+    {
+        $this->mapper->username = 'bar';
+        $this->assertEquals('bar', $this->mapper->username);
+    }
+
+    public function testMagicUnset()
+    {
+        $this->mapper->username = 'bar';
+        unset($this->mapper->username);
+        $this->assertNull($this->mapper->username);
+    }
+
     public function testStringifyFullOptions()
     {
         $this->filldb();
@@ -390,7 +414,7 @@ class MapperTest extends TestCase
     public function testDelete()
     {
         $this->filldb();
-        $this->mapper->db()->getApp()->one('sql_mapper_delete', function ($event) {
+        $this->app->one('sql_mapper_delete', function ($event) {
             $event->stopPropagation();
         });
 
@@ -409,7 +433,7 @@ class MapperTest extends TestCase
     {
         $this->filldb();
 
-        $this->mapper->db()->getApp()->one('sql_mapper_update', function ($event) {
+        $this->app->one('sql_mapper_update', function ($event) {
             $event->stopPropagation();
         });
 
@@ -428,7 +452,7 @@ class MapperTest extends TestCase
 
     public function testInsert()
     {
-        $this->mapper->db()->getApp()->one('sql_mapper_insert', function ($event) {
+        $this->app->one('sql_mapper_insert', function ($event) {
             $event->stopPropagation();
         });
 

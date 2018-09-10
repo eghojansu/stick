@@ -59,7 +59,7 @@ class TemplateFile
     /**
      * Parent template file path.
      *
-     * @var string
+     * @var TemplateFile
      */
     protected $parent;
 
@@ -73,7 +73,7 @@ class TemplateFile
     /**
      * Current block information.
      *
-     * @var array
+     * @var string
      */
     protected $block;
 
@@ -85,11 +85,11 @@ class TemplateFile
     protected $blocks = array();
 
     /**
-     * Child blocks holder.
+     * Parent marks.
      *
      * @var array
      */
-    protected $childBlocks;
+    protected $marks = array();
 
     /**
      * View realpath.
@@ -101,19 +101,17 @@ class TemplateFile
     /**
      * Class constructor.
      *
-     * @param Template   $engine
      * @param App        $app
+     * @param Template   $engine
      * @param string     $file
      * @param array|null $data
-     * @param array|null $childBlocks
      */
-    public function __construct(Template $engine, App $app, $file, array $data = null, array $childBlocks = null)
+    public function __construct(App $app, Template $engine, $file, array $data = null)
     {
-        $this->engine = $engine;
         $this->app = $app;
+        $this->engine = $engine;
         $this->file = $file;
         $this->data = (array) $data;
-        $this->childBlocks = (array) $childBlocks;
         $this->realpath = is_file($this->file) ? $this->file : $this->findFile();
     }
 
@@ -124,8 +122,7 @@ class TemplateFile
      */
     public function render()
     {
-        extract($this->app->hive());
-        extract($this->data);
+        extract($this->data + $this->app->hive());
         ob_start();
         $this->level = ob_get_level();
         include $this->realpath;
@@ -141,13 +138,7 @@ class TemplateFile
      */
     protected function finalizeOutput()
     {
-        if ($this->parent) {
-            $parent = new TemplateFile($this->engine, $this->app, $this->parent, null, $this->blocks);
-
-            return $parent->render();
-        }
-
-        return $this->content;
+        return $this->parent ? $this->parent->render() : $this->content;
     }
 
     /**
@@ -182,13 +173,13 @@ class TemplateFile
      * Returns rendered template file.
      *
      * @param string     $file
-     * @param array|null $args
+     * @param array|null $data
      *
      * @return string
      */
-    protected function load($file, array $args = null)
+    protected function load($file, array $data = null)
     {
-        $template = new TemplateFile($this->engine, $this->app, $file, $args);
+        $template = new TemplateFile($this->app, $this->engine, $file, ((array) $data) + $this->data);
 
         return $template->render();
     }
@@ -215,7 +206,23 @@ class TemplateFile
             throw new \LogicException('A template could not have self as parent.');
         }
 
-        $this->parent = $file;
+        $this->parent = new TemplateFile($this->app, $this->engine, $file, $this->data);
+    }
+
+    /**
+     * Returns parent mark.
+     *
+     * @return string
+     */
+    protected function parent()
+    {
+        if ($this->block && $this->parent) {
+            return $this->parent->marks[$this->block][] = '*parent-'.$this->block.'-'.microtime(true).'*';
+        }
+
+        $this->closeBuffer();
+
+        throw new \LogicException('Please open block first before call parent method!');
     }
 
     /**
@@ -228,10 +235,6 @@ class TemplateFile
      */
     protected function section($blockName, $default = '')
     {
-        if (isset($this->childBlocks[$blockName])) {
-            return $this->childBlocks[$blockName];
-        }
-
         return isset($this->blocks[$blockName]) ? $this->blocks[$blockName] : $default;
     }
 
@@ -242,7 +245,7 @@ class TemplateFile
      */
     protected function block($blockName)
     {
-        $this->block = array($blockName);
+        $this->block = $blockName;
         ob_start();
     }
 
@@ -271,16 +274,22 @@ class TemplateFile
             throw new \LogicException('Nested block is not supported.');
         }
 
-        list($blockName) = $this->block;
+        $name = $this->block;
 
-        if (isset($this->childBlocks[$blockName])) {
-            echo $this->childBlocks[$blockName];
-        } else {
-            $this->blocks[$blockName] = $content;
-
-            if ($this->childBlocks) {
-                echo $content;
+        if (isset($this->blocks[$name])) {
+            if (isset($this->marks[$name])) {
+                $this->blocks[$name] = str_replace($this->marks[$name], $content, $this->blocks[$name]);
             }
+
+            echo $this->blocks[$name];
+        } else {
+            $this->blocks[$name] = $content;
+
+            if ($this->parent) {
+                $this->parent->blocks[$name] = $content;
+            }
+
+            echo $content;
         }
 
         $this->block = null;
