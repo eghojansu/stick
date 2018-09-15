@@ -35,14 +35,29 @@ final class MapperParameterConverter
     private $db;
 
     /**
-     * @var ReflectionFunctionAbstract
+     * @var array
      */
-    private $ref;
+    private $mappers;
 
     /**
      * @var array
      */
     private $params;
+
+    /**
+     * @var array
+     */
+    private $keys;
+
+    /**
+     * @var int
+     */
+    private $ptr = 0;
+
+    /**
+     * @var int
+     */
+    private $max;
 
     /**
      * Class constructor.
@@ -56,8 +71,10 @@ final class MapperParameterConverter
     {
         $this->app = $app;
         $this->db = $db;
-        $this->ref = is_array($handler) ? new \ReflectionMethod($handler[0], $handler[1]) : new \ReflectionFunction($handler);
         $this->params = $params;
+        $this->keys = array_keys($params);
+        $this->max = count($params);
+        $this->mappers = self::resolveMapperClasses($handler);
     }
 
     /**
@@ -69,13 +86,15 @@ final class MapperParameterConverter
     {
         $resolved = array();
 
-        foreach ($this->ref->getParameters() as $param) {
-            if ($this->wants($param)) {
-                $resolved[] = $this->doResolve($param);
-            } elseif (isset($this->params[$param->name])) {
-                $resolved[] = $this->params[$param->name];
+        for (; $this->ptr < $this->max;) {
+            $name = $this->keys[$this->ptr];
+
+            if (isset($this->mappers[$name])) {
+                $class = $this->mappers[$name];
+                $resolved[$name] = $this->resolveMapper($class);
             } else {
-                $resolved[] = null;
+                $resolved[$name] = $this->params[$name];
+                ++$this->ptr;
             }
         }
 
@@ -83,36 +102,20 @@ final class MapperParameterConverter
     }
 
     /**
-     * Check if we want process these parameter.
-     *
-     * @param ReflectionParameter $param
-     *
-     * @return bool
-     */
-    private function wants(\ReflectionParameter $param)
-    {
-        $class = $param->getClass();
-
-        return $class && is_subclass_of($class->name, Mapper::class) && isset($this->params[$param->name]);
-    }
-
-    /**
      * Resolve mapper parameter.
      *
-     * @param ReflectionParameter $param
+     * @param string $class
      *
-     * @return Mapper|null
+     * @return Mapper
      *
      * @throws ResponseException if primary keys insufficient or record not found
      */
-    private function doResolve(\ReflectionParameter $param)
+    private function resolveMapper($class)
     {
-        $classname = $param->getClass()->name;
-
-        $mapper = new $classname($this->app, $this->db);
+        $mapper = new $class($this->app, $this->db);
         $keys = array_keys($mapper->keys());
         $kcount = count($keys);
-        $vals = $this->pickstartsat($param->name, $kcount);
+        $vals = array_slice($this->params, $this->ptr, $kcount);
         $vcount = count($vals);
 
         if ($vcount !== $kcount) {
@@ -131,37 +134,32 @@ final class MapperParameterConverter
             throw new ResponseException(404, $response);
         }
 
+        $this->ptr += $kcount;
+
         return $mapper;
     }
 
     /**
-     * Pick raw values start at key.
+     * Find Mapper subclass args.
      *
-     * @param string $start
-     * @param int    $count
+     * @param mixed $handler
      *
      * @return array
      */
-    private function pickstartsat($start, $count)
+    private static function resolveMapperClasses($handler)
     {
-        $res = array();
-        $used = 0;
-        $started = false;
+        $ref = is_array($handler) ? new \ReflectionMethod($handler[0], $handler[1]) : new \ReflectionFunction($handler);
+        $mappers = array();
 
-        foreach ($this->params as $key => $value) {
-            if (!$started) {
-                $started = $key === $start;
-            }
+        foreach ($ref->getParameters() as $param) {
+            $class = $param->getClass();
+            $mapper = $class && is_subclass_of($class->name, Mapper::class);
 
-            if ($started) {
-                if ($used++ >= $count) {
-                    return $res;
-                }
-
-                $res[] = $value;
+            if ($mapper) {
+                $mappers[$param->name] = $class->name;
             }
         }
 
-        return $res;
+        return $mappers;
     }
 }

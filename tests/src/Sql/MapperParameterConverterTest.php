@@ -51,9 +51,9 @@ class MapperParameterConverterTest extends TestCase
     {
         return array(
             array(array(), function () {}, array()),
-            array(array('bar'), function ($foo) {}, array('foo' => 'bar')),
-            array(array('bar', 'baz'), function ($foo, $bar) {}, array('foo' => 'bar', 'bar' => 'baz')),
-            array(array('bar', null), function ($foo, $bar) {}, array('foo' => 'bar')),
+            array(array('foo' => 'bar'), function ($foo) {}, array('foo' => 'bar')),
+            array(array('foo' => 'bar', 'bar' => 'baz'), function ($foo, $bar) {}, array('foo' => 'bar', 'bar' => 'baz')),
+            array(array('foo' => 'bar'), function ($foo, $bar) {}, array('foo' => 'bar')),
         );
     }
 
@@ -76,8 +76,8 @@ class MapperParameterConverterTest extends TestCase
         $args = $this->converter->resolve();
 
         $this->assertCount(1, $args);
-        $this->assertInstanceOf(Mapper::class, $args[0]);
-        $this->assertEquals('foo', $args[0]->get('username'));
+        $this->assertInstanceOf(Mapper::class, $args['foo']);
+        $this->assertEquals('foo', $args['foo']->get('username'));
     }
 
     public function testResolveMapperComposit()
@@ -89,8 +89,8 @@ class MapperParameterConverterTest extends TestCase
         $args = $this->converter->resolve();
 
         $this->assertCount(1, $args);
-        $this->assertInstanceOf(Mapper::class, $args[0]);
-        $this->assertEquals(3, $args[0]->get('level'));
+        $this->assertInstanceOf(Mapper::class, $args['foo']);
+        $this->assertEquals(3, $args['foo']->get('level'));
     }
 
     public function testResolveMapperOverflowParams()
@@ -101,9 +101,9 @@ class MapperParameterConverterTest extends TestCase
 
         $args = $this->converter->resolve();
 
-        $this->assertCount(1, $args);
-        $this->assertInstanceOf(Mapper::class, $args[0]);
-        $this->assertEquals('foo', $args[0]->get('username'));
+        $this->assertCount(2, $args);
+        $this->assertInstanceOf(Mapper::class, $args['foo']);
+        $this->assertEquals('foo', $args['foo']->get('username'));
     }
 
     /**

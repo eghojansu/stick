@@ -202,6 +202,8 @@ class Auth
      * Do guard.
      *
      * Return true if request has been redirected.
+     *
+     * @return bool
      */
     public function guard()
     {
@@ -210,17 +212,22 @@ class Auth
         if ($path === $this->options['loginPath']) {
             if ($this->isLogged()) {
                 $this->app->reroute($this->options['redirect']);
+
+                return true;
             }
 
-            return;
+            return false;
         }
 
         foreach ($this->options['rules'] as $check => $roles) {
             if (preg_match('#'.$check.'#', $path) && !$this->isGranted($roles)) {
                 $this->app->reroute($this->options['loginPath']);
-                break;
+
+                return true;
             }
         }
+
+        return false;
     }
 
     /**

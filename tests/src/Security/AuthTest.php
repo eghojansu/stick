@@ -189,17 +189,17 @@ class AuthTest extends TestCase
         $admin = $this->createUser('ROLE_ADMIN');
 
         return array(
-            array(null, $admin, '/'),
-            array('Home', $admin, '/login'),
-            array(null, null, '/login'),
-            array('Login', null, '/'),
+            array(null, false, $admin, '/'),
+            array('Home', true, $admin, '/login'),
+            array(null, false, null, '/login'),
+            array('Login', true, null, '/'),
         );
     }
 
     /**
      * @dataProvider guardProvider
      */
-    public function testGuard($expected, $user, $path)
+    public function testGuard($expected, $expectedBool, $user, $path)
     {
         $this->app->mset(array(
             'QUIET' => true,
@@ -219,7 +219,7 @@ class AuthTest extends TestCase
         ));
 
         $this->app->set('PATH', $path);
-        $this->auth->guard();
+        $this->assertEquals($expectedBool, $this->auth->guard());
         $this->assertEquals($expected, $this->app->get('RESPONSE'));
     }
 }

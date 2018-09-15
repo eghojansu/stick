@@ -1871,23 +1871,29 @@ final class App implements \ArrayAccess
     /**
      * Returns path from alias name.
      *
-     * @param string     $alias
-     * @param array|null $args
+     * @param string $alias
+     * @param mixed  $args
      *
      * @return string
      */
-    public function alias($alias, array $args = null)
+    public function alias($alias, $args = null)
     {
         if (isset($this->_hive['ROUTE_ALIASES'][$alias])) {
             $pattern = $this->_hive['ROUTE_ALIASES'][$alias];
 
             if ($args) {
                 $keywordCount = substr_count($pattern, '@');
-                $replace = array_slice($args, 0, $keywordCount);
+                $use = $args;
+
+                if (is_string($args)) {
+                    parse_str($args, $use);
+                }
+
+                $replace = array_slice($use, 0, $keywordCount);
                 $search = $replace ? explode(',', '@'.implode(',@', array_keys($replace))) : array();
 
                 $search[] = '*';
-                $replace[] = implode('/', array_slice($args, $keywordCount));
+                $replace[] = implode('/', array_slice($use, $keywordCount));
 
                 return str_replace($search, $replace, $pattern);
             }
@@ -1901,14 +1907,17 @@ final class App implements \ArrayAccess
     /**
      * Returns path from alias name, with BASE and ENTRY as prefix.
      *
-     * @param string     $alias
-     * @param array|null $args
+     * @param string $alias
+     * @param mixed  $args
+     * @param mixed  $query
      *
      * @return string
      */
-    public function path($alias, array $args = null)
+    public function path($alias, $args = null, $query = null)
     {
-        return $this->_hive['BASE'].$this->_hive['ENTRY'].$this->alias($alias, $args);
+        $q = is_array($query) ? http_build_query($query) : $query;
+
+        return rtrim($this->_hive['BASE'].$this->_hive['ENTRY'].$this->alias($alias, $args).'?'.$q, '?');
     }
 
     /**
@@ -1968,8 +1977,9 @@ final class App implements \ArrayAccess
 
         $this->status($permanent ? 301 : 302);
         $this->_hive['HEADERS']['Location'] = $url;
+        $this->_hive['RESPONSE'] = null;
 
-        return $this;
+        return $this->send();
     }
 
     /**
@@ -2136,10 +2146,16 @@ final class App implements \ArrayAccess
      */
     public function send()
     {
-        $this->sendHeaders();
-        $this->sendContent();
+        if ($this->_hive['SENT']) {
+            return $this;
+        }
 
-        return $this;
+        $this->_hive['SENT'] = true;
+
+        return $this
+            ->sendHeaders()
+            ->sendContent()
+        ;
     }
 
     /**
@@ -2173,11 +2189,9 @@ final class App implements \ArrayAccess
      */
     public function sendContent()
     {
-        if ($this->_hive['QUIET'] || $this->_hive['SENT']) {
+        if ($this->_hive['QUIET'] || empty($this->_hive['RESPONSE'])) {
             return $this;
         }
-
-        $this->_hive['SENT'] = true;
 
         if (0 >= $this->_hive['KBPS']) {
             echo $this->_hive['RESPONSE'];
@@ -2469,6 +2483,10 @@ final class App implements \ArrayAccess
         $this->trigger(self::EVENT_ROUTE, $event);
 
         if ($event->isPropagationStopped()) {
+            if ($this->_hive['SENT']) {
+                return $this;
+            }
+
             $code = $event->getCode();
             $this->_hive['HEADERS'] = $event->getHeaders();
             $this->_hive['RESPONSE'] = $event->getResponse();

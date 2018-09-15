@@ -596,7 +596,6 @@ class AppTest extends TestCase
         $this->app->set('RESPONSE', 'foo');
         $this->expectOutputString('foo');
         $this->app->sendContent();
-        $this->assertTrue($this->app->get('SENT'));
     }
 
     public function testSendContentQuiet()
@@ -604,7 +603,6 @@ class AppTest extends TestCase
         $this->app->set('QUIET', true);
         $this->expectOutputString('');
         $this->app->sendContent();
-        $this->assertFalse($this->app->get('SENT'));
     }
 
     public function testSendContentChunked()
@@ -615,7 +613,6 @@ class AppTest extends TestCase
         ));
         $this->expectOutputString('foo');
         $this->app->sendContent();
-        $this->assertTrue($this->app->get('SENT'));
     }
 
     public function testSend()
@@ -969,6 +966,7 @@ class AppTest extends TestCase
             array('home', null, '/'),
             array('about', null, '/about'),
             array('product', array('name' => 'foo'), '/product/foo'),
+            array('product', 'name=foo', '/product/foo'),
             array('everything', array('foo', 'bar', 'baz'), '/everything/foo/bar/baz'),
             array('mix', array('food' => 'nasi-goreng', 'usus', 'hati', 'ampela', 'teri'), '/mix/nasi-goreng/usus/hati/ampela/teri'),
             array('unknown', null, '/unknown'),
@@ -994,6 +992,8 @@ class AppTest extends TestCase
     public function testPath()
     {
         $this->assertEquals($this->app->get('BASE').'/foo', $this->app->path('foo'));
+        $this->assertEquals($this->app->get('BASE').'/foo?foo', $this->app->path('foo', null, 'foo'));
+        $this->assertEquals($this->app->get('BASE').'/foo?foo=', $this->app->path('foo', null, array('foo' => '')));
     }
 
     public function rerouteProvider()
@@ -1120,6 +1120,21 @@ class AppTest extends TestCase
             $event->setResponse('Intercepted');
         })->run();
         $this->assertEquals('Intercepted', $this->app->get('RESPONSE'));
+    }
+
+    public function testRunInterception2()
+    {
+        $this->app->mset(array(
+            'QUIET' => true,
+        ));
+        $this->registerRoutes();
+
+        // Send response in event
+        $this->app->set('RESPONSE', 'foo')->one('app_route', function ($event) {
+            $this->app->send();
+            $event->setResponse('bar');
+        })->run();
+        $this->assertEquals('foo', $this->app->get('RESPONSE'));
     }
 
     public function testRunModification()
