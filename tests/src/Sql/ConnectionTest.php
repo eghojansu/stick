@@ -9,6 +9,8 @@
  * file that was distributed with this source code.
  */
 
+declare(strict_types=1);
+
 namespace Fal\Stick\Test\Sql;
 
 use Fal\Stick\App;
@@ -463,7 +465,7 @@ class ConnectionTest extends TestCase
     public function testPhpValue()
     {
         $this->assertEquals(null, $this->conn->phpValue(\PDO::PARAM_NULL, 'foo'));
-        $this->assertEquals('0.0', $this->conn->phpValue(Connection::PARAM_FLOAT, 0.0));
+        $this->assertEquals('0', $this->conn->phpValue(Connection::PARAM_FLOAT, 0.0));
         $this->assertEquals(true, $this->conn->phpValue(\PDO::PARAM_BOOL, 1));
         $this->assertEquals(1, $this->conn->phpValue(\PDO::PARAM_INT, '1'));
         $this->assertEquals('1', $this->conn->phpValue(\PDO::PARAM_STR, '1'));

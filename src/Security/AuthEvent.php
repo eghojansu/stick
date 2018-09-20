@@ -9,6 +9,8 @@
  * file that was distributed with this source code.
  */
 
+declare(strict_types=1);
+
 namespace Fal\Stick\Security;
 
 use Fal\Stick\Event;
@@ -40,7 +42,7 @@ class AuthEvent extends Event
      *
      * @return UserInterface|null
      */
-    public function getUser()
+    public function getUser(): ?UserInterface
     {
         return $this->user;
     }
@@ -52,7 +54,7 @@ class AuthEvent extends Event
      *
      * @return AuthEvent
      */
-    public function setUser(UserInterface $user)
+    public function setUser(UserInterface $user): AuthEvent
     {
         $this->user = $user;
         $this->stopPropagation();

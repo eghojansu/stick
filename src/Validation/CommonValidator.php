@@ -9,6 +9,8 @@
  * file that was distributed with this source code.
  */
 
+declare(strict_types=1);
+
 namespace Fal\Stick\Validation;
 
 /**
@@ -26,7 +28,7 @@ class CommonValidator extends AbstractValidator
      *
      * @return string
      */
-    protected function _trim($val, $chars = " \t\n\r\0\x0B")
+    protected function _trim($val, $chars = " \t\n\r\0\x0B"): string
     {
         return trim((string) $val, $chars);
     }
@@ -39,7 +41,7 @@ class CommonValidator extends AbstractValidator
      *
      * @return string
      */
-    protected function _ltrim($val, $chars = " \t\n\r\0\x0B")
+    protected function _ltrim($val, $chars = " \t\n\r\0\x0B"): string
     {
         return ltrim((string) $val, $chars);
     }
@@ -52,7 +54,7 @@ class CommonValidator extends AbstractValidator
      *
      * @return string
      */
-    protected function _rtrim($val, $chars = " \t\n\r\0\x0B")
+    protected function _rtrim($val, $chars = " \t\n\r\0\x0B"): string
     {
         return rtrim((string) $val, $chars);
     }
@@ -64,7 +66,7 @@ class CommonValidator extends AbstractValidator
      *
      * @return bool
      */
-    protected function _required($val)
+    protected function _required($val): bool
     {
         return isset($val) && '' !== $val;
     }
@@ -77,7 +79,7 @@ class CommonValidator extends AbstractValidator
      *
      * @return bool
      */
-    protected function _type($val, $type)
+    protected function _type($val, $type): bool
     {
         return gettype($val) === $type;
     }
@@ -90,7 +92,7 @@ class CommonValidator extends AbstractValidator
      *
      * @return bool
      */
-    protected function _equalField($val, $compared)
+    protected function _equalField($val, $compared): bool
     {
         if (isset($this->data['validated'][$compared])) {
             $compare = $this->data['validated'][$compared];
@@ -111,7 +113,7 @@ class CommonValidator extends AbstractValidator
      *
      * @return bool
      */
-    protected function _notEqualField($val, $compared)
+    protected function _notEqualField($val, $compared): bool
     {
         if (isset($this->data['validated'][$compared])) {
             $compare = $this->data['validated'][$compared];
@@ -132,7 +134,7 @@ class CommonValidator extends AbstractValidator
      *
      * @return bool
      */
-    protected function _equal($val, $compared)
+    protected function _equal($val, $compared): bool
     {
         return $val == $compared;
     }
@@ -145,7 +147,7 @@ class CommonValidator extends AbstractValidator
      *
      * @return bool
      */
-    protected function _notEqual($val, $compared)
+    protected function _notEqual($val, $compared): bool
     {
         return $val != $compared;
     }
@@ -158,7 +160,7 @@ class CommonValidator extends AbstractValidator
      *
      * @return bool
      */
-    protected function _identical($val, $compared)
+    protected function _identical($val, $compared): bool
     {
         return $val === $compared;
     }
@@ -171,7 +173,7 @@ class CommonValidator extends AbstractValidator
      *
      * @return bool
      */
-    protected function _notIdentical($val, $compared)
+    protected function _notIdentical($val, $compared): bool
     {
         return $val !== $compared;
     }
@@ -184,7 +186,7 @@ class CommonValidator extends AbstractValidator
      *
      * @return bool
      */
-    protected function _lt($val, $min)
+    protected function _lt($val, $min): bool
     {
         return $val < $min;
     }
@@ -197,7 +199,7 @@ class CommonValidator extends AbstractValidator
      *
      * @return bool
      */
-    protected function _gt($val, $max)
+    protected function _gt($val, $max): bool
     {
         return $val > $max;
     }
@@ -210,7 +212,7 @@ class CommonValidator extends AbstractValidator
      *
      * @return bool
      */
-    protected function _lte($val, $min)
+    protected function _lte($val, $min): bool
     {
         return $val <= $min;
     }
@@ -223,7 +225,7 @@ class CommonValidator extends AbstractValidator
      *
      * @return bool
      */
-    protected function _gte($val, $max)
+    protected function _gte($val, $max): bool
     {
         return $val >= $max;
     }
@@ -236,7 +238,7 @@ class CommonValidator extends AbstractValidator
      *
      * @return bool
      */
-    protected function _min($val, $min)
+    protected function _min($val, $min): bool
     {
         return $val >= $min;
     }
@@ -249,7 +251,7 @@ class CommonValidator extends AbstractValidator
      *
      * @return bool
      */
-    protected function _max($val, $max)
+    protected function _max($val, $max): bool
     {
         return $val <= $max;
     }
@@ -262,7 +264,7 @@ class CommonValidator extends AbstractValidator
      *
      * @return bool
      */
-    protected function _len($val, $len)
+    protected function _len($val, $len): bool
     {
         return !$this->_required($val) || strlen($val) === $len;
     }
@@ -275,7 +277,7 @@ class CommonValidator extends AbstractValidator
      *
      * @return bool
      */
-    protected function _lenMin($val, $min)
+    protected function _lenMin($val, $min): bool
     {
         return !$this->_required($val) || strlen($val) >= $min;
     }
@@ -288,7 +290,7 @@ class CommonValidator extends AbstractValidator
      *
      * @return bool
      */
-    protected function _lenMax($val, $max)
+    protected function _lenMax($val, $max): bool
     {
         return !$this->_required($val) || strlen($val) <= $max;
     }
@@ -301,7 +303,7 @@ class CommonValidator extends AbstractValidator
      *
      * @return bool
      */
-    protected function _count(array $val, $count)
+    protected function _count(array $val, $count): bool
     {
         return count($val) === $count;
     }
@@ -314,7 +316,7 @@ class CommonValidator extends AbstractValidator
      *
      * @return bool
      */
-    protected function _countMin(array $val, $min)
+    protected function _countMin(array $val, $min): bool
     {
         return count($val) >= $min;
     }
@@ -327,7 +329,7 @@ class CommonValidator extends AbstractValidator
      *
      * @return bool
      */
-    protected function _countMax(array $val, $max)
+    protected function _countMax(array $val, $max): bool
     {
         return count($val) <= $max;
     }
@@ -340,7 +342,7 @@ class CommonValidator extends AbstractValidator
      *
      * @return string
      */
-    protected function _convertDate($val, $format = 'Y-m-d')
+    protected function _convertDate($val, $format = 'Y-m-d'): string
     {
         try {
             $date = (new \DateTime($val))->format($format);
@@ -358,7 +360,7 @@ class CommonValidator extends AbstractValidator
      *
      * @return bool
      */
-    protected function _date($val)
+    protected function _date($val): bool
     {
         return
             $val &&
@@ -377,7 +379,7 @@ class CommonValidator extends AbstractValidator
      *
      * @return bool
      */
-    protected function _datetime($val)
+    protected function _datetime($val): bool
     {
         return
             $val &&
@@ -400,7 +402,7 @@ class CommonValidator extends AbstractValidator
      *
      * @return bool
      */
-    protected function _regex($val, $pattern)
+    protected function _regex($val, $pattern): bool
     {
         $quote = $pattern[0];
 
@@ -419,7 +421,7 @@ class CommonValidator extends AbstractValidator
      *
      * @return bool
      */
-    protected function _choice($val, array $choices)
+    protected function _choice($val, array $choices): bool
     {
         return in_array($val, $choices);
     }
@@ -432,7 +434,7 @@ class CommonValidator extends AbstractValidator
      *
      * @return bool
      */
-    protected function _choices($val, array $choices)
+    protected function _choices($val, array $choices): bool
     {
         $vals = (array) $val;
         $intersection = array_intersect($vals, $choices);
@@ -447,7 +449,7 @@ class CommonValidator extends AbstractValidator
      *
      * @return bool
      */
-    protected function _url($str)
+    protected function _url($str): bool
     {
         return is_string(filter_var($str, FILTER_VALIDATE_URL));
     }
@@ -464,7 +466,7 @@ class CommonValidator extends AbstractValidator
      *
      * @return bool
      */
-    protected function _email($str, $mx = false)
+    protected function _email($str, $mx = false): bool
     {
         $hosts = array();
 
@@ -478,7 +480,7 @@ class CommonValidator extends AbstractValidator
      *
      * @return bool
      */
-    protected function _ipv4($addr)
+    protected function _ipv4($addr): bool
     {
         return (bool) filter_var($addr, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4);
     }
@@ -490,7 +492,7 @@ class CommonValidator extends AbstractValidator
      *
      * @return bool
      */
-    protected function _ipv6($addr)
+    protected function _ipv6($addr): bool
     {
         return (bool) filter_var($addr, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6);
     }
@@ -502,7 +504,7 @@ class CommonValidator extends AbstractValidator
      *
      * @return bool
      */
-    protected function _isPrivate($addr)
+    protected function _isPrivate($addr): bool
     {
         return !(bool) filter_var($addr, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4 | FILTER_FLAG_IPV6 | FILTER_FLAG_NO_PRIV_RANGE);
     }
@@ -514,7 +516,7 @@ class CommonValidator extends AbstractValidator
      *
      * @return bool
      */
-    protected function _isReserved($addr)
+    protected function _isReserved($addr): bool
     {
         return !(bool) filter_var($addr, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4 | FILTER_FLAG_IPV6 | FILTER_FLAG_NO_RES_RANGE);
     }
@@ -526,7 +528,7 @@ class CommonValidator extends AbstractValidator
      *
      * @return bool
      */
-    protected function _isPublic($addr)
+    protected function _isPublic($addr): bool
     {
         return (bool) filter_var($addr, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4 | FILTER_FLAG_IPV6 | FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE);
     }

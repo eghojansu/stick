@@ -9,9 +9,9 @@
  * file that was distributed with this source code.
  */
 
-namespace Fal\Stick\Html;
+declare(strict_types=1);
 
-use Fal\Stick\App;
+namespace Fal\Stick\Html;
 
 /**
  * Bootstrap 3 Horizontal Form.
@@ -46,7 +46,7 @@ class Twbs3Form extends Form
      *
      * @return string
      */
-    public function getLeftColClass()
+    public function getLeftColClass(): string
     {
         return $this->_leftColClass;
     }
@@ -58,7 +58,7 @@ class Twbs3Form extends Form
      *
      * @return Twbs3Form
      */
-    public function setLeftColClass($_leftColClass)
+    public function setLeftColClass(string $_leftColClass): Twbs3Form
     {
         $this->_leftColClass = $_leftColClass;
 
@@ -70,7 +70,7 @@ class Twbs3Form extends Form
      *
      * @return string
      */
-    public function getRightOffsetColClass()
+    public function getRightOffsetColClass(): string
     {
         return $this->_rightOffsetColClass;
     }
@@ -82,7 +82,7 @@ class Twbs3Form extends Form
      *
      * @return Twbs3Form
      */
-    public function setRightOffsetColClass($_rightOffsetColClass)
+    public function setRightOffsetColClass(string $_rightOffsetColClass): Twbs3Form
     {
         $this->_rightOffsetColClass = $_rightOffsetColClass;
 
@@ -94,7 +94,7 @@ class Twbs3Form extends Form
      *
      * @return string
      */
-    public function getRightColClass()
+    public function getRightColClass(): string
     {
         return $this->_rightColClass;
     }
@@ -106,7 +106,7 @@ class Twbs3Form extends Form
      *
      * @return Twbs3Form
      */
-    public function setRightColClass($_rightColClass)
+    public function setRightColClass(string $_rightColClass): Twbs3Form
     {
         $this->_rightColClass = $_rightColClass;
 
@@ -116,7 +116,7 @@ class Twbs3Form extends Form
     /**
      * {@inheritdoc}
      */
-    public function open(array $attr = null, $multipart = false)
+    public function open(array $attr = null, bool $multipart = false): string
     {
         $default = array('class' => 'form-horizontal');
 
@@ -126,7 +126,7 @@ class Twbs3Form extends Form
     /**
      * {@inheritdoc}
      */
-    protected function inputButton($label, $type, $name, array $attr = null)
+    protected function inputButton(string $label, string $type, string $name, array $attr = null): string
     {
         $default = array('class' => 'btn btn-default');
 
@@ -136,7 +136,7 @@ class Twbs3Form extends Form
     /**
      * {@inheritdoc}
      */
-    protected function inputInput($field, $value, array $options, $type)
+    protected function inputInput(string $field, $value, array $options, string $type): string
     {
         $options['attr'] += array('class' => 'form-control');
 
@@ -146,7 +146,7 @@ class Twbs3Form extends Form
     /**
      * {@inheritdoc}
      */
-    protected function inputText($field, $value, array $options)
+    protected function inputText(string $field, $value, array $options): string
     {
         $options['attr'] += array('class' => 'form-control');
 
@@ -156,7 +156,7 @@ class Twbs3Form extends Form
     /**
      * {@inheritdoc}
      */
-    protected function inputPassword($field, $value, array $options)
+    protected function inputPassword(string $field, $value, array $options): string
     {
         $options['attr'] += array('class' => 'form-control');
 
@@ -166,9 +166,9 @@ class Twbs3Form extends Form
     /**
      * {@inheritdoc}
      */
-    protected function inputRadio($field, $value, array $options)
+    protected function inputRadio(string $field, $value, array $options): string
     {
-        $wrapperAttr = App::pick($options, 'wrapper_attr', array());
+        $wrapperAttr = $options['wrapper_attr'] ?? array();
         $default = array('class' => 'radio');
 
         return $this->_html->element('div', true, parent::inputRadio($field, $value, $options), $wrapperAttr + $default);
@@ -177,9 +177,9 @@ class Twbs3Form extends Form
     /**
      * {@inheritdoc}
      */
-    protected function inputCheckbox($field, $value, array $options)
+    protected function inputCheckbox(string $field, $value, array $options): string
     {
-        $wrapperAttr = App::pick($options, 'wrapper_attr', array());
+        $wrapperAttr = $options['wrapper_attr'] ?? array();
         $default = array('class' => 'checkbox');
 
         return $this->_html->element('div', true, parent::inputCheckbox($field, $value, $options), $wrapperAttr + $default);
@@ -188,7 +188,7 @@ class Twbs3Form extends Form
     /**
      * {@inheritdoc}
      */
-    protected function inputTextarea($field, $value, array $options)
+    protected function inputTextarea(string $field, $value, array $options): string
     {
         $options['attr'] += array('class' => 'form-control');
 
@@ -198,7 +198,7 @@ class Twbs3Form extends Form
     /**
      * {@inheritdoc}
      */
-    protected function inputSelect($name, $value, $label, array $attr, array $items = null, array $oAttr = null)
+    protected function inputSelect(string $name, $value, string $label, array $attr, array $items = null, array $oAttr = null): string
     {
         $default = array('class' => 'form-control');
 
@@ -208,7 +208,7 @@ class Twbs3Form extends Form
     /**
      * {@inheritdoc}
      */
-    protected function renderRow($type, $input, $field = null, array $options = null)
+    protected function renderRow(string $type, string $input, string $field = null, array $options = null): string
     {
         $rightOffset = $this->_rightOffsetColClass.' '.$this->_rightColClass;
 

@@ -9,6 +9,8 @@
  * file that was distributed with this source code.
  */
 
+declare(strict_types=1);
+
 namespace Fal\Stick;
 
 /**
@@ -58,7 +60,7 @@ class GetResponseForControllerEvent extends GetResponseEvent
      *
      * @return GetResponseForControllerEvent
      */
-    public function setResult($result)
+    public function setResult($result): GetResponseForControllerEvent
     {
         $this->result = $result;
 

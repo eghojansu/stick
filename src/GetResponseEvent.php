@@ -9,6 +9,8 @@
  * file that was distributed with this source code.
  */
 
+declare(strict_types=1);
+
 namespace Fal\Stick;
 
 /**
@@ -57,7 +59,7 @@ class GetResponseEvent extends Event
      * @param int        $kbps
      * @param array|null $headers
      */
-    public function __construct($code = 200, $response = '', $kbps = 0, array $headers = null)
+    public function __construct(int $code = 200, string $response = '', int $kbps = 0, array $headers = null)
     {
         $this->code = $code;
         $this->response = $response;
@@ -70,7 +72,7 @@ class GetResponseEvent extends Event
      *
      * @return int
      */
-    public function getCode()
+    public function getCode(): int
     {
         return $this->code;
     }
@@ -82,7 +84,7 @@ class GetResponseEvent extends Event
      *
      * @return GetResponseEvent
      */
-    public function setCode($code)
+    public function setCode(int $code): GetResponseEvent
     {
         $this->code = $code;
 
@@ -94,7 +96,7 @@ class GetResponseEvent extends Event
      *
      * @return array
      */
-    public function getHeaders()
+    public function getHeaders(): array
     {
         return $this->headers;
     }
@@ -106,7 +108,7 @@ class GetResponseEvent extends Event
      *
      * @return GetResponseEvent
      */
-    public function setHeaders(array $headers)
+    public function setHeaders(array $headers): GetResponseEvent
     {
         $this->headers = $headers;
 
@@ -118,7 +120,7 @@ class GetResponseEvent extends Event
      *
      * @return int
      */
-    public function getKbps()
+    public function getKbps(): int
     {
         return $this->kbps;
     }
@@ -130,7 +132,7 @@ class GetResponseEvent extends Event
      *
      * @return GetResponseEvent
      */
-    public function setKbps($kbps)
+    public function setKbps(int $kbps): GetResponseEvent
     {
         $this->kbps = $kbps;
 
@@ -142,7 +144,7 @@ class GetResponseEvent extends Event
      *
      * @return string
      */
-    public function getResponse()
+    public function getResponse(): string
     {
         return $this->response;
     }
@@ -154,7 +156,7 @@ class GetResponseEvent extends Event
      *
      * @return GetResponseEvent
      */
-    public function setResponse($response)
+    public function setResponse(string $response): GetResponseEvent
     {
         $this->response = $response;
         $this->stopPropagation();

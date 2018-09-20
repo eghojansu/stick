@@ -9,6 +9,8 @@
  * file that was distributed with this source code.
  */
 
+declare(strict_types=1);
+
 namespace Fal\Stick;
 
 /**
@@ -21,12 +23,12 @@ class ResponseException extends \LogicException
     /**
      * Class constructor.
      *
-     * @param int    $code
-     * @param string $message
-     * @param mixed  $previous
+     * @param int       $code
+     * @param string    $message
+     * @param Throwable $previous
      */
-    public function __construct($code, $message = null, $previous = null)
+    public function __construct(int $code, string $message = null, \Throwable $previous = null)
     {
-        parent::__construct($message, $code, $previous);
+        parent::__construct((string) $message, $code, $previous);
     }
 }

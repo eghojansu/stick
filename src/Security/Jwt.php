@@ -9,6 +9,8 @@
  * file that was distributed with this source code.
  */
 
+declare(strict_types=1);
+
 namespace Fal\Stick\Security;
 
 use Fal\Stick\App;
@@ -33,12 +35,7 @@ class Jwt
     const ALG_RS384 = 'RS384';
     const ALG_RS512 = 'RS512';
 
-    /**
-     * Available algorithms.
-     *
-     * @var array
-     */
-    protected static $availableAlgorithms = array(
+    const ALGS = array(
         self::ALG_HS256 => 'SHA256',
         self::ALG_HS384 => 'SHA384',
         self::ALG_HS512 => 'SHA512',
@@ -100,7 +97,7 @@ class Jwt
      *
      * @return string
      */
-    public function getAlgorithm()
+    public function getAlgorithm(): string
     {
         return $this->algorithm;
     }
@@ -112,9 +109,9 @@ class Jwt
      *
      * @return Jwt
      */
-    public function setAlgorithm($algorithm = null)
+    public function setAlgorithm(string $algorithm = null): Jwt
     {
-        $this->algorithm = $algorithm ?: self::ALG_HS256;
+        $this->algorithm = $algorithm ?? self::ALG_HS256;
 
         return $this;
     }
@@ -122,9 +119,9 @@ class Jwt
     /**
      * Returns supportedAlgorithms.
      *
-     * @return array
+     * @return array|null
      */
-    public function getSupportedAlgorithms()
+    public function getSupportedAlgorithms(): ?array
     {
         return $this->supportedAlgorithms;
     }
@@ -136,7 +133,7 @@ class Jwt
      *
      * @return Jwt
      */
-    public function setSupportedAlgorithms(array $supportedAlgorithms = null)
+    public function setSupportedAlgorithms(array $supportedAlgorithms = null): Jwt
     {
         $this->supportedAlgorithms = $supportedAlgorithms;
 
@@ -173,12 +170,12 @@ class Jwt
      *
      * @throws LogicException If key is empty
      */
-    public function setKey($encodeKey, $decodeKey = null)
+    public function setKey($encodeKey, $decodeKey = null): Jwt
     {
         App::throws(empty($encodeKey), 'Key may not be empty.');
 
         $this->encodeKey = $encodeKey;
-        $this->decodeKey = $decodeKey ?: $encodeKey;
+        $this->decodeKey = $decodeKey ?? $encodeKey;
 
         return $this;
     }
@@ -188,7 +185,7 @@ class Jwt
      *
      * @return int
      */
-    public function getLeeway()
+    public function getLeeway(): int
     {
         return $this->leeway;
     }
@@ -200,7 +197,7 @@ class Jwt
      *
      * @return Jwt
      */
-    public function setLeeway($leeway)
+    public function setLeeway(int $leeway): Jwt
     {
         $this->leeway = $leeway;
 
@@ -214,7 +211,7 @@ class Jwt
      *
      * @return string
      */
-    public function encode(array $payload)
+    public function encode(array $payload): string
     {
         $header = array(
             'typ' => 'JWT',
@@ -231,7 +228,6 @@ class Jwt
      * Decode jwt token.
      *
      * @param string $token
-     * @param bool   $assoc
      *
      * @return array
      *
@@ -239,7 +235,7 @@ class Jwt
      * @throws DomainException          If header contains no algorithm or algorithm is not allowed
      * @throws RuntimeException         If token expired or token is invalid
      */
-    public function decode($token)
+    public function decode(string $token): array
     {
         $use = explode('.', $token);
 
@@ -270,14 +266,14 @@ class Jwt
         // Check if the nbf if it is defined. This is the time that the
         // token can actually be used. If it's not yet that time, abort.
         $throw = $fix['nbf'] && $fix['nbf'] > (time() + $this->leeway);
-        $message = 'Cannot handle token prior to '.date(\DateTime::ISO8601, $fix['nbf']).'.';
+        $message = 'Cannot handle token prior to '.date(\DateTime::ISO8601, $fix['nbf'] ?? 0).'.';
         App::throws($throw, $message, 'RuntimeException');
 
         // Check that this token has been created before 'now'. This prevents
         // using tokens that have been created for later use (and haven't
         // correctly used the nbf claim).
         $throw = $fix['iat'] && $fix['iat'] > (time() + $this->leeway);
-        $message = 'Cannot handle token prior to '.date(\DateTime::ISO8601, $fix['iat']).'.';
+        $message = 'Cannot handle token prior to '.date(\DateTime::ISO8601, $fix['iat'] ?? 0).'.';
         App::throws($throw, $message, 'RuntimeException');
 
         // Check if this token has expired.
@@ -298,9 +294,9 @@ class Jwt
      *
      * @throws DomainException If algorithm is not supported
      */
-    protected function sign($message, $algorithm, $key)
+    protected function sign(string $message, string $algorithm, $key): string
     {
-        $usedAlgorithm = App::pick(self::$availableAlgorithms, $algorithm);
+        $usedAlgorithm = self::ALGS[$algorithm] ?? null;
 
         switch ($algorithm) {
             case self::ALG_HS256:
@@ -329,7 +325,7 @@ class Jwt
      *
      * @throws DomainException If algorithm is not supported
      */
-    protected function verify($message, $signature, $algorithm, $key)
+    protected function verify(string $message, string $signature, string $algorithm, $key): bool
     {
         switch ($algorithm) {
             case self::ALG_HS256:
@@ -339,7 +335,7 @@ class Jwt
             case self::ALG_RS256:
             case self::ALG_RS384:
             case self::ALG_RS512:
-                $usedAlgorithm = App::pick(self::$availableAlgorithms, $algorithm);
+                $usedAlgorithm = self::ALGS[$algorithm] ?? null;
 
                 return $this->verifyRsa($signature, $usedAlgorithm, $message, $key);
         }
@@ -357,7 +353,7 @@ class Jwt
      *
      * @return bool
      */
-    protected function verifyRsa($signature, $algorithm, $message, $key)
+    protected function verifyRsa(string $signature, string $algorithm, string $message, $key): bool
     {
         return openssl_verify($message, $signature, $key, $algorithm) > 0;
     }
@@ -371,7 +367,7 @@ class Jwt
      *
      * @return string
      */
-    protected function generateRsa($algorithm, $message, $key)
+    protected function generateRsa(string $algorithm, string $message, $key): string
     {
         $signature = '';
         openssl_sign($message, $signature, $key, $algorithm);
@@ -386,7 +382,7 @@ class Jwt
      *
      * @return string A decoded string
      */
-    protected function urldecode($str)
+    protected function urldecode(string $str): string
     {
         $remainder = strlen($str) % 4;
 
@@ -405,7 +401,7 @@ class Jwt
      *
      * @return string The base64 encode of what you passed in
      */
-    protected function urlencode($str)
+    protected function urlencode(string $str): string
     {
         return str_replace('=', '', strtr(base64_encode($str), '+/', '-_'));
     }

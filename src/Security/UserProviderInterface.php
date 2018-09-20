@@ -9,6 +9,8 @@
  * file that was distributed with this source code.
  */
 
+declare(strict_types=1);
+
 namespace Fal\Stick\Security;
 
 /**
@@ -25,7 +27,7 @@ interface UserProviderInterface
      *
      * @return UserInterface|null
      */
-    public function findByUsername($username);
+    public function findByUsername(string $username): ?UserInterface;
 
     /**
      * Find user by id.
@@ -34,5 +36,5 @@ interface UserProviderInterface
      *
      * @return UserInterface|null
      */
-    public function findById($id);
+    public function findById(string $id): ?UserInterface;
 }

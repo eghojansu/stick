@@ -9,6 +9,8 @@
  * file that was distributed with this source code.
  */
 
+declare(strict_types=1);
+
 namespace Fal\Stick\Security;
 
 /**
@@ -21,7 +23,7 @@ class InMemoryUserProvider implements UserProviderInterface
     /**
      * @var array
      */
-    protected $users;
+    protected $users = array();
 
     /**
      * @var UserTransformerInterface
@@ -47,7 +49,7 @@ class InMemoryUserProvider implements UserProviderInterface
      *
      * @return InMemoryUserProvider
      */
-    public function addUser($username, $password, array $extra = null)
+    public function addUser(string $username, string $password, array $extra = null): InMemoryUserProvider
     {
         $id = array('id' => $username);
         $this->users[$username] = compact('username', 'password') + ((array) $extra) + $id;
@@ -58,7 +60,7 @@ class InMemoryUserProvider implements UserProviderInterface
     /**
      * {@inheritdoc}
      */
-    public function findByUsername($username)
+    public function findByUsername(string $username): ?UserInterface
     {
         return array_key_exists($username, $this->users) ? $this->transformer->transform($this->users[$username]) : null;
     }
@@ -66,7 +68,7 @@ class InMemoryUserProvider implements UserProviderInterface
     /**
      * {@inheritdoc}
      */
-    public function findById($id)
+    public function findById(string $id): ?UserInterface
     {
         $found = array_column($this->users, 'username', 'id');
 

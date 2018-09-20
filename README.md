@@ -24,9 +24,6 @@ Example usage.
 require 'vendor/autoload.php';
 
 Fal\Stick\App::createFromGlobals()
-    // if running on php 7, method call below is not neccesary
-    // but you need to call "run7" method instead of "run" method.
-    ->registerErrorExceptionHandler()
     ->route('GET home /', function() {
         return 'Welcome home, Vanilla lover!';
     })

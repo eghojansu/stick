@@ -9,6 +9,8 @@
  * file that was distributed with this source code.
  */
 
+declare(strict_types=1);
+
 namespace Fal\Stick\Security;
 
 /**
@@ -25,7 +27,7 @@ interface PasswordEncoderInterface
      *
      * @return string
      */
-    public function hash($plainText);
+    public function hash(string $plainText): string;
 
     /**
      * Verify password.
@@ -35,5 +37,5 @@ interface PasswordEncoderInterface
      *
      * @return bool
      */
-    public function verify($plainText, $hash);
+    public function verify(string $plainText, string $hash): bool;
 }

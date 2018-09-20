@@ -9,6 +9,8 @@
  * file that was distributed with this source code.
  */
 
+declare(strict_types=1);
+
 namespace Fal\Stick\Test\Template;
 
 use Fal\Stick\App;
@@ -34,7 +36,7 @@ class TemplateTest extends TestCase
     public function testSetDirs()
     {
         $this->assertEquals(array('foo'), $this->template->setDirs('foo')->getDirs());
-        $this->assertEquals(array('bar', 'foo'), $this->template->setDirs('bar', true)->getDirs());
+        $this->assertEquals(array('foo', 'bar'), $this->template->setDirs('bar', true)->getDirs());
     }
 
     public function testRender()

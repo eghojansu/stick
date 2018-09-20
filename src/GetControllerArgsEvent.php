@@ -9,6 +9,8 @@
  * file that was distributed with this source code.
  */
 
+declare(strict_types=1);
+
 namespace Fal\Stick;
 
 /**
@@ -61,7 +63,7 @@ class GetControllerArgsEvent extends Event
      *
      * @return GetControllerArgsEvent
      */
-    public function setController($controller)
+    public function setController($controller): GetControllerArgsEvent
     {
         $this->controller = $controller;
 
@@ -73,7 +75,7 @@ class GetControllerArgsEvent extends Event
      *
      * @return array
      */
-    public function getArgs()
+    public function getArgs(): array
     {
         return $this->args;
     }
@@ -85,7 +87,7 @@ class GetControllerArgsEvent extends Event
      *
      * @return GetControllerArgsEvent
      */
-    public function setArgs(array $args)
+    public function setArgs(array $args): GetControllerArgsEvent
     {
         $this->args = $args;
 

@@ -9,6 +9,8 @@
  * file that was distributed with this source code.
  */
 
+declare(strict_types=1);
+
 namespace Fal\Stick\Sql;
 
 use Fal\Stick\App;
@@ -106,7 +108,7 @@ class Connection
      *
      * @return string
      */
-    public function getDriver()
+    public function getDriver(): string
     {
         if (null === $this->driver) {
             $this->driver = $this->pdo()->getAttribute(\PDO::ATTR_DRIVER_NAME);
@@ -120,7 +122,7 @@ class Connection
      *
      * @return string
      */
-    public function getVersion()
+    public function getVersion(): string
     {
         if (null === $this->version) {
             $this->version = $this->pdo()->getAttribute(\PDO::ATTR_SERVER_VERSION);
@@ -134,7 +136,7 @@ class Connection
      *
      * @return string
      */
-    public function getDbName()
+    public function getDbName(): string
     {
         return $this->dbname;
     }
@@ -144,7 +146,7 @@ class Connection
      *
      * @return string
      */
-    public function getLogLevel()
+    public function getLogLevel(): string
     {
         return $this->logLevel;
     }
@@ -158,7 +160,7 @@ class Connection
      *
      * @return Connection
      */
-    public function setLogLevel($logLevel)
+    public function setLogLevel(string $logLevel): Connection
     {
         $this->logLevel = $logLevel;
 
@@ -170,7 +172,7 @@ class Connection
      *
      * @return array
      */
-    public function getOptions()
+    public function getOptions(): array
     {
         return $this->options;
     }
@@ -192,7 +194,7 @@ class Connection
      *
      * @return Connection
      */
-    public function setOptions(array $options)
+    public function setOptions(array $options): Connection
     {
         $defaults = array(
             'debug' => false,
@@ -218,7 +220,7 @@ class Connection
             $this->dbname = $match[1];
         }
 
-        $this->options = array_replace_recursive($fix, App::pick($driverDefaults, $driver, array()));
+        $this->options = array_replace_recursive($fix, $driverDefaults[$driver] ?? array());
         $this->pdo = null;
         $this->driver = null;
         $this->version = null;
@@ -235,13 +237,13 @@ class Connection
      * @throws LogicException If construct failed and not in debug mode
      * @throws PDOException   If construct failed and in debug mode
      */
-    public function pdo()
+    public function pdo(): \PDO
     {
         if (null === $this->pdo) {
             $o = $this->options;
 
             try {
-                $this->pdo = new \PDO($o['dsn'], $o['username'], $o['password'], $o['options']);
+                $this->pdo = new \PDO((string) $o['dsn'], (string) $o['username'], (string) $o['password'], $o['options']);
 
                 App::walk((array) $o['commands'], array($this->pdo, 'exec'));
             } catch (\PDOException $e) {
@@ -262,7 +264,7 @@ class Connection
      *
      * @return mixed
      */
-    public function pdoType($val = null, $type = null)
+    public function pdoType($val = null, string $type = null)
     {
         $types = array(
             'null' => \PDO::PARAM_NULL,
@@ -282,9 +284,9 @@ class Connection
             'numeric' => self::PARAM_FLOAT,
             'default' => \PDO::PARAM_STR,
         );
-        $check = strtolower($type ?: gettype($val));
+        $check = strtolower($type ?? gettype($val));
 
-        return App::pick($types, $check, $types['default']);
+        return $types[$check] ?? $types['default'];
     }
 
     /**
@@ -297,7 +299,7 @@ class Connection
      */
     public function realPdoType($val, $type = null)
     {
-        $check = $type ?: $this->pdoType($val);
+        $check = $type ?? $this->pdoType($val);
 
         return self::PARAM_FLOAT === $check ? \PDO::PARAM_STR : $check;
     }
@@ -374,7 +376,7 @@ class Connection
      *
      * @return array
      */
-    public function buildFilter($filter)
+    public function buildFilter($filter): array
     {
         if (!$filter) {
             return array();
@@ -433,11 +435,11 @@ class Connection
             $b2 = substr($ccol, -2);
             $b3 = substr($ccol, -3);
 
-            $str .= ' '.App::pickFirst($map, array($a3, $a2, $a1), $ctr ? 'AND' : '');
+            $str .= ' '.($map[$a3] ?? $map[$a2] ?? $map[$a1] ?? ($ctr ? 'AND' : ''));
 
             if ($col) {
                 $str .= ' '.$this->quotekey($col);
-                $str .= ' '.App::pickFirst($map, array($b3, $b2, $b1), '=');
+                $str .= ' '.($map[$b3] ?? $map[$b2] ?? $map[$b1] ?? '=');
             }
 
             if ($raw) {
@@ -498,7 +500,7 @@ class Connection
      *
      * @throws LogicException If schema contains nothing
      */
-    public function schema($table, $fields = null, $ttl = 0)
+    public function schema(string $table, $fields = null, int $ttl = 0): array
     {
         $start = microtime(true);
         $message = '(%.1f) %sRetrieving table "%s" schema';
@@ -555,13 +557,13 @@ class Connection
      *
      * @return string
      */
-    public function quote($val, $type = null)
+    public function quote($val, $type = null): string
     {
         if (self::DB_ODBC === $this->getDriver()) {
             return is_string($val) ? str_replace('\'', '\'\'', $val) : (string) $val;
         }
 
-        return $this->pdo()->quote($val, $type ?: \PDO::PARAM_STR);
+        return $this->pdo()->quote($val, $type ?? \PDO::PARAM_STR);
     }
 
     /**
@@ -572,7 +574,7 @@ class Connection
      *
      * @return string
      */
-    public function quotekey($key, $split = true)
+    public function quotekey(string $key, bool $split = true): string
     {
         $driver = $this->getDriver();
         $engines = array(
@@ -605,7 +607,7 @@ class Connection
      *
      * @return bool
      */
-    public function begin()
+    public function begin(): bool
     {
         $out = $this->pdo()->beginTransaction();
         $this->trans = true;
@@ -618,7 +620,7 @@ class Connection
      *
      * @return bool
      */
-    public function commit()
+    public function commit(): bool
     {
         $out = $this->pdo()->commit();
         $this->trans = false;
@@ -631,7 +633,7 @@ class Connection
      *
      * @return bool
      */
-    public function rollback()
+    public function rollback(): bool
     {
         $out = $this->pdo()->rollBack();
         $this->trans = false;
@@ -644,7 +646,7 @@ class Connection
      *
      * @return bool
      */
-    public function isTrans()
+    public function isTrans(): bool
     {
         return $this->trans;
     }
@@ -654,7 +656,7 @@ class Connection
      *
      * @return Connection
      */
-    public function safeBegin()
+    public function safeBegin(): Connection
     {
         if (!$this->trans) {
             $this->begin();
@@ -668,7 +670,7 @@ class Connection
      *
      * @return Connection
      */
-    public function safeRollback()
+    public function safeRollback(): Connection
     {
         if ($this->trans) {
             $this->rollback();
@@ -688,7 +690,7 @@ class Connection
      *
      * @throws LogicException If commands resulting error
      */
-    public function exec($cmds, $args = null, $ttl = 0)
+    public function exec($cmds, $args = null, int $ttl = 0)
     {
         $res = array();
         $auto = false;
@@ -822,7 +824,7 @@ class Connection
      *
      * @return int
      */
-    public function getRows()
+    public function getRows(): int
     {
         return $this->rows;
     }
@@ -834,7 +836,7 @@ class Connection
      *
      * @return bool
      */
-    public function exists($table)
+    public function exists(string $table): bool
     {
         $mode = $this->pdo()->getAttribute(\PDO::ATTR_ERRMODE);
         $this->pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_SILENT);
@@ -854,7 +856,7 @@ class Connection
      *
      * @return string
      */
-    private function buildLog($query = null, $update = 0, $prior = null, $cached = false)
+    private function buildLog(string $query = null, $update = 0, string $prior = null, bool $cached = false): string
     {
         $time = '('.($update ? sprintf('%.1f', 1e3 * (microtime(true) - $update)) : '-0').'ms)';
 
@@ -865,7 +867,7 @@ class Connection
         return $time.' '.($cached ? '[CACHED] ' : '').$query;
     }
 
-    private function buildQuery($cmd, array $args)
+    private function buildQuery(string $cmd, array $args): string
     {
         $keys = $vals = array();
 
@@ -894,7 +896,7 @@ class Connection
      *
      * @throws LogicException
      */
-    private function schemaCmd($table, $dbname)
+    private function schemaCmd(string $table, string $dbname): array
     {
         $tbl = $this->quotekey($table);
         $db = $this->quotekey($dbname);
@@ -980,7 +982,7 @@ class Connection
      *
      * @return mixed
      */
-    private function schemaDefaultValue($value)
+    private function schemaDefaultValue(string $value)
     {
         return App::cast(preg_replace('/^\s*([\'"])(.*)\1\s*/', '\2', $value));
     }

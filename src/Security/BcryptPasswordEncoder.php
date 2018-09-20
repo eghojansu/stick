@@ -9,6 +9,8 @@
  * file that was distributed with this source code.
  */
 
+declare(strict_types=1);
+
 namespace Fal\Stick\Security;
 
 /**
@@ -21,7 +23,7 @@ final class BcryptPasswordEncoder implements PasswordEncoderInterface
     /**
      * {@inheritdoc}
      */
-    public function hash($plainText)
+    public function hash(string $plainText): string
     {
         return password_hash($plainText, PASSWORD_BCRYPT);
     }
@@ -29,7 +31,7 @@ final class BcryptPasswordEncoder implements PasswordEncoderInterface
     /**
      * {@inheritdoc}
      */
-    public function verify($plainText, $hash)
+    public function verify(string $plainText, string $hash): bool
     {
         return password_verify($plainText, $hash);
     }

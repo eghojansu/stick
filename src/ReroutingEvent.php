@@ -9,6 +9,8 @@
  * file that was distributed with this source code.
  */
 
+declare(strict_types=1);
+
 namespace Fal\Stick;
 
 /**
@@ -38,7 +40,7 @@ class ReroutingEvent extends Event
      * @param string $url
      * @param bool   $permanent
      */
-    public function __construct($url, $permanent)
+    public function __construct(string $url, bool $permanent)
     {
         $this->url = $url;
         $this->permanent = $permanent;
@@ -49,7 +51,7 @@ class ReroutingEvent extends Event
      *
      * @return string
      */
-    public function getUrl()
+    public function getUrl(): string
     {
         return $this->url;
     }
@@ -59,7 +61,7 @@ class ReroutingEvent extends Event
      *
      * @return bool
      */
-    public function isPermanent()
+    public function isPermanent(): bool
     {
         return $this->permanent;
     }

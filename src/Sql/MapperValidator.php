@@ -9,6 +9,8 @@
  * file that was distributed with this source code.
  */
 
+declare(strict_types=1);
+
 namespace Fal\Stick\Sql;
 
 use Fal\Stick\App;
@@ -52,7 +54,7 @@ class MapperValidator extends AbstractValidator
      *
      * @return bool
      */
-    protected function _exists($val, $table, $column)
+    protected function _exists($val, $table, $column): bool
     {
         $mapper = new Mapper($this->app, $this->db, $table);
         $mapper->load(array($column => $val), array('limit' => 1));
@@ -71,7 +73,7 @@ class MapperValidator extends AbstractValidator
      *
      * @return bool
      */
-    protected function _unique($val, $table, $column, $fid = null, $id = null)
+    protected function _unique($val, $table, $column, $fid = null, $id = null): bool
     {
         $mapper = new Mapper($this->app, $this->db, $table);
         $mapper->load(array($column => $val), array('limit' => 1));

@@ -9,6 +9,8 @@
  * file that was distributed with this source code.
  */
 
+declare(strict_types=1);
+
 namespace Fal\Stick\Template;
 
 use Fal\Stick\Event;
@@ -51,7 +53,7 @@ class TemplateEvent extends Event
      * @param string|null $mime
      * @param string|null $content
      */
-    public function __construct($file, array $data = null, $mime = null, $content = null)
+    public function __construct(string $file, array $data = null, string $mime = null, string $content = null)
     {
         $this->file = $file;
         $this->mime = $mime;
@@ -64,7 +66,7 @@ class TemplateEvent extends Event
      *
      * @return string
      */
-    public function getFile()
+    public function getFile(): string
     {
         return $this->file;
     }
@@ -74,7 +76,7 @@ class TemplateEvent extends Event
      *
      * @return string|null
      */
-    public function getMime()
+    public function getMime(): ?string
     {
         return $this->mime;
     }
@@ -84,7 +86,7 @@ class TemplateEvent extends Event
      *
      * @return array
      */
-    public function getData()
+    public function getData(): array
     {
         return $this->data;
     }
@@ -96,7 +98,7 @@ class TemplateEvent extends Event
      *
      * @return TemplateEvent
      */
-    public function setData(array $data)
+    public function setData(array $data): TemplateEvent
     {
         $this->data = $data;
 
@@ -110,7 +112,7 @@ class TemplateEvent extends Event
      *
      * @return TemplateEvent
      */
-    public function mergeData(array $data)
+    public function mergeData(array $data): TemplateEvent
     {
         $this->data = $data + $this->data;
 
@@ -122,7 +124,7 @@ class TemplateEvent extends Event
      *
      * @return string|null
      */
-    public function getContent()
+    public function getContent(): ?string
     {
         return $this->content;
     }
@@ -134,7 +136,7 @@ class TemplateEvent extends Event
      *
      * @return TemplateEvent
      */
-    public function setContent($content)
+    public function setContent(string $content): TemplateEvent
     {
         $this->content = $content;
         $this->stopPropagation();

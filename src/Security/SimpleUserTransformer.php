@@ -9,6 +9,8 @@
  * file that was distributed with this source code.
  */
 
+declare(strict_types=1);
+
 namespace Fal\Stick\Security;
 
 /**
@@ -21,7 +23,7 @@ final class SimpleUserTransformer implements UserTransformerInterface
     /**
      * {@inheritdoc}
      */
-    public function transform(array $args)
+    public function transform(array $args): UserInterface
     {
         $default = array(
             'id' => '',

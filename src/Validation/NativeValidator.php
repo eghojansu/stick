@@ -9,6 +9,8 @@
  * file that was distributed with this source code.
  */
 
+declare(strict_types=1);
+
 namespace Fal\Stick\Validation;
 
 /**
@@ -23,7 +25,7 @@ final class NativeValidator implements ValidatorInterface
     /**
      * {@inheritdoc}
      */
-    public function has($rule)
+    public function has(string $rule): bool
     {
         return is_callable($rule);
     }
@@ -31,7 +33,7 @@ final class NativeValidator implements ValidatorInterface
     /**
      * {@inheritdoc}
      */
-    public function validate($rule, $value, array $args = null, $field = null, array $validated = null, array $raw = null)
+    public function validate(string $rule, $value, array $args = null, string $field = null, array $validated = null, array $raw = null)
     {
         $passedArgs = array_merge(array($value), (array) $args);
 

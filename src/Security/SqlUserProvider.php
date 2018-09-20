@@ -9,6 +9,8 @@
  * file that was distributed with this source code.
  */
 
+declare(strict_types=1);
+
 namespace Fal\Stick\Security;
 
 use Fal\Stick\Sql\Connection;
@@ -54,7 +56,7 @@ final class SqlUserProvider implements UserProviderInterface
      *
      * @return array
      */
-    public function getOptions()
+    public function getOptions(): array
     {
         return $this->options;
     }
@@ -66,7 +68,7 @@ final class SqlUserProvider implements UserProviderInterface
      *
      * @return SqlUserProvider
      */
-    public function setOptions(array $options)
+    public function setOptions(array $options): SqlUserProvider
     {
         $this->options = $options + array(
             'table' => 'user',
@@ -80,7 +82,7 @@ final class SqlUserProvider implements UserProviderInterface
     /**
      * {@inheritdoc}
      */
-    public function findByUsername($username)
+    public function findByUsername(string $username): ?UserInterface
     {
         return $this->find($this->options['username'], $username);
     }
@@ -88,7 +90,7 @@ final class SqlUserProvider implements UserProviderInterface
     /**
      * {@inheritdoc}
      */
-    public function findById($id)
+    public function findById(string $id): ?UserInterface
     {
         return $this->find($this->options['id'], $id);
     }
@@ -101,7 +103,7 @@ final class SqlUserProvider implements UserProviderInterface
      *
      * @return UserInterface|null
      */
-    private function find($key, $val)
+    private function find(string $key, $val): ?UserInterface
     {
         $user = $this->db->exec(
             'SELECT * FROM '.$this->db->quotekey($this->options['table']).

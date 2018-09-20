@@ -9,6 +9,8 @@
  * file that was distributed with this source code.
  */
 
+declare(strict_types=1);
+
 namespace Fal\Stick\Html;
 
 use Fal\Stick\App;
@@ -120,7 +122,7 @@ class Form
      *
      * @return mixed
      */
-    public function get($field, $default = null)
+    public function get(string $field, $default = null)
     {
         return array_key_exists($field, $this->_data) ? $this->_data[$field] : $default;
     }
@@ -133,7 +135,7 @@ class Form
      *
      * @return Form
      */
-    public function set($field, $value)
+    public function set(string $field, $value): Form
     {
         $this->_data[$field] = $value;
 
@@ -145,7 +147,7 @@ class Form
      *
      * @return string
      */
-    public function getName()
+    public function getName(): string
     {
         return $this->_name;
     }
@@ -157,7 +159,7 @@ class Form
      *
      * @return Form
      */
-    public function setName($name)
+    public function setName(string $name): Form
     {
         $this->_name = $name;
 
@@ -169,7 +171,7 @@ class Form
      *
      * @return string
      */
-    public function getVerb()
+    public function getVerb(): string
     {
         return $this->_verb;
     }
@@ -181,7 +183,7 @@ class Form
      *
      * @return Form
      */
-    public function setVerb($verb)
+    public function setVerb(string $verb): Form
     {
         $this->_verb = strtoupper($verb);
 
@@ -193,7 +195,7 @@ class Form
      *
      * @return array
      */
-    public function getData()
+    public function getData(): array
     {
         return $this->_data;
     }
@@ -205,7 +207,7 @@ class Form
      *
      * @return Form
      */
-    public function setData(array $data)
+    public function setData(array $data): Form
     {
         $this->_data = $data;
 
@@ -217,7 +219,7 @@ class Form
      *
      * @return array
      */
-    public function getSubmittedData()
+    public function getSubmittedData(): array
     {
         if (null === $this->_submittedData) {
             $key = 'REQUEST';
@@ -241,7 +243,7 @@ class Form
      *
      * @return Form
      */
-    public function setSubmittedData(array $submittedData = null)
+    public function setSubmittedData(array $submittedData = null): Form
     {
         $this->_submittedData = $submittedData;
 
@@ -253,7 +255,7 @@ class Form
      *
      * @return array
      */
-    public function getFields()
+    public function getFields(): array
     {
         return $this->_fields;
     }
@@ -263,7 +265,7 @@ class Form
      *
      * @return array
      */
-    public function getButtons()
+    public function getButtons(): array
     {
         return $this->_buttons;
     }
@@ -273,7 +275,7 @@ class Form
      *
      * @return array
      */
-    public function getErrors()
+    public function getErrors(): array
     {
         return $this->_errors;
     }
@@ -287,7 +289,7 @@ class Form
      *
      * @return Form
      */
-    public function add($field, $type = 'text', array $options = null)
+    public function add(string $field, string $type = 'text', array $options = null): Form
     {
         $this->_fields[$field] = compact('type', 'options') + array('rendered' => false);
 
@@ -304,7 +306,7 @@ class Form
      *
      * @return Form
      */
-    public function addButton($name, $type = 'submit', $label = null, array $attr = null)
+    public function addButton(string $name, string $type = 'submit', string $label = null, array $attr = null): Form
     {
         $this->_buttons[$name] = compact('type', 'label', 'attr');
 
@@ -316,7 +318,7 @@ class Form
      *
      * @return bool
      */
-    public function isSubmitted()
+    public function isSubmitted(): bool
     {
         $data = $this->getSubmittedData() + array('_form' => null);
 
@@ -332,7 +334,7 @@ class Form
      *
      * @throws LogicException if the form is not submitted yet
      */
-    public function valid()
+    public function valid(): bool
     {
         if ($this->_submitted) {
             list($rules, $messages) = $this->findRules();
@@ -358,7 +360,7 @@ class Form
      *
      * @return string
      */
-    public function open(array $attr = null, $multipart = false)
+    public function open(array $attr = null, bool $multipart = false): string
     {
         $default = array(
             'enctype' => $multipart ? 'multipart/form-data' : null,
@@ -377,7 +379,7 @@ class Form
      *
      * @return string
      */
-    public function close()
+    public function close(): string
     {
         return '</form>';
     }
@@ -392,7 +394,7 @@ class Form
      *
      * @throws LogicException if field not exists
      */
-    public function row($name, array $overrideAttr = null)
+    public function row(string $name, array $overrideAttr = null): string
     {
         $throw = !isset($this->_fields[$name]);
         App::throws($throw, 'Field not exists: "'.$name.'".');
@@ -421,7 +423,7 @@ class Form
             'radio' => 'inputRadio',
             'choice' => 'inputChoice',
         );
-        $call = isset($types[$type]) ? $types[$type] : 'inputInput';
+        $call = $types[$type] ?? 'inputInput';
 
         $input = $this->$call($name, $value, $options, $type);
 
@@ -435,7 +437,7 @@ class Form
      *
      * @return string
      */
-    public function rows(array $overrideAttr = null)
+    public function rows(array $overrideAttr = null): string
     {
         $fields = '';
 
@@ -451,7 +453,7 @@ class Form
      *
      * @return string
      */
-    public function buttons()
+    public function buttons(): string
     {
         $buttons = '';
 
@@ -474,7 +476,7 @@ class Form
      *
      * @return string
      */
-    public function render(array $attr = null, array $fieldAttr = null, array $buttonAttr = null)
+    public function render(array $attr = null, array $fieldAttr = null, array $buttonAttr = null): string
     {
         return
             $this->open($attr).PHP_EOL.
@@ -502,7 +504,7 @@ class Form
      *
      * @return string
      */
-    protected function renderRow($type, $input, $field = null, array $options = null)
+    protected function renderRow(string $type, string $input, string $field = null, array $options = null): string
     {
         if ('buttons' === $type) {
             return '<div>'.$input.'</div>'.PHP_EOL;
@@ -534,7 +536,7 @@ class Form
      *
      * @return string
      */
-    protected function inputButton($label, $type, $name, array $attr = null)
+    protected function inputButton(string $label, string $type, string $name, array $attr = null): string
     {
         if ('a' === $type) {
             return $this->_html->element('a', true, $label, ((array) $attr) + array('href' => '#'));
@@ -547,13 +549,13 @@ class Form
      * Returns rendered common input type.
      *
      * @param string $field
-     * @param string $value
+     * @param mixed  $value
      * @param array  $options
      * @param string $type
      *
      * @return string
      */
-    protected function inputInput($field, $value, array $options, $type)
+    protected function inputInput(string $field, $value, array $options, string $type): string
     {
         return $this->_html->input($type, $this->formName($field), $value, $options['attr']);
     }
@@ -567,7 +569,7 @@ class Form
      *
      * @return string
      */
-    protected function inputText($field, $value, array $options)
+    protected function inputText(string $field, $value, array $options): string
     {
         return $this->_html->text($this->formName($field), $value, $options['label'], $options['attr']);
     }
@@ -581,7 +583,7 @@ class Form
      *
      * @return string
      */
-    protected function inputHidden($field, $value, array $options)
+    protected function inputHidden(string $field, $value, array $options): string
     {
         return $this->_html->hidden($this->formName($field), $value, $options['attr']);
     }
@@ -595,7 +597,7 @@ class Form
      *
      * @return string
      */
-    protected function inputPassword($field, $value, array $options)
+    protected function inputPassword(string $field, $value, array $options): string
     {
         return $this->_html->password($this->formName($field), $options['label'], $options['attr']);
     }
@@ -609,7 +611,7 @@ class Form
      *
      * @return string
      */
-    protected function inputCheckbox($field, $value, array $options)
+    protected function inputCheckbox(string $field, $value, array $options): string
     {
         $default = array();
         $raw = $value;
@@ -642,7 +644,7 @@ class Form
      *
      * @return string
      */
-    protected function inputRadio($field, $value, array $options)
+    protected function inputRadio(string $field, $value, array $options): string
     {
         $default = array();
         $raw = $value;
@@ -668,7 +670,7 @@ class Form
      *
      * @return string
      */
-    protected function inputTextarea($field, $value, array $options)
+    protected function inputTextarea(string $field, $value, array $options): string
     {
         return $this->_html->textarea($this->formName($field), $value, $options['label'], $options['attr']);
     }
@@ -684,13 +686,13 @@ class Form
      *
      * @return string
      */
-    protected function inputCheckboxGroup($name, $value, array $attr, array $items = null, array $wrapperAttr = null)
+    protected function inputCheckboxGroup(string $name, $value, array $attr, array $items = null, array $wrapperAttr = null): string
     {
         $nameArr = $name.'[]';
         $content = '';
         $check = (array) $value;
 
-        foreach ($items ?: array() as $label => $val) {
+        foreach ((array) $items as $label => $val) {
             $attr['checked'] = in_array($val, $check);
 
             $content .= $this->inputCheckbox($nameArr, $val, array(
@@ -713,11 +715,11 @@ class Form
      *
      * @return string
      */
-    protected function inputRadioGroup($name, $value, array $attr, array $items = null, array $wrapperAttr = null)
+    protected function inputRadioGroup(string $name, $value, array $attr, array $items = null, array $wrapperAttr = null): string
     {
         $content = '';
 
-        foreach ($items ?: array() as $label => $val) {
+        foreach ((array) $items as $label => $val) {
             $attr['checked'] = $val === $value;
 
             $content .= $this->inputRadio($name, $val, array(
@@ -741,7 +743,7 @@ class Form
      *
      * @return string
      */
-    protected function inputSelect($name, $value, $label, array $attr, array $items = null, array $oAttr = null)
+    protected function inputSelect(string $name, $value, string $label, array $attr, array $items = null, array $oAttr = null): string
     {
         return $this->_html->select($this->formName($name), $value, $label, $attr, $items, $oAttr);
     }
@@ -757,7 +759,7 @@ class Form
      *
      * @throws LogicException if the returned items callable is not an array
      */
-    protected function inputChoice($field, $value, array $options)
+    protected function inputChoice(string $field, $value, array $options): string
     {
         $default = array(
             'item_attr' => null,
@@ -765,7 +767,7 @@ class Form
             'items' => array(),
             'multiple' => false,
             'expanded' => false,
-            'placeholder' => null,
+            'placeholder' => '',
         );
         $options += $default;
 
@@ -796,7 +798,7 @@ class Form
      *
      * @return array
      */
-    protected function findRules()
+    protected function findRules(): array
     {
         $rules = array();
         $messages = array();
@@ -807,7 +809,7 @@ class Form
                 'constraints' => null,
             );
 
-            foreach ($options['messages'] ?: array() as $rule => $message) {
+            foreach ((array) $options['messages'] as $rule => $message) {
                 $messages[$field.'.'.$rule] = $message;
             }
 
@@ -826,10 +828,10 @@ class Form
      *
      * @return mixed
      */
-    protected function fieldValue($field)
+    protected function fieldValue(string $field)
     {
         if ($this->_submitted) {
-            return isset($this->_submittedData[$field]) ? $this->_submittedData[$field] : null;
+            return $this->_submittedData[$field] ?? null;
         }
 
         return $this->rawValue($field);
@@ -842,9 +844,9 @@ class Form
      *
      * @return mixed
      */
-    protected function rawValue($field)
+    protected function rawValue(string $field)
     {
-        return isset($this->_data[$field]) ? $this->_data[$field] : null;
+        return $this->_data[$field] ?? null;
     }
 
     /**
@@ -854,7 +856,7 @@ class Form
      *
      * @return string
      */
-    protected function formName($field)
+    protected function formName(string $field): string
     {
         return $this->_name.'['.$field.']';
     }

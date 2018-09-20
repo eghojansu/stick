@@ -9,6 +9,8 @@
  * file that was distributed with this source code.
  */
 
+declare(strict_types=1);
+
 namespace Fal\Stick\Template;
 
 use Fal\Stick\App;
@@ -106,7 +108,7 @@ class TemplateFile
      * @param string     $file
      * @param array|null $data
      */
-    public function __construct(App $app, Template $engine, $file, array $data = null)
+    public function __construct(App $app, Template $engine, string $file, array $data = null)
     {
         $this->app = $app;
         $this->engine = $engine;
@@ -120,7 +122,7 @@ class TemplateFile
      *
      * @return string
      */
-    public function render()
+    public function render(): string
     {
         extract($this->data + $this->app->hive());
         ob_start();
@@ -136,7 +138,7 @@ class TemplateFile
      *
      * @return string
      */
-    protected function finalizeOutput()
+    protected function finalizeOutput(): string
     {
         return $this->parent ? $this->parent->render() : $this->content;
     }
@@ -148,7 +150,7 @@ class TemplateFile
      *
      * @throws LogicException if template file not exists
      */
-    protected function findFile()
+    protected function findFile(): string
     {
         foreach ($this->engine->getDirs() as $dir) {
             if (is_file($file = $dir.$this->file)) {
@@ -162,7 +164,7 @@ class TemplateFile
     /**
      * Close un-closed output buffer.
      */
-    protected function closeBuffer()
+    protected function closeBuffer(): void
     {
         while (ob_get_level() >= $this->level) {
             ob_end_clean();
@@ -177,7 +179,7 @@ class TemplateFile
      *
      * @return string
      */
-    protected function load($file, array $data = null)
+    protected function load(string $file, array $data = null): string
     {
         $template = new TemplateFile($this->app, $this->engine, $file, ((array) $data) + $this->data);
 
@@ -192,7 +194,7 @@ class TemplateFile
      * @throws LogicException if a template try to extend twice
      * @throws LogicException if a template try to extend self
      */
-    protected function extend($file)
+    protected function extend(string $file): void
     {
         if ($this->parent) {
             $this->closeBuffer();
@@ -214,7 +216,7 @@ class TemplateFile
      *
      * @return string
      */
-    protected function parent()
+    protected function parent(): string
     {
         if ($this->block && $this->parent) {
             return $this->parent->marks[$this->block][] = '*parent-'.$this->block.'-'.microtime(true).'*';
@@ -233,9 +235,9 @@ class TemplateFile
      *
      * @return string
      */
-    protected function section($blockName, $default = '')
+    protected function section(string $blockName, string $default = ''): string
     {
-        return isset($this->blocks[$blockName]) ? $this->blocks[$blockName] : $default;
+        return $this->blocks[$blockName] ?? $default;
     }
 
     /**
@@ -243,7 +245,7 @@ class TemplateFile
      *
      * @param string $blockName
      */
-    protected function block($blockName)
+    protected function block(string $blockName): void
     {
         $this->block = $blockName;
         ob_start();
@@ -255,7 +257,7 @@ class TemplateFile
      * @throws LogicException if no opened block
      * @throws LogicException if trying to nested block
      */
-    protected function endBlock()
+    protected function endBlock(): void
     {
         $level = ob_get_level();
         $content = ob_get_clean();
@@ -302,7 +304,7 @@ class TemplateFile
      *
      * @return mixed
      */
-    protected function service($serviceName)
+    protected function service(string $serviceName)
     {
         return $this->app->service($serviceName);
     }

@@ -9,6 +9,8 @@
  * file that was distributed with this source code.
  */
 
+declare(strict_types=1);
+
 namespace Fal\Stick\Validation;
 
 abstract class AbstractValidator implements ValidatorInterface
@@ -23,7 +25,7 @@ abstract class AbstractValidator implements ValidatorInterface
     /**
      * {@inheritdoc}
      */
-    public function has($rule)
+    public function has(string $rule): bool
     {
         return method_exists($this, '_'.$rule);
     }
@@ -31,7 +33,7 @@ abstract class AbstractValidator implements ValidatorInterface
     /**
      * {@inheritdoc}
      */
-    public function validate($rule, $value, array $args = null, $field = null, array $validated = null, array $raw = null)
+    public function validate(string $rule, $value, array $args = null, string $field = null, array $validated = null, array $raw = null)
     {
         $this->data = array(
             'rule' => $rule,

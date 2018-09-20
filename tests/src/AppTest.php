@@ -9,6 +9,8 @@
  * file that was distributed with this source code.
  */
 
+declare(strict_types=1);
+
 namespace Fal\Stick\Test;
 
 use Fal\Stick\App;
@@ -135,24 +137,6 @@ class AppTest extends TestCase
         $this->assertNotSame($this->app, $app);
         $this->assertEquals($app->get('REQUEST'), $_POST);
         $this->assertEquals($app->get('QUERY'), $_GET);
-    }
-
-    public function testPick()
-    {
-        $list = array('foo' => 'bar', 'bar' => 'baz');
-
-        $this->assertEquals('bar', App::pick($list, 'foo'));
-        $this->assertEquals('qux', App::pick($list, 'none', 'qux'));
-    }
-
-    public function testPickFirst()
-    {
-        $list = array('foo' => 'bar', 'bar' => 'baz');
-
-        $this->assertEquals('bar', App::pickFirst($list, 'foo|bar'));
-        $this->assertEquals('bar', App::pickFirst($list, array('foo', 'bar')));
-        $this->assertEquals('baz', App::pickFirst($list, array('bar', 'foo')));
-        $this->assertEquals('quux', App::pickFirst($list, array('qux'), 'quux'));
     }
 
     public function testSplit()
@@ -1230,14 +1214,6 @@ class AppTest extends TestCase
         $this->assertContains('HTTP 404 (GET /)', $this->app->get('RESPONSE'));
     }
 
-    public function testHandleError()
-    {
-        $this->app->set('QUIET', true);
-        $this->app->handleError(E_USER_ERROR, 'Error handled.', __FILE__, __LINE__);
-
-        $this->assertContains('Error handled.', $this->app->get('RESPONSE'));
-    }
-
     public function testHash()
     {
         $this->assertEquals(13, strlen(App::hash('foo')));
@@ -1388,7 +1364,7 @@ class AppTest extends TestCase
         $cached = $this->app->cacheGet('tfoo');
         $this->assertEquals('bar', reset($cached));
         $this->assertTrue($this->app->cacheExists('tfoo'));
-        usleep(1e6 /* one second */);
+        usleep(intval(1e6));
         $this->assertFalse($this->app->cacheExists('tfoo'));
     }
 
@@ -1595,14 +1571,6 @@ class AppTest extends TestCase
         $this->assertEquals($expected, App::parseExpr($expr));
     }
 
-    public function testRegisterErrorExceptionHandler()
-    {
-        $this->assertSame($this->app, $this->app->registerErrorExceptionHandler());
-
-        restore_error_handler();
-        restore_exception_handler();
-    }
-
     public function transProvider()
     {
         return array(
@@ -1679,9 +1647,9 @@ class AppTest extends TestCase
         $this->app->set('DICT.foo', array('bar' => 'baz', 'qux' => 'quux'));
 
         $this->assertEquals('baz', $this->app->transAlt('foo.bar'));
-        $this->assertEquals('quux', $this->app->transAlt('foo.baz', null, null, array('foo.qux')));
-        $this->assertEquals('foo.baz', $this->app->transAlt('foo.baz', null, null, array('foo.quux')));
-        $this->assertEquals('none', $this->app->transAlt('foo.baz', null, 'none', array('foo.quux')));
+        $this->assertEquals('quux', $this->app->transAlt('foo.baz', null, null, 'foo.qux'));
+        $this->assertEquals('foo.baz', $this->app->transAlt('foo.baz', null, null, 'foo.quux'));
+        $this->assertEquals('none', $this->app->transAlt('foo.baz', null, 'none', 'foo.quux'));
     }
 
     public function testPrepend()
@@ -1728,13 +1696,13 @@ class AppTest extends TestCase
         $this->assertInstanceOf('DateTime', $this->app->service('foo'));
     }
 
-    public function testFilterNullFalse()
+    public function testNotNullFalse()
     {
-        $this->assertTrue(App::filterNullFalse(''));
-        $this->assertTrue(App::filterNullFalse(-1));
-        $this->assertTrue(App::filterNullFalse(0));
-        $this->assertFalse(App::filterNullFalse(null));
-        $this->assertFalse(App::filterNullFalse(false));
+        $this->assertTrue(App::notNullFalse(''));
+        $this->assertTrue(App::notNullFalse(-1));
+        $this->assertTrue(App::notNullFalse(0));
+        $this->assertFalse(App::notNullFalse(null));
+        $this->assertFalse(App::notNullFalse(false));
     }
 
     public function testWalk()
@@ -1756,11 +1724,6 @@ class AppTest extends TestCase
     public function testThrows()
     {
         App::throws(true, 'foo.');
-    }
-
-    public function testThrowsNone()
-    {
-        App::throws(false, 'foo.');
     }
 
     public function testMapperParameterConverter()

@@ -9,9 +9,9 @@
  * file that was distributed with this source code.
  */
 
-namespace Fal\Stick\Html;
+declare(strict_types=1);
 
-use Fal\Stick\App;
+namespace Fal\Stick\Html;
 
 /**
  * Bootstrap 4 Horizontal Form.
@@ -27,7 +27,7 @@ class Twbs4Form extends Twbs3Form
      *
      * @return string
      */
-    private function validationClass($field)
+    private function validationClass(string $field): string
     {
         if ($this->_submitted && isset($this->_fields[$field]['options']['constraints'])) {
             return isset($this->_errors[$field]) ? ' is-invalid' : ' is-valid';
@@ -39,7 +39,7 @@ class Twbs4Form extends Twbs3Form
     /**
      * {@inheritdoc}
      */
-    public function open(array $attr = null, $multipart = false)
+    public function open(array $attr = null, bool $multipart = false): string
     {
         $default = array('class' => null);
 
@@ -49,7 +49,7 @@ class Twbs4Form extends Twbs3Form
     /**
      * {@inheritdoc}
      */
-    protected function inputInput($field, $value, array $options, $type)
+    protected function inputInput(string $field, $value, array $options, string $type): string
     {
         $options['attr'] += array('class' => 'form-control'.$this->validationClass($field));
 
@@ -59,7 +59,7 @@ class Twbs4Form extends Twbs3Form
     /**
      * {@inheritdoc}
      */
-    protected function inputText($field, $value, array $options)
+    protected function inputText(string $field, $value, array $options): string
     {
         $options['attr'] += array('class' => 'form-control'.$this->validationClass($field));
 
@@ -69,7 +69,7 @@ class Twbs4Form extends Twbs3Form
     /**
      * {@inheritdoc}
      */
-    protected function inputPassword($field, $value, array $options)
+    protected function inputPassword(string $field, $value, array $options): string
     {
         $options['attr'] += array('class' => 'form-control'.$this->validationClass($field));
 
@@ -79,7 +79,7 @@ class Twbs4Form extends Twbs3Form
     /**
      * {@inheritdoc}
      */
-    protected function inputTextarea($field, $value, array $options)
+    protected function inputTextarea(string $field, $value, array $options): string
     {
         $options['attr'] += array('class' => 'form-control'.$this->validationClass($field));
 
@@ -89,10 +89,10 @@ class Twbs4Form extends Twbs3Form
     /**
      * {@inheritdoc}
      */
-    protected function inputRadio($field, $value, array $options)
+    protected function inputRadio(string $field, $value, array $options): string
     {
-        $id = App::pick($options, 'radio_id', $this->_name.'_'.$field);
-        $wrapperAttr = App::pick($options, 'wrapper_attr', array());
+        $id = $options['radio_id'] ?? $this->_name.'_'.$field;
+        $wrapperAttr = $options['wrapper_attr'] ?? array();
         $wrapperDefault = array('class' => 'form-check');
         $labelAttr = array('class' => 'form-check-label');
         $options['attr'] += array('class' => 'form-check-input'.$this->validationClass($field));
@@ -118,12 +118,12 @@ class Twbs4Form extends Twbs3Form
     /**
      * {@inheritdoc}
      */
-    protected function inputRadioGroup($name, $value, array $attr, array $items = null, array $wrapperAttr = null)
+    protected function inputRadioGroup(string $name, $value, array $attr, array $items = null, array $wrapperAttr = null): string
     {
         $content = '';
         $ctr = 1;
 
-        foreach ($items ?: array() as $label => $val) {
+        foreach ((array) $items as $label => $val) {
             $attr['checked'] = $val === $value;
 
             $content .= $this->inputRadio($name, $val, array(
@@ -140,9 +140,9 @@ class Twbs4Form extends Twbs3Form
     /**
      * {@inheritdoc}
      */
-    protected function inputCheckbox($field, $value, array $options)
+    protected function inputCheckbox(string $field, $value, array $options): string
     {
-        $wrapperAttr = App::pick($options, 'wrapper_attr', array());
+        $wrapperAttr = $options['wrapper_attr'] ?? array();
         $wrapperDefault = array('class' => 'form-check');
         $labelAttr = array('class' => 'form-check-label');
         $options['attr'] += array('class' => 'form-check-input'.$this->validationClass($field));
@@ -155,7 +155,7 @@ class Twbs4Form extends Twbs3Form
             $name = $this->formName($realname).$suffix;
         }
 
-        $id = App::pick($options, 'checkbox_id', $this->_html->fixId($name));
+        $id = $options['checkbox_id'] ?? $this->_html->fixId($name);
         $default = array('id' => $id);
         $raw = $value;
 
@@ -177,14 +177,14 @@ class Twbs4Form extends Twbs3Form
     /**
      * {@inheritdoc}
      */
-    protected function inputCheckboxGroup($name, $value, array $attr, array $items = null, array $wrapperAttr = null)
+    protected function inputCheckboxGroup(string $name, $value, array $attr, array $items = null, array $wrapperAttr = null): string
     {
         $nameArr = $name.'[]';
         $content = '';
         $ctr = 1;
         $check = (array) $value;
 
-        foreach ($items ?: array() as $label => $val) {
+        foreach ((array) $items as $label => $val) {
             $attr['checked'] = in_array($val, $check);
 
             $content .= $this->inputCheckbox($nameArr, $val, array(
@@ -201,7 +201,7 @@ class Twbs4Form extends Twbs3Form
     /**
      * {@inheritdoc}
      */
-    protected function renderRow($type, $input, $field = null, array $options = null)
+    protected function renderRow(string $type, string $input, string $field = null, array $options = null): string
     {
         if ('buttons' === $type) {
             return

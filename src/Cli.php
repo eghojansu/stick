@@ -9,6 +9,8 @@
  * file that was distributed with this source code.
  */
 
+declare(strict_types=1);
+
 namespace Fal\Stick;
 
 /**
@@ -69,7 +71,7 @@ final class Cli
      *
      * @return Cli
      */
-    public function writeln($line, $color = null, $newline = 1)
+    public function writeln(string $line, string $color = null, int $newline = 1): Cli
     {
         $c = $this->parseColor($color);
 
@@ -86,7 +88,7 @@ final class Cli
      *
      * @return Cli
      */
-    public function write($line, $color = null)
+    public function write(string $line, string $color = null): Cli
     {
         return $this->writeln($line, $color, 0);
     }
@@ -98,11 +100,11 @@ final class Cli
      *
      * @return array
      */
-    private function parseColor($color = null)
+    private function parseColor(string $color = null): array
     {
         if ($color) {
             list($fg, $bg) = explode(':', $color) + array(1 => 'none');
-            $fgFix = isset(self::$fgColors[$fg]) ? self::$fgColors[$fg] : self::$fgColors['white'];
+            $fgFix = self::$fgColors[$fg] ?? self::$fgColors['white'];
             $bgFix = isset(self::$bgColors[$bg]) ? "\033[".self::$bgColors[$bg].'m' : '';
 
             return array("\033[".$fgFix.'m', $bgFix, "\033[0m");

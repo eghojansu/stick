@@ -9,6 +9,8 @@
  * file that was distributed with this source code.
  */
 
+declare(strict_types=1);
+
 namespace Fal\Stick\Template;
 
 use Fal\Stick\App;
@@ -70,7 +72,7 @@ final class Template
      *
      * @return array
      */
-    public function getDirs()
+    public function getDirs(): array
     {
         return $this->dirs;
     }
@@ -83,10 +85,10 @@ final class Template
      *
      * @return Template
      */
-    public function setDirs($dirs, $merge = false)
+    public function setDirs($dirs, bool $merge = false): Template
     {
         $newDirs = App::arr($dirs);
-        $this->dirs = $merge ? array_merge($newDirs, $this->dirs) : $newDirs;
+        $this->dirs = $merge ? array_merge($this->dirs, $newDirs) : $newDirs;
 
         return $this;
     }
@@ -99,7 +101,7 @@ final class Template
      *
      * @return Template
      */
-    public function addFunction($name, $callable)
+    public function addFunction(string $name, callable $callable): Template
     {
         $this->funcs[$name] = $callable;
 
@@ -114,7 +116,7 @@ final class Template
      *
      * @return Template
      */
-    public function addMacro($name, $path)
+    public function addMacro(string $name, string $path): Template
     {
         $this->macros[$name] = $path;
 
@@ -131,7 +133,7 @@ final class Template
      *
      * @throws BadFunctionCallException if function cannot be resolved
      */
-    public function call($func, array $args = null)
+    public function call(string $func, array $args = null)
     {
         if (isset($this->funcs[$func])) {
             $call = $this->funcs[$func];
@@ -160,7 +162,7 @@ final class Template
      *
      * @return string
      */
-    public function render($file, array $data = null, $mime = 'text/html')
+    public function render(string $file, array $data = null, string $mime = 'text/html'): string
     {
         $event = new TemplateEvent($file, $data, $mime);
         $this->app->trigger(self::EVENT_RENDER, $event);
@@ -189,7 +191,7 @@ final class Template
      *
      * @return mixed
      */
-    private function _filter($val, $filters)
+    private function _filter($val, string $filters)
     {
         foreach (App::parseExpr($filters) as $callable => $args) {
             $cArgs = array_merge(array($val), $args);
@@ -207,9 +209,9 @@ final class Template
      *
      * @return string
      */
-    private function _e($val, $filters = null)
+    private function _e(string $val, string $filters = null): string
     {
-        return $this->_filter($val ?: '', ltrim($filters.'|htmlspecialchars', '|'));
+        return $this->_filter($val, ltrim($filters.'|htmlspecialchars', '|'));
     }
 
     /**
@@ -222,7 +224,7 @@ final class Template
      *
      * @throws LogicException If macro not exists
      */
-    private function _macro($macro, array $args = null)
+    private function _macro(string $macro, array $args = null): string
     {
         $realpath = is_file($macro) ? $macro : $this->findMacro($macro);
 
@@ -245,9 +247,9 @@ final class Template
      *
      * @return string|null
      */
-    private function findMacro($macro)
+    private function findMacro(string $macro): ?string
     {
-        $id = isset($this->macros[$macro]) ? $this->macros[$macro] : $macro;
+        $id = $this->macros[$macro] ?? $macro;
 
         if (is_file($id)) {
             return $id;

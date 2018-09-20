@@ -9,6 +9,8 @@
  * file that was distributed with this source code.
  */
 
+declare(strict_types=1);
+
 namespace Fal\Stick;
 
 /**
@@ -52,7 +54,7 @@ class GetResponseForErrorEvent extends GetResponseEvent
      * @param string|null $message
      * @param string|null $trace
      */
-    public function __construct($code, $status, $message = null, $trace = null)
+    public function __construct(int $code, string $status, string $message = null, string $trace = null)
     {
         parent::__construct($code);
 
@@ -66,7 +68,7 @@ class GetResponseForErrorEvent extends GetResponseEvent
      *
      * @return string
      */
-    public function getStatus()
+    public function getStatus(): string
     {
         return $this->status;
     }
@@ -76,7 +78,7 @@ class GetResponseForErrorEvent extends GetResponseEvent
      *
      * @return string|null
      */
-    public function getMessage()
+    public function getMessage(): ?string
     {
         return $this->message;
     }
@@ -84,9 +86,9 @@ class GetResponseForErrorEvent extends GetResponseEvent
     /**
      * Returns error trace.
      *
-     * @return string
+     * @return string|null
      */
-    public function getTrace()
+    public function getTrace(): ?string
     {
         return $this->trace;
     }

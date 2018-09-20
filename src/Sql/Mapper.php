@@ -9,16 +9,19 @@
  * file that was distributed with this source code.
  */
 
+declare(strict_types=1);
+
 namespace Fal\Stick\Sql;
 
 use Fal\Stick\App;
+use Fal\Stick\Magic;
 
 /**
  * Sql record mapper.
  *
  * @author Eko Kurniawan <ekokurniawanbs@gmail.com>
  */
-class Mapper implements \ArrayAccess
+class Mapper extends Magic
 {
     // Paginate perpage
     const PAGINATE_LIMIT = 10;
@@ -114,9 +117,9 @@ class Mapper implements \ArrayAccess
      * @param mixed       $fields
      * @param int         $ttl
      */
-    public function __construct(App $app, Connection $db, $table = null, $fields = null, $ttl = 60)
+    public function __construct(App $app, Connection $db, string $table = null, $fields = null, int $ttl = 60)
     {
-        $fix = $this->_table ?: ($table ?: App::snakecase(App::classname($this)));
+        $fix = $table ?? $this->_table ?? App::snakecase(App::classname($this));
         $this->_app = $app;
         $this->_db = $db;
         $this->_driver = $db->getDriver();
@@ -128,7 +131,7 @@ class Mapper implements \ArrayAccess
      *
      * @return string
      */
-    public function getTable()
+    public function getTable(): string
     {
         return $this->_table;
     }
@@ -142,7 +145,7 @@ class Mapper implements \ArrayAccess
      *
      * @return Mapper
      */
-    public function setTable($table, $fields = null, $ttl = 60)
+    public function setTable(string $table, $fields = null, int $ttl = 60): Mapper
     {
         $fix = Connection::DB_OCI === $this->_driver ? strtoupper($table) : $table;
         $prev = $this->_table;
@@ -167,7 +170,7 @@ class Mapper implements \ArrayAccess
      *
      * @return Mapper
      */
-    public function create($table, array $fields = null, $ttl = 60)
+    public function create(string $table, array $fields = null, int $ttl = 60): Mapper
     {
         return new self($this->_app, $this->_db, $table, $fields, $ttl);
     }
@@ -177,7 +180,7 @@ class Mapper implements \ArrayAccess
      *
      * @return array
      */
-    public function getFields()
+    public function getFields(): array
     {
         return array_keys($this->_fields + $this->_adhoc);
     }
@@ -187,7 +190,7 @@ class Mapper implements \ArrayAccess
      *
      * @return array
      */
-    public function getSchema()
+    public function getSchema(): array
     {
         return $this->_fields;
     }
@@ -197,7 +200,7 @@ class Mapper implements \ArrayAccess
      *
      * @return Connection
      */
-    public function db()
+    public function db(): Connection
     {
         return $this->_db;
     }
@@ -209,7 +212,7 @@ class Mapper implements \ArrayAccess
      *
      * @return bool
      */
-    public function exists($key)
+    public function exists(string $key): bool
     {
         return array_key_exists($key, $this->_fields + $this->_adhoc);
     }
@@ -223,7 +226,7 @@ class Mapper implements \ArrayAccess
      *
      * @throws LogicException If given key is undefined
      */
-    public function &get($key)
+    public function &get(string $key)
     {
         if (array_key_exists($key, $this->_fields)) {
             return $this->_fields[$key]['value'];
@@ -248,9 +251,9 @@ class Mapper implements \ArrayAccess
      * @param string $key
      * @param mixed  $val
      *
-     * @return Mapper
+     * @return Magic
      */
-    public function set($key, $val)
+    public function set(string $key, $val): Magic
     {
         if (array_key_exists($key, $this->_fields)) {
             $val = null === $val && $this->_fields[$key]['nullable'] ? null : $this->_db->phpValue($this->_fields[$key]['pdo_type'], $val);
@@ -274,9 +277,9 @@ class Mapper implements \ArrayAccess
      *
      * @param string $key
      *
-     * @return Mapper
+     * @return Magic
      */
-    public function clear($key)
+    public function clear(string $key): Magic
     {
         unset($this->_adhoc[$key], $this->_props[$key]);
 
@@ -293,7 +296,7 @@ class Mapper implements \ArrayAccess
      *
      * @return Mapper
      */
-    public function reset()
+    public function reset(): Mapper
     {
         foreach ($this->_fields as &$field) {
             $field['value'] = $field['initial'] = $field['default'];
@@ -318,7 +321,7 @@ class Mapper implements \ArrayAccess
      *
      * @return bool
      */
-    public function required($key)
+    public function required(string $key): bool
     {
         return isset($this->_fields[$key]) && !$this->_fields[$key]['nullable'];
     }
@@ -330,7 +333,7 @@ class Mapper implements \ArrayAccess
      *
      * @return bool
      */
-    public function changed($key = null)
+    public function changed(string $key = null): bool
     {
         if ($key) {
             return isset($this->_fields[$key]) && $this->_fields[$key]['changed'];
@@ -344,7 +347,7 @@ class Mapper implements \ArrayAccess
      *
      * @return array
      */
-    public function keys()
+    public function keys(): array
     {
         $keys = array_flip($this->_keys);
 
@@ -359,7 +362,7 @@ class Mapper implements \ArrayAccess
      *
      * @return Mapper
      */
-    public function fromArray(array $source, $transformer = null)
+    public function fromArray(array $source, callable $transformer = null): Mapper
     {
         $use = $transformer ? call_user_func_array($transformer, array($source)) : $source;
         $fix = array_intersect_key($use, $this->_fields);
@@ -378,7 +381,7 @@ class Mapper implements \ArrayAccess
      *
      * @return array
      */
-    public function toArray($transformer = null)
+    public function toArray(callable $transformer = null): array
     {
         $result = App::column($this->_fields + $this->_adhoc + $this->_props, 'value');
 
@@ -390,7 +393,7 @@ class Mapper implements \ArrayAccess
      *
      * @return bool
      */
-    public function valid()
+    public function valid(): bool
     {
         return (bool) $this->_query;
     }
@@ -400,7 +403,7 @@ class Mapper implements \ArrayAccess
      *
      * @return bool
      */
-    public function dry()
+    public function dry(): bool
     {
         return !$this->valid();
     }
@@ -415,10 +418,10 @@ class Mapper implements \ArrayAccess
      *
      * @return array
      */
-    public function paginate($page = 1, $filter = null, array $options = null, $ttl = 0)
+    public function paginate(int $page = 1, $filter = null, array $options = null, int $ttl = 0): array
     {
         $use = (array) $options;
-        $limit = App::pick($use, 'perpage', static::PAGINATE_LIMIT);
+        $limit = $use['perpage'] ?? static::PAGINATE_LIMIT;
         $total = $this->count($filter, $options, $ttl);
         $pages = (int) ceil($total / $limit);
         $subset = array();
@@ -446,7 +449,7 @@ class Mapper implements \ArrayAccess
      *
      * @return int
      */
-    public function count($filter = null, array $options = null, $ttl = 0)
+    public function count($filter = null, array $options = null, int $ttl = 0): int
     {
         $shouldHack = in_array($this->_driver, array(Connection::DB_MSSQL, Connection::DB_DBLIB, Connection::DB_SQLSRV));
         $fields = substr('TOP 100 PERCENT *'.$this->stringifyAdhoc(), 16 * ((bool) !$shouldHack));
@@ -468,7 +471,7 @@ class Mapper implements \ArrayAccess
      *
      * @throws LogicException If given argument count is not match with primary keys count
      */
-    public function withId($ids)
+    public function withId($ids): Mapper
     {
         $fix = App::arr($ids);
         $vcount = count($fix);
@@ -486,7 +489,7 @@ class Mapper implements \ArrayAccess
      *
      * @return int
      */
-    public function loaded()
+    public function loaded(): int
     {
         return count($this->_query);
     }
@@ -500,7 +503,7 @@ class Mapper implements \ArrayAccess
      *
      * @return Mapper
      */
-    public function load($filter = null, array $options = null, $ttl = 0)
+    public function load($filter = null, array $options = null, int $ttl = 0): Mapper
     {
         $this->reset();
         $this->_query = $this->find($filter, $options, $ttl);
@@ -518,7 +521,7 @@ class Mapper implements \ArrayAccess
      *
      * @return Mapper|null
      */
-    public function findOne($filter = null, array $options = null, $ttl = 0)
+    public function findOne($filter = null, array $options = null, int $ttl = 0): ?Mapper
     {
         $rows = $this->find($filter, array('limit' => 1) + (array) $options, $ttl);
 
@@ -534,7 +537,7 @@ class Mapper implements \ArrayAccess
      *
      * @return array
      */
-    public function find($filter = null, array $options = null, $ttl = 0)
+    public function find($filter = null, array $options = null, int $ttl = 0): array
     {
         $useGroup = isset($options['group']) && !in_array($this->_driver, array(Connection::DB_MYSQL, Connection::DB_SQLITE));
         $fields = $useGroup ? $options['group'] : implode(',', array_map(array($this->_db, 'quotekey'), array_keys($this->_fields)));
@@ -548,7 +551,7 @@ class Mapper implements \ArrayAccess
      *
      * @return Mapper
      */
-    public function save()
+    public function save(): Mapper
     {
         return $this->_query ? $this->update() : $this->insert();
     }
@@ -558,7 +561,7 @@ class Mapper implements \ArrayAccess
      *
      * @return Mapper
      */
-    public function insert()
+    public function insert(): Mapper
     {
         $args = array();
         $ctr = 0;
@@ -629,7 +632,7 @@ class Mapper implements \ArrayAccess
      *
      * @return Mapper
      */
-    public function update()
+    public function update(): Mapper
     {
         $args = array();
         $ctr = 0;
@@ -689,7 +692,7 @@ class Mapper implements \ArrayAccess
      *
      * @return int
      */
-    public function delete($filter = null, $hayati = false)
+    public function delete($filter = null, bool $hayati = false): int
     {
         $sql = 'DELETE FROM '.$this->_map;
 
@@ -750,7 +753,7 @@ class Mapper implements \ArrayAccess
      *
      * @return Mapper
      */
-    public function skip($offset = 1)
+    public function skip(int $offset = 1): Mapper
     {
         $this->_ptr += $offset;
 
@@ -772,7 +775,7 @@ class Mapper implements \ArrayAccess
      *
      * @return Mapper
      */
-    public function first()
+    public function first(): Mapper
     {
         return $this->skip(-$this->_ptr);
     }
@@ -782,7 +785,7 @@ class Mapper implements \ArrayAccess
      *
      * @return Mapper
      */
-    public function last()
+    public function last(): Mapper
     {
         return $this->skip($this->loaded() - $this->_ptr - 1);
     }
@@ -792,7 +795,7 @@ class Mapper implements \ArrayAccess
      *
      * @return Mapper
      */
-    public function next()
+    public function next(): Mapper
     {
         return $this->skip();
     }
@@ -802,7 +805,7 @@ class Mapper implements \ArrayAccess
      *
      * @return Mapper
      */
-    public function prev()
+    public function prev(): Mapper
     {
         return $this->skip(-1);
     }
@@ -816,7 +819,7 @@ class Mapper implements \ArrayAccess
      *
      * @return array
      */
-    protected function stringify($fields, $filter = null, array $options = null)
+    protected function stringify(string $fields, $filter = null, array $options = null): array
     {
         $default = array(
             'group' => null,
@@ -905,7 +908,7 @@ class Mapper implements \ArrayAccess
      *
      * @return string
      */
-    protected function stringifyAdhoc()
+    protected function stringifyAdhoc(): string
     {
         $res = '';
 
@@ -923,7 +926,7 @@ class Mapper implements \ArrayAccess
      *
      * @return Mapper
      */
-    protected function factory(array $row)
+    protected function factory(array $row): Mapper
     {
         $mapper = clone $this;
         $mapper->reset();
@@ -956,7 +959,7 @@ class Mapper implements \ArrayAccess
      *
      * @return array
      */
-    protected function fieldArgs($field, array $args)
+    protected function fieldArgs(string $field, array $args): array
     {
         if ($args) {
             $first = array_shift($args);
@@ -964,100 +967,6 @@ class Mapper implements \ArrayAccess
         }
 
         return $args;
-    }
-
-    /**
-     * Convenience method to check field existance.
-     *
-     * @param string $offset
-     *
-     * @return bool
-     */
-    public function offsetExists($offset)
-    {
-        return $this->exists($offset);
-    }
-
-    /**
-     * Convenience method to get field value.
-     *
-     * @param string $offset
-     *
-     * @return mixed
-     */
-    public function &offsetGet($offset)
-    {
-        $ref = &$this->get($offset);
-
-        return $ref;
-    }
-
-    /**
-     * Convenience method to set field value.
-     *
-     * @param string $offset
-     * @param mixed  $value
-     */
-    public function offsetSet($offset, $value)
-    {
-        $this->set($offset, $value);
-    }
-
-    /**
-     * Convenience method to clear field value.
-     *
-     * @param string $offset
-     */
-    public function offsetUnset($offset)
-    {
-        $this->clear($offset);
-    }
-
-    /**
-     * Convenience method to check field existance.
-     *
-     * @param string $offset
-     *
-     * @return bool
-     */
-    public function __isset($offset)
-    {
-        return $this->exists($offset);
-    }
-
-    /**
-     * Convenience method to get field value.
-     *
-     * @param string $offset
-     *
-     * @return mixed
-     */
-    public function &__get($offset)
-    {
-        $ref = &$this->get($offset);
-
-        return $ref;
-    }
-
-    /**
-     * Convenience method to set field value.
-     *
-     * @param string $offset
-     * @param mixed  $value
-     */
-    public function __set($offset, $value)
-    {
-        $this->set($offset, $value);
-    }
-
-    /**
-     * Convenience method to clear field value.
-     *
-     * @param string $offset
-     */
-    public function __unset($offset)
-    {
-        $this->clear($offset);
     }
 
     /**

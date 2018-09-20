@@ -9,6 +9,8 @@
  * file that was distributed with this source code.
  */
 
+declare(strict_types=1);
+
 namespace Fal\Stick\Validation;
 
 /**
@@ -25,7 +27,7 @@ interface ValidatorInterface
      *
      * @return bool
      */
-    public function has($rule);
+    public function has(string $rule): bool;
 
     /**
      * Returns the return value of performed rule.
@@ -39,5 +41,5 @@ interface ValidatorInterface
      *
      * @return mixed
      */
-    public function validate($rule, $value, array $args = null, $field = null, array $validated = null, array $raw = null);
+    public function validate(string $rule, $value, array $args = null, string $field = null, array $validated = null, array $raw = null);
 }

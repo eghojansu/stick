@@ -9,6 +9,8 @@
  * file that was distributed with this source code.
  */
 
+declare(strict_types=1);
+
 namespace Fal\Stick\Security;
 
 use Fal\Stick\App;
@@ -86,7 +88,7 @@ class Auth
      *
      * @return bool
      */
-    public function attempt($username, $password, &$message = null)
+    public function attempt(string $username, string $password, string &$message = null): bool
     {
         $result = false;
         $user = $this->provider->findByUsername($username);
@@ -111,7 +113,7 @@ class Auth
      *
      * @return Auth
      */
-    public function login(UserInterface $user)
+    public function login(UserInterface $user): Auth
     {
         $event = new AuthEvent($user);
         $this->app->trigger(self::EVENT_LOGIN, $event);
@@ -127,7 +129,7 @@ class Auth
      *
      * @return Auth
      */
-    public function logout()
+    public function logout(): Auth
     {
         $event = new AuthEvent($this->getUser());
         $this->app->trigger(self::EVENT_LOGOUT, $event);
@@ -144,7 +146,7 @@ class Auth
      *
      * @return UserInterface|null
      */
-    public function getUser()
+    public function getUser(): ?UserInterface
     {
         if ($this->userLoaded || $this->user) {
             return $this->user;
@@ -171,7 +173,7 @@ class Auth
      *
      * @return Auth
      */
-    public function setUser(UserInterface $user = null)
+    public function setUser(UserInterface $user = null): Auth
     {
         $this->user = $user;
 
@@ -183,7 +185,7 @@ class Auth
      *
      * @return string|null
      */
-    public function getSessionUserId()
+    public function getSessionUserId(): ?string
     {
         return $this->app->get(self::SESSION_KEY);
     }
@@ -193,7 +195,7 @@ class Auth
      *
      * @return bool
      */
-    public function isLogged()
+    public function isLogged(): bool
     {
         return null !== $this->getUser();
     }
@@ -205,7 +207,7 @@ class Auth
      *
      * @return bool
      */
-    public function guard()
+    public function guard(): bool
     {
         $path = $this->app->get('PATH');
 
@@ -237,7 +239,7 @@ class Auth
      *
      * @return bool
      */
-    public function isGranted($checkRoles)
+    public function isGranted($checkRoles): bool
     {
         $user = $this->getUser();
 
@@ -265,7 +267,7 @@ class Auth
      *
      * @return UserProviderInterface
      */
-    public function getProvider()
+    public function getProvider(): UserProviderInterface
     {
         return $this->provider;
     }
@@ -275,7 +277,7 @@ class Auth
      *
      * @return PasswordEncoderInterface
      */
-    public function getEncoder()
+    public function getEncoder(): PasswordEncoderInterface
     {
         return $this->encoder;
     }
@@ -285,7 +287,7 @@ class Auth
      *
      * @return array
      */
-    public function getOptions()
+    public function getOptions(): array
     {
         return $this->options;
     }
@@ -304,7 +306,7 @@ class Auth
      *
      * @return Auth
      */
-    public function setOptions(array $options)
+    public function setOptions(array $options): Auth
     {
         $this->options = $options + array(
             'loginPath' => '/login',
@@ -323,7 +325,7 @@ class Auth
      *
      * @return array
      */
-    protected function getRoleHierarchy($role)
+    protected function getRoleHierarchy($role): array
     {
         $roles = array();
 

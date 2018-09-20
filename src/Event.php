@@ -9,6 +9,8 @@
  * file that was distributed with this source code.
  */
 
+declare(strict_types=1);
+
 namespace Fal\Stick;
 
 /**
@@ -35,7 +37,7 @@ class Event
      *
      * @return bool
      */
-    public function isPropagationStopped()
+    public function isPropagationStopped(): bool
     {
         return $this->propagationStopped;
     }
@@ -45,7 +47,7 @@ class Event
      *
      * @return Event
      */
-    public function stopPropagation()
+    public function stopPropagation(): Event
     {
         $this->propagationStopped = true;
 

@@ -9,6 +9,8 @@
  * file that was distributed with this source code.
  */
 
+declare(strict_types=1);
+
 namespace Fal\Stick\Security;
 
 use Fal\Stick\Validation\AbstractValidator;
@@ -42,7 +44,7 @@ class AuthValidator extends AbstractValidator
      *
      * @return bool
      */
-    protected function _password($val)
+    protected function _password($val): bool
     {
         $user = $this->auth->getUser();
 

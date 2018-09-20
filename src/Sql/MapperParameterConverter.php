@@ -9,6 +9,8 @@
  * file that was distributed with this source code.
  */
 
+declare(strict_types=1);
+
 namespace Fal\Stick\Sql;
 
 use Fal\Stick\App;
@@ -50,6 +52,11 @@ final class MapperParameterConverter
     private $keys;
 
     /**
+     * @var array
+     */
+    private $resolved = array();
+
+    /**
      * @var int
      */
     private $ptr = 0;
@@ -82,23 +89,21 @@ final class MapperParameterConverter
      *
      * @return array
      */
-    public function resolve()
+    public function resolve(): array
     {
-        $resolved = array();
-
         for (; $this->ptr < $this->max;) {
             $name = $this->keys[$this->ptr];
 
             if (isset($this->mappers[$name])) {
                 $class = $this->mappers[$name];
-                $resolved[$name] = $this->resolveMapper($class);
+                $this->resolved[$name] = $this->resolveMapper($class);
             } else {
-                $resolved[$name] = $this->params[$name];
+                $this->resolved[$name] = $this->params[$name];
                 ++$this->ptr;
             }
         }
 
-        return $resolved;
+        return $this->resolved;
     }
 
     /**
@@ -110,7 +115,7 @@ final class MapperParameterConverter
      *
      * @throws ResponseException if primary keys insufficient or record not found
      */
-    private function resolveMapper($class)
+    private function resolveMapper(string $class): Mapper
     {
         $mapper = new $class($this->app, $this->db);
         $keys = array_keys($mapper->keys());
@@ -146,7 +151,7 @@ final class MapperParameterConverter
      *
      * @return array
      */
-    private static function resolveMapperClasses($handler)
+    private static function resolveMapperClasses($handler): array
     {
         $ref = is_array($handler) ? new \ReflectionMethod($handler[0], $handler[1]) : new \ReflectionFunction($handler);
         $mappers = array();

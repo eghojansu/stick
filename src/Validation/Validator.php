@@ -9,6 +9,8 @@
  * file that was distributed with this source code.
  */
 
+declare(strict_types=1);
+
 namespace Fal\Stick\Validation;
 
 use Fal\Stick\App;
@@ -47,7 +49,7 @@ final class Validator
      *
      * @return Validator
      */
-    public function add(ValidatorInterface $validator)
+    public function add(ValidatorInterface $validator): Validator
     {
         $this->validators[] = $validator;
 
@@ -63,7 +65,7 @@ final class Validator
      *
      * @return array
      */
-    public function validate(array $data, array $rules, array $messages = null)
+    public function validate(array $data, array $rules, array $messages = null): array
     {
         $validated = array();
         $errors = array();
@@ -77,7 +79,7 @@ final class Validator
                 if (false === $result) {
                     // validation fail
                     $messageKey = $field.'.'.$rule;
-                    $custom = $messages && isset($messages[$messageKey]) ? $messages[$messageKey] : null;
+                    $custom = $messages[$messageKey] ?? null;
                     $errors[$field][] = $this->message($rule, $value, $args, $field, $custom);
 
                     break;
@@ -104,7 +106,7 @@ final class Validator
      *
      * @throws DomainException If no validator supports the rule
      */
-    private function findValidator($rule)
+    private function findValidator($rule): ValidatorInterface
     {
         foreach ($this->validators as $validator) {
             if ($validator->has($rule)) {
@@ -126,7 +128,7 @@ final class Validator
      *
      * @return string
      */
-    private function message($rule, $value = null, array $args = null, $field = null, $message = null)
+    private function message(string $rule, $value = null, array $args = null, string $field = null, string $message = null): string
     {
         if ($message && false === strpos($message, '{')) {
             return $message;
@@ -141,6 +143,6 @@ final class Validator
             $data['{'.$k.'}'] = is_array($v) ? implode(',', $v) : (string) $v;
         }
 
-        return $this->app->transAlt($key, $data, $fallback, array($alt));
+        return $this->app->transAlt($key, $data, $fallback, $alt);
     }
 }

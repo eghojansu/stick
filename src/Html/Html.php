@@ -9,6 +9,8 @@
  * file that was distributed with this source code.
  */
 
+declare(strict_types=1);
+
 namespace Fal\Stick\Html;
 
 use Fal\Stick\App;
@@ -27,11 +29,11 @@ class Html
      *
      * @return string
      */
-    public function attr(array $attr)
+    public function attr(array $attr): string
     {
         $str = '';
 
-        foreach (array_filter($attr, App::class.'::filterNullFalse') as $prop => $value) {
+        foreach (array_filter($attr, App::class.'::notNullFalse') as $prop => $value) {
             if (is_numeric($prop)) {
                 $str .= is_string($value) ? ' '.trim($value) : '';
             } else {
@@ -50,11 +52,11 @@ class Html
     /**
      * Translate field name to id.
      *
-     * @param string $name
+     * @param string|null $name
      *
-     * @return string
+     * @return string|null
      */
-    public function fixId($name = null)
+    public function fixId(string $name = null): ?string
     {
         $search = array('"', "'", '[', ']');
         $replace = array('', '', '_', '_');
@@ -72,7 +74,7 @@ class Html
      *
      * @return string
      */
-    public function element($tag, $pair = false, $content = null, array $attr = null)
+    public function element(string $tag, bool $pair = false, string $content = null, array $attr = null): string
     {
         $closeTag = $pair ? '</'.$tag.'>' : '';
 
@@ -89,7 +91,7 @@ class Html
      *
      * @return string
      */
-    public function input($type, $name, $value = null, array $attr = null)
+    public function input(string $type, string $name, $value = null, array $attr = null): string
     {
         $default = array('id' => $this->fixId($name));
 
@@ -109,7 +111,7 @@ class Html
      *
      * @return string
      */
-    public function hidden($name, $value = null, array $attr = null)
+    public function hidden(string $name, $value = null, array $attr = null): string
     {
         return $this->input('hidden', $name, $value, $attr);
     }
@@ -124,7 +126,7 @@ class Html
      *
      * @return string
      */
-    public function text($name, $value = null, $label = null, array $attr = null)
+    public function text(string $name, $value = null, string $label = null, array $attr = null): string
     {
         $default = array('placeholder' => $label);
 
@@ -140,7 +142,7 @@ class Html
      *
      * @return string
      */
-    public function password($name, $label = null, array $attr = null)
+    public function password(string $name, string $label = null, array $attr = null): string
     {
         $default = array('placeholder' => $label);
 
@@ -157,7 +159,7 @@ class Html
      *
      * @return string
      */
-    public function checkbox($name, $value = null, $label = null, array $attr = null)
+    public function checkbox(string $name, $value = null, string $label = null, array $attr = null): string
     {
         $default = array('id' => null);
 
@@ -174,7 +176,7 @@ class Html
      *
      * @return string
      */
-    public function radio($name, $value = null, $label = null, array $attr = null)
+    public function radio(string $name, $value = null, string $label = null, array $attr = null): string
     {
         $default = array('id' => null);
 
@@ -191,7 +193,7 @@ class Html
      *
      * @return string
      */
-    public function textarea($name, $value = null, $label = null, array $attr = null)
+    public function textarea(string $name, $value = null, string $label = null, array $attr = null): string
     {
         $default = array('id' => $this->fixId($name), 'placeholder' => $label);
 
@@ -212,7 +214,7 @@ class Html
      *
      * @return string
      */
-    public function select($name, $value = null, $label = null, array $attr = null, array $items = null, array $oAttr = null)
+    public function select(string $name, $value = null, string $label = null, array $attr = null, array $items = null, array $oAttr = null): string
     {
         $default = array('id' => $this->fixId($name));
         $check = (array) $value;
@@ -221,7 +223,7 @@ class Html
 
         $content = $label ? '<option value="">'.$label.'</option>' : '';
 
-        foreach ($items ?: array() as $label => $val) {
+        foreach ((array) $items as $label => $val) {
             $oAttr['value'] = $val;
             $oAttr['selected'] = in_array($val, $check);
 
@@ -242,13 +244,13 @@ class Html
      *
      * @return string
      */
-    public function checkboxGroup($name, $value = null, array $attr = null, array $items = null, array $wrapperAttr = null)
+    public function checkboxGroup(string $name, $value = null, array $attr = null, array $items = null, array $wrapperAttr = null): string
     {
         $nameArr = $name.'[]';
         $content = '';
         $check = (array) $value;
 
-        foreach ($items ?: array() as $label => $val) {
+        foreach ((array) $items as $label => $val) {
             $attr['checked'] = in_array($val, $check);
 
             $content .= $this->checkbox($nameArr, $val, $label, $attr);
@@ -268,11 +270,11 @@ class Html
      *
      * @return string
      */
-    public function radioGroup($name, $value = null, array $attr = null, array $items = null, array $wrapperAttr = null)
+    public function radioGroup(string $name, $value = null, array $attr = null, array $items = null, array $wrapperAttr = null): string
     {
         $content = '';
 
-        foreach ($items ?: array() as $label => $val) {
+        foreach ((array) $items as $label => $val) {
             $attr['checked'] = $val === $value;
 
             $content .= $this->radio($name, $val, $label, $attr);
@@ -290,7 +292,7 @@ class Html
      *
      * @return string
      */
-    public function label($content, $name = null, array $attr = null)
+    public function label(string $content, string $name = null, array $attr = null): string
     {
         $attr['for'] = $this->fixId($name);
 
@@ -307,7 +309,7 @@ class Html
      *
      * @return string
      */
-    public function button($label, $type = 'button', $name = null, array $attr = null)
+    public function button(string $label, string $type = 'button', string $name = null, array $attr = null): string
     {
         $default = array('id' => $this->fixId($name));
 

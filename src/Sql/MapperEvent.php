@@ -9,6 +9,8 @@
  * file that was distributed with this source code.
  */
 
+declare(strict_types=1);
+
 namespace Fal\Stick\Sql;
 
 use Fal\Stick\Event;
@@ -42,7 +44,7 @@ class MapperEvent extends Event
      *
      * @return Mapper
      */
-    public function getMapper()
+    public function getMapper(): Mapper
     {
         return $this->mapper;
     }
