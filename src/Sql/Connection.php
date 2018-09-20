@@ -740,11 +740,11 @@ class Connection
             }
 
             $hash = $cmd.var_export($arg, true).'.sql';
+            $rawQuery = $this->buildQuery($cmd, $arg);
 
             if ($ttl && $this->app->isCached($hash, $data)) {
                 $res[$i] = $data[0];
-
-                $this->app->log($this->logLevel, $this->buildLog(array($cmd, $arg, $start, true)));
+                $this->app->log($this->logLevel, $this->buildLog($rawQuery, $start, null, true));
 
                 continue;
             }
@@ -756,7 +756,7 @@ class Connection
                 // PDO-level error occurred
                 $this->safeRollback();
 
-                throw new \LogicException('PDO: '.$error[2].'.');
+                throw new \LogicException('PDO: '.$error[2].' ('.$rawQuery.').');
             }
 
             foreach ($arg as $key => $val) {
@@ -769,9 +769,9 @@ class Connection
                 }
             }
 
-            $log = $this->buildLog(array($cmd, $arg));
+            $log = $this->buildLog($rawQuery);
             $query->execute();
-            $this->app->log($this->logLevel, $this->buildLog(array(), $start, $log));
+            $this->app->log($this->logLevel, $this->buildLog(null, $start, $log));
 
             $error = $query->errorinfo();
 
@@ -779,7 +779,7 @@ class Connection
                 // Statement-level error occurred
                 $this->safeRollback();
 
-                throw new \LogicException('PDOStatement: '.$error[2].'.');
+                throw new \LogicException('PDOStatement: '.$error[2].' ('.$rawQuery.').');
             }
 
             if (preg_match($fetchPattern[0], $cmd) || (preg_match($fetchPattern[1], $cmd) && $query->columnCount())) {
@@ -845,38 +845,43 @@ class Connection
     }
 
     /**
-     * Log sql and arg.
+     * Returns timestamped query log.
      *
-     * @param array  $data
-     * @param float  $update
-     * @param string $prior
+     * @param string|null $query
+     * @param float       $update
+     * @param string|null $prior
+     * @param bool        $cached
      *
      * @return string
      */
-    private function buildLog(array $data, $update = 0, $prior = null)
+    private function buildLog($query = null, $update = 0, $prior = null, $cached = false)
     {
-        $use = $data + array('', array(), $update, false);
-        $time = '('.($use[2] ? sprintf('%.1f', 1e3 * (microtime(true) - $use[2])) : '-0').'ms)';
+        $time = '('.($update ? sprintf('%.1f', 1e3 * (microtime(true) - $update)) : '-0').'ms)';
 
         if ($prior && $update) {
             return str_replace('(-0ms)', $time, $prior);
         }
 
+        return $time.' '.($cached ? '[CACHED] ' : '').$query;
+    }
+
+    private function buildQuery($cmd, array $args)
+    {
         $keys = $vals = array();
 
-        foreach ($use[1] as $key => $val) {
+        foreach ($args as $key => $val) {
             if (is_array($val)) {
                 // User-specified data type
-                $toStr = $use[3] ? $val[0] : $this->phpValue($val[1], $val[0]);
+                $toStr = $this->phpValue($val[1], $val[0]);
             } else {
-                $toStr = $use[3] ? $val : $this->phpValue($this->realPdoType($val), $val);
+                $toStr = $this->phpValue($this->realPdoType($val), $val);
             }
 
             $vals[] = var_export($toStr, true);
             $keys[] = '/'.preg_quote(is_numeric($key) ? chr(0).'?' : $key).'/';
         }
 
-        return $time.' '.($use[3] ? '[CACHED] ' : '').preg_replace($keys, $vals, str_replace('?', chr(0).'?', $use[0]), 1);
+        return preg_replace($keys, $vals, str_replace('?', chr(0).'?', $cmd), 1);
     }
 
     /**
