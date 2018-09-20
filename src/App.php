@@ -1383,6 +1383,7 @@ final class App implements \ArrayAccess
             'configs' => 'config',
             'routes' => 'route',
             'redirects' => 'redirect',
+            'maps' => 'map',
             'rules' => 'rule',
             'listeners' => 'on',
             'listeners_once' => 'one',
@@ -1980,6 +1981,28 @@ final class App implements \ArrayAccess
         $this->_hive['RESPONSE'] = null;
 
         return $this->send();
+    }
+
+    /**
+     * Register route for a class.
+     *
+     * @param  string|obj $class
+     * @param  array      $routes
+     *
+     * @return App
+     */
+    public function map($class, array $routes)
+    {
+        $obj = is_object($class);
+
+        foreach ($routes as $route => $def) {
+            list($method, $ttl, $kbps) = ((array) $def) + array(1 => 0, 0);
+            $handler = $obj ? array($class, $method) : $class.'->'.$method;
+
+            $this->route($route, $handler, $ttl, $kbps);
+        }
+
+        return $this;
     }
 
     /**

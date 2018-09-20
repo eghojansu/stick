@@ -27,4 +27,9 @@ return array(
             $event->stopPropagation();
         }),
     ),
+    'maps' => array(
+        array('Foo', array(
+            'GET map /map/path' => 'bar',
+        )),
+    ),
 );
