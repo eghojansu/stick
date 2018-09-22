@@ -2443,19 +2443,19 @@ final class App implements \ArrayAccess
                 $event = new GetControllerArgsEvent($controller, $args);
                 $this->trigger(self::EVENT_CONTROLLER_ARGS, $event);
 
-                $controller = $event->getController();
-                $args = $event->getArgs();
-
                 $this->_hive['PATTERN'] = $pattern;
                 $this->_hive['ALIAS'] = $alias;
                 $this->_hive['PARAMS'] = $args;
                 $this->_hive['KBPS'] = $kbps;
+
+                $controller = $event->getController();
 
                 if (is_callable($controller)) {
                     if (!$this->_hive['RAW'] && !$this->_hive['BODY']) {
                         $this->_hive['BODY'] = file_get_contents('php://input');
                     }
 
+                    $args = $event->getArgs();
                     $result = $this->call($controller, $args);
 
                     $event = new GetResponseForControllerEvent($result, $this->_hive['HEADERS']);

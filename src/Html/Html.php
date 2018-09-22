@@ -23,6 +23,21 @@ use Fal\Stick\App;
 class Html
 {
     /**
+     * @var App
+     */
+    private $_app;
+
+    /**
+     * Class constructor.
+     *
+     * @param App $app
+     */
+    public function __construct(App $app)
+    {
+        $this->_app = $app;
+    }
+
+    /**
      * Returns translated attributes as string.
      *
      * @param array $attr
@@ -317,5 +332,159 @@ class Html
         $attr['name'] = $name;
 
         return $this->element('button', true, $label, $attr + $default);
+    }
+
+    /**
+     * Returns pagination list.
+     *
+     * @param int        $page
+     * @param int        $max
+     * @param array|null $config
+     *
+     * @return string
+     */
+    public function pagination(int $page, int $max, array $config = null): string
+    {
+        if ($max < 1 || $page < 1) {
+            return '';
+        }
+
+        $dConfig = array(
+            'route' => $this->_app->get('ALIAS'),
+            'route_data' => $this->_app->get('PARAMS'),
+            'route_query' => (array) $this->_app->get('QUERY'),
+            'page_query' => 'page',
+            'adjacent' => 2,
+            'parent' => array('class' => 'pagination'),
+            'wrapper' => array('aria-label' => 'Page navigation'),
+            'prev_label' => 'Prev',
+            'next_label' => 'Next',
+            'active_class' => 'active',
+        );
+        $mConfig = ((array) $config) + $dConfig;
+        $urlPage = function ($page) use ($mConfig) {
+            $query = array($mConfig['page_query'] => $page) + $mConfig['route_query'];
+
+            return $this->_app->path($mConfig['route'], $mConfig['route_data'], $query);
+        };
+        $child = function ($label, array $attr = null, array $wrapperAttr = null, string $el = 'a') {
+            $content = $this->element($el, true, (string) $label, $attr);
+
+            return $this->element('li', true, $content, $wrapperAttr);
+        };
+        $adjacent = $mConfig['adjacent'];
+        $rangeStart = $page <= $adjacent ? 1 : $page - $adjacent;
+        $rangeEnd = $page > $max - $adjacent ? $max : $page + $adjacent;
+        $aClass = array(null, $mConfig['active_class']);
+        $lists = '';
+
+        if ($rangeStart > 1) {
+            $lists .= $child($mConfig['prev_label'], array(
+                'href' => $urlPage($page - 1),
+            ));
+            $lists .= $child(1, array(
+                'href' => $urlPage(1),
+            ));
+        }
+
+        if ($rangeStart > 2) {
+            $lists .= $child('&hellip;', null, array(
+                'class' => 'gap',
+            ), 'span');
+        }
+
+        for ($i = $rangeStart; $i <= $rangeEnd; ++$i) {
+            $active = (int) ($i === $page);
+            $lists .= $child($i, array(
+                'href' => $urlPage($i),
+            ), array(
+                'class' => $aClass[$active],
+            ));
+        }
+
+        if ($rangeEnd < $max - 1) {
+            $lists .= $child('&hellip;', null, array(
+                'class' => 'gap',
+            ), 'span');
+        }
+
+        if ($rangeEnd < $max) {
+            $lists .= $child($max, array(
+                'href' => $urlPage($max),
+            ));
+            $lists .= $child($mConfig['next_label'], array(
+                'href' => $urlPage($page + 1),
+            ));
+        }
+
+        $pagination = $this->element('ul', true, $lists, $mConfig['parent']);
+
+        return $this->element('nav', true, $pagination, $mConfig['wrapper']);
+    }
+
+    /**
+     * Returns links list.
+     *
+     * @param array       $items
+     * @param string|null $activeRoute
+     * @param array|null  $config
+     *
+     * @return string
+     */
+    public function ulinks(array $items, string $activeRoute = null, array $config = null): string
+    {
+        if (empty($items)) {
+            return '';
+        }
+
+        $dConfig = array(
+            'root_attr' => null,
+            'parent_attr' => null,
+            'parent_item_attr' => null,
+            'parent_wrapper_attr' => null,
+            'active_class' => 'active',
+        );
+        $dItem = array(
+            'route' => null,
+            'args' => null,
+            'query' => null,
+            'attr' => null,
+            'item_attr' => null,
+            'wrapper_attr' => null,
+            'items' => null,
+        );
+        $mConfig = ((array) $config) + $dConfig;
+        $aClass = array(null, $mConfig['active_class']);
+        $lists = '';
+
+        foreach ($items as $label => $item) {
+            $child = '';
+            $mItem = (is_array($item) ? $item : array('route' => $item)) + $dItem;
+            $aAttr = (array) $mItem['attr'];
+            $iAttr = (array) $mItem['item_attr'];
+            $active = (int) ($mItem['route'] && ($mItem['route'] === $activeRoute));
+
+            if ($mItem['items']) {
+                $cAttr = array('root_attr' => (array) $mItem['wrapper_attr']) + $mConfig;
+
+                $cAttr['root_attr'] += (array) $mConfig['parent_wrapper_attr'];
+                $aAttr += (array) $mConfig['parent_item_attr'];
+                $iAttr += (array) $mConfig['parent_attr'];
+
+                $child = $this->ulinks($mItem['items'], $activeRoute, $cAttr);
+                $active = (int) ($active || preg_match('/class="\\b'.preg_quote($aClass[1]).'\\b"/', $child));
+            }
+
+            if (empty($aAttr['href'])) {
+                $aAttr['href'] = $mItem['route'] ? $this->_app->path($mItem['route'], $mItem['args'], $mItem['query']) : '#';
+            }
+
+            $iAttr['class'] = trim(($iAttr['class'] ?? null).' '.$aClass[$active]) ?: null;
+
+            $content = $this->element('a', true, $label, $aAttr);
+            $lists .= $this->element('li', true, $content.$child, $iAttr);
+        }
+
+        return $this->element('ul', true, $lists, $mConfig['root_attr']);
     }
 }

@@ -30,7 +30,7 @@ class FormTest extends TestCase
         $this->app = new App();
         $validator = new Validator($this->app);
         $validator->add(new CommonValidator());
-        $this->form = new Form($this->app, new Html(), $validator);
+        $this->form = new Form($this->app, new Html($this->app), $validator);
     }
 
     public function testGetName()
