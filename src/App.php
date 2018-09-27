@@ -144,7 +144,7 @@ final class App implements \ArrayAccess
         $url = parse_url($uriHost.$uri);
         $port = (int) ($server['HTTP_X_FORWARDED_PORT'] ?? $server['SERVER_PORT'] ?? 80);
         $secure = 'on' === ($server['HTTPS'] ?? '') || 'https' === ($server['HTTP_X_FORWARDED_PROTO'] ?? '');
-        $base = rtrim(self::fixslashes(dirname($scriptName)), '/');
+        $base = rtrim($this->fixslashes(dirname($scriptName)), '/');
         $entry = '/'.basename($scriptName);
 
         if ($cli) {
@@ -192,7 +192,7 @@ final class App implements \ArrayAccess
             'FRAGMENT' => $url['fragment'] ?? null,
             'HEADERS' => null,
             'HOST' => $host,
-            'IP' => $server['HTTP_X_CLIENT_IP'] ?? self::cutbefore($server['HTTP_X_FORWARDED_FOR'] ?? '', ',', $server['REMOTE_ADDR'] ?? ''),
+            'IP' => $server['HTTP_X_CLIENT_IP'] ?? $this->cutbefore($server['HTTP_X_FORWARDED_FOR'] ?? '', ',', $server['REMOTE_ADDR'] ?? ''),
             'JAR' => $cookieJar,
             'KBPS' => 0,
             'LANGUAGE' => null,
@@ -200,7 +200,7 @@ final class App implements \ArrayAccess
             'LOG' => null,
             'PACKAGE' => self::PACKAGE,
             'PARAMS' => null,
-            'PATH' => self::cutprefix(self::cutprefix(urldecode($url['path']), $base), $entry, '/'),
+            'PATH' => $this->cutprefix($this->cutprefix(urldecode($url['path']), $base), $entry, '/'),
             'PATTERN' => null,
             'PORT' => $port,
             'PROTOCOL' => $server['SERVER_PROTOCOL'] ?? 'HTTP/1.0',
@@ -215,7 +215,7 @@ final class App implements \ArrayAccess
             'ROUTE_HANDLERS' => array(),
             'ROUTES' => array(),
             'SCHEME' => $scheme,
-            'SEED' => self::hash($host.$base),
+            'SEED' => $this->hash($host.$base),
             'SENT' => false,
             'SERVER' => (array) $server,
             'SERVICE_ALIASES' => array(),
@@ -226,7 +226,7 @@ final class App implements \ArrayAccess
             'TEMP' => './var/',
             'THRESHOLD' => self::LOG_LEVEL_ERROR,
             'TIME' => $now,
-            'TRACE' => self::fixslashes(realpath(dirname($scriptFilename).'/..').'/'),
+            'TRACE' => $this->fixslashes(realpath(dirname($scriptFilename).'/..').'/'),
             'URI' => $uri,
             'VERB' => $verb,
             'VERSION' => self::VERSION,
@@ -267,7 +267,7 @@ final class App implements \ArrayAccess
      *
      * @return bool
      */
-    public static function notNullFalse($val): bool
+    public function notNullFalse($val): bool
     {
         return !(null === $val || false === $val);
     }
@@ -280,7 +280,7 @@ final class App implements \ArrayAccess
      *
      * @return array
      */
-    public static function split(string $str): array
+    public function split(string $str): array
     {
         return array_map('trim', preg_split('/[,;\|]/', $str, 0, PREG_SPLIT_NO_EMPTY));
     }
@@ -292,7 +292,7 @@ final class App implements \ArrayAccess
      *
      * @return string
      */
-    public static function fixslashes(string $str): string
+    public function fixslashes(string $str): string
     {
         return strtr($str, '\\', '/');
     }
@@ -304,7 +304,7 @@ final class App implements \ArrayAccess
      *
      * @return string
      */
-    public static function hash(string $str): string
+    public function hash(string $str): string
     {
         return str_pad(base_convert(substr(sha1($str), -16), 16, 36), 11, '0', STR_PAD_LEFT);
     }
@@ -321,7 +321,7 @@ final class App implements \ArrayAccess
      *
      * @return string
      */
-    public static function cutbefore(string $str, string $needle, string $default = null, bool $with_needle = false): string
+    public function cutbefore(string $str, string $needle, string $default = null, bool $with_needle = false): string
     {
         if ($str && $needle && false !== ($pos = strpos($str, $needle))) {
             return substr($str, 0, $pos + ((int) $with_needle));
@@ -342,7 +342,7 @@ final class App implements \ArrayAccess
      *
      * @return string
      */
-    public static function cutafter(string $str, string $needle, string $default = null, bool $with_needle = false): string
+    public function cutafter(string $str, string $needle, string $default = null, bool $with_needle = false): string
     {
         if ($str && $needle && false !== ($pos = strrpos($str, $needle))) {
             return substr($str, $pos + ((int) !$with_needle));
@@ -360,7 +360,7 @@ final class App implements \ArrayAccess
      *
      * @return string
      */
-    public static function cutprefix(string $str, string $prefix, string $default = null): string
+    public function cutprefix(string $str, string $prefix, string $default = null): string
     {
         if ($str && $prefix && substr($str, 0, $cut = strlen($prefix)) === $prefix) {
             return substr($str, $cut) ?: (string) $default;
@@ -378,7 +378,7 @@ final class App implements \ArrayAccess
      *
      * @return string
      */
-    public static function cutsuffix(string $str, string $suffix, string $default = null): string
+    public function cutsuffix(string $str, string $suffix, string $default = null): string
     {
         if ($str && $suffix && substr($str, $cut = -strlen($suffix)) === $suffix) {
             return substr($str, 0, $cut) ?: (string) $default;
@@ -395,7 +395,7 @@ final class App implements \ArrayAccess
      *
      * @return bool
      */
-    public static function startswith(string $str, string $prefix): bool
+    public function startswith(string $str, string $prefix): bool
     {
         return substr($str, 0, strlen($prefix)) === $prefix;
     }
@@ -408,7 +408,7 @@ final class App implements \ArrayAccess
      *
      * @return bool
      */
-    public static function endswith(string $str, string $suffix): bool
+    public function endswith(string $str, string $suffix): bool
     {
         return substr($str, -1 * strlen($suffix)) === $suffix;
     }
@@ -420,7 +420,7 @@ final class App implements \ArrayAccess
      *
      * @return string
      */
-    public static function camelCase(string $str): string
+    public function camelCase(string $str): string
     {
         return lcfirst(str_replace(' ', '', ucwords(strtr($str, '_', ' '))));
     }
@@ -432,7 +432,7 @@ final class App implements \ArrayAccess
      *
      * @return string
      */
-    public static function snakeCase(string $str): string
+    public function snakeCase(string $str): string
     {
         return strtolower(preg_replace('/(?!^)\p{Lu}/u', '_\0', $str));
     }
@@ -444,7 +444,7 @@ final class App implements \ArrayAccess
      *
      * @return string
      */
-    public static function titleCase(string $str): string
+    public function titleCase(string $str): string
     {
         return ucwords(strtr($str, '_', ' '));
     }
@@ -458,7 +458,7 @@ final class App implements \ArrayAccess
      *
      * @return bool
      */
-    public static function mkdir(string $path, int $mode = 0755, bool $recursive = true): bool
+    public function mkdir(string $path, int $mode = 0755, bool $recursive = true): bool
     {
         return file_exists($path) ? true : mkdir($path, $mode, $recursive);
     }
@@ -471,7 +471,7 @@ final class App implements \ArrayAccess
      *
      * @return string
      */
-    public static function read(string $file, bool $lf = false): string
+    public function read(string $file, bool $lf = false): string
     {
         $out = is_file($file) ? file_get_contents($file) : '';
 
@@ -487,7 +487,7 @@ final class App implements \ArrayAccess
      *
      * @return int|false
      */
-    public static function write(string $file, string $data, bool $append = false)
+    public function write(string $file, string $data, bool $append = false)
     {
         return file_put_contents($file, $data, LOCK_EX | ((int) $append * FILE_APPEND));
     }
@@ -499,7 +499,7 @@ final class App implements \ArrayAccess
      *
      * @return bool
      */
-    public static function delete(string $file): bool
+    public function delete(string $file): bool
     {
         return is_file($file) ? unlink($file) : false;
     }
@@ -514,11 +514,11 @@ final class App implements \ArrayAccess
      *
      * @return mixed
      */
-    public static function requireFile(string $file, $default = null)
+    public function requireFile(string $file, $default = null)
     {
         $content = require $file;
 
-        return self::notNullFalse($content) ? $content : $default;
+        return $this->notNullFalse($content) ? $content : $default;
     }
 
     /**
@@ -528,7 +528,7 @@ final class App implements \ArrayAccess
      *
      * @return string
      */
-    public static function classname($class): string
+    public function classname($class): string
     {
         $ns = is_object($class) ? get_class($class) : $class;
         $lastPos = strrpos($ns, '\\');
@@ -543,7 +543,7 @@ final class App implements \ArrayAccess
      *
      * @return mixed
      */
-    public static function cast($val)
+    public function cast($val)
     {
         if (is_numeric($val)) {
             return $val + 0;
@@ -571,7 +571,7 @@ final class App implements \ArrayAccess
      *
      * @return array
      */
-    public static function parseExpr(string $expr): array
+    public function parseExpr(string $expr): array
     {
         $len = strlen($expr);
         $res = array();
@@ -596,17 +596,17 @@ final class App implements \ArrayAccess
             } elseif (!$quote) {
                 if (':' === $char && 0 === $jstate) {
                     // next chars is arg
-                    $args[] = self::cast($tmp);
+                    $args[] = $this->cast($tmp);
                     $tmp = '';
                 } elseif (',' === $char && 0 === $astate && 0 === $jstate) {
                     if ($tmp) {
-                        $args[] = self::cast($tmp);
+                        $args[] = $this->cast($tmp);
                         $tmp = '';
                     }
                 } elseif ('|' === $char) {
                     $process = true;
                     if ($tmp) {
-                        $args[] = self::cast($tmp);
+                        $args[] = $this->cast($tmp);
                         $tmp = '';
                     }
                 } elseif ('[' === $char) {
@@ -635,7 +635,7 @@ final class App implements \ArrayAccess
             if (!$process && $ptr === $len - 1) {
                 $process = true;
                 if ('' !== $tmp) {
-                    $args[] = self::cast($tmp);
+                    $args[] = $this->cast($tmp);
                     $tmp = '';
                 }
             }
@@ -663,9 +663,9 @@ final class App implements \ArrayAccess
      *
      * @see App::split For detailed how string is splitted.
      */
-    public static function arr($val): array
+    public function arr($val): array
     {
-        return is_array($val) ? $val : self::split((string) $val);
+        return is_array($val) ? $val : $this->split((string) $val);
     }
 
     /**
@@ -676,7 +676,7 @@ final class App implements \ArrayAccess
      *
      * @return array
      */
-    public static function column(array $input, string $column_key): array
+    public function column(array $input, string $column_key): array
     {
         return array_combine(array_keys($input), array_column($input, $column_key));
     }
@@ -690,7 +690,7 @@ final class App implements \ArrayAccess
      *
      * @return array
      */
-    public static function walk(array $args, callable $callable, bool $one = true): array
+    public function walk(array $args, callable $callable, bool $one = true): array
     {
         $result = array();
 
@@ -707,12 +707,16 @@ final class App implements \ArrayAccess
      * @param bool   $throw
      * @param string $message
      * @param string $exception
+     *
+     * @return  App
      */
-    public static function throws(bool $throw, string $message, string $exception = 'LogicException'): void
+    public function throws(bool $throw, string $message, string $exception = 'LogicException'): App
     {
         if ($throw) {
             throw new $exception($message);
         }
+
+        return $this;
     }
 
     /**
@@ -862,7 +866,7 @@ final class App implements \ArrayAccess
     public function loadClass($class)
     {
         $subPath = $class;
-        $logicalPath = self::fixslashes($class).'.php';
+        $logicalPath = $this->fixslashes($class).'.php';
 
         while (false !== $lastPos = strrpos($subPath, '\\')) {
             $subPath = substr($subPath, 0, $lastPos);
@@ -870,11 +874,11 @@ final class App implements \ArrayAccess
 
             if (isset($this->_hive['AUTOLOAD'][$search])) {
                 $pathEnd = substr($logicalPath, $lastPos + 1);
-                $dirs = self::arr($this->_hive['AUTOLOAD'][$search]);
+                $dirs = $this->arr($this->_hive['AUTOLOAD'][$search]);
 
                 foreach ($dirs as $dir) {
                     if (file_exists($file = $dir.$pathEnd)) {
-                        self::requireFile($file);
+                        $this->requireFile($file);
 
                         return true;
                     }
@@ -894,11 +898,11 @@ final class App implements \ArrayAccess
      */
     public function blacklisted(string $ip): bool
     {
-        if ($this->_hive['DNSBL'] && !in_array($ip, self::arr($this->_hive['EXEMPT']))) {
+        if ($this->_hive['DNSBL'] && !in_array($ip, $this->arr($this->_hive['EXEMPT']))) {
             // Reverse IPv4 dotted quad
             $rev = implode('.', array_reverse(explode('.', $ip)));
 
-            foreach (self::arr($this->_hive['DNSBL']) as $server) {
+            foreach ($this->arr($this->_hive['DNSBL']) as $server) {
                 // DNSBL lookup
                 if (checkdnsrr($rev.'.'.$server, 'A')) {
                     return true;
@@ -1195,7 +1199,7 @@ final class App implements \ArrayAccess
      */
     public function mclear($keys): App
     {
-        foreach (self::arr($keys) as $key) {
+        foreach ($this->arr($keys) as $key) {
             $this->clear($key);
         }
 
@@ -1299,7 +1303,7 @@ final class App implements \ArrayAccess
             'listeners' => 'on',
             'listeners_once' => 'one',
         );
-        $content = file_exists($file) ? self::requireFile($file, array()) : array();
+        $content = file_exists($file) ? $this->requireFile($file, array()) : array();
 
         foreach ($content as $key => $val) {
             $lkey = strtolower($key);
@@ -1361,7 +1365,7 @@ final class App implements \ArrayAccess
             case 'apcu':
                 return apcu_exists($ndx);
             case 'folder':
-                return (bool) $this->cacheParse($key, self::read($this->_hive['CACHE_REF'].$ndx));
+                return (bool) $this->cacheParse($key, $this->read($this->_hive['CACHE_REF'].$ndx));
             case 'memcached':
                 return (bool) $this->_hive['CACHE_REF']->get($ndx);
             case 'redis':
@@ -1393,7 +1397,7 @@ final class App implements \ArrayAccess
                 $raw = apcu_fetch($ndx);
                 break;
             case 'folder':
-                $raw = self::read($this->_hive['CACHE_REF'].$ndx);
+                $raw = $this->read($this->_hive['CACHE_REF'].$ndx);
                 break;
             case 'memcached':
                 $raw = $this->_hive['CACHE_REF']->get($ndx);
@@ -1428,7 +1432,7 @@ final class App implements \ArrayAccess
             case 'apcu':
                 return apcu_store($ndx, $content, $ttl);
             case 'folder':
-                return false !== self::write($this->_hive['CACHE_REF'].str_replace(array('/', '\\'), '', $ndx), $content);
+                return false !== $this->write($this->_hive['CACHE_REF'].str_replace(array('/', '\\'), '', $ndx), $content);
             case 'memcached':
                 return $this->_hive['CACHE_REF']->set($ndx, $content, $ttl);
             case 'redis':
@@ -1457,7 +1461,7 @@ final class App implements \ArrayAccess
             case 'apcu':
                 return apcu_delete($ndx);
             case 'folder':
-                return self::delete($this->_hive['CACHE_REF'].$ndx);
+                return $this->delete($this->_hive['CACHE_REF'].$ndx);
             case 'memcached':
                 return $this->_hive['CACHE_REF']->delete($ndx);
             case 'redis':
@@ -1488,7 +1492,7 @@ final class App implements \ArrayAccess
                     $key = array_key_exists('info', $info['cache_list'][0]) ? 'info' : 'key';
                     $items = preg_grep($regex, array_column($info['cache_list'], $key));
 
-                    self::walk($items, 'apc_delete');
+                    $this->walk($items, 'apc_delete');
                 }
                 break;
             case 'apcu':
@@ -1497,23 +1501,23 @@ final class App implements \ArrayAccess
                     $key = array_key_exists('info', $info['cache_list'][0]) ? 'info' : 'key';
                     $items = preg_grep($regex, array_column($info['cache_list'], $key));
 
-                    self::walk($items, 'apcu_delete');
+                    $this->walk($items, 'apcu_delete');
                 }
                 break;
             case 'folder':
                 $files = glob($this->_hive['CACHE_REF'].$prefix.'*'.$suffix);
 
-                self::walk((array) $files, 'unlink');
+                $this->walk((array) $files, 'unlink');
                 break;
             case 'memcached':
                 $keys = preg_grep($regex, (array) $this->_hive['CACHE_REF']->getAllKeys());
 
-                self::walk($keys, array($this->_hive['CACHE_REF'], 'delete'));
+                $this->walk($keys, array($this->_hive['CACHE_REF'], 'delete'));
                 break;
             case 'redis':
                 $keys = $this->_hive['CACHE_REF']->keys($prefix.'*'.$suffix);
 
-                self::walk($keys, array($this->_hive['CACHE_REF'], 'del'));
+                $this->walk($keys, array($this->_hive['CACHE_REF'], 'del'));
                 break;
         }
 
@@ -1685,14 +1689,14 @@ final class App implements \ArrayAccess
 
         $throw = !$ref->isInstantiable();
         $message = 'Unable to create instance for "'.$id.'". Please provide instantiable version of '.$ref->name.'.';
-        self::throws($throw, $message);
+        $this->throws($throw, $message);
 
         if ($rule['constructor'] && is_callable($rule['constructor'])) {
             $instance = $this->call($rule['constructor']);
 
             $throw = !$instance || !$instance instanceof $ref->name;
             $message = 'Constructor of "'.$id.'" should return instance of '.$ref->name.'.';
-            self::throws($throw, $message);
+            $this->throws($throw, $message);
         } elseif ($ref->hasMethod('__construct')) {
             $resolvedArgs = $this->resolveArgs($ref->getMethod('__construct'), $rule['args']);
             $instance = $ref->newInstanceArgs($resolvedArgs);
@@ -1948,13 +1952,13 @@ final class App implements \ArrayAccess
 
         $throw = 3 > count($match);
         $message = 'Route should contains at least a verb and path, given "'.$expr.'".';
-        self::throws($throw, $message);
+        $this->throws($throw, $message);
 
         list($verbs, $alias, $path, $mode) = array_slice($match, 1) + array(1 => '', '', 'all');
 
         if (!$path) {
             $throw = empty($this->_hive['ROUTE_ALIASES'][$alias]);
-            self::throws($throw, 'Route "'.$alias.'" not exists.');
+            $this->throws($throw, 'Route "'.$alias.'" not exists.');
 
             $path = $this->_hive['ROUTE_ALIASES'][$alias];
         }
@@ -1996,14 +2000,14 @@ final class App implements \ArrayAccess
 
         $throw = 1 === count($tmp);
         $message = 'Mock should contains at least a verb and path, given "'.$expr.'".';
-        self::throws($throw, $message);
+        $this->throws($throw, $message);
 
         $verb = strtoupper($tmp[0]);
         $targetExpr = urldecode($tmp[1]);
         $mode = strtolower($tmp[2] ?? 'none');
-        $target = self::cutbefore($targetExpr, '?');
-        $query = self::cutbefore(self::cutafter($targetExpr, '?', '', true), '#');
-        $fragment = self::cutafter($targetExpr, '#', '', true);
+        $target = $this->cutbefore($targetExpr, '?');
+        $query = $this->cutbefore($this->cutafter($targetExpr, '?', '', true), '#');
+        $fragment = $this->cutafter($targetExpr, '#', '', true);
         $path = $target;
 
         if (isset($this->_hive['ROUTE_ALIASES'][$target])) {
@@ -2172,7 +2176,7 @@ final class App implements \ArrayAccess
         $throw = !defined($name);
         $message = 'Unsupported HTTP code: '.$code.'.';
 
-        self::throws($throw, $message, 'DomainException');
+        $this->throws($throw, $message, 'DomainException');
 
         $this->_hive['CODE'] = $code;
         $this->_hive['STATUS'] = constant($name);
@@ -2280,25 +2284,18 @@ final class App implements \ArrayAccess
     public function logByCode(int $code, string $message): App
     {
         $map = array(
-            // Emergency
-            E_ERROR => self::LOG_LEVEL_EMERGENCY,
-            E_PARSE => self::LOG_LEVEL_EMERGENCY,
-            E_CORE_ERROR => self::LOG_LEVEL_EMERGENCY,
-            E_COMPILE_ERROR => self::LOG_LEVEL_EMERGENCY,
-            // Alerts
+            // E_ERROR => self::LOG_LEVEL_EMERGENCY,
+            // E_PARSE => self::LOG_LEVEL_EMERGENCY,
+            // E_CORE_ERROR => self::LOG_LEVEL_EMERGENCY,
+            // E_COMPILE_ERROR => self::LOG_LEVEL_EMERGENCY,
             E_WARNING => self::LOG_LEVEL_ALERT,
-            E_CORE_WARNING => self::LOG_LEVEL_ALERT,
-            // Critical
-            E_STRICT => self::LOG_LEVEL_CRITICAL,
-            // Error
+            // E_CORE_WARNING => self::LOG_LEVEL_ALERT,
+            // E_STRICT => self::LOG_LEVEL_CRITICAL,
             E_USER_ERROR => self::LOG_LEVEL_ERROR,
-            // Warning
             E_USER_WARNING => self::LOG_LEVEL_WARNING,
-            // Notice
             E_NOTICE => self::LOG_LEVEL_NOTICE,
-            E_COMPILE_WARNING => self::LOG_LEVEL_NOTICE,
+            // E_COMPILE_WARNING => self::LOG_LEVEL_NOTICE,
             E_USER_NOTICE => self::LOG_LEVEL_NOTICE,
-            // Info
             E_RECOVERABLE_ERROR => self::LOG_LEVEL_INFO,
             E_DEPRECATED => self::LOG_LEVEL_INFO,
             E_USER_DEPRECATED => self::LOG_LEVEL_INFO,
@@ -2414,7 +2411,7 @@ final class App implements \ArrayAccess
 
                 $now = time();
                 $verb = $this->_hive['VERB'];
-                $hash = self::hash($verb.' '.$this->_hive['URI']).'.url';
+                $hash = $this->hash($verb.' '.$this->_hive['URI']).'.url';
 
                 if ($ttl && in_array($verb, array('GET', 'HEAD'))) {
                     if ($this->isCached($hash, $cache)) {
@@ -2813,7 +2810,7 @@ final class App implements \ArrayAccess
         }
 
         if ($fallback === $engine) {
-            self::mkdir($ref);
+            $this->mkdir($ref);
         }
     }
 
@@ -2881,8 +2878,8 @@ final class App implements \ArrayAccess
         $file = $files[0] ?? $prefix.date('Y-m-d').$ext;
         $content = date('Y-m-d G:i:s.u').' '.$level.' '.$message.PHP_EOL;
 
-        self::mkdir(dirname($file));
-        self::write($file, $content, true);
+        $this->mkdir(dirname($file));
+        $this->write($file, $content, true);
     }
 
     /**
@@ -2930,7 +2927,7 @@ final class App implements \ArrayAccess
 
             $line .= $frame['function'] ?? null;
 
-            $src = self::fixslashes($frame['file']);
+            $src = $this->fixslashes($frame['file']);
             $out .= '['.($cut ? str_replace($cut, '', $src) : $src).':'.$frame['line'].'] '.$line.$eol;
         }
 
@@ -2952,7 +2949,7 @@ final class App implements \ArrayAccess
         $throw = null !== $ref && !is_string($ref);
         $message = 'Message reference is not a string.';
 
-        self::throws($throw, $message, 'UnexpectedValueException');
+        $this->throws($throw, $message, 'UnexpectedValueException');
 
         return $ref;
     }
@@ -2967,7 +2964,7 @@ final class App implements \ArrayAccess
         $langCode = ltrim(preg_replace('/\h+|;q=[0-9.]+/', '', $this->_hive['LANGUAGE']).','.$this->_hive['FALLBACK'], ',');
         $languages = array();
 
-        foreach (self::split($langCode) as $lang) {
+        foreach ($this->split($langCode) as $lang) {
             if (preg_match('/^(\w{2})(?:-(\w{2}))?\b/i', $lang, $parts)) {
                 // Generic language
                 $languages[] = $parts[1];
@@ -2992,9 +2989,9 @@ final class App implements \ArrayAccess
         $dict = array();
 
         foreach ($this->langLanguages() as $lang) {
-            foreach (self::arr($this->_hive['LOCALES']) as $dir) {
+            foreach ($this->arr($this->_hive['LOCALES']) as $dir) {
                 if (is_file($file = $dir.$lang.'.php')) {
-                    $dict = array_replace_recursive($dict, self::requireFile($file, array()));
+                    $dict = array_replace_recursive($dict, $this->requireFile($file, array()));
                 }
             }
         }

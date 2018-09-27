@@ -36,7 +36,7 @@ class AuthTest extends TestCase
 
     private function createUser($roles = null, $expired = false)
     {
-        return new SimpleUser('1', 'foo', 'bar', $roles, $expired);
+        return new SimpleUser('1', 'foo', 'bar', explode('|', (string) $roles), $expired);
     }
 
     public function testIsLogged()

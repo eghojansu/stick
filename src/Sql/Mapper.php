@@ -119,7 +119,7 @@ class Mapper extends Magic
      */
     public function __construct(App $app, Connection $db, string $table = null, $fields = null, int $ttl = 60)
     {
-        $fix = $table ?? $this->_table ?? App::snakecase(App::classname($this));
+        $fix = $table ?? $this->_table ?? $app->snakecase($app->classname($this));
         $this->_app = $app;
         $this->_db = $db;
         $this->_driver = $db->getDriver();
@@ -155,7 +155,7 @@ class Mapper extends Magic
         $this->_table = $table;
         $this->_map = $quoted;
         $this->_fields = $schema;
-        $this->_keys = array_keys(array_filter(App::column($schema, 'pkey')));
+        $this->_keys = array_keys(array_filter($this->_app->column($schema, 'pkey')));
         $this->reset();
 
         return $this;
@@ -305,7 +305,7 @@ class Mapper extends Magic
         }
 
         $nullAdhoc = array_fill_keys(array_keys($this->_adhoc), array('value' => null));
-        $selfProps = array_filter(App::column($this->_props, 'self'));
+        $selfProps = array_filter($this->_app->column($this->_props, 'self'));
         $this->_adhoc = array_replace_recursive($this->_adhoc, $nullAdhoc);
         $this->_props = array_intersect_key($this->_props, $selfProps);
         $this->_query = array();
@@ -351,7 +351,7 @@ class Mapper extends Magic
     {
         $keys = array_flip($this->_keys);
 
-        return App::column(array_merge($keys, array_intersect_key($this->_fields, $keys)), 'initial');
+        return $this->_app->column(array_merge($keys, array_intersect_key($this->_fields, $keys)), 'initial');
     }
 
     /**
@@ -383,7 +383,7 @@ class Mapper extends Magic
      */
     public function toArray(callable $transformer = null): array
     {
-        $result = App::column($this->_fields + $this->_adhoc + $this->_props, 'value');
+        $result = $this->_app->column($this->_fields + $this->_adhoc + $this->_props, 'value');
 
         return $transformer ? call_user_func_array($transformer, array($result)) : $result;
     }
@@ -473,13 +473,13 @@ class Mapper extends Magic
      */
     public function withId($ids): Mapper
     {
-        $fix = App::arr($ids);
+        $fix = $this->_app->arr($ids);
         $vcount = count($fix);
         $pcount = count($this->_keys);
         $throw = $vcount !== $pcount;
         $message = 'Find by key expect exactly '.$pcount.' key values, '.$vcount.' given.';
 
-        App::throws($throw, $message);
+        $this->_app->throws($throw, $message);
 
         return $this->load(array_combine($this->_keys, $fix));
     }
@@ -989,20 +989,20 @@ class Mapper extends Magic
     {
         $lmethod = strtolower($method);
 
-        if (App::startswith($lmethod, 'get')) {
-            $field = App::snakecase(App::cutprefix($lmethod, 'get'));
+        if ($this->_app->startswith($lmethod, 'get')) {
+            $field = $this->_app->snakecase($this->_app->cutprefix($lmethod, 'get'));
             array_unshift($args, $field);
             $call = 'get';
-        } elseif (App::startswith($lmethod, 'findby')) {
-            $field = App::snakecase(App::cutprefix($lmethod, 'findby'));
+        } elseif ($this->_app->startswith($lmethod, 'findby')) {
+            $field = $this->_app->snakecase($this->_app->cutprefix($lmethod, 'findby'));
             $args = $this->fieldArgs($field, $args);
             $call = 'find';
-        } elseif (App::startswith($lmethod, 'findoneby')) {
-            $field = App::snakecase(App::cutprefix($lmethod, 'findoneby'));
+        } elseif ($this->_app->startswith($lmethod, 'findoneby')) {
+            $field = $this->_app->snakecase($this->_app->cutprefix($lmethod, 'findoneby'));
             $args = $this->fieldArgs($field, $args);
             $call = 'findone';
-        } elseif (App::startswith($lmethod, 'loadby')) {
-            $field = App::snakecase(App::cutprefix($lmethod, 'loadby'));
+        } elseif ($this->_app->startswith($lmethod, 'loadby')) {
+            $field = $this->_app->snakecase($this->_app->cutprefix($lmethod, 'loadby'));
             $args = $this->fieldArgs($field, $args);
             $call = 'load';
         } else {

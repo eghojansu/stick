@@ -87,7 +87,7 @@ final class Template
      */
     public function setDirs($dirs, bool $merge = false): Template
     {
-        $newDirs = App::arr($dirs);
+        $newDirs = $this->app->arr($dirs);
         $this->dirs = $merge ? array_merge($this->dirs, $newDirs) : $newDirs;
 
         return $this;
@@ -193,7 +193,7 @@ final class Template
      */
     private function _filter($val, string $filters)
     {
-        foreach (App::parseExpr($filters) as $callable => $args) {
+        foreach ($this->app->parseExpr($filters) as $callable => $args) {
             $cArgs = array_merge(array($val), $args);
             $val = $this->call($callable, $cArgs);
         }
@@ -228,7 +228,7 @@ final class Template
     {
         $realpath = is_file($macro) ? $macro : $this->findMacro($macro);
 
-        App::throws(!$realpath, 'Macro not exists: "'.$macro.'".');
+        $this->app->throws(!$realpath, 'Macro not exists: "'.$macro.'".');
 
         if ($args) {
             $keys = explode(',', 'arg'.implode(',arg', range(1, count($args))));

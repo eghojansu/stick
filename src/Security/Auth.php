@@ -247,7 +247,7 @@ class Auth
             return false;
         }
 
-        $use = App::arr($checkRoles);
+        $use = $this->app->arr($checkRoles);
 
         if (array_intersect($use, $userRoles)) {
             return true;
@@ -330,7 +330,7 @@ class Auth
         $roles = array();
 
         if (array_key_exists($role, $this->options['roleHierarchy'])) {
-            $children = App::arr($this->options['roleHierarchy'][$role]);
+            $children = $this->app->arr($this->options['roleHierarchy'][$role]);
 
             foreach ($children as $child) {
                 $roles = array_merge($roles, $this->getRoleHierarchy($child));

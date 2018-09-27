@@ -29,7 +29,7 @@ final class SimpleUserTransformer implements UserTransformerInterface
             'id' => '',
             'username' => '',
             'password' => '',
-            'roles' => 'ROLE_ANONYMOUS',
+            'roles' => array('ROLE_ANONYMOUS'),
             'credentialsExpired' => false,
         );
         $fix = $args + $default;

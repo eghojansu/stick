@@ -245,7 +245,7 @@ class Connection
             try {
                 $this->pdo = new \PDO((string) $o['dsn'], (string) $o['username'], (string) $o['password'], $o['options']);
 
-                App::walk((array) $o['commands'], array($this->pdo, 'exec'));
+                $this->app->walk((array) $o['commands'], array($this->pdo, 'exec'));
             } catch (\PDOException $e) {
                 $this->app->log(App::LOG_LEVEL_EMERGENCY, $e->getMessage());
 
@@ -448,7 +448,7 @@ class Connection
                 if ('!><' === $b3 || '><' === $b2) {
                     $throw = !is_array($expr);
                     $message = 'BETWEEN operator needs an array operand, '.gettype($expr).' given.';
-                    App::throws($throw, $message);
+                    $this->app->throws($throw, $message);
 
                     $str .= " :{$kcol}1 AND :{$kcol}2";
                     $result[":{$kcol}1"] = array_shift($expr);
@@ -504,7 +504,7 @@ class Connection
     {
         $start = microtime(true);
         $message = '(%.1f) %sRetrieving table "%s" schema';
-        $hash = App::hash($table.var_export($fields, true)).'.schema';
+        $hash = $this->app->hash($table.var_export($fields, true)).'.schema';
         $db = $this->getDbName();
 
         if ($ttl && $this->app->isCached($hash, $data)) {
@@ -522,7 +522,7 @@ class Connection
         $query = $this->pdo()->query($cmd[0]);
         $schema = $query->fetchAll(\PDO::FETCH_ASSOC);
         $rows = array();
-        $check = App::arr($fields);
+        $check = $this->app->arr($fields);
 
         foreach ($schema as $row) {
             if (!$check || in_array($row[$cmd[1]], $check)) {
@@ -536,7 +536,7 @@ class Connection
             }
         }
 
-        App::throws(!$rows, 'Table "'.$table.'" contains no defined schema.');
+        $this->app->throws(!$rows, 'Table "'.$table.'" contains no defined schema.');
 
         if ($ttl) {
             // Save to cache backend
@@ -984,7 +984,7 @@ class Connection
      */
     private function schemaDefaultValue(string $value)
     {
-        return App::cast(preg_replace('/^\s*([\'"])(.*)\1\s*/', '\2', $value));
+        return $this->app->cast(preg_replace('/^\s*([\'"])(.*)\1\s*/', '\2', $value));
     }
 
     /**

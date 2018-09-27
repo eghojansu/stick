@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Fal\Stick\Test\Security;
 
+use Fal\Stick\App;
 use Fal\Stick\Security\Jwt;
 use PHPUnit\Framework\TestCase;
 
@@ -22,7 +23,7 @@ class JwtTest extends TestCase
 
     public function setUp()
     {
-        $this->jwt = new Jwt('foo');
+        $this->jwt = new Jwt(new App(), 'foo');
     }
 
     public function testGetAlgorithm()

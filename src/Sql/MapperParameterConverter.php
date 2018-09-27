@@ -81,7 +81,7 @@ final class MapperParameterConverter
         $this->params = $params;
         $this->keys = array_keys($params);
         $this->max = count($params);
-        $this->mappers = self::resolveMapperClasses($handler);
+        $this->mappers = $this->resolveMapperClasses($handler);
     }
 
     /**
@@ -151,7 +151,7 @@ final class MapperParameterConverter
      *
      * @return array
      */
-    private static function resolveMapperClasses($handler): array
+    private function resolveMapperClasses($handler): array
     {
         $ref = is_array($handler) ? new \ReflectionMethod($handler[0], $handler[1]) : new \ReflectionFunction($handler);
         $mappers = array();

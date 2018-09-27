@@ -143,57 +143,57 @@ class AppTest extends TestCase
     {
         $target = array('foo', 'bar', 'baz', 'qux');
 
-        $this->assertEquals(array('foo'), App::split('foo'));
-        $this->assertEquals($target, App::split('foo,bar,baz,qux'));
-        $this->assertEquals($target, App::split('foo;bar;baz;qux'));
-        $this->assertEquals($target, App::split('foo|bar|baz|qux'));
-        $this->assertEquals($target, App::split('foo,bar;baz|qux'));
-        $this->assertEquals($target, App::split('foo,bar;baz|qux|'));
-        $this->assertEquals($target, App::split('foo,bar ;baz|qux|'));
+        $this->assertEquals(array('foo'), $this->app->split('foo'));
+        $this->assertEquals($target, $this->app->split('foo,bar,baz,qux'));
+        $this->assertEquals($target, $this->app->split('foo;bar;baz;qux'));
+        $this->assertEquals($target, $this->app->split('foo|bar|baz|qux'));
+        $this->assertEquals($target, $this->app->split('foo,bar;baz|qux'));
+        $this->assertEquals($target, $this->app->split('foo,bar;baz|qux|'));
+        $this->assertEquals($target, $this->app->split('foo,bar ;baz|qux|'));
     }
 
     public function testFixslashes()
     {
-        $this->assertEquals('/foo', App::fixslashes('\\foo'));
-        $this->assertEquals('/foo/bar', App::fixslashes('\\foo/bar'));
+        $this->assertEquals('/foo', $this->app->fixslashes('\\foo'));
+        $this->assertEquals('/foo/bar', $this->app->fixslashes('\\foo/bar'));
     }
 
     public function testArr()
     {
         $target = array('foo', 'bar', 'baz', 'qux');
 
-        $this->assertEquals($target, App::arr('foo,bar,baz,qux'));
-        $this->assertEquals($target, App::arr($target));
+        $this->assertEquals($target, $this->app->arr('foo,bar,baz,qux'));
+        $this->assertEquals($target, $this->app->arr($target));
     }
 
     public function testCutbefore()
     {
-        $this->assertEquals('foo', App::cutbefore('foo?bar', '?'));
-        $this->assertEquals('foo?', App::cutbefore('foo?bar', '?', null, true));
-        $this->assertEquals('foo?bar', App::cutbefore('foo?bar', '#'));
-        $this->assertEquals('x', App::cutbefore('foo?bar', '#', 'x'));
+        $this->assertEquals('foo', $this->app->cutbefore('foo?bar', '?'));
+        $this->assertEquals('foo?', $this->app->cutbefore('foo?bar', '?', null, true));
+        $this->assertEquals('foo?bar', $this->app->cutbefore('foo?bar', '#'));
+        $this->assertEquals('x', $this->app->cutbefore('foo?bar', '#', 'x'));
     }
 
     public function testCutafter()
     {
-        $this->assertEquals('bar', App::cutafter('foo?bar', '?'));
-        $this->assertEquals('?bar', App::cutafter('foo?bar', '?', null, true));
-        $this->assertEquals('foo?bar', App::cutafter('foo?bar', '#'));
-        $this->assertEquals('x', App::cutafter('foo?bar', '#', 'x'));
+        $this->assertEquals('bar', $this->app->cutafter('foo?bar', '?'));
+        $this->assertEquals('?bar', $this->app->cutafter('foo?bar', '?', null, true));
+        $this->assertEquals('foo?bar', $this->app->cutafter('foo?bar', '#'));
+        $this->assertEquals('x', $this->app->cutafter('foo?bar', '#', 'x'));
     }
 
     public function testCutprefix()
     {
-        $this->assertEquals('bar', App::cutprefix('foobar', 'foo'));
-        $this->assertEquals('default', App::cutprefix('foobar', 'foobar', 'default'));
-        $this->assertEquals('qux', App::cutprefix('foobar', 'xoo', 'qux'));
+        $this->assertEquals('bar', $this->app->cutprefix('foobar', 'foo'));
+        $this->assertEquals('default', $this->app->cutprefix('foobar', 'foobar', 'default'));
+        $this->assertEquals('qux', $this->app->cutprefix('foobar', 'xoo', 'qux'));
     }
 
     public function testCutsuffix()
     {
-        $this->assertEquals('foo', App::cutsuffix('foobar', 'bar'));
-        $this->assertEquals('default', App::cutsuffix('foobar', 'foobar', 'default'));
-        $this->assertEquals('qux', App::cutsuffix('foobar', 'xar', 'qux'));
+        $this->assertEquals('foo', $this->app->cutsuffix('foobar', 'bar'));
+        $this->assertEquals('default', $this->app->cutsuffix('foobar', 'foobar', 'default'));
+        $this->assertEquals('qux', $this->app->cutsuffix('foobar', 'xar', 'qux'));
     }
 
     public function testHive()
@@ -1216,8 +1216,8 @@ class AppTest extends TestCase
 
     public function testHash()
     {
-        $this->assertEquals(13, strlen(App::hash('foo')));
-        $this->assertEquals(13, strlen(App::hash('foobar')));
+        $this->assertEquals(13, strlen($this->app->hash('foo')));
+        $this->assertEquals(13, strlen($this->app->hash('foobar')));
     }
 
     public function testMkdir()
@@ -1226,18 +1226,18 @@ class AppTest extends TestCase
             rmdir($dir);
         }
 
-        $this->assertTrue(App::mkdir($dir));
+        $this->assertTrue($this->app->mkdir($dir));
         rmdir($dir);
     }
 
     public function testRead()
     {
-        $this->assertEquals('foo', App::read(FIXTURE.'files/foo.txt'));
+        $this->assertEquals('foo', $this->app->read(FIXTURE.'files/foo.txt'));
     }
 
     public function testWrite()
     {
-        $this->assertEquals(3, App::write(TEMP.'write.txt', 'foo'));
+        $this->assertEquals(3, $this->app->write(TEMP.'write.txt', 'foo'));
     }
 
     public function testDelete()
@@ -1246,13 +1246,13 @@ class AppTest extends TestCase
             touch($file);
         }
 
-        $this->assertTrue(App::delete($file));
-        $this->assertFalse(App::delete($file));
+        $this->assertTrue($this->app->delete($file));
+        $this->assertFalse($this->app->delete($file));
     }
 
     public function testRequireFile()
     {
-        $this->assertEquals('foo', App::requireFile(FIXTURE.'files/foo.php'));
+        $this->assertEquals('foo', $this->app->requireFile(FIXTURE.'files/foo.php'));
     }
 
     public function cacheDsnProvider()
@@ -1478,56 +1478,53 @@ class AppTest extends TestCase
 
         $this->assertFileExists($file);
         $this->assertContains('E_USER_ERROR', file_get_contents($file));
-
-        $this->app->logByCode(E_ERROR, 'E_ERROR');
-        $this->assertContains('E_ERROR', file_get_contents($file));
     }
 
     public function testClassname()
     {
-        $this->assertEquals('AppTest', App::classname(AppTest::class));
-        $this->assertEquals('AppTest', App::classname($this));
+        $this->assertEquals('AppTest', $this->app->classname(AppTest::class));
+        $this->assertEquals('AppTest', $this->app->classname($this));
     }
 
     public function testCast()
     {
-        $this->assertSame(true, App::cast('true'));
-        $this->assertSame(true, App::cast('TRUE'));
-        $this->assertSame(null, App::cast('null'));
-        $this->assertSame(0, App::cast('0'));
-        $this->assertSame('foo', App::cast('foo'));
+        $this->assertSame(true, $this->app->cast('true'));
+        $this->assertSame(true, $this->app->cast('TRUE'));
+        $this->assertSame(null, $this->app->cast('null'));
+        $this->assertSame(0, $this->app->cast('0'));
+        $this->assertSame('foo', $this->app->cast('foo'));
     }
 
     public function testCamelCase()
     {
-        $this->assertEquals('fooBar', App::camelcase('foo_bar'));
+        $this->assertEquals('fooBar', $this->app->camelcase('foo_bar'));
     }
 
     public function testSnakeCase()
     {
-        $this->assertEquals('foo_bar', App::snakecase('fooBar'));
-        $this->assertEquals('foo_bar', App::snakecase('FooBar'));
+        $this->assertEquals('foo_bar', $this->app->snakecase('fooBar'));
+        $this->assertEquals('foo_bar', $this->app->snakecase('FooBar'));
     }
 
     public function testTitleCase()
     {
-        $this->assertEquals('Foo', App::titleCase('foo'));
-        $this->assertEquals('Foo Bar', App::titleCase('foo_bar'));
-        $this->assertEquals('FOO Bar', App::titleCase('FOO_bar'));
+        $this->assertEquals('Foo', $this->app->titleCase('foo'));
+        $this->assertEquals('Foo Bar', $this->app->titleCase('foo_bar'));
+        $this->assertEquals('FOO Bar', $this->app->titleCase('FOO_bar'));
     }
 
     public function testStartswith()
     {
-        $this->assertTrue(App::startswith('foobar', 'fo'));
-        $this->assertFalse(App::startswith('foobar', 'Fo'));
-        $this->assertFalse(App::startswith('foobar', 'xo'));
+        $this->assertTrue($this->app->startswith('foobar', 'fo'));
+        $this->assertFalse($this->app->startswith('foobar', 'Fo'));
+        $this->assertFalse($this->app->startswith('foobar', 'xo'));
     }
 
     public function testEndswith()
     {
-        $this->assertTrue(App::endswith('foobar', 'ar'));
-        $this->assertFalse(App::endswith('foobar', 'aR'));
-        $this->assertFalse(App::endswith('foobar', 'as'));
+        $this->assertTrue($this->app->endswith('foobar', 'ar'));
+        $this->assertFalse($this->app->endswith('foobar', 'aR'));
+        $this->assertFalse($this->app->endswith('foobar', 'as'));
     }
 
     public function parseExprProvider()
@@ -1568,7 +1565,7 @@ class AppTest extends TestCase
      */
     public function testParseExpr($expr, $expected)
     {
-        $this->assertEquals($expected, App::parseExpr($expr));
+        $this->assertEquals($expected, $this->app->parseExpr($expr));
     }
 
     public function transProvider()
@@ -1698,23 +1695,23 @@ class AppTest extends TestCase
 
     public function testNotNullFalse()
     {
-        $this->assertTrue(App::notNullFalse(''));
-        $this->assertTrue(App::notNullFalse(-1));
-        $this->assertTrue(App::notNullFalse(0));
-        $this->assertFalse(App::notNullFalse(null));
-        $this->assertFalse(App::notNullFalse(false));
+        $this->assertTrue($this->app->notNullFalse(''));
+        $this->assertTrue($this->app->notNullFalse(-1));
+        $this->assertTrue($this->app->notNullFalse(0));
+        $this->assertFalse($this->app->notNullFalse(null));
+        $this->assertFalse($this->app->notNullFalse(false));
     }
 
     public function testWalk()
     {
-        $this->assertEquals(array(true, false, false), App::walk(array(1, 'foo', 'bar'), 'is_numeric'));
+        $this->assertEquals(array(true, false, false), $this->app->walk(array(1, 'foo', 'bar'), 'is_numeric'));
     }
 
     public function testColumn()
     {
         $arr = array('foo' => array('foo' => 'bar'), 'bar' => array('foo' => 'baz'));
 
-        $this->assertEquals(array('foo' => 'bar', 'bar' => 'baz'), App::column($arr, 'foo'));
+        $this->assertEquals(array('foo' => 'bar', 'bar' => 'baz'), $this->app->column($arr, 'foo'));
     }
 
     /**
@@ -1723,7 +1720,7 @@ class AppTest extends TestCase
      */
     public function testThrows()
     {
-        App::throws(true, 'foo.');
+        $this->app->throws(true, 'foo.');
     }
 
     public function testMapperParameterConverter()

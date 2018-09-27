@@ -13,8 +13,6 @@ declare(strict_types=1);
 
 namespace Fal\Stick\Security;
 
-use Fal\Stick\App;
-
 /**
  * Simple user class.
  *
@@ -53,15 +51,15 @@ final class SimpleUser implements UserInterface
      * @param string $id
      * @param string $username
      * @param string $password
-     * @param mixed  $roles
+     * @param array  $roles
      * @param mixed  $credentialsExpired
      */
-    public function __construct(string $id, string $username, string $password, $roles = null, $credentialsExpired = false)
+    public function __construct(string $id, string $username, string $password, array $roles = null, $credentialsExpired = false)
     {
         $this->id = $id;
         $this->username = $username;
         $this->password = $password;
-        $this->roles = $roles ? App::arr($roles) : array('ROLE_ANONYMOUS');
+        $this->roles = $roles ?? array('ROLE_ANONYMOUS');
         $this->credentialsExpired = (bool) $credentialsExpired;
     }
 

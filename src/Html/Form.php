@@ -108,7 +108,7 @@ class Form
         $this->_validator = $validator;
 
         if (!$this->_name) {
-            $this->setName(App::snakeCase(App::classname(static::class)));
+            $this->setName($this->_app->snakeCase($this->_app->classname(static::class)));
         }
 
         $this->build();
@@ -397,7 +397,7 @@ class Form
     public function row(string $name, array $overrideAttr = null): string
     {
         $throw = !isset($this->_fields[$name]);
-        App::throws($throw, 'Field not exists: "'.$name.'".');
+        $this->_app->throws($throw, 'Field not exists: "'.$name.'".');
 
         $field = &$this->_fields[$name];
 
@@ -409,7 +409,7 @@ class Form
 
         $type = strtolower($field['type']);
         $options = array_replace_recursive(((array) $field['options']) + array(
-            'label' => $this->_app->trans($name, null, App::titleCase($name)),
+            'label' => $this->_app->trans($name, null, $this->_app->titleCase($name)),
             'label_attr' => array(),
             'attr' => array(),
         ), array('attr' => (array) $overrideAttr));
@@ -459,7 +459,7 @@ class Form
 
         foreach ($this->_buttons as $name => $button) {
             $type = $button['type'];
-            $label = $button['label'] ?: $this->_app->trans($name, null, App::titleCase($name));
+            $label = $button['label'] ?: $this->_app->trans($name, null, $this->_app->titleCase($name));
 
             $buttons .= ' '.$this->inputButton($label, $type, $name, $button['attr']);
         }
@@ -777,7 +777,7 @@ class Form
             $items = $this->_app->call($items, array($options));
 
             $throw = !is_array($items);
-            App::throws($throw, 'The returned items should be an array.');
+            $this->_app->throws($throw, 'The returned items should be an array.');
         }
 
         if ($options['expanded']) {

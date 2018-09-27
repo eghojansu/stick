@@ -45,6 +45,11 @@ class Jwt
     );
 
     /**
+     * @var App
+     */
+    protected $app;
+
+    /**
      * @var array
      */
     protected $supportedAlgorithms;
@@ -80,13 +85,15 @@ class Jwt
     /**
      * Class constructor.
      *
+     * @param App             $app
      * @param string|resource $encodeKey
      * @param string|resource $decodeKey
      * @param string|null     $algorithm
      * @param array|null      $supportedAlgorithms
      */
-    public function __construct($encodeKey, $decodeKey = null, $algorithm = null, array $supportedAlgorithms = null)
+    public function __construct(App $app, $encodeKey, $decodeKey = null, $algorithm = null, array $supportedAlgorithms = null)
     {
+        $this->app = $app;
         $this->setKey($encodeKey, $decodeKey);
         $this->setAlgorithm($algorithm);
         $this->setSupportedAlgorithms($supportedAlgorithms);
@@ -172,7 +179,7 @@ class Jwt
      */
     public function setKey($encodeKey, $decodeKey = null): Jwt
     {
-        App::throws(empty($encodeKey), 'Key may not be empty.');
+        $this->app->throws(empty($encodeKey), 'Key may not be empty.');
 
         $this->encodeKey = $encodeKey;
         $this->decodeKey = $decodeKey ?? $encodeKey;
@@ -239,22 +246,24 @@ class Jwt
     {
         $use = explode('.', $token);
 
-        App::throws(3 !== count($use), 'Wrong number of segments.', 'UnexpectedValueException');
+        $this->app->throws(3 !== count($use), 'Wrong number of segments.', 'UnexpectedValueException');
 
         $header = json_decode($this->urldecode($use[0]), true);
         $payload = json_decode($this->urldecode($use[1]), true);
         $signature = $this->urldecode($use[2]);
 
-        App::throws(null === $header, 'Invalid header encoding.', 'UnexpectedValueException');
-        App::throws(null === $payload, 'Invalid claims encoding.', 'UnexpectedValueException');
-        App::throws(empty($header['alg']), 'Empty algorithm.', 'DomainException');
+        $this->app
+            ->throws(null === $header, 'Invalid header encoding.', 'UnexpectedValueException')
+            ->throws(null === $payload, 'Invalid claims encoding.', 'UnexpectedValueException')
+            ->throws(empty($header['alg']), 'Empty algorithm.', 'DomainException')
+        ;
 
         $throw = $this->supportedAlgorithms && !in_array($header['alg'], $this->supportedAlgorithms);
-        App::throws($throw, 'Algorithm is not allowed.', 'DomainException');
+        $this->app->throws($throw, 'Algorithm is not allowed.', 'DomainException');
 
         // Check the signature
         $throw = !$this->verify($use[0].'.'.$use[1], $signature, $header['alg'], $this->decodeKey);
-        App::throws($throw, 'Signature verification failed.', 'UnexpectedValueException');
+        $this->app->throws($throw, 'Signature verification failed.', 'UnexpectedValueException');
 
         $defaultPayload = array(
             'nbf' => null,
@@ -267,18 +276,18 @@ class Jwt
         // token can actually be used. If it's not yet that time, abort.
         $throw = $fix['nbf'] && $fix['nbf'] > (time() + $this->leeway);
         $message = 'Cannot handle token prior to '.date(\DateTime::ISO8601, $fix['nbf'] ?? 0).'.';
-        App::throws($throw, $message, 'RuntimeException');
+        $this->app->throws($throw, $message, 'RuntimeException');
 
         // Check that this token has been created before 'now'. This prevents
         // using tokens that have been created for later use (and haven't
         // correctly used the nbf claim).
         $throw = $fix['iat'] && $fix['iat'] > (time() + $this->leeway);
         $message = 'Cannot handle token prior to '.date(\DateTime::ISO8601, $fix['iat'] ?? 0).'.';
-        App::throws($throw, $message, 'RuntimeException');
+        $this->app->throws($throw, $message, 'RuntimeException');
 
         // Check if this token has expired.
         $throw = $fix['exp'] && (time() - $this->leeway) >= $fix['exp'];
-        App::throws($throw, 'Expired token.', 'RuntimeException');
+        $this->app->throws($throw, 'Expired token.', 'RuntimeException');
 
         return $payload;
     }

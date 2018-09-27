@@ -48,7 +48,7 @@ class Html
     {
         $str = '';
 
-        foreach (array_filter($attr, App::class.'::notNullFalse') as $prop => $value) {
+        foreach (array_filter($attr, array($this->_app, 'notNullFalse')) as $prop => $value) {
             if (is_numeric($prop)) {
                 $str .= is_string($value) ? ' '.trim($value) : '';
             } else {
