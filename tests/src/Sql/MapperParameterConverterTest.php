@@ -110,22 +110,9 @@ class MapperParameterConverterTest extends TestCase
 
     /**
      * @expectedException \Fal\Stick\ResponseException
-     * @expectedExceptionMessage Insufficient primary keys value, expect value of "user_id, friend_id".
-     */
-    public function testResolveMapperException()
-    {
-        $handler = function (Friends $foo) {};
-        $params = array('foo' => 1);
-        $this->prepare($handler, $params);
-
-        $this->converter->resolve();
-    }
-
-    /**
-     * @expectedException \Fal\Stick\ResponseException
      * @expectedExceptionMessage Record of user is not found.
      */
-    public function testResolveMapperException2()
+    public function testResolveMapperException()
     {
         $handler = function (User $foo) {};
         $params = array('foo' => 4);

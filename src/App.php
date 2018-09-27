@@ -708,7 +708,7 @@ final class App implements \ArrayAccess
      * @param string $message
      * @param string $exception
      *
-     * @return  App
+     * @return App
      */
     public function throws(bool $throw, string $message, string $exception = 'LogicException'): App
     {
@@ -2543,7 +2543,6 @@ final class App implements \ArrayAccess
     {
         $params = array();
         $skipNext = false;
-        $ctr = 1;
 
         foreach ($match as $key => $value) {
             if (0 === $key || $skipNext) {
@@ -2552,11 +2551,15 @@ final class App implements \ArrayAccess
             }
 
             if (is_string($key)) {
-                $params[$key] = '_p' === $key ? explode('/', $value) : $value;
+                if ('_p' === $key) {
+                    $params = array_merge($params, explode('/', $value));
+                } else {
+                    $params[$key] = $value;
+                }
+
                 $skipNext = true;
             } else {
-                $params['_p'.$ctr] = $value;
-                ++$ctr;
+                $params[] = $value;
             }
         }
 
@@ -2672,46 +2675,62 @@ final class App implements \ArrayAccess
     private function resolveArgs(\ReflectionFunctionAbstract $ref, array $args = null): array
     {
         $resolved = array();
+        $rest = 0;
 
-        if ($ref->getNumberOfParameters()) {
-            $methodArgs = (array) $args;
-            $positionalArgs = array_filter($methodArgs, 'is_numeric', ARRAY_FILTER_USE_KEY);
+        if ($max = $ref->getNumberOfParameters()) {
+            $params = $ref->getParameters();
+            $names = array_keys((array) $args);
 
-            foreach ($ref->getParameters() as $param) {
-                if ($param->getClass()) {
-                    $resolved[] = $this->resolveClassArg($param, $methodArgs, $positionalArgs);
-                } elseif ($methodArgs && array_key_exists($param->name, $methodArgs)) {
-                    $arg = $methodArgs[$param->name];
-                    $resolved[] = is_string($arg) ? $this->resolveArg($arg) : $arg;
-                } elseif ($positionalArgs) {
-                    $resolved[] = array_shift($positionalArgs);
+            for ($i = 0; $i < $max; ++$i) {
+                if ($params[$i]->isVariadic()) {
+                    break;
                 }
+
+                $param = $params[$i];
+                $name = $names[$rest] ?? null;
+                $val = $args[$name] ?? null;
+                $move = 1;
+
+                if ($class = $param->getClass()) {
+                    if (is_a($val, $class->name)) {
+                        $resolved[] = $val;
+                    } elseif (is_string($val)) {
+                        $resolved[] = $this->resolveArg($val, true);
+                    } else {
+                        $resolved[] = $this->service($class->name);
+                        --$move;
+                    }
+                } elseif (null !== $name && array_key_exists($name, $args)) {
+                    $resolved[] = is_string($val) ? $this->resolveArg($val) : $val;
+                }
+
+                $rest += $move;
             }
         }
 
-        return $resolved;
+        return array_merge($resolved, array_values(array_slice((array) $args, $rest)));
     }
 
     /**
      * Returns resolved named function parameter.
      *
      * @param string $val
+     * @param bool   $resolveClass
      *
      * @return mixed
      */
-    private function resolveArg(string $val)
+    private function resolveArg(string $val, bool $resolveClass = false)
     {
-        if (class_exists($val)) {
+        if ($resolveClass && class_exists($val)) {
             return $this->service($val);
         }
 
-        if (preg_match('/(.+)?%(.+)%(.+)?/', $val, $match)) {
+        if (preg_match('/^(.+)?%([.\w]+)%(.+)?$/', $val, $match)) {
             // assume it does exists in hive
             $var = $this->ref($match[2], false);
-            $match += array(1 => '', 3 => '');
 
             if (isset($var)) {
-                return $match[1].$var.$match[3];
+                return ($match[1] ?? null).$var.($match[3] ?? null);
             }
 
             // it is a service alias
@@ -2719,32 +2738,6 @@ final class App implements \ArrayAccess
         }
 
         return $val;
-    }
-
-    /**
-     * Returns resolved class function parameter.
-     *
-     * @param ReflectionParameter $ref
-     * @param array               &$args
-     * @param array               &$positionalArgs
-     *
-     * @return mixed
-     */
-    private function resolveClassArg(\ReflectionParameter $ref, array &$args, array &$positionalArgs)
-    {
-        if (isset($args[$ref->name])) {
-            $arg = $args[$ref->name];
-
-            return is_string($arg) ? $this->resolveArg($arg) : $arg;
-        }
-
-        $classname = $ref->getClass()->name;
-
-        if ($positionalArgs && $positionalArgs[0] instanceof $classname) {
-            return array_shift($positionalArgs);
-        }
-
-        return $this->service($classname);
     }
 
     /**

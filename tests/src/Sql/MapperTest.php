@@ -272,7 +272,7 @@ class MapperTest extends TestCase
 
     /**
      * @expectedException \LogicException
-     * @expectedExceptionMessage Find by key expect exactly 1 key values, 0 given.
+     * @expectedExceptionMessage Insufficient primary keys value. Expect exactly 1 parameters, 0 given.
      */
     public function testWithIdException()
     {

@@ -477,7 +477,7 @@ class Mapper extends Magic
         $vcount = count($fix);
         $pcount = count($this->_keys);
         $throw = $vcount !== $pcount;
-        $message = 'Find by key expect exactly '.$pcount.' key values, '.$vcount.' given.';
+        $message = 'Insufficient primary keys value. Expect exactly '.$pcount.' parameters, '.$vcount.' given.';
 
         $this->_app->throws($throw, $message);
 

@@ -113,7 +113,7 @@ final class MapperParameterConverter
      *
      * @return Mapper
      *
-     * @throws ResponseException if primary keys insufficient or record not found
+     * @throws ResponseException if record not found
      */
     private function resolveMapper(string $class): Mapper
     {
@@ -122,12 +122,6 @@ final class MapperParameterConverter
         $kcount = count($keys);
         $vals = array_slice($this->params, $this->ptr, $kcount);
         $vcount = count($vals);
-
-        if ($vcount !== $kcount) {
-            $message = 'Insufficient primary keys value, expect value of "'.implode(', ', $keys).'".';
-
-            throw new ResponseException(500, $message);
-        }
 
         call_user_func_array(array($mapper, 'withId'), array($vals));
 

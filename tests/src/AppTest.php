@@ -82,11 +82,11 @@ class AppTest extends TestCase
             ->route('GET /obj', function (App $app) {
                 return $app;
             })
-            ->route('GET unlimited /unlimited/*', function ($_p) {
-                return implode(', ', $_p);
+            ->route('GET unlimited /unlimited/*', function (...$args) {
+                return implode(', ', $args);
             })
-            ->route('GET /custom/@name/(\d)', function ($name, $_p1) {
-                return $name.' '.$_p1;
+            ->route('GET /custom/@name/(\d)', function ($name, $id) {
+                return $name.' '.$id;
             })
             ->route('GET /ajax-access ajax', function () {
                 return 'Access granted';
@@ -686,8 +686,8 @@ class AppTest extends TestCase
         $now2 = $this->app->instance('now2');
         $post = $this->app->instance('post', array(
             'title' => 'Foo',
-            'postedDate' => '%now%',
             'postNow' => '%CLI%',
+            'postedDate' => '%now%',
             'author' => 'FixtureServices\\Author',
         ));
         $post2 = $this->app->instance('FixtureServices\\BlogPost', array(
@@ -756,6 +756,12 @@ class AppTest extends TestCase
     {
         $this->assertEquals('foo', $this->app->call('trim', ' foo '));
         $this->assertEquals(' foo ', $this->app->call('trim', array(' foo ;', ';')));
+        $this->assertEquals('123', $this->app->call(function ($one, ...$rest) {
+            return $one.implode('', $rest);
+        }, array(1, 2, 3)));
+        $this->assertEquals('123', $this->app->call(function () {
+            return implode('', func_get_args());
+        }, array(1, 2, 3)));
 
         $mark = time();
         $timestamp = $this->app->call('DateTime->getTimestamp');
