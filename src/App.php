@@ -1672,7 +1672,7 @@ final class App implements \ArrayAccess
         $sid = $id;
         $rule = array(
             'class' => $id,
-            'args' => $args,
+            'args' => null,
             'service' => false,
             'use' => null,
             'constructor' => null,
@@ -1698,7 +1698,8 @@ final class App implements \ArrayAccess
             $message = 'Constructor of "'.$id.'" should return instance of '.$ref->name.'.';
             $this->throws($throw, $message);
         } elseif ($ref->hasMethod('__construct')) {
-            $resolvedArgs = $this->resolveArgs($ref->getMethod('__construct'), $rule['args']);
+            $pArgs = array_replace_recursive((array) $rule['args'], (array) $args);
+            $resolvedArgs = $this->resolveArgs($ref->getMethod('__construct'), $pArgs);
             $instance = $ref->newInstanceArgs($resolvedArgs);
         } else {
             $instance = $ref->newInstance();
