@@ -58,34 +58,29 @@ class MapperTest extends TestCase
         $this->mapper->db()->pdo()->exec('insert into user (username) values ("foo"), ("bar"), ("baz")');
     }
 
-    public function testGetTable()
+    public function testTable()
     {
-        $this->assertEquals('user', $this->mapper->getTable());
-    }
-
-    public function testSetTable()
-    {
-        $this->assertEquals('profile', $this->mapper->setTable('profile')->getTable());
+        $this->assertEquals('user', $this->mapper->table());
     }
 
     public function testCreate()
     {
         $profile = $this->mapper->create('profile');
 
-        $this->assertEquals('profile', $profile->getTable());
+        $this->assertEquals('profile', $profile->table());
         $this->assertNotSame($this->mapper, $profile);
     }
 
-    public function testGetFields()
+    public function testFields()
     {
-        $fields = $this->mapper->getFields();
+        $fields = $this->mapper->fields();
 
         $this->assertEquals(array('id', 'username', 'password', 'active'), $fields);
     }
 
-    public function testGetSchema()
+    public function testSchema()
     {
-        $fields = $this->mapper->getSchema();
+        $fields = $this->mapper->schema();
 
         $this->assertEquals(array('id', 'username', 'password', 'active'), array_keys($fields));
     }
@@ -112,8 +107,8 @@ class MapperTest extends TestCase
     public function testKeys()
     {
         $this->assertEquals(array('id' => null), $this->mapper->keys());
-        $this->assertEquals(array('user_id' => null, 'friend_id' => null), $this->mapper->setTable('friends')->keys());
-        $this->assertEquals(array(), $this->mapper->setTable('nokey')->keys());
+        $this->assertEquals(array('user_id' => null, 'friend_id' => null), $this->mapper->create('friends')->keys());
+        $this->assertEquals(array(), $this->mapper->create('nokey')->keys());
     }
 
     public function testExists()
@@ -476,24 +471,24 @@ class MapperTest extends TestCase
         $this->assertNull($this->mapper->get('username'));
 
         // change table
-        $this->mapper->setTable('friends');
-        $this->mapper->set('user_id', 1)->set('friend_id', 2);
-        $this->mapper->insert();
-        $this->assertEquals(1, $this->mapper->get('level'));
+        $mapper = $this->mapper->create('friends');
+        $mapper->set('user_id', 1)->set('friend_id', 2);
+        $mapper->insert();
+        $this->assertEquals(1, $mapper->get('level'));
     }
 
     public function testSave()
     {
-        $this->mapper->setTable('friends');
-        $this->mapper->set('user_id', 1)->set('friend_id', 2);
-        $this->mapper->save();
+        $mapper = $this->mapper->create('friends');
+        $mapper->set('user_id', 1)->set('friend_id', 2);
+        $mapper->save();
 
-        $this->assertEquals(1, $this->mapper->get('level'));
+        $this->assertEquals(1, $mapper->get('level'));
 
-        $this->mapper->set('level', 100);
-        $this->mapper->save();
+        $mapper->set('level', 100);
+        $mapper->save();
 
-        $this->assertEquals(100, $this->mapper->get('level'));
+        $this->assertEquals(100, $mapper->get('level'));
     }
 
     public function paginateProvider()

@@ -119,46 +119,19 @@ class Mapper extends Magic
      */
     public function __construct(App $app, Connection $db, string $table = null, $fields = null, int $ttl = 60)
     {
-        $fix = $table ?? $this->_table ?? $app->snakecase($app->classname($this));
+        $driver = $db->getDriver();
+        $use = $table ?? $this->_table ?? $app->snakecase($app->classname($this));
+        $fix = Connection::DB_OCI === $driver ? strtoupper($use) : $use;
+        $schema = $db->schema($fix, $fields, $ttl);
+
         $this->_app = $app;
         $this->_db = $db;
-        $this->_driver = $db->getDriver();
-        $this->setTable($fix, $fields, $ttl);
-    }
-
-    /**
-     * Get table name.
-     *
-     * @return string
-     */
-    public function getTable(): string
-    {
-        return $this->_table;
-    }
-
-    /**
-     * Sets table name and load its schema.
-     *
-     * @param string $table
-     * @param mixed  $fields
-     * @param int    $ttl
-     *
-     * @return Mapper
-     */
-    public function setTable(string $table, $fields = null, int $ttl = 60): Mapper
-    {
-        $fix = Connection::DB_OCI === $this->_driver ? strtoupper($table) : $table;
-        $prev = $this->_table;
-        $quoted = $this->_db->quotekey($fix);
-        $schema = $this->_db->schema($fix, $fields, $ttl);
-
-        $this->_table = $table;
-        $this->_map = $quoted;
+        $this->_driver = $driver;
+        $this->_table = $use;
         $this->_fields = $schema;
-        $this->_keys = array_keys(array_filter($this->_app->column($schema, 'pkey')));
+        $this->_map = $db->quotekey($fix);
+        $this->_keys = array_keys(array_filter($app->column($schema, 'pkey')));
         $this->reset();
-
-        return $this;
     }
 
     /**
@@ -176,27 +149,37 @@ class Mapper extends Magic
     }
 
     /**
-     * Get fields name.
+     * Returns table name.
+     *
+     * @return string
+     */
+    public function table(): string
+    {
+        return $this->_table;
+    }
+
+    /**
+     * Returns fields name.
      *
      * @return array
      */
-    public function getFields(): array
+    public function fields(): array
     {
         return array_keys($this->_fields + $this->_adhoc);
     }
 
     /**
-     * Get table schema.
+     * Returns table schema.
      *
      * @return array
      */
-    public function getSchema(): array
+    public function schema(): array
     {
         return $this->_fields;
     }
 
     /**
-     * Get connection instance.
+     * Returns connection instance.
      *
      * @return Connection
      */
@@ -218,7 +201,7 @@ class Mapper extends Magic
     }
 
     /**
-     * Get value of a field.
+     * Returns value of a field.
      *
      * @param string $key
      *
