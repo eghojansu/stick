@@ -743,6 +743,7 @@ class Connection
 
             $hash = $cmd.var_export($arg, true).'.sql';
             $rawQuery = $this->buildQuery($cmd, $arg);
+            $errInfo = $this->options['debug'] ? ' ('.$rawQuery.')' : null;
 
             if ($ttl && $this->app->isCached($hash, $data)) {
                 $res[$i] = $data[0];
@@ -758,7 +759,7 @@ class Connection
                 // PDO-level error occurred
                 $this->safeRollback();
 
-                throw new \LogicException('PDO: '.$error[2].' ('.$rawQuery.').');
+                throw new \LogicException('PDO: '.$error[2].$errInfo.'.');
             }
 
             foreach ($arg as $key => $val) {
@@ -781,7 +782,7 @@ class Connection
                 // Statement-level error occurred
                 $this->safeRollback();
 
-                throw new \LogicException('PDOStatement: '.$error[2].' ('.$rawQuery.').');
+                throw new \LogicException('PDOStatement: '.$error[2].$errInfo.'.');
             }
 
             if (preg_match($fetchPattern[0], $cmd) || (preg_match($fetchPattern[1], $cmd) && $query->columnCount())) {
