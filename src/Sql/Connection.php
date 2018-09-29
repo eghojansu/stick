@@ -36,6 +36,27 @@ class Connection
 
     const PARAM_FLOAT = 'float';
 
+    const FILTER_OPERATOR_MAP = array(
+        '=' => '=',
+        '>' => '>',
+        '<' => '<',
+        '>=' => '>=',
+        '<=' => '<=',
+        '<>' => '<>',
+        '!=' => '!=',
+        '&' => 'AND',
+        '|' => 'OR',
+        '^' => 'XOR',
+        '!' => 'NOT',
+        '~' => 'LIKE',
+        '!~' => 'NOT LIKE',
+        '@' => 'SOUNDS LIKE',
+        '[]' => 'IN',
+        '![]' => 'NOT IN',
+        '><' => 'BETWEEN',
+        '!><' => 'NOT BETWEEN',
+    );
+
     /**
      * @var array
      */
@@ -383,26 +404,7 @@ class Connection
         }
 
         // operator map
-        $map = array(
-            '=' => '=',
-            '>' => '>',
-            '<' => '<',
-            '>=' => '>=',
-            '<=' => '<=',
-            '<>' => '<>',
-            '!=' => '!=',
-            '&' => 'AND',
-            '|' => 'OR',
-            '^' => 'XOR',
-            '!' => 'NOT',
-            '~' => 'LIKE',
-            '!~' => 'NOT LIKE',
-            '@' => 'SOUNDS LIKE',
-            '[]' => 'IN',
-            '![]' => 'NOT IN',
-            '><' => 'BETWEEN',
-            '!><' => 'NOT BETWEEN',
-        );
+        $map = self::FILTER_OPERATOR_MAP;
         $mapkeys = '=<>&|^!~@[] ';
 
         $ctr = 0;
@@ -968,9 +970,7 @@ class Connection
         $driver = $this->getDriver();
 
         if (isset($engines[$driver])) {
-            $id = $engines[$driver];
-
-            return $cmds[$id];
+            return $cmds[$engines[$driver]];
         }
 
         throw new \DomainException('Driver '.$driver.' is not supported.');
