@@ -2690,22 +2690,21 @@ final class App implements \ArrayAccess
                 $param = $params[$i];
                 $name = $names[$rest] ?? null;
                 $val = $args[$name] ?? null;
-                $move = 1;
 
                 if ($class = $param->getClass()) {
-                    if (is_a($val, $class->name)) {
+                    if ($val instanceof $class->name) {
                         $resolved[] = $val;
-                    } elseif (is_string($val)) {
-                        $resolved[] = $this->resolveArg($val, true);
+                        $rest++;
+                    } elseif (is_string($val) && is_object($obj = $this->resolveArg($val, true))) {
+                        $resolved[] = $obj;
+                        $rest++;
                     } else {
                         $resolved[] = $this->service($class->name);
-                        --$move;
                     }
-                } elseif (null !== $name && array_key_exists($name, $args)) {
+                } elseif ((null !== $name) || ($name === $param->name)) {
                     $resolved[] = is_string($val) ? $this->resolveArg($val) : $val;
+                    $rest++;
                 }
-
-                $rest += $move;
             }
         }
 

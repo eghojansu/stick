@@ -682,6 +682,10 @@ class AppTest extends TestCase
             'service' => false,
         ));
 
+        $simplePost = $this->app->instance('FixtureServices\\SimplePost', array(
+            'title' => 'Foo',
+            'postNow' => '%CLI%',
+        ));
         $now = $this->app->instance('now');
         $now2 = $this->app->instance('now2');
         $post = $this->app->instance('post', array(
@@ -696,6 +700,7 @@ class AppTest extends TestCase
             $now,
         ));
 
+        $this->assertInstanceOf('FixtureServices\\SimplePost', $simplePost);
         $this->assertSame($now, $post->getPostedDate());
         $this->assertEquals('Foo', $post->getTitle());
         $this->assertEquals('Foo', $post->getAuthor()->getName());
