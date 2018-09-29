@@ -948,6 +948,7 @@ class AppTest extends TestCase
             array(array('about'), $about),
             array('about', $about),
             array('product(name=foo)', $product.'foo'),
+            array('query?foo=bar', 'Query: ?foo=bar'),
             array('/about', $about),
             array('about', '', false, 'Found'),
         );
@@ -971,6 +972,12 @@ class AppTest extends TestCase
             })
             ->route('GET product /product/@name', function ($name) {
                 return 'Displaying details of product: '.$name;
+            })
+            ->route('GET query /query', function (App $app) {
+                return 'Query: ?'.http_build_query($app->get('QUERY'));
+            })
+            ->route('GET fragment /fragment', function (App $app) {
+                return 'Fragment: #'.$app->get('FRAGMENT');
             })
         ;
 

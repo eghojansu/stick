@@ -1723,11 +1723,14 @@ final class App extends Magic
      *
      * @param string $alias
      * @param mixed  $args
+     * @param mixed  $query
      *
      * @return string
      */
-    public function alias(string $alias, $args = null): string
+    public function alias(string $alias, $args = null, $query = null): string
     {
+        $q = rtrim('?'.(is_array($query) ? http_build_query($query) : $query), '?');
+
         if (isset($this->_hive['ROUTE_ALIASES'][$alias])) {
             $pattern = $this->_hive['ROUTE_ALIASES'][$alias];
 
@@ -1745,13 +1748,13 @@ final class App extends Magic
                 $search[] = '*';
                 $replace[] = implode('/', array_slice($use, $keywordCount));
 
-                return str_replace($search, $replace, $pattern);
+                return str_replace($search, $replace, $pattern).$q;
             }
 
-            return $pattern;
+            return $pattern.$q;
         }
 
-        return '/'.ltrim($alias, '/');
+        return '/'.ltrim($alias, '/').$q;
     }
 
     /**
@@ -1765,9 +1768,7 @@ final class App extends Magic
      */
     public function path(string $alias, $args = null, $query = null): string
     {
-        $q = is_array($query) ? http_build_query($query) : $query;
-
-        return rtrim($this->_hive['BASE'].$this->_hive['ENTRY'].$this->alias($alias, $args).'?'.$q, '?');
+        return $this->_hive['BASE'].$this->_hive['ENTRY'].$this->alias($alias, $args, $query);
     }
 
     /**
@@ -1799,9 +1800,9 @@ final class App extends Magic
             $path = call_user_func_array(array($this, 'alias'), $target);
         } elseif (isset($this->_hive['ROUTE_ALIASES'][$target])) {
             $path = $this->_hive['ROUTE_ALIASES'][$target];
-        } elseif (preg_match('/^(\w+)\(([^(]+)\)$/', $target, $match)) {
-            parse_str(strtr($match[2], ',', '&'), $args);
-            $path = $this->alias($match[1], $args);
+        } elseif (preg_match('/^(\w+)(?:\(([^(]+)\))?((?:\?).+)?$/', $target, $match)) {
+            parse_str(strtr($match[2] ?? '', ',', '&'), $args);
+            $path = $this->alias($match[1], $args, $match[3] ?? null);
         } else {
             $path = $target;
         }
