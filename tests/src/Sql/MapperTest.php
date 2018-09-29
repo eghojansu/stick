@@ -28,11 +28,6 @@ class MapperTest extends TestCase
         $this->prepare('user');
     }
 
-    public function tearDown()
-    {
-        spl_autoload_unregister(array($this->app, 'loadClass'));
-    }
-
     private function prepare($source, $mapper = false)
     {
         $this->app = new App();
@@ -42,11 +37,6 @@ class MapperTest extends TestCase
         ));
 
         if ($mapper) {
-            $this->app->mset(array(
-                'AUTOLOAD' => array(
-                    'FixtureMapper\\' => array(FIXTURE.'classes/mapper/'),
-                ),
-            ))->registerAutoloader();
             $this->mapper = new $source($this->app, $conn);
         } else {
             $this->mapper = new Mapper($this->app, $conn, $source);
@@ -122,7 +112,7 @@ class MapperTest extends TestCase
         $this->assertNull($this->mapper->get('id'));
 
         // Get once call to mapper method
-        $this->prepare('FixtureMapper\User', true);
+        $this->prepare('Fixture\\Mapper\\User', true);
         $dt = $this->mapper->get('datetime');
         $this->assertInstanceOf('DateTime', $dt);
         $this->assertSame($dt, $this->mapper->get('datetime'));

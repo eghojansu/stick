@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace FixtureMapper;
+namespace Fixture\Mapper;
 
 use Fal\Stick\Sql\Mapper;
 

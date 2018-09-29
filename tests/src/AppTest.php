@@ -19,7 +19,6 @@ use Fal\Stick\GetControllerArgsEvent;
 use Fal\Stick\ResponseException;
 use Fal\Stick\Sql\Connection;
 use Fal\Stick\Sql\MapperParameterConverter;
-use FixtureMapper\User;
 use PHPUnit\Framework\TestCase;
 
 class AppTest extends TestCase
@@ -41,7 +40,6 @@ class AppTest extends TestCase
         }
 
         header_remove();
-        spl_autoload_unregister(array($this->app, 'loadClass'));
     }
 
     private function updateInitialValue($name, $value)
@@ -51,15 +49,6 @@ class AppTest extends TestCase
         $val = $ref->getValue($this->app);
         $val[$name] = $value;
         $ref->setValue($this->app, $val);
-    }
-
-    private function registerServiceLoader()
-    {
-        $this->app->mset(array(
-            'AUTOLOAD' => array(
-                'FixtureServices\\' => array(FIXTURE.'classes/services/'),
-            ),
-        ))->registerAutoloader();
     }
 
     private function registerRoutes()
@@ -272,7 +261,7 @@ class AppTest extends TestCase
         $isCli = false;
         $this->assertFalse($this->app->get('CLI'));
 
-        $this->assertEquals('bar', $this->app->get('foo', 'bar'));
+        $this->assertNull($this->app->get('foo'));
     }
 
     public function testClear()
@@ -363,19 +352,6 @@ class AppTest extends TestCase
         $this->assertEquals('/foo/bar', $this->app->get('PATH'));
         $this->assertEquals('/foo/bar?bar=baz&f=&o=', $this->app->get('URI'));
         $this->assertEquals(array('f' => '', 'o' => '', 'bar' => 'baz'), $this->app->get('QUERY'));
-    }
-
-    public function testRegisterAutoloader()
-    {
-        $this->app->registerAutoloader();
-        $this->assertContains(array($this->app, 'loadClass'), spl_autoload_functions());
-    }
-
-    public function testUnregisterAutoloader()
-    {
-        $this->app->registerAutoloader();
-        $this->app->unregisterAutoloader();
-        $this->assertNotContains(array($this->app, 'loadClass'), spl_autoload_functions());
     }
 
     public function testOffsetExists()
@@ -610,34 +586,6 @@ class AppTest extends TestCase
         }
     }
 
-    public function testLoadClass()
-    {
-        $this->app->mset(array(
-            'AUTOLOAD' => array(
-                'Fixture\\' => array(FIXTURE.'classes/nsa/', FIXTURE.'classes/nsb/'),
-            ),
-        ));
-        $aClass = 'Fixture\\AClass';
-        $bClass = 'Fixture\\BClass';
-        $uClass = 'UnknownClass';
-        $fuClass = 'Fixture\\UnknownClass';
-
-        $this->assertFalse(class_exists($aClass));
-        $this->assertFalse(class_exists($bClass));
-        $this->assertFalse(class_exists($uClass));
-        $this->assertFalse(class_exists($fuClass));
-
-        $this->app->loadClass($aClass);
-        $this->app->loadClass($bClass);
-        $this->app->loadClass($uClass);
-        $this->app->loadClass($fuClass);
-
-        $this->assertTrue(class_exists($aClass));
-        $this->assertTrue(class_exists($bClass));
-        $this->assertFalse(class_exists($uClass));
-        $this->assertFalse(class_exists($fuClass));
-    }
-
     public function testOn()
     {
         $this->app->on('foo', 'bar');
@@ -663,13 +611,12 @@ class AppTest extends TestCase
 
     public function testInstance()
     {
-        $this->registerServiceLoader();
         $this->app->rule('post', array(
-            'class' => 'FixtureServices\\BlogPost',
+            'class' => 'Fixture\\Services\\BlogPost',
             'service' => false,
         ));
         $this->app->rule('now', 'DateTime');
-        $this->app->rule('FixtureServices\\Author', array(
+        $this->app->rule('Fixture\\Services\\Author', array(
             'boot' => function ($author) {
                 $author->setName('Foo');
             },
@@ -682,7 +629,7 @@ class AppTest extends TestCase
             'service' => false,
         ));
 
-        $simplePost = $this->app->instance('FixtureServices\\SimplePost', array(
+        $simplePost = $this->app->instance('Fixture\\Services\\SimplePost', array(
             'title' => 'Foo',
             'postNow' => '%CLI%',
         ));
@@ -692,15 +639,15 @@ class AppTest extends TestCase
             'title' => 'Foo',
             'postNow' => '%CLI%',
             'postedDate' => '%now%',
-            'author' => 'FixtureServices\\Author',
+            'author' => 'Fixture\\Services\\Author',
         ));
-        $post2 = $this->app->instance('FixtureServices\\BlogPost', array(
+        $post2 = $this->app->instance('Fixture\\Services\\BlogPost', array(
             'Foo',
             false,
             $now,
         ));
 
-        $this->assertInstanceOf('FixtureServices\\SimplePost', $simplePost);
+        $this->assertInstanceOf('Fixture\\Services\\SimplePost', $simplePost);
         $this->assertSame($now, $post->getPostedDate());
         $this->assertEquals('Foo', $post->getTitle());
         $this->assertEquals('Foo', $post->getAuthor()->getName());
@@ -735,22 +682,21 @@ class AppTest extends TestCase
 
     public function testService()
     {
-        $this->registerServiceLoader();
-        $this->app->rule('author', 'FixtureServices\\Author');
+        $this->app->rule('author', 'Fixture\\Services\\Author');
 
         $this->assertSame($this->app, $this->app->service('app'));
         $this->assertSame($this->app, $this->app->service(App::class));
 
-        $author = $this->app->service('FixtureServices\\Author');
+        $author = $this->app->service('Fixture\\Services\\Author');
         $this->assertSame($author, $this->app->service('author'));
-        $this->assertSame($author, $this->app->service('FixtureServices\\Author'));
+        $this->assertSame($author, $this->app->service('Fixture\\Services\\Author'));
     }
 
     public function testGrab()
     {
         $this->assertEquals('foo', $this->app->grab('foo'));
-        $this->assertEquals(array('FixtureServices\\Author', 'getName'), $this->app->grab('FixtureServices\\Author->getName', false));
-        $this->assertEquals(array('FixtureServices\\Author', 'getName'), $this->app->grab('FixtureServices\\Author::getName'));
+        $this->assertEquals(array('Fixture\\Services\\Author', 'getName'), $this->app->grab('Fixture\\Services\\Author->getName', false));
+        $this->assertEquals(array('Fixture\\Services\\Author', 'getName'), $this->app->grab('Fixture\\Services\\Author::getName'));
 
         $mark = time();
         $grabbed = $this->app->grab('DateTime->getTimestamp');
@@ -1738,11 +1684,7 @@ class AppTest extends TestCase
     {
         $this->app->mset(array(
             'QUIET' => true,
-            'AUTOLOAD' => array(
-                'FixtureMapper\\' => array(FIXTURE.'classes/mapper/'),
-            ),
         ));
-        $this->app->registerAutoloader();
         $this->app->rule(Connection::class, array(
             'args' => array(
                 'options' => array(
@@ -1759,7 +1701,7 @@ class AppTest extends TestCase
 
             $event->setArgs($converter->resolve());
         });
-        $this->app->route('GET /users/@user/@info', function (User $user, $info) {
+        $this->app->route('GET /users/@user/@info', function (\Fixture\Mapper\User $user, $info) {
             return 'User with id: '.$user->get('id').', username: '.$user->get('username').', info: '.$info;
         });
 

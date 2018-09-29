@@ -34,7 +34,6 @@ Fal\Stick\App::createFromGlobals()
 
 ## Features
 
-- Class autoloader.
 - Dependency injection.
 - Event listener and dispatcher.
 - Simple routing like Fatfree Framework.
@@ -47,7 +46,7 @@ Fal\Stick\App::createFromGlobals()
 - PHP template engine.
 - Translator.
 
-> Logger, Translator, Class Autoloader, Dependency Injection, Event listeners, Routing and Cache utils is bundled in main App class.
+> Logger, Translator, Dependency Injection, Event listeners, Routing and Cache utils is bundled in main App class.
 
 ## Example
 

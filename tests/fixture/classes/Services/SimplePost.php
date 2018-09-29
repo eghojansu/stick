@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace FixtureServices;
+namespace Fixture\Services;
 
 class SimplePost
 {

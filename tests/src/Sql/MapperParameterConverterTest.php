@@ -17,8 +17,6 @@ use Fal\Stick\App;
 use Fal\Stick\Sql\Connection;
 use Fal\Stick\Sql\Mapper;
 use Fal\Stick\Sql\MapperParameterConverter;
-use FixtureMapper\Friends;
-use FixtureMapper\User;
 use PHPUnit\Framework\TestCase;
 
 class MapperParameterConverterTest extends TestCase
@@ -26,19 +24,9 @@ class MapperParameterConverterTest extends TestCase
     private $converter;
     private $app;
 
-    public function tearDown()
-    {
-        spl_autoload_unregister(array($this->app, 'loadClass'));
-    }
-
     private function prepare($handler, array $params)
     {
         $this->app = new App();
-        $this->app->mset(array(
-            'AUTOLOAD' => array(
-                'FixtureMapper\\' => array(FIXTURE.'classes/mapper/'),
-            ),
-        ))->registerAutoloader();
         $conn = new Connection($this->app, array(
             'dsn' => 'sqlite::memory:',
             'commands' => file_get_contents(FIXTURE.'files/schema.sql'),
@@ -71,7 +59,7 @@ class MapperParameterConverterTest extends TestCase
 
     public function testResolveMapper()
     {
-        $handler = function (User $foo) {};
+        $handler = function (\Fixture\Mapper\User $foo) {};
         $params = array('foo' => 1);
         $this->prepare($handler, $params);
 
@@ -84,7 +72,7 @@ class MapperParameterConverterTest extends TestCase
 
     public function testResolveMapperComposit()
     {
-        $handler = function (Friends $foo) {};
+        $handler = function (\Fixture\Mapper\Friends $foo) {};
         $params = array('foo' => 1, 'bar' => 2);
         $this->prepare($handler, $params);
 
@@ -97,7 +85,7 @@ class MapperParameterConverterTest extends TestCase
 
     public function testResolveMapperOverflowParams()
     {
-        $handler = function (User $foo) {};
+        $handler = function (\Fixture\Mapper\User $foo) {};
         $params = array('foo' => 1, 2 /* overflow */);
         $this->prepare($handler, $params);
 
@@ -114,7 +102,7 @@ class MapperParameterConverterTest extends TestCase
      */
     public function testResolveMapperException()
     {
-        $handler = function (User $foo) {};
+        $handler = function (\Fixture\Mapper\User $foo) {};
         $params = array('foo' => 4);
         $this->prepare($handler, $params);
 

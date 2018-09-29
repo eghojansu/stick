@@ -23,7 +23,7 @@ namespace Fal\Stick;
  *
  * @author Eko Kurniawan <ekokurniawanbs@gmail.com>
  */
-final class App implements \ArrayAccess
+final class App extends Magic
 {
     const PACKAGE = 'Stick-Framework';
     const VERSION = 'v0.1.0';
@@ -167,7 +167,6 @@ final class App implements \ArrayAccess
             'AGENT' => $server['HTTP_X_OPERAMINI_PHONE_UA'] ?? $server['HTTP_X_SKYFIRE_PHONE'] ?? $server['HTTP_USER_AGENT'] ?? '',
             'AJAX' => 'XMLHttpRequest' === ($server['HTTP_X_REQUESTED_WITH'] ?? null),
             'ALIAS' => null,
-            'AUTOLOAD' => array('Fal\\Stick\\' => __DIR__.'/'),
             'BASE' => $base,
             'BASEURL' => $baseUrl.$base,
             'BODY' => null,
@@ -829,65 +828,6 @@ final class App implements \ArrayAccess
     }
 
     /**
-     * Register class autoloader.
-     *
-     * Do not forgot set your class namespace in AUTOLOAD variables.
-     *
-     * @return App
-     */
-    public function registerAutoloader(): App
-    {
-        spl_autoload_register(array($this, 'loadClass'));
-
-        return $this;
-    }
-
-    /**
-     * Unregister class autoloader.
-     *
-     * @return App
-     */
-    public function unregisterAutoloader(): App
-    {
-        spl_autoload_unregister(array($this, 'loadClass'));
-
-        return $this;
-    }
-
-    /**
-     * Autoload class logic.
-     *
-     * It is use composer PSR-4 find class file logic.
-     *
-     * @param string $class
-     *
-     * @return bool|void
-     */
-    public function loadClass($class)
-    {
-        $subPath = $class;
-        $logicalPath = $this->fixslashes($class).'.php';
-
-        while (false !== $lastPos = strrpos($subPath, '\\')) {
-            $subPath = substr($subPath, 0, $lastPos);
-            $search = $subPath.'\\';
-
-            if (isset($this->_hive['AUTOLOAD'][$search])) {
-                $pathEnd = substr($logicalPath, $lastPos + 1);
-                $dirs = $this->arr($this->_hive['AUTOLOAD'][$search]);
-
-                foreach ($dirs as $dir) {
-                    if (file_exists($file = $dir.$pathEnd)) {
-                        $this->requireFile($file);
-
-                        return true;
-                    }
-                }
-            }
-        }
-    }
-
-    /**
      * Returns true if given ip is blacklisted.
      *
      * @param string $ip
@@ -1086,6 +1026,22 @@ final class App implements \ArrayAccess
     }
 
     /**
+     * Returns value of hive member.
+     *
+     * *Dot notation access allowed*
+     *
+     * @param string $key
+     *
+     * @return mixed
+     */
+    public function &get(string $key)
+    {
+        $ref = &$this->ref($key);
+
+        return $ref;
+    }
+
+    /**
      * Sets value of hive.
      *
      * *Dot notation access allowed*
@@ -1093,9 +1049,9 @@ final class App implements \ArrayAccess
      * @param string $key
      * @param mixed  $val
      *
-     * @return App
+     * @return Magic
      */
-    public function set(string $key, $val): App
+    public function set(string $key, $val): Magic
     {
         $ref = &$this->ref($key);
         $ref = $val;
@@ -1119,36 +1075,15 @@ final class App implements \ArrayAccess
     }
 
     /**
-     * Returns value of hive member.
-     *
-     * *Dot notation access allowed*
-     *
-     * @param string $key
-     * @param mixed  $default
-     *
-     * @return mixed
-     */
-    public function &get(string $key, $default = null)
-    {
-        $ref = &$this->ref($key);
-
-        if (null === $ref) {
-            $ref = $default;
-        }
-
-        return $ref;
-    }
-
-    /**
      * Remove member of hive.
      *
      * *Dot notation access allowed*
      *
      * @param string $key
      *
-     * @return App
+     * @return Magic
      */
-    public function clear(string $key): App
+    public function clear(string $key): Magic
     {
         $this->unref($key);
 
@@ -2990,73 +2925,5 @@ final class App implements \ArrayAccess
         }
 
         return $dict;
-    }
-
-    /**
-     * Provide checking member as array.
-     */
-    public function offsetExists($key)
-    {
-        return $this->exists($key);
-    }
-
-    /**
-     * Provide retrieving member as array.
-     */
-    public function &offsetGet($key)
-    {
-        $ref = &$this->get($key);
-
-        return $ref;
-    }
-
-    /**
-     * Provide assigning member as array.
-     */
-    public function offsetSet($key, $value)
-    {
-        $this->set($key, $value);
-    }
-
-    /**
-     * Provide removing member as array.
-     */
-    public function offsetUnset($key)
-    {
-        $this->clear($key);
-    }
-
-    /**
-     * Provide checking member as property.
-     */
-    public function __isset($key)
-    {
-        return $this->exists($key);
-    }
-
-    /**
-     * Provide retrieving member as property.
-     */
-    public function &__get($key)
-    {
-        $ref = &$this->get($key);
-
-        return $ref;
-    }
-
-    /**
-     * Provide assigning member as property.
-     */
-    public function __set($key, $value)
-    {
-        $this->set($key, $value);
-    }
-
-    /**
-     * Provide removing member as property.
-     */
-    public function __unset($key)
-    {
-        $this->clear($key);
     }
 }

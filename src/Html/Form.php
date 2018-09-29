@@ -230,7 +230,7 @@ class Form
                 $key = $this->_verb;
             }
 
-            $this->_submittedData = $this->_app->get($key.'.'.$this->_name, array());
+            $this->_submittedData = $this->_app->get($key.'.'.$this->_name) ?? array();
         }
 
         return $this->_submittedData;
