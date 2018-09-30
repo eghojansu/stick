@@ -252,6 +252,9 @@ class AppTest extends TestCase
         $this->assertEquals(array(), $this->app->get('DICT'));
 
         $this->assertEquals('UTF-8', $this->app->set('ENCODING', 'UTF-8')->get('ENCODING'));
+
+        $this->app->set('TZ', 'Asia/Jakarta');
+        $this->assertEquals('Asia/Jakarta', date_default_timezone_get());
     }
 
     public function testGet()

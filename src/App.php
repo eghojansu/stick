@@ -34,6 +34,7 @@ final class App extends Magic
     const REQ_SYNC = 4;
 
     const EVENT_BOOT = 'app_boot';
+    const EVENT_SHUTDOWN = 'app_shutdown';
     const EVENT_ROUTE = 'app_route';
     const EVENT_AFTER_ROUTE = 'app_after_route';
     const EVENT_CONTROLLER_ARGS = 'app_controller_args';
@@ -226,6 +227,7 @@ final class App extends Magic
             'THRESHOLD' => self::LOG_LEVEL_ERROR,
             'TIME' => $now,
             'TRACE' => $this->fixslashes(realpath(dirname($scriptFilename).'/..').'/'),
+            'TZ' => date_default_timezone_get(),
             'URI' => $uri,
             'VERB' => $verb,
             'VERSION' => self::VERSION,
@@ -797,6 +799,56 @@ final class App extends Magic
     }
 
     /**
+     * Register shutdown handler.
+     *
+     * @return App
+     *
+     * @codeCoverageIgnore
+     */
+    public function registerShutdownHandler(): App
+    {
+        register_shutdown_function(array($this, 'unload'), getcwd());
+
+        return $this;
+    }
+
+    /**
+     * Shutdown sequence.
+     *
+     * @param string $cwd
+     *
+     * @codeCoverageIgnore
+     */
+    public function unload(string $cwd): void
+    {
+        chdir($cwd);
+        $error = error_get_last();
+
+        if (!$error && PHP_SESSION_ACTIVE === session_status()) {
+            session_commit();
+        }
+
+        $fatalError = array(E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR);
+        $event = new GetResponseEvent();
+        $this->trigger(self::EVENT_SHUTDOWN, $event);
+
+        if ($event->isPropagationStopped()) {
+            if (!$this->_hive['SENT']) {
+                $code = $event->getCode();
+                $this->_hive['HEADERS'] = $event->getHeaders();
+                $this->_hive['RESPONSE'] = $event->getResponse();
+                $this->_hive['KBPS'] = $event->getKbps();
+
+                $this->status($code)->send();
+            }
+
+            return;
+        } elseif ($error && in_array($error['type'], $fatalError)) {
+            $this->error(500, $error['message'], array($error));
+        }
+    }
+
+    /**
      * Handle thrown exception.
      *
      * @param Throwable $e
@@ -1068,6 +1120,9 @@ final class App extends Magic
             case 'LANGUAGE':
             case 'LOCALES':
                 $this->_hive['DICT'] = $this->langLoad();
+                break;
+            case 'TZ':
+                date_default_timezone_set($val);
                 break;
         }
 
