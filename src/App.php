@@ -2630,16 +2630,16 @@ final class App extends Magic
                 if ($class = $param->getClass()) {
                     if ($val instanceof $class->name) {
                         $resolved[] = $val;
-                        $rest++;
+                        ++$rest;
                     } elseif (is_string($val) && is_object($obj = $this->resolveArg($val, true))) {
                         $resolved[] = $obj;
-                        $rest++;
+                        ++$rest;
                     } else {
                         $resolved[] = $this->service($class->name);
                     }
                 } elseif ((null !== $name) || ($name === $param->name)) {
                     $resolved[] = is_string($val) ? $this->resolveArg($val) : $val;
-                    $rest++;
+                    ++$rest;
                 }
             }
         }

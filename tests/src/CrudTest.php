@@ -79,7 +79,7 @@ class CrudTest extends TestCase
     }
 
     /**
-     * @expectedException UnexpectedValueException
+     * @expectedException \UnexpectedValueException
      * @expectedExceptionMessage Option "filters" expect array value.
      */
     public function testOptionException()
@@ -132,7 +132,7 @@ class CrudTest extends TestCase
         $this->assertInstanceOf($uForm, $this->crud->form($uForm)->getForm());
         $this->resetCrud();
 
-        $this->crud->formBuild(function() {})->form(null);
+        $this->crud->formBuild(function () {})->form(null);
         $this->assertEquals(Form::class, get_class($this->crud->getForm()));
     }
 
@@ -205,10 +205,10 @@ class CrudTest extends TestCase
     public function testRenderPost($path, $message, $messageKey)
     {
         $this->app
-            ->on('app_reroute', function(App $app, $event) {
+            ->on('app_reroute', function (App $app, $event) {
                 $app->set('rerouted', $event->getUrl());
             })
-            ->route('GET|POST foo /foo/*', function(App $app, ...$segments) {
+            ->route('GET|POST foo /foo/*', function (App $app, ...$segments) {
                 return $this->crud
                     ->segments($segments)
                     ->views(array(
@@ -236,7 +236,7 @@ class CrudTest extends TestCase
     }
 
     /**
-     * @expectedException Fal\Stick\ResponseException
+     * @expectedException \Fal\Stick\ResponseException
      */
     public function testRenderViewException()
     {

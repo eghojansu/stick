@@ -143,7 +143,7 @@ class Crud
 
         $state = $this->options['state'] ?? $this->options['segments'][0] ?? null;
 
-        if ($state === 'index') {
+        if ('index' === $state) {
             $state = static::STATE_LISTING;
         }
 
@@ -185,7 +185,7 @@ class Crud
     /**
      * Disable state.
      *
-     * @param  string|array $states
+     * @param string|array $states
      *
      * @return Crud
      */
@@ -247,7 +247,7 @@ class Crud
     /**
      * Returns option value.
      *
-     * @param  string|null $name
+     * @param string|null $name
      *
      * @return mixed
      */
@@ -259,8 +259,8 @@ class Crud
     /**
      * Sets option.
      *
-     * @param  string $option
-     * @param  mixed  $value
+     * @param string $option
+     * @param mixed  $value
      *
      * @return Crud
      */
@@ -284,7 +284,7 @@ class Crud
     /**
      * Returns data value.
      *
-     * @param  string|null $name
+     * @param string|null $name
      *
      * @return mixed
      */
@@ -326,7 +326,7 @@ class Crud
     /**
      * Prepare listing filters.
      *
-     * @param  string $keyword
+     * @param string $keyword
      *
      * @return array
      */
@@ -361,7 +361,7 @@ class Crud
     /**
      * Returns translated message key.
      *
-     * @param  string $key
+     * @param string $key
      *
      * @return string
      */
@@ -376,8 +376,8 @@ class Crud
     /**
      * Returns rerouted target.
      *
-     * @param  array|null $args
-     * @param  array|null $query
+     * @param array|null $args
+     * @param array|null $query
      *
      * @return array
      */
@@ -500,8 +500,8 @@ class Crud
     /**
      * Proxy to setOption.
      *
-     * @param  string $method
-     * @param  array  $args
+     * @param string $method
+     * @param array  $args
      *
      * @return Crud
      */
