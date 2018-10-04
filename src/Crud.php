@@ -178,7 +178,7 @@ class Crud
         );
 
         return $out ? $this->template->render($view, array(
-            $this->options['wrapperName'] => new Bag($data + $this->data + $complement),
+            $this->options['wrapperName'] => $data + $this->data + $complement,
         )) : null;
     }
 

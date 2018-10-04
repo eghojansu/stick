@@ -4,15 +4,15 @@
 <table>
   <thead>
     <tr>
-      <?php foreach ($crud->fields as $field => $def): ?>
+      <?php foreach ($crud['fields'] as $field => $def): ?>
         <th><?= $def['label'] ?></th>
       <?php endforeach ?>
     </tr>
   </thead>
   <tbody>
-    <?php foreach ($crud->data['subset'] as $item): ?>
+    <?php foreach ($crud['data']['subset'] as $item): ?>
       <tr>
-        <?php foreach ($crud->fields as $field => $def): ?>
+        <?php foreach ($crud['fields'] as $field => $def): ?>
           <td><?= $item[$field] ?></td>
         <?php endforeach ?>
       </tr>
