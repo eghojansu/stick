@@ -145,7 +145,7 @@ final class App extends Magic
         $url = parse_url($uriHost.$uri);
         $port = (int) ($server['HTTP_X_FORWARDED_PORT'] ?? $server['SERVER_PORT'] ?? 80);
         $secure = 'on' === ($server['HTTPS'] ?? '') || 'https' === ($server['HTTP_X_FORWARDED_PROTO'] ?? '');
-        $base = rtrim($this->fixslashes(dirname($scriptName)), '/');
+        $base = rtrim(self::fixslashes(dirname($scriptName)), '/');
         $entry = '/'.basename($scriptName);
 
         if ($cli) {
@@ -192,7 +192,7 @@ final class App extends Magic
             'FRAGMENT' => $url['fragment'] ?? null,
             'HEADERS' => null,
             'HOST' => $host,
-            'IP' => $server['HTTP_X_CLIENT_IP'] ?? $this->cutbefore($server['HTTP_X_FORWARDED_FOR'] ?? '', ',', $server['REMOTE_ADDR'] ?? ''),
+            'IP' => $server['HTTP_X_CLIENT_IP'] ?? self::cutbefore($server['HTTP_X_FORWARDED_FOR'] ?? '', ',', $server['REMOTE_ADDR'] ?? ''),
             'JAR' => $cookieJar,
             'KBPS' => 0,
             'LANGUAGE' => null,
@@ -200,7 +200,7 @@ final class App extends Magic
             'LOG' => null,
             'PACKAGE' => self::PACKAGE,
             'PARAMS' => null,
-            'PATH' => $this->cutprefix($this->cutprefix(urldecode($url['path']), $base), $entry, '/'),
+            'PATH' => self::cutprefix(self::cutprefix(urldecode($url['path']), $base), $entry, '/'),
             'PATTERN' => null,
             'PORT' => $port,
             'PROTOCOL' => $server['SERVER_PROTOCOL'] ?? 'HTTP/1.0',
@@ -215,7 +215,7 @@ final class App extends Magic
             'ROUTE_HANDLERS' => array(),
             'ROUTES' => array(),
             'SCHEME' => $scheme,
-            'SEED' => $this->hash($host.$base),
+            'SEED' => self::hash($host.$base),
             'SENT' => false,
             'SERVER' => (array) $server,
             'SERVICE_ALIASES' => array(),
@@ -226,7 +226,7 @@ final class App extends Magic
             'TEMP' => './var/',
             'THRESHOLD' => self::LOG_LEVEL_ERROR,
             'TIME' => $now,
-            'TRACE' => $this->fixslashes(realpath(dirname($scriptFilename).'/..').'/'),
+            'TRACE' => self::fixslashes(realpath(dirname($scriptFilename).'/..').'/'),
             'TZ' => date_default_timezone_get(),
             'URI' => $uri,
             'VERB' => $verb,
@@ -268,7 +268,7 @@ final class App extends Magic
      *
      * @return bool
      */
-    public function notNullFalse($val): bool
+    public static function notNullFalse($val): bool
     {
         return !(null === $val || false === $val);
     }
@@ -281,7 +281,7 @@ final class App extends Magic
      *
      * @return array
      */
-    public function split(string $str): array
+    public static function split(string $str): array
     {
         return array_map('trim', preg_split('/[,;\|]/', $str, 0, PREG_SPLIT_NO_EMPTY));
     }
@@ -293,7 +293,7 @@ final class App extends Magic
      *
      * @return string
      */
-    public function fixslashes(string $str): string
+    public static function fixslashes(string $str): string
     {
         return strtr($str, '\\', '/');
     }
@@ -305,7 +305,7 @@ final class App extends Magic
      *
      * @return string
      */
-    public function hash(string $str): string
+    public static function hash(string $str): string
     {
         return str_pad(base_convert(substr(sha1($str), -16), 16, 36), 11, '0', STR_PAD_LEFT);
     }
@@ -322,7 +322,7 @@ final class App extends Magic
      *
      * @return string
      */
-    public function cutbefore(string $str, string $needle, string $default = null, bool $with_needle = false): string
+    public static function cutbefore(string $str, string $needle, string $default = null, bool $with_needle = false): string
     {
         if ($str && $needle && false !== ($pos = strpos($str, $needle))) {
             return substr($str, 0, $pos + ((int) $with_needle));
@@ -343,7 +343,7 @@ final class App extends Magic
      *
      * @return string
      */
-    public function cutafter(string $str, string $needle, string $default = null, bool $with_needle = false): string
+    public static function cutafter(string $str, string $needle, string $default = null, bool $with_needle = false): string
     {
         if ($str && $needle && false !== ($pos = strrpos($str, $needle))) {
             return substr($str, $pos + ((int) !$with_needle));
@@ -361,7 +361,7 @@ final class App extends Magic
      *
      * @return string
      */
-    public function cutprefix(string $str, string $prefix, string $default = null): string
+    public static function cutprefix(string $str, string $prefix, string $default = null): string
     {
         if ($str && $prefix && substr($str, 0, $cut = strlen($prefix)) === $prefix) {
             return substr($str, $cut) ?: (string) $default;
@@ -379,7 +379,7 @@ final class App extends Magic
      *
      * @return string
      */
-    public function cutsuffix(string $str, string $suffix, string $default = null): string
+    public static function cutsuffix(string $str, string $suffix, string $default = null): string
     {
         if ($str && $suffix && substr($str, $cut = -strlen($suffix)) === $suffix) {
             return substr($str, 0, $cut) ?: (string) $default;
@@ -396,7 +396,7 @@ final class App extends Magic
      *
      * @return bool
      */
-    public function startswith(string $str, string $prefix): bool
+    public static function startswith(string $str, string $prefix): bool
     {
         return substr($str, 0, strlen($prefix)) === $prefix;
     }
@@ -409,7 +409,7 @@ final class App extends Magic
      *
      * @return bool
      */
-    public function endswith(string $str, string $suffix): bool
+    public static function endswith(string $str, string $suffix): bool
     {
         return substr($str, -1 * strlen($suffix)) === $suffix;
     }
@@ -421,7 +421,7 @@ final class App extends Magic
      *
      * @return string
      */
-    public function camelCase(string $str): string
+    public static function camelCase(string $str): string
     {
         return lcfirst(str_replace(' ', '', ucwords(strtr($str, '_', ' '))));
     }
@@ -433,7 +433,7 @@ final class App extends Magic
      *
      * @return string
      */
-    public function snakeCase(string $str): string
+    public static function snakeCase(string $str): string
     {
         return strtolower(preg_replace('/(?!^)\p{Lu}/u', '_\0', $str));
     }
@@ -445,7 +445,7 @@ final class App extends Magic
      *
      * @return string
      */
-    public function titleCase(string $str): string
+    public static function titleCase(string $str): string
     {
         return ucwords(strtr($str, '_', ' '));
     }
@@ -459,7 +459,7 @@ final class App extends Magic
      *
      * @return bool
      */
-    public function mkdir(string $path, int $mode = 0755, bool $recursive = true): bool
+    public static function mkdir(string $path, int $mode = 0755, bool $recursive = true): bool
     {
         return file_exists($path) ? true : mkdir($path, $mode, $recursive);
     }
@@ -472,7 +472,7 @@ final class App extends Magic
      *
      * @return string
      */
-    public function read(string $file, bool $lf = false): string
+    public static function read(string $file, bool $lf = false): string
     {
         $out = is_file($file) ? file_get_contents($file) : '';
 
@@ -488,7 +488,7 @@ final class App extends Magic
      *
      * @return int|false
      */
-    public function write(string $file, string $data, bool $append = false)
+    public static function write(string $file, string $data, bool $append = false)
     {
         return file_put_contents($file, $data, LOCK_EX | ((int) $append * FILE_APPEND));
     }
@@ -500,7 +500,7 @@ final class App extends Magic
      *
      * @return bool
      */
-    public function delete(string $file): bool
+    public static function delete(string $file): bool
     {
         return is_file($file) ? unlink($file) : false;
     }
@@ -515,11 +515,11 @@ final class App extends Magic
      *
      * @return mixed
      */
-    public function requireFile(string $file, $default = null)
+    public static function requireFile(string $file, $default = null)
     {
         $content = require $file;
 
-        return $this->notNullFalse($content) ? $content : $default;
+        return self::notNullFalse($content) ? $content : $default;
     }
 
     /**
@@ -529,7 +529,7 @@ final class App extends Magic
      *
      * @return string
      */
-    public function classname($class): string
+    public static function classname($class): string
     {
         $ns = is_object($class) ? get_class($class) : $class;
         $lastPos = strrpos($ns, '\\');
@@ -544,7 +544,7 @@ final class App extends Magic
      *
      * @return mixed
      */
-    public function cast($val)
+    public static function cast($val)
     {
         if (is_numeric($val)) {
             return $val + 0;
@@ -572,7 +572,7 @@ final class App extends Magic
      *
      * @return array
      */
-    public function parseExpr(string $expr): array
+    public static function parseExpr(string $expr): array
     {
         $len = strlen($expr);
         $res = array();
@@ -597,17 +597,17 @@ final class App extends Magic
             } elseif (!$quote) {
                 if (':' === $char && 0 === $jstate) {
                     // next chars is arg
-                    $args[] = $this->cast($tmp);
+                    $args[] = self::cast($tmp);
                     $tmp = '';
                 } elseif (',' === $char && 0 === $astate && 0 === $jstate) {
                     if ($tmp) {
-                        $args[] = $this->cast($tmp);
+                        $args[] = self::cast($tmp);
                         $tmp = '';
                     }
                 } elseif ('|' === $char) {
                     $process = true;
                     if ($tmp) {
-                        $args[] = $this->cast($tmp);
+                        $args[] = self::cast($tmp);
                         $tmp = '';
                     }
                 } elseif ('[' === $char) {
@@ -636,7 +636,7 @@ final class App extends Magic
             if (!$process && $ptr === $len - 1) {
                 $process = true;
                 if ('' !== $tmp) {
-                    $args[] = $this->cast($tmp);
+                    $args[] = self::cast($tmp);
                     $tmp = '';
                 }
             }
@@ -664,9 +664,9 @@ final class App extends Magic
      *
      * @see App::split For detailed how string is splitted.
      */
-    public function arr($val): array
+    public static function arr($val): array
     {
-        return is_array($val) ? $val : $this->split((string) $val);
+        return is_array($val) ? $val : self::split((string) $val);
     }
 
     /**
@@ -677,7 +677,7 @@ final class App extends Magic
      *
      * @return array
      */
-    public function column(array $input, string $column_key): array
+    public static function column(array $input, string $column_key): array
     {
         return array_combine(array_keys($input), array_column($input, $column_key));
     }
@@ -691,7 +691,7 @@ final class App extends Magic
      *
      * @return array
      */
-    public function walk(array $args, callable $callable, bool $one = true): array
+    public static function walk(array $args, callable $callable, bool $one = true): array
     {
         $result = array();
 
