@@ -48,7 +48,7 @@ class Html
     {
         $str = '';
 
-        foreach (array_filter($attr, array($this->_app, 'notNullFalse')) as $prop => $value) {
+        foreach (array_filter($attr, 'Fal\Stick\Util::notNullFalse') as $prop => $value) {
             if (is_numeric($prop)) {
                 $str .= is_string($value) ? ' '.trim($value) : '';
             } else {
@@ -352,7 +352,7 @@ class Html
         $dConfig = array(
             'route' => $this->_app->get('ALIAS'),
             'route_data' => $this->_app->get('PARAMS'),
-            'route_query' => (array) $this->_app->get('QUERY'),
+            'route_query' => (array) $this->_app->get('GET'),
             'page_query' => 'page',
             'adjacent' => 2,
             'parent' => array('class' => 'pagination'),

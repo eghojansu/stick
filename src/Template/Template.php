@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Fal\Stick\Template;
 
 use Fal\Stick\App;
+use Fal\Stick\Util;
 
 /**
  * PHP Template engine.
@@ -83,7 +84,7 @@ final class Template
      */
     public function setDirs($dirs, bool $merge = false): Template
     {
-        $newDirs = $this->app->arr($dirs);
+        $newDirs = Util::arr($dirs);
         $this->dirs = $merge ? array_merge($this->dirs, $newDirs) : $newDirs;
 
         return $this;
@@ -140,6 +141,8 @@ final class Template
             $call = array($this, '_'.$func);
         } elseif (method_exists($this->app, $func)) {
             $call = array($this->app, $func);
+        } elseif (method_exists(Util::class, $func)) {
+            $call = array(Util::class, $func);
         } elseif (is_callable($func)) {
             $call = $func;
         } elseif ($macro = $this->findMacro($func)) {
@@ -182,7 +185,7 @@ final class Template
      */
     private function _filter($val, string $filters)
     {
-        foreach ($this->app->parseExpr($filters) as $callable => $args) {
+        foreach (Util::parseExpr($filters) as $callable => $args) {
             $cArgs = array_merge(array($val), $args);
             $val = $this->call($callable, $cArgs);
         }

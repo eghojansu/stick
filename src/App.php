@@ -145,7 +145,7 @@ final class App extends Magic
         $url = parse_url($uriHost.$uri);
         $port = (int) ($server['HTTP_X_FORWARDED_PORT'] ?? $server['SERVER_PORT'] ?? 80);
         $secure = 'on' === ($server['HTTPS'] ?? '') || 'https' === ($server['HTTP_X_FORWARDED_PROTO'] ?? '');
-        $base = rtrim(self::fixslashes(dirname($scriptName)), '/');
+        $base = rtrim(Util::fixslashes(dirname($scriptName)), '/');
         $entry = '/'.basename($scriptName);
 
         if ($cli) {
@@ -193,7 +193,7 @@ final class App extends Magic
             'GET' => $get,
             'HEADERS' => null,
             'HOST' => $host,
-            'IP' => $server['HTTP_X_CLIENT_IP'] ?? self::cutbefore($server['HTTP_X_FORWARDED_FOR'] ?? '', ',', $server['REMOTE_ADDR'] ?? ''),
+            'IP' => $server['HTTP_X_CLIENT_IP'] ?? Util::cutbefore($server['HTTP_X_FORWARDED_FOR'] ?? '', ',', $server['REMOTE_ADDR'] ?? ''),
             'JAR' => $cookieJar,
             'KBPS' => 0,
             'LANGUAGE' => null,
@@ -201,7 +201,7 @@ final class App extends Magic
             'LOG' => null,
             'PACKAGE' => self::PACKAGE,
             'PARAMS' => null,
-            'PATH' => self::cutprefix(self::cutprefix(urldecode($url['path']), $base), $entry, '/'),
+            'PATH' => Util::cutprefix(Util::cutprefix(urldecode($url['path']), $base), $entry, '/'),
             'PATTERN' => null,
             'PORT' => $port,
             'POST' => $post,
@@ -215,7 +215,7 @@ final class App extends Magic
             'ROUTE_HANDLERS' => array(),
             'ROUTES' => array(),
             'SCHEME' => $scheme,
-            'SEED' => self::hash($host.$base),
+            'SEED' => Util::hash($host.$base),
             'SENT' => false,
             'SERVER' => (array) $server,
             'SERVICE_ALIASES' => array(),
@@ -226,7 +226,7 @@ final class App extends Magic
             'TEMP' => './var/',
             'THRESHOLD' => self::LOG_LEVEL_ERROR,
             'TIME' => $now,
-            'TRACE' => self::fixslashes(realpath(dirname($scriptFilename).'/..').'/'),
+            'TRACE' => Util::fixslashes(realpath(dirname($scriptFilename).'/..').'/'),
             'TZ' => date_default_timezone_get(),
             'URI' => $uri,
             'VERB' => $verb,
@@ -259,448 +259,6 @@ final class App extends Magic
     public static function createFromGlobals(): App
     {
         return new static($_GET, $_POST, $_SERVER, $_COOKIE);
-    }
-
-    /**
-     * Returns true if val is null or false.
-     *
-     * @param mixed $val
-     *
-     * @return bool
-     */
-    public static function notNullFalse($val): bool
-    {
-        return !(null === $val || false === $val);
-    }
-
-    /**
-     * Returns trimmed member of array after split given string
-     * by comma-, semi-colon, or pipe-separated string.
-     *
-     * @param string $str
-     *
-     * @return array
-     */
-    public static function split(string $str): array
-    {
-        return array_map('trim', preg_split('/[,;\|]/', $str, 0, PREG_SPLIT_NO_EMPTY));
-    }
-
-    /**
-     * Returns normalized slashes.
-     *
-     * @param string $str
-     *
-     * @return string
-     */
-    public static function fixslashes(string $str): string
-    {
-        return strtr($str, '\\', '/');
-    }
-
-    /**
-     * Returns 64bit/base36 hash.
-     *
-     * @param string $str
-     *
-     * @return string
-     */
-    public static function hash(string $str): string
-    {
-        return str_pad(base_convert(substr(sha1($str), -16), 16, 36), 11, '0', STR_PAD_LEFT);
-    }
-
-    /**
-     * Returns substring before needle.
-     *
-     * If needle not found it returns defaults.
-     *
-     * @param string      $str
-     * @param string      $needle
-     * @param string|null $default
-     * @param bool        $with_needle
-     *
-     * @return string
-     */
-    public static function cutbefore(string $str, string $needle, string $default = null, bool $with_needle = false): string
-    {
-        if ($str && $needle && false !== ($pos = strpos($str, $needle))) {
-            return substr($str, 0, $pos + ((int) $with_needle));
-        }
-
-        return $default ?? $str;
-    }
-
-    /**
-     * Returns substring after needle.
-     *
-     * If needle not found it returns defaults.
-     *
-     * @param string      $str
-     * @param string      $needle
-     * @param string|null $default
-     * @param bool        $with_needle
-     *
-     * @return string
-     */
-    public static function cutafter(string $str, string $needle, string $default = null, bool $with_needle = false): string
-    {
-        if ($str && $needle && false !== ($pos = strrpos($str, $needle))) {
-            return substr($str, $pos + ((int) !$with_needle));
-        }
-
-        return $default ?? $str;
-    }
-
-    /**
-     * Returns substring after prefix removed.
-     *
-     * @param string      $str
-     * @param string      $prefix
-     * @param string|null $default
-     *
-     * @return string
-     */
-    public static function cutprefix(string $str, string $prefix, string $default = null): string
-    {
-        if ($str && $prefix && substr($str, 0, $cut = strlen($prefix)) === $prefix) {
-            return substr($str, $cut) ?: (string) $default;
-        }
-
-        return $default ?? $str;
-    }
-
-    /**
-     * Returns substring after suffix removed.
-     *
-     * @param string      $str
-     * @param string      $suffix
-     * @param string|null $default
-     *
-     * @return string
-     */
-    public static function cutsuffix(string $str, string $suffix, string $default = null): string
-    {
-        if ($str && $suffix && substr($str, $cut = -strlen($suffix)) === $suffix) {
-            return substr($str, 0, $cut) ?: (string) $default;
-        }
-
-        return $default ?? $str;
-    }
-
-    /**
-     * Returns true if string starts with prefix.
-     *
-     * @param string $str
-     * @param string $prefix
-     *
-     * @return bool
-     */
-    public static function startswith(string $str, string $prefix): bool
-    {
-        return substr($str, 0, strlen($prefix)) === $prefix;
-    }
-
-    /**
-     * Returns true if string ends with suffix.
-     *
-     * @param string $str
-     * @param string $suffix
-     *
-     * @return bool
-     */
-    public static function endswith(string $str, string $suffix): bool
-    {
-        return substr($str, -1 * strlen($suffix)) === $suffix;
-    }
-
-    /**
-     * Returns camelCase string from snake_case.
-     *
-     * @param string $str
-     *
-     * @return string
-     */
-    public static function camelCase(string $str): string
-    {
-        return lcfirst(str_replace(' ', '', ucwords(strtr($str, '_', ' '))));
-    }
-
-    /**
-     * Returns snake_case string from camelCase.
-     *
-     * @param string $str
-     *
-     * @return string
-     */
-    public static function snakeCase(string $str): string
-    {
-        return strtolower(preg_replace('/(?!^)\p{Lu}/u', '_\0', $str));
-    }
-
-    /**
-     * Returns "Title Case" string from snake_case.
-     *
-     * @param string $str
-     *
-     * @return string
-     */
-    public static function titleCase(string $str): string
-    {
-        return ucwords(strtr($str, '_', ' '));
-    }
-
-    /**
-     * Returns true if dir exists or successfully created.
-     *
-     * @param string $path
-     * @param int    $mode
-     * @param bool   $recursive
-     *
-     * @return bool
-     */
-    public static function mkdir(string $path, int $mode = 0755, bool $recursive = true): bool
-    {
-        return file_exists($path) ? true : mkdir($path, $mode, $recursive);
-    }
-
-    /**
-     * Returns file content with option to apply Unix LF as standard line ending.
-     *
-     * @param string $file
-     * @param bool   $lf
-     *
-     * @return string
-     */
-    public static function read(string $file, bool $lf = false): string
-    {
-        $out = is_file($file) ? file_get_contents($file) : '';
-
-        return $lf ? preg_replace('/\r\n|\r/', "\n", $out) : $out;
-    }
-
-    /**
-     * Exclusive file write.
-     *
-     * @param string $file
-     * @param string $data
-     * @param bool   $append
-     *
-     * @return int|false
-     */
-    public static function write(string $file, string $data, bool $append = false)
-    {
-        return file_put_contents($file, $data, LOCK_EX | ((int) $append * FILE_APPEND));
-    }
-
-    /**
-     * Delete file if exists.
-     *
-     * @param string $file
-     *
-     * @return bool
-     */
-    public static function delete(string $file): bool
-    {
-        return is_file($file) ? unlink($file) : false;
-    }
-
-    /**
-     * Returns the return value of required file.
-     *
-     * It does ensure loaded file have no access to caller scope.
-     *
-     * @param string $file
-     * @param mixed  $default
-     *
-     * @return mixed
-     */
-    public static function requireFile(string $file, $default = null)
-    {
-        $content = require $file;
-
-        return self::notNullFalse($content) ? $content : $default;
-    }
-
-    /**
-     * Returns class name.
-     *
-     * @param string|object $class
-     *
-     * @return string
-     */
-    public static function classname($class): string
-    {
-        $ns = is_object($class) ? get_class($class) : $class;
-        $lastPos = strrpos($ns, '\\');
-
-        return false === $lastPos ? $ns : substr($ns, $lastPos + 1);
-    }
-
-    /**
-     * Returns PHP-value of val.
-     *
-     * @param mixed $val
-     *
-     * @return mixed
-     */
-    public static function cast($val)
-    {
-        if (is_numeric($val)) {
-            return $val + 0;
-        }
-
-        if (is_scalar($val)) {
-            $val = trim($val);
-
-            if (preg_match('/^\w+$/i', $val) && defined($val)) {
-                return constant($val);
-            }
-        }
-
-        return $val;
-    }
-
-    /**
-     * Returns parsed string expression.
-     *
-     * Example:
-     *
-     *     foo:arg,arg2|bar:arg|baz:["array arg"]|qux:{"arg":"foo"}
-     *
-     * @param string $expr
-     *
-     * @return array
-     */
-    public static function parseExpr(string $expr): array
-    {
-        $len = strlen($expr);
-        $res = array();
-        $tmp = '';
-        $process = false;
-        $args = array();
-        $quote = null;
-        $astate = 0;
-        $jstate = 0;
-
-        for ($ptr = 0; $ptr < $len; ++$ptr) {
-            $char = $expr[$ptr];
-            $prev = $expr[$ptr - 1] ?? null;
-
-            if (('"' === $char || "'" === $char) && '\\' !== $prev) {
-                if ($quote) {
-                    $quote = $quote === $char ? null : $quote;
-                } else {
-                    $quote = $char;
-                }
-                $tmp .= $char;
-            } elseif (!$quote) {
-                if (':' === $char && 0 === $jstate) {
-                    // next chars is arg
-                    $args[] = self::cast($tmp);
-                    $tmp = '';
-                } elseif (',' === $char && 0 === $astate && 0 === $jstate) {
-                    if ($tmp) {
-                        $args[] = self::cast($tmp);
-                        $tmp = '';
-                    }
-                } elseif ('|' === $char) {
-                    $process = true;
-                    if ($tmp) {
-                        $args[] = self::cast($tmp);
-                        $tmp = '';
-                    }
-                } elseif ('[' === $char) {
-                    $astate = 1;
-                    $tmp .= $char;
-                } elseif (']' === $char && 1 === $astate && 0 === $jstate) {
-                    $astate = 0;
-                    $args[] = json_decode($tmp.$char, true);
-                    $tmp = '';
-                } elseif ('{' === $char) {
-                    $jstate = 1;
-                    $tmp .= $char;
-                } elseif ('}' === $char && 1 === $jstate && 0 === $astate) {
-                    $jstate = 0;
-                    $args[] = json_decode($tmp.$char, true);
-                    $tmp = '';
-                } else {
-                    $tmp .= $char;
-                    $astate += '[' === $char ? 1 : (']' === $char ? -1 : 0);
-                    $jstate += '{' === $char ? 1 : ('}' === $char ? -1 : 0);
-                }
-            } else {
-                $tmp .= $char;
-            }
-
-            if (!$process && $ptr === $len - 1) {
-                $process = true;
-                if ('' !== $tmp) {
-                    $args[] = self::cast($tmp);
-                    $tmp = '';
-                }
-            }
-
-            if ($process) {
-                if ($args) {
-                    $res[array_shift($args)] = $args;
-                    $args = array();
-                }
-                $process = false;
-            }
-        }
-
-        return $res;
-    }
-
-    /**
-     * Returns array of val.
-     *
-     * It does check given val, if it is not an array it splitted.
-     *
-     * @param string|array $val
-     *
-     * @return array
-     *
-     * @see App::split For detailed how string is splitted.
-     */
-    public static function arr($val): array
-    {
-        return is_array($val) ? $val : self::split((string) $val);
-    }
-
-    /**
-     * Advanced array_column.
-     *
-     * @param array  $input
-     * @param string $column_key
-     *
-     * @return array
-     */
-    public static function column(array $input, string $column_key): array
-    {
-        return array_combine(array_keys($input), array_column($input, $column_key));
-    }
-
-    /**
-     * Apply callable to each member of an array.
-     *
-     * @param array    $args
-     * @param callable $call
-     * @param bool     $one
-     *
-     * @return array
-     */
-    public static function walk(array $args, callable $call, bool $one = true): array
-    {
-        $result = array();
-
-        foreach ($args as $key => $arg) {
-            $mArgs = $one ? array($arg) : (array) $arg;
-            $result[$key] = $call(...$mArgs);
-        }
-
-        return $result;
     }
 
     /**
@@ -738,7 +296,7 @@ final class App extends Magic
         foreach ($trace as $key => $frame) {
             $frame += $fix;
 
-            $file = str_replace($cut, '', self::fixslashes($frame['file']));
+            $file = str_replace($cut, '', Util::fixslashes($frame['file']));
             $out .= '['.$file.':'.$frame['line'].'] '.$frame['class'].$frame['type'].$frame['function'].$eol;
         }
 
@@ -1159,7 +717,7 @@ final class App extends Magic
      */
     public function mclear($keys): App
     {
-        foreach ($this->arr($keys) as $key) {
+        foreach (Util::arr($keys) as $key) {
             $this->clear($key);
         }
 
@@ -1263,13 +821,13 @@ final class App extends Magic
             'listeners' => 'on',
             'listeners_once' => 'one',
         );
-        $content = file_exists($file) ? $this->requireFile($file, array()) : array();
+        $content = file_exists($file) ? Util::requireFile($file, array()) : array();
 
         foreach ($content as $key => $val) {
             $lkey = strtolower($key);
 
             if (isset($maps[$lkey])) {
-                self::walk((array) $val, array($this, $maps[$lkey]), false);
+                Util::walk((array) $val, array($this, $maps[$lkey]), false);
             } else {
                 $this->set($key, $val);
             }
@@ -1319,7 +877,7 @@ final class App extends Magic
             case 'apcu':
                 return apcu_exists($ndx);
             case 'folder':
-                return (bool) $this->cacheParse($key, $this->read($this->_hive['CACHE_REF'].$ndx));
+                return (bool) $this->cacheParse($key, Util::read($this->_hive['CACHE_REF'].$ndx));
             case 'memcached':
                 return (bool) $this->_hive['CACHE_REF']->get($ndx);
             case 'redis':
@@ -1351,7 +909,7 @@ final class App extends Magic
                 $raw = apcu_fetch($ndx);
                 break;
             case 'folder':
-                $raw = $this->read($this->_hive['CACHE_REF'].$ndx);
+                $raw = Util::read($this->_hive['CACHE_REF'].$ndx);
                 break;
             case 'memcached':
                 $raw = $this->_hive['CACHE_REF']->get($ndx);
@@ -1386,7 +944,7 @@ final class App extends Magic
             case 'apcu':
                 return apcu_store($ndx, $content, $ttl);
             case 'folder':
-                return false !== $this->write($this->_hive['CACHE_REF'].str_replace(array('/', '\\'), '', $ndx), $content);
+                return false !== Util::write($this->_hive['CACHE_REF'].str_replace(array('/', '\\'), '', $ndx), $content);
             case 'memcached':
                 return $this->_hive['CACHE_REF']->set($ndx, $content, $ttl);
             case 'redis':
@@ -1415,7 +973,7 @@ final class App extends Magic
             case 'apcu':
                 return apcu_delete($ndx);
             case 'folder':
-                return $this->delete($this->_hive['CACHE_REF'].$ndx);
+                return Util::delete($this->_hive['CACHE_REF'].$ndx);
             case 'memcached':
                 return $this->_hive['CACHE_REF']->delete($ndx);
             case 'redis':
@@ -1446,7 +1004,7 @@ final class App extends Magic
                     $key = array_key_exists('info', $info['cache_list'][0]) ? 'info' : 'key';
                     $items = preg_grep($regex, array_column($info['cache_list'], $key));
 
-                    self::walk($items, 'apc_delete');
+                    Util::walk($items, 'apc_delete');
                 }
                 break;
             case 'apcu':
@@ -1455,23 +1013,23 @@ final class App extends Magic
                     $key = array_key_exists('info', $info['cache_list'][0]) ? 'info' : 'key';
                     $items = preg_grep($regex, array_column($info['cache_list'], $key));
 
-                    self::walk($items, 'apcu_delete');
+                    Util::walk($items, 'apcu_delete');
                 }
                 break;
             case 'folder':
                 $files = glob($this->_hive['CACHE_REF'].$prefix.'*'.$suffix);
 
-                self::walk((array) $files, 'unlink');
+                Util::walk((array) $files, 'unlink');
                 break;
             case 'memcached':
                 $keys = preg_grep($regex, (array) $this->_hive['CACHE_REF']->getAllKeys());
 
-                self::walk($keys, array($this->_hive['CACHE_REF'], 'delete'));
+                Util::walk($keys, array($this->_hive['CACHE_REF'], 'delete'));
                 break;
             case 'redis':
                 $keys = $this->_hive['CACHE_REF']->keys($prefix.'*'.$suffix);
 
-                self::walk($keys, array($this->_hive['CACHE_REF'], 'del'));
+                Util::walk($keys, array($this->_hive['CACHE_REF'], 'del'));
                 break;
         }
 
@@ -1943,9 +1501,9 @@ final class App extends Magic
         $verb = strtoupper($tmp[0]);
         $targetExpr = urldecode($tmp[1]);
         $mode = strtolower($tmp[2] ?? 'none');
-        $target = self::cutbefore($targetExpr, '?');
-        $query = self::cutbefore(self::cutafter($targetExpr, '?', '', true), '#');
-        $fragment = self::cutafter($targetExpr, '#', '', true);
+        $target = Util::cutbefore($targetExpr, '?');
+        $query = Util::cutbefore(Util::cutafter($targetExpr, '?', '', true), '#');
+        $fragment = Util::cutafter($targetExpr, '#', '', true);
         $path = $target;
 
         if (isset($this->_hive['ROUTE_ALIASES'][$target])) {
@@ -2362,7 +1920,7 @@ final class App extends Magic
 
                 $now = time();
                 $verb = $this->_hive['VERB'];
-                $hash = self::hash($verb.' '.$this->_hive['URI']).'.url';
+                $hash = Util::hash($verb.' '.$this->_hive['URI']).'.url';
 
                 if ($ttl && in_array($verb, array('GET', 'HEAD'))) {
                     if ($this->isCached($hash, $cache)) {
@@ -2728,7 +2286,7 @@ final class App extends Magic
         }
 
         if ($fallback === $engine) {
-            $this->mkdir($ref);
+            Util::mkdir($ref);
         }
     }
 
@@ -2796,8 +2354,8 @@ final class App extends Magic
         $file = $files[0] ?? $prefix.date('Y-m-d').$ext;
         $content = date('Y-m-d G:i:s.u').' '.$level.' '.$message.PHP_EOL;
 
-        $this->mkdir(dirname($file));
-        $this->write($file, $content, true);
+        Util::mkdir(dirname($file));
+        Util::write($file, $content, true);
     }
 
     /**
@@ -2830,7 +2388,7 @@ final class App extends Magic
         $langCode = ltrim(preg_replace('/\h+|;q=[0-9.]+/', '', $this->_hive['LANGUAGE']).','.$this->_hive['FALLBACK'], ',');
         $languages = array();
 
-        foreach (self::split($langCode) as $lang) {
+        foreach (Util::split($langCode) as $lang) {
             if (preg_match('/^(\w{2})(?:-(\w{2}))?\b/i', $lang, $parts)) {
                 // Generic language
                 $languages[] = $parts[1];
@@ -2855,9 +2413,9 @@ final class App extends Magic
         $dict = array();
 
         foreach ($this->langLanguages() as $lang) {
-            foreach ($this->arr($this->_hive['LOCALES']) as $dir) {
+            foreach (Util::arr($this->_hive['LOCALES']) as $dir) {
                 if (is_file($file = $dir.$lang.'.php')) {
-                    $dict = array_replace_recursive($dict, $this->requireFile($file, array()));
+                    $dict = array_replace_recursive($dict, Util::requireFile($file, array()));
                 }
             }
         }

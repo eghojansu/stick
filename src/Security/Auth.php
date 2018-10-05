@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Fal\Stick\Security;
 
 use Fal\Stick\App;
+use Fal\Stick\Util;
 
 /**
  * Authentication utils.
@@ -241,7 +242,7 @@ class Auth
             return false;
         }
 
-        $use = $this->app->arr($checkRoles);
+        $use = Util::arr($checkRoles);
 
         if (array_intersect($use, $userRoles)) {
             return true;
@@ -324,7 +325,7 @@ class Auth
         $roles = array();
 
         if (array_key_exists($role, $this->options['roleHierarchy'])) {
-            $children = $this->app->arr($this->options['roleHierarchy'][$role]);
+            $children = Util::arr($this->options['roleHierarchy'][$role]);
 
             foreach ($children as $child) {
                 $roles = array_merge($roles, $this->getRoleHierarchy($child));

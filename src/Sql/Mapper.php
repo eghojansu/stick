@@ -15,6 +15,7 @@ namespace Fal\Stick\Sql;
 
 use Fal\Stick\App;
 use Fal\Stick\Magic;
+use Fal\Stick\Util;
 
 /**
  * Sql record mapper.
@@ -120,7 +121,7 @@ class Mapper extends Magic
     public function __construct(App $app, Connection $db, string $table = null, $fields = null, int $ttl = 60)
     {
         $driver = $db->getDriver();
-        $use = $table ?? $this->_table ?? $app->snakecase($app->classname($this));
+        $use = $table ?? $this->_table ?? Util::snakecase(Util::classname($this));
         $fix = Connection::DB_OCI === $driver ? strtoupper($use) : $use;
         $schema = $db->schema($fix, $fields, $ttl);
 
@@ -130,7 +131,7 @@ class Mapper extends Magic
         $this->_table = $use;
         $this->_fields = $schema;
         $this->_map = $db->quotekey($fix);
-        $this->_keys = array_keys(array_filter($app->column($schema, 'pkey')));
+        $this->_keys = array_keys(array_filter(Util::column($schema, 'pkey')));
         $this->reset();
     }
 
@@ -288,7 +289,7 @@ class Mapper extends Magic
         }
 
         $nullAdhoc = array_fill_keys(array_keys($this->_adhoc), array('value' => null));
-        $selfProps = array_filter($this->_app->column($this->_props, 'self'));
+        $selfProps = array_filter(Util::column($this->_props, 'self'));
         $this->_adhoc = array_replace_recursive($this->_adhoc, $nullAdhoc);
         $this->_props = array_intersect_key($this->_props, $selfProps);
         $this->_query = array();
@@ -334,7 +335,7 @@ class Mapper extends Magic
     {
         $keys = array_flip($this->_keys);
 
-        return $this->_app->column(array_merge($keys, array_intersect_key($this->_fields, $keys)), 'initial');
+        return Util::column(array_merge($keys, array_intersect_key($this->_fields, $keys)), 'initial');
     }
 
     /**
@@ -366,7 +367,7 @@ class Mapper extends Magic
      */
     public function toArray(callable $transformer = null): array
     {
-        $result = $this->_app->column($this->_fields + $this->_adhoc + $this->_props, 'value');
+        $result = Util::column($this->_fields + $this->_adhoc + $this->_props, 'value');
 
         return $transformer ? call_user_func_array($transformer, array($result)) : $result;
     }
@@ -456,7 +457,7 @@ class Mapper extends Magic
      */
     public function withId($ids): Mapper
     {
-        $fix = $this->_app->arr($ids);
+        $fix = Util::arr($ids);
         $vcount = count($fix);
         $pcount = count($this->_keys);
 
@@ -960,20 +961,20 @@ class Mapper extends Magic
         $mMethod = $method;
         $mArgs = $args;
 
-        if ($this->_app->startswith($lmethod, 'get')) {
-            $field = $this->_app->snakecase($this->_app->cutprefix($lmethod, 'get'));
+        if (Util::startswith($lmethod, 'get')) {
+            $field = Util::snakecase(Util::cutprefix($lmethod, 'get'));
             array_unshift($mArgs, $field);
             $mMethod = 'get';
-        } elseif ($this->_app->startswith($lmethod, 'findby')) {
-            $field = $this->_app->snakecase($this->_app->cutprefix($lmethod, 'findby'));
+        } elseif (Util::startswith($lmethod, 'findby')) {
+            $field = Util::snakecase(Util::cutprefix($lmethod, 'findby'));
             $mArgs = $this->fieldArgs($field, $args);
             $mMethod = 'find';
-        } elseif ($this->_app->startswith($lmethod, 'findoneby')) {
-            $field = $this->_app->snakecase($this->_app->cutprefix($lmethod, 'findoneby'));
+        } elseif (Util::startswith($lmethod, 'findoneby')) {
+            $field = Util::snakecase(Util::cutprefix($lmethod, 'findoneby'));
             $mArgs = $this->fieldArgs($field, $args);
             $mMethod = 'findone';
-        } elseif ($this->_app->startswith($lmethod, 'loadby')) {
-            $field = $this->_app->snakecase($this->_app->cutprefix($lmethod, 'loadby'));
+        } elseif (Util::startswith($lmethod, 'loadby')) {
+            $field = Util::snakecase(Util::cutprefix($lmethod, 'loadby'));
             $mArgs = $this->fieldArgs($field, $args);
             $mMethod = 'load';
         } else {

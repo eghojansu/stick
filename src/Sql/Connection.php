@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Fal\Stick\Sql;
 
 use Fal\Stick\App;
+use Fal\Stick\Util;
 
 /**
  * PDO Wrapper.
@@ -266,7 +267,7 @@ class Connection
             try {
                 $this->pdo = new \PDO((string) $o['dsn'], (string) $o['username'], (string) $o['password'], $o['options']);
 
-                $this->app->walk((array) $o['commands'], array($this->pdo, 'exec'));
+                Util::walk((array) $o['commands'], array($this->pdo, 'exec'));
             } catch (\PDOException $e) {
                 $this->app->log(App::LOG_LEVEL_EMERGENCY, $e->getMessage());
 
@@ -506,7 +507,7 @@ class Connection
     {
         $start = microtime(true);
         $message = '(%.1f) %sRetrieving table "%s" schema';
-        $hash = $this->app->hash($table.var_export($fields, true)).'.schema';
+        $hash = Util::hash($table.var_export($fields, true)).'.schema';
         $db = $this->getDbName();
 
         if ($ttl && $this->app->isCached($hash, $data)) {
@@ -524,7 +525,7 @@ class Connection
         $query = $this->pdo()->query($cmd[0]);
         $schema = $query->fetchAll(\PDO::FETCH_ASSOC);
         $rows = array();
-        $check = $this->app->arr($fields);
+        $check = Util::arr($fields);
 
         foreach ($schema as $row) {
             if (!$check || in_array($row[$cmd[1]], $check)) {
@@ -987,7 +988,7 @@ class Connection
      */
     private function schemaDefaultValue(string $value)
     {
-        return $this->app->cast(preg_replace('/^\s*([\'"])(.*)\1\s*/', '\2', $value));
+        return Util::cast(preg_replace('/^\s*([\'"])(.*)\1\s*/', '\2', $value));
     }
 
     /**

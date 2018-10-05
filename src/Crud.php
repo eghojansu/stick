@@ -178,8 +178,8 @@ class Crud
             'searchable' => $this->options['searchable'],
         );
         $complement = array(
-            'title' => $this->options['title'] ?? 'Manage '.$this->app->titleCase($this->getMapper()->table()),
-            'subtitle' => $this->options['subtitle'] ?? $this->app->titleCase($state),
+            'title' => $this->options['title'] ?? 'Manage '.Util::titleCase($this->getMapper()->table()),
+            'subtitle' => $this->options['subtitle'] ?? Util::titleCase($state),
         );
 
         return $out ? $this->template->render($view, array(
@@ -196,7 +196,7 @@ class Crud
      */
     public function disabled($states): Crud
     {
-        $this->options['states'] = array_fill_keys($this->app->arr($states), false) + $this->options['states'];
+        $this->options['states'] = array_fill_keys(Util::arr($states), false) + $this->options['states'];
 
         return $this;
     }
@@ -323,7 +323,7 @@ class Crud
         $this->fields = array_fill_keys($keys, array());
 
         foreach ($fields as $field => $def) {
-            $label = $this->app->trans($field, null, $this->app->titleCase($field));
+            $label = $this->app->trans($field, null, Util::titleCase($field));
             $this->fields[$field] = ((array) $def) + array('label' => $label);
         }
     }
@@ -339,8 +339,8 @@ class Crud
     {
         $filters = array();
 
-        foreach ($keyword ? $this->app->arr($this->options['searchable']) : array() as $field) {
-            $filters[$field] = $this->app->endswith($field, '~') ? '%'.$keyword.'%' : $keyword;
+        foreach ($keyword ? Util::arr($this->options['searchable']) : array() as $field) {
+            $filters[$field] = Util::endswith($field, '~') ? '%'.$keyword.'%' : $keyword;
         }
 
         return $filters;
