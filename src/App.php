@@ -31,7 +31,7 @@ final class App extends Magic
     const REQ_ALL = 0;
     const REQ_AJAX = 1;
     const REQ_CLI = 2;
-    const REQ_SYNC = 4;
+    const REQ_SYNC = 3;
 
     const EVENT_BOOT = 'app_boot';
     const EVENT_SHUTDOWN = 'app_shutdown';
@@ -1902,10 +1902,10 @@ final class App extends Magic
         }
 
         $ptr = ++$this->_hive['ROUTE_HANDLER_CTR'];
-        $bitwiseMode = constant('self::REQ_'.strtoupper($mode));
+        $mMode = constant('self::REQ_'.strtoupper($mode));
 
         foreach (array_filter(explode('|', strtoupper($verbs))) as $verb) {
-            $this->_hive['ROUTES'][$path][$bitwiseMode][$verb] = $ptr;
+            $this->_hive['ROUTES'][$path][$mMode][$verb] = $ptr;
         }
 
         $this->_hive['ROUTE_HANDLERS'][$ptr] = array(
@@ -2520,12 +2520,12 @@ final class App extends Magic
      */
     private function findController(array $routes, array $args): ?array
     {
-        $mode = $this->requestMode();
-        $route = $routes[$mode] ?? $routes[self::REQ_ALL] ?? array();
+        $mode = $this->_hive['AJAX'] ? self::REQ_AJAX : ($this->_hive['CLI'] ? self::REQ_CLI : self::REQ_SYNC);
+        $route = $routes[$mode] ?? $routes[self::REQ_ALL] ?? null;
+        $handlerId = $route[$this->_hive['VERB']] ?? null;
         $controller = null;
 
-        if (isset($route[$this->_hive['VERB']])) {
-            $handlerId = $route[$this->_hive['VERB']];
+        if (isset($handlerId)) {
             $controller = $this->_hive['ROUTE_HANDLERS'][$handlerId];
             $handler = &$controller[0];
 
@@ -2545,24 +2545,6 @@ final class App extends Magic
         }
 
         return $controller;
-    }
-
-    /**
-     * Returns current request mode bitwise.
-     *
-     * @return int
-     */
-    private function requestMode(): int
-    {
-        if ($this->_hive['AJAX']) {
-            return self::REQ_AJAX;
-        }
-
-        if ($this->_hive['CLI']) {
-            return self::REQ_CLI;
-        }
-
-        return self::REQ_SYNC;
     }
 
     /**
