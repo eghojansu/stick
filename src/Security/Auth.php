@@ -115,8 +115,7 @@ class Auth
      */
     public function login(UserInterface $user): Auth
     {
-        $event = new AuthEvent($user);
-        $this->app->trigger(self::EVENT_LOGIN, $event);
+        $this->app->trigger(self::EVENT_LOGIN, array($this, $user));
 
         $this->user = $user;
         $this->app->set(self::SESSION_KEY, $user->getId());
@@ -131,8 +130,8 @@ class Auth
      */
     public function logout(): Auth
     {
-        $event = new AuthEvent($this->getUser());
-        $this->app->trigger(self::EVENT_LOGOUT, $event);
+        $user = $this->getUser();
+        $this->app->trigger(self::EVENT_LOGOUT, array($this, $user));
 
         $this->userLoaded = false;
         $this->user = null;
@@ -152,12 +151,7 @@ class Auth
             return $this->user;
         }
 
-        $event = new AuthEvent();
-        $this->app->trigger(self::EVENT_LOAD_USER, $event);
-
-        if ($event->isPropagationStopped()) {
-            $this->user = $event->getUser();
-        } elseif ($userId = $this->getSessionUserId()) {
+        if (!$this->app->trigger(self::EVENT_LOAD_USER, array($this)) && $userId = $this->getSessionUserId()) {
             $this->user = $this->provider->findById($userId);
         }
 

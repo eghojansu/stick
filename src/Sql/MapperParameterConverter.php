@@ -14,7 +14,7 @@ declare(strict_types=1);
 namespace Fal\Stick\Sql;
 
 use Fal\Stick\App;
-use Fal\Stick\ResponseException;
+use Fal\Stick\HttpException;
 
 /**
  * Helper to convert parameter to Mapper.
@@ -85,6 +85,16 @@ final class MapperParameterConverter
     }
 
     /**
+     * Returns true if handler require mapper parameter.
+     *
+     * @return bool
+     */
+    public function hasMapper(): bool
+    {
+        return (bool) $this->mappers;
+    }
+
+    /**
      * Resolve parameters.
      *
      * @return array
@@ -113,7 +123,7 @@ final class MapperParameterConverter
      *
      * @return Mapper
      *
-     * @throws ResponseException if record not found
+     * @throws HttpException if record not found
      */
     private function resolveMapper(string $class): Mapper
     {
@@ -123,14 +133,14 @@ final class MapperParameterConverter
         $vals = array_slice($this->params, $this->ptr, $kcount);
         $vcount = count($vals);
 
-        call_user_func_array(array($mapper, 'withId'), array($vals));
+        $mapper->withId($vals);
 
         if ($mapper->dry()) {
             $message = 'Record of '.$mapper->getTable().' is not found.';
             $args = array_combine(explode(',', '%'.implode('%,%', $keys).'%'), $vals);
             $response = $this->app->transAlt('message.record_not_found', $args, $message);
 
-            throw new ResponseException(404, $response);
+            throw new HttpException($response, 404);
         }
 
         $this->ptr += $kcount;

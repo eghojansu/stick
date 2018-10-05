@@ -555,10 +555,7 @@ class Mapper extends Magic
         $inc = null;
         $driver = $this->_driver;
 
-        $event = new MapperEvent($this);
-        $this->_app->trigger(self::EVENT_INSERT, $event);
-
-        if ($event->isPropagationStopped()) {
+        if ($this->_app->trigger(self::EVENT_INSERT, array($this))) {
             return $this;
         }
 
@@ -604,8 +601,7 @@ class Mapper extends Magic
             $this->load($filter);
         }
 
-        $event = new MapperEvent($this);
-        $this->_app->trigger(self::EVENT_AFTER_INSERT, $event);
+        $this->_app->trigger(self::EVENT_AFTER_INSERT, array($this));
 
         return $this;
     }
@@ -623,10 +619,7 @@ class Mapper extends Magic
         $filter = '';
         $changes = array();
 
-        $event = new MapperEvent($this);
-        $this->_app->trigger(self::EVENT_UPDATE, $event);
-
-        if ($event->isPropagationStopped()) {
+        if ($this->_app->trigger(self::EVENT_UPDATE, array($this))) {
             return $this;
         }
 
@@ -660,9 +653,7 @@ class Mapper extends Magic
 
         // reset changed flag after calling afterupdate
         $this->_fields = $changes;
-
-        $event = new MapperEvent($this);
-        $this->_app->trigger(self::EVENT_AFTER_UPDATE, $event);
+        $this->_app->trigger(self::EVENT_AFTER_UPDATE, array($this));
 
         return $this;
     }
@@ -709,10 +700,7 @@ class Mapper extends Magic
             $args[++$ctr] = array($field['initial'], $field['pdo_type']);
         }
 
-        $event = new MapperEvent($this);
-        $this->_app->trigger(self::EVENT_DELETE, $event);
-
-        if ($event->isPropagationStopped()) {
+        if ($this->_app->trigger(self::EVENT_DELETE, array($this))) {
             return 0;
         }
 
@@ -722,8 +710,7 @@ class Mapper extends Magic
         $this->_query = array_slice($this->_query, 0, $this->_ptr, true) +
                        array_slice($this->_query, $this->_ptr, null, true);
 
-        $event = new MapperEvent($this);
-        $this->_app->trigger(self::EVENT_AFTER_DELETE, $event);
+        $this->_app->trigger(self::EVENT_AFTER_DELETE, array($this));
         $this->first();
 
         return $out;
@@ -928,8 +915,7 @@ class Mapper extends Magic
 
         $mapper->_query = array(clone $mapper);
 
-        $event = new MapperEvent($mapper);
-        $this->_app->trigger(self::EVENT_LOAD, $event);
+        $this->_app->trigger(self::EVENT_LOAD, array($mapper));
 
         return $mapper;
     }

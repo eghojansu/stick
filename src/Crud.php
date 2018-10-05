@@ -416,7 +416,7 @@ class Crud
         $this->getMapper()->load($this->prepareItemFilters());
 
         if ($this->mapper->dry()) {
-            throw new ResponseException(404);
+            throw new HttpException(null, 404);
         }
 
         $this->data['item'] = $this->mapper;

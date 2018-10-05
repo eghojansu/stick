@@ -73,8 +73,10 @@ class AuthTest extends TestCase
 
     public function testGetUser()
     {
-        $this->app->one('auth_load_user', function ($event) {
-            $event->setUser($this->createUser());
+        $this->app->one('auth_load_user', function (Auth $auth) {
+            $auth->setUser($this->createUser());
+
+            return true;
         });
 
         $user = $this->auth->getUser();
@@ -102,8 +104,10 @@ class AuthTest extends TestCase
     public function testLogin()
     {
         $user = $this->createUser();
-        $this->app->one('auth_login', function ($event) {
-            $event->getUser()->setCredentialsExpired(true);
+        $this->app->one('auth_login', function ($auth, $user) {
+            $user->setCredentialsExpired(true);
+
+            return true;
         });
 
         $user = $this->auth->login($user)->getUser();

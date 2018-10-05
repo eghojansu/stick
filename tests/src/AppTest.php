@@ -14,9 +14,7 @@ declare(strict_types=1);
 namespace Fal\Stick\Test;
 
 use Fal\Stick\App;
-use Fal\Stick\Event;
-use Fal\Stick\GetControllerArgsEvent;
-use Fal\Stick\ResponseException;
+use Fal\Stick\HttpException;
 use Fal\Stick\Sql\Connection;
 use Fal\Stick\Sql\MapperParameterConverter;
 use PHPUnit\Framework\TestCase;
@@ -114,8 +112,8 @@ class AppTest extends TestCase
 
         $this->assertInstanceOf(App::class, $app);
         $this->assertNotSame($this->app, $app);
-        $this->assertNull($app->get('REQUEST'));
-        $this->assertNull($app->get('QUERY'));
+        $this->assertNull($app->get('POST'));
+        $this->assertNull($app->get('GET'));
     }
 
     public function testCreateFromGlobals()
@@ -124,8 +122,8 @@ class AppTest extends TestCase
 
         $this->assertInstanceOf(App::class, $app);
         $this->assertNotSame($this->app, $app);
-        $this->assertEquals($app->get('REQUEST'), $_POST);
-        $this->assertEquals($app->get('QUERY'), $_GET);
+        $this->assertEquals($app->get('POST'), $_POST);
+        $this->assertEquals($app->get('GET'), $_GET);
     }
 
     public function testSplit()
@@ -306,7 +304,7 @@ class AppTest extends TestCase
     {
         $this->app->mset(array(
             'SERVER.HTTP_X_HTTP_METHOD_OVERRIDE' => 'POST',
-            'REQUEST._method' => 'put',
+            'POST._method' => 'put',
         ));
 
         $this->assertEquals('PUT', $this->app->overrideRequestMethod()->get('VERB'));
@@ -331,14 +329,14 @@ class AppTest extends TestCase
         ))->emulateCliRequest();
         $this->assertEquals('/foo', $this->app->get('PATH'));
         $this->assertEquals('/foo?bar=baz&qux', $this->app->get('URI'));
-        $this->assertEquals(array('bar' => 'baz', 'qux' => ''), $this->app->get('QUERY'));
+        $this->assertEquals(array('bar' => 'baz', 'qux' => ''), $this->app->get('GET'));
 
         $this->app->mset(array(
             'SERVER.argv' => array($entry, '/foo#bar'),
         ))->emulateCliRequest();
         $this->assertEquals('/foo', $this->app->get('PATH'));
         $this->assertEquals('/foo#bar', $this->app->get('URI'));
-        $this->assertEquals(array(), $this->app->get('QUERY'));
+        $this->assertEquals(array(), $this->app->get('GET'));
         $this->assertEquals('bar', $this->app->get('FRAGMENT'));
 
         $this->app->mset(array(
@@ -346,7 +344,7 @@ class AppTest extends TestCase
         ))->emulateCliRequest();
         $this->assertEquals('/foo', $this->app->get('PATH'));
         $this->assertEquals('/foo?bar=baz&qux#quux', $this->app->get('URI'));
-        $this->assertEquals(array('bar' => 'baz', 'qux' => ''), $this->app->get('QUERY'));
+        $this->assertEquals(array('bar' => 'baz', 'qux' => ''), $this->app->get('GET'));
         $this->assertEquals('quux', $this->app->get('FRAGMENT'));
 
         $this->app->mset(array(
@@ -354,7 +352,7 @@ class AppTest extends TestCase
         ))->emulateCliRequest();
         $this->assertEquals('/foo/bar', $this->app->get('PATH'));
         $this->assertEquals('/foo/bar?bar=baz&f=&o=', $this->app->get('URI'));
-        $this->assertEquals(array('f' => '', 'o' => '', 'bar' => 'baz'), $this->app->get('QUERY'));
+        $this->assertEquals(array('f' => '', 'o' => '', 'bar' => 'baz'), $this->app->get('GET'));
     }
 
     public function testOffsetExists()
@@ -593,15 +591,14 @@ class AppTest extends TestCase
     {
         $this->app->on('foo', 'bar');
 
-        $this->assertEquals('bar', $this->app->get('EVENTS.foo'));
+        $this->assertEquals(array('bar', false), $this->app->get('EVENTS.foo'));
     }
 
     public function testOne()
     {
         $this->app->one('foo', 'bar');
 
-        $this->assertEquals('bar', $this->app->get('EVENTS.foo'));
-        $this->assertTrue($this->app->get('EVENTS_ONCE.foo'));
+        $this->assertEquals(array('bar', true), $this->app->get('EVENTS.foo'));
     }
 
     public function testOff()
@@ -609,7 +606,6 @@ class AppTest extends TestCase
         $this->app->one('foo', 'bar')->off('foo');
 
         $this->assertNull($this->app->get('EVENTS.foo'));
-        $this->assertNull($this->app->get('EVENTS_ONCE.foo'));
     }
 
     public function testInstance()
@@ -723,8 +719,8 @@ class AppTest extends TestCase
     }
 
     /**
-     * @expectedException \BadFunctionCallException
-     * @expectedExceptionMessage Call to undefined function xxxfooxxx.
+     * @expectedException \ReflectionException
+     * @expectedExceptionMessage Function xxxfooxxx() does not exist
      */
     public function testCallException()
     {
@@ -732,8 +728,8 @@ class AppTest extends TestCase
     }
 
     /**
-     * @expectedException \BadMethodCallException
-     * @expectedExceptionMessage Call to undefined method DateTime::xxxfooxxx.
+     * @expectedException \ReflectionException
+     * @expectedExceptionMessage Method DateTime::xxxfooxxx() does not exist
      */
     public function testCallException2()
     {
@@ -752,16 +748,13 @@ class AppTest extends TestCase
 
     public function testTrigger()
     {
-        $event = new Event();
-        $this->app->trigger('foo', $event);
-        $this->assertFalse($event->isPropagationStopped());
+        $this->assertFalse($this->app->trigger('foo'));
 
-        $this->app->one('foo', function ($event) {
-            $event->stopPropagation();
+        $this->app->on('foo', function () {
+            return true;
         });
-        $event = new Event();
-        $this->app->trigger('foo', $event);
-        $this->assertTrue($event->isPropagationStopped());
+        $this->assertTrue($this->app->trigger('foo', null, true));
+        $this->assertFalse($this->app->trigger('foo'));
     }
 
     public function errorProvider()
@@ -812,13 +805,15 @@ class AppTest extends TestCase
         $this->app->mset(array(
             'CLI' => true,
             'QUIET' => true,
-        ))->one('app_error', function ($event) {
-            $event->setResponse('foo - '.$event->getStatus());
+        ))->one('app_error', function (App $app, $message) {
+            $app->set('RESPONSE', 'foo - '.$message);
+
+            return true;
         });
 
-        $this->app->error(404);
+        $this->app->error(404, 'bar');
 
-        $this->assertEquals('foo - Not Found', $this->app->get('RESPONSE'));
+        $this->assertEquals('foo - bar', $this->app->get('RESPONSE'));
     }
 
     public function testErrorPrior()
@@ -977,7 +972,7 @@ class AppTest extends TestCase
                 return 'Displaying details of product: '.$name;
             })
             ->route('GET query /query', function (App $app) {
-                return 'Query: ?'.http_build_query($app->get('QUERY'));
+                return 'Query: ?'.http_build_query($app->get('GET'));
             })
             ->route('GET fragment /fragment', function (App $app) {
                 return 'Fragment: #'.$app->get('FRAGMENT');
@@ -997,9 +992,10 @@ class AppTest extends TestCase
 
     public function testRerouteHandler()
     {
-        $this->app->one('app_reroute', function (App $app, $event) {
-            $app->set('rerouted_to', $event->getUrl());
-            $event->stopPropagation();
+        $this->app->one('app_reroute', function (App $app, $url) {
+            $app->set('rerouted_to', $url);
+
+            return true;
         });
 
         $this->app->reroute('/unknown-route');
@@ -1048,17 +1044,6 @@ class AppTest extends TestCase
         }
     }
 
-    public function testRunNoRoute()
-    {
-        $this->app->mset(array(
-            'CLI' => true,
-            'QUIET' => true,
-        ));
-
-        $this->app->run();
-        $this->assertContains('No route specified.', $this->app->get('RESPONSE'));
-    }
-
     public function testRunInterception()
     {
         $this->app->mset(array(
@@ -1067,25 +1052,12 @@ class AppTest extends TestCase
         $this->registerRoutes();
 
         // Intercept before route
-        $this->app->one('app_route', function ($event) {
-            $event->setResponse('Intercepted');
+        $this->app->one('app_pre_route', function (App $app) {
+            $app->set('RESPONSE', 'Intercepted');
+
+            return true;
         })->run();
         $this->assertEquals('Intercepted', $this->app->get('RESPONSE'));
-    }
-
-    public function testRunInterception2()
-    {
-        $this->app->mset(array(
-            'QUIET' => true,
-        ));
-        $this->registerRoutes();
-
-        // Send response in event
-        $this->app->set('RESPONSE', 'foo')->one('app_route', function ($event) {
-            $this->app->send();
-            $event->setResponse('bar');
-        })->run();
-        $this->assertEquals('foo', $this->app->get('RESPONSE'));
     }
 
     public function testRunModification()
@@ -1099,8 +1071,10 @@ class AppTest extends TestCase
             'ERROR' => false,
             'PATH' => '/str',
         ));
-        $this->app->one('app_after_route', function ($event) {
-            $event->setResponse('Modified');
+        $this->app->one('app_post_route', function (App $app) {
+            $app->set('RESPONSE', 'Modified');
+
+            return true;
         })->run();
         $this->assertEquals('Modified', $this->app->get('RESPONSE'));
     }
@@ -1111,7 +1085,7 @@ class AppTest extends TestCase
             'QUIET' => true,
         ));
         $this->app->route('GET /', function () {
-            throw new ResponseException(404, 'Data not found.');
+            throw new HttpException('Data not found.', 404);
         });
         $this->app->run();
 
@@ -1165,20 +1139,6 @@ class AppTest extends TestCase
         $this->app->mock('GET /go-far-away cli');
 
         $this->assertEquals('You are home.', $this->app->get('RESPONSE'));
-    }
-
-    public function testHandleException()
-    {
-        $this->app->set('QUIET', true);
-
-        $this->app->handleException(new \Exception('Exception handled.'));
-        $this->assertEquals(500, $this->app->get('CODE'));
-        $this->assertContains('Exception handled.', $this->app->get('RESPONSE'));
-
-        $this->app->set('ERROR', false);
-        $this->app->handleException(new ResponseException(404));
-        $this->assertEquals(404, $this->app->get('CODE'));
-        $this->assertContains('HTTP 404 (GET /)', $this->app->get('RESPONSE'));
     }
 
     public function testHash()
@@ -1385,9 +1345,9 @@ class AppTest extends TestCase
         $this->app->cacheReset();
     }
 
-    public function testEllapsedTime()
+    public function testEllapsed()
     {
-        $this->assertContains('seconds', $this->app->ellapsedTime());
+        $this->assertContains('seconds', $this->app->ellapsed());
     }
 
     public function testLogFiles()
@@ -1647,15 +1607,8 @@ class AppTest extends TestCase
         $this->app->mock('GET /foo');
         $this->assertEquals($this->app->get('BASEURL').'/', $this->app->get('HEADERS.Location'));
 
-        $event = new Event();
-        $this->assertFalse($event->isPropagationStopped());
-        $this->app->trigger('foo', $event);
-        $this->assertTrue($event->isPropagationStopped());
-
-        $event = new Event();
-        $this->assertFalse($event->isPropagationStopped());
-        $this->app->trigger('foo_once', $event);
-        $this->assertTrue($event->isPropagationStopped());
+        $this->assertTrue($this->app->trigger('foo'));
+        $this->assertTrue($this->app->trigger('foo_once'));
 
         $this->assertInstanceOf('DateTime', $this->app->service('foo'));
     }
@@ -1706,10 +1659,12 @@ class AppTest extends TestCase
                 $db->pdo()->exec('insert into user (username) values ("foo"), ("bar"), ("baz")');
             },
         ));
-        $this->app->on('app_controller_args', function (App $app, Connection $db, GetControllerArgsEvent $event) {
-            $converter = new MapperParameterConverter($app, $db, $event->getController(), $event->getArgs());
+        $this->app->on('app_controller_args', function (App $app, Connection $db, $controller, $args) {
+            $converter = new MapperParameterConverter($app, $db, $controller, $args);
 
-            $event->setArgs($converter->resolve());
+            if ($converter->hasMapper()) {
+                $app->set('CONTROLLER_ARGS', $converter->resolve());
+            }
         });
         $this->app->route('GET /users/@user/@info', function (\Fixture\Mapper\User $user, $info) {
             return 'User with id: '.$user->get('id').', username: '.$user->get('username').', info: '.$info;
@@ -1763,5 +1718,21 @@ class AppTest extends TestCase
 
         $this->assertEquals('/bar', $this->app->get('ROUTE_ALIASES.foo'));
         $this->assertEquals('/baz', $this->app->get('ROUTE_ALIASES.bar'));
+    }
+
+    public function testTrace()
+    {
+        $trace = array(
+            array(
+                'file' => __FILE__,
+                'class' => __CLASS__,
+                'function' => __FUNCTION__,
+                'type' => '->',
+                'line' => 20,
+            ),
+        );
+        $expected = '['.__FILE__.':20] '.__CLASS__.'->'.__FUNCTION__."\n";
+
+        $this->assertEquals($expected, $this->app->trace($trace));
     }
 }

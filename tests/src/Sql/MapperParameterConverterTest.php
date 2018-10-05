@@ -97,7 +97,7 @@ class MapperParameterConverterTest extends TestCase
     }
 
     /**
-     * @expectedException \Fal\Stick\ResponseException
+     * @expectedException \Fal\Stick\HttpException
      * @expectedExceptionMessage Record of user is not found.
      */
     public function testResolveMapperException()
@@ -107,5 +107,23 @@ class MapperParameterConverterTest extends TestCase
         $this->prepare($handler, $params);
 
         $this->converter->resolve();
+    }
+
+    public function hasMapperProvider()
+    {
+        return array(
+            array(true, function (\Fixture\Mapper\User $user) {}),
+            array(false, function ($user) {}),
+        );
+    }
+
+    /**
+     * @dataProvider hasMapperProvider
+     */
+    public function testHasMapper($expected, $handler)
+    {
+        $this->prepare($handler, array('user' => 'foo'));
+
+        $this->assertEquals($expected, $this->converter->hasMapper());
     }
 }

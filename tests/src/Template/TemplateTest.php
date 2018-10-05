@@ -70,8 +70,8 @@ class TemplateTest extends TestCase
     }
 
     /**
-     * @expectedException \BadFunctionCallException
-     * @expectedExceptionMessage Call to undefined function "unknown_function".
+     * @expectedException \Error
+     * @expectedExceptionMessage Call to undefined function unknown_function()
      */
     public function testCallException()
     {
@@ -121,18 +121,5 @@ class TemplateTest extends TestCase
         $actual = $this->template->call('macro', array(FIXTURE.'template/macros/foo.php'));
 
         $this->assertEquals($expected, $actual);
-    }
-
-    public function testRenderEvent()
-    {
-        $this->app->on('template_render', function ($event) {
-            $event->setContent('bar');
-        });
-        $this->app->on('template_after_render', function ($event) {
-            $event->setContent('baz');
-        });
-        $content = $this->template->render('foo.php');
-
-        $this->assertEquals('baz', $content);
     }
 }

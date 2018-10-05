@@ -22,10 +22,6 @@ use Fal\Stick\App;
  */
 final class Template
 {
-    // events
-    const EVENT_RENDER = 'template_render';
-    const EVENT_AFTER_RENDER = 'template_after_render';
-
     /**
      * @var App
      */
@@ -135,6 +131,9 @@ final class Template
      */
     public function call(string $func, array $args = null)
     {
+        $call = $func;
+        $mArgs = (array) $args;
+
         if (isset($this->funcs[$func])) {
             $call = $this->funcs[$func];
         } elseif (in_array(strtolower($func), array('e', 'filter', 'macro'))) {
@@ -145,12 +144,10 @@ final class Template
             $call = $func;
         } elseif ($macro = $this->findMacro($func)) {
             $call = array($this, '_macro');
-            $args = array($macro, $args);
-        } else {
-            throw new \BadFunctionCallException('Call to undefined function "'.$func.'".');
+            $mArgs = array($macro, $args);
         }
 
-        return call_user_func_array($call, (array) $args);
+        return $call(...$mArgs);
     }
 
     /**
@@ -164,23 +161,13 @@ final class Template
      */
     public function render(string $file, array $data = null, string $mime = 'text/html'): string
     {
-        $event = new TemplateEvent($file, $data, $mime);
-        $this->app->trigger(self::EVENT_RENDER, $event);
+        $template = new TemplateFile($this->app, $this, $file, $data);
+        $content = $template->render();
 
-        if ($event->isPropagationStopped()) {
-            $content = $event->getContent();
-        } else {
-            $template = new TemplateFile($this->app, $this, $file, $event->getData());
-            $content = $template->render();
+        $this->app->set('HEADERS.Content-Type', $mime);
+        $this->app->set('HEADERS.Content-Length', strlen($content));
 
-            $this->app->set('HEADERS.Content-Type', $mime);
-            $this->app->set('HEADERS.Content-Length', strlen($content));
-        }
-
-        $event = new TemplateEvent($file, $event->getData(), $mime, $content);
-        $this->app->trigger(self::EVENT_AFTER_RENDER, $event);
-
-        return $event->getContent();
+        return $content;
     }
 
     /**

@@ -13,16 +13,16 @@ declare(strict_types=1);
 
 namespace Fal\Stick\Test;
 
-use Fal\Stick\ResponseException;
+use Fal\Stick\HttpException;
 use PHPUnit\Framework\TestCase;
 
-class ResponseExceptionTest extends TestCase
+class HttpExceptionTest extends TestCase
 {
-    /**
-     * @expectedException \Fal\Stick\ResponseException
-     */
-    public function testConstruct()
+    public function testGetHeaders()
     {
-        throw new ResponseException(500);
+        $e = new HttpException('foo');
+
+        $this->assertEquals('foo', $e->getMessage());
+        $this->assertEquals(array(), $e->getHeaders());
     }
 }

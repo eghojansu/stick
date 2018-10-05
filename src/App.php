@@ -35,8 +35,8 @@ final class App extends Magic
 
     const EVENT_BOOT = 'app_boot';
     const EVENT_SHUTDOWN = 'app_shutdown';
-    const EVENT_ROUTE = 'app_route';
-    const EVENT_AFTER_ROUTE = 'app_after_route';
+    const EVENT_PRE_ROUTE = 'app_pre_route';
+    const EVENT_POST_ROUTE = 'app_post_route';
     const EVENT_CONTROLLER_ARGS = 'app_controller_args';
     const EVENT_REROUTE = 'app_reroute';
     const EVENT_ERROR = 'app_error';
@@ -123,12 +123,12 @@ final class App extends Magic
     /**
      * Class constructor.
      *
-     * @param array|null $server  Equivalent to $_SERVER
-     * @param array|null $request Equivalent to $_POST
-     * @param array|null $query   Equivalent to $_GET
-     * @param array|null $cookie  Equivalent to $_COOKIE
+     * @param array|null $get    Equivalent to $_GET
+     * @param array|null $post   Equivalent to $_POST
+     * @param array|null $server Equivalent to $_SERVER
+     * @param array|null $cookie Equivalent to $_COOKIE
      */
-    public function __construct(array $server = null, array $request = null, array $query = null, array $cookie = null)
+    public function __construct(array $get = null, array $post = null, array $server = null, array $cookie = null)
     {
         $now = microtime(true);
         $charset = 'UTF-8';
@@ -164,7 +164,7 @@ final class App extends Magic
             'httponly' => true,
         );
 
-        $this->_init = $this->_hive = array(
+        $this->_hive = array(
             'AGENT' => $server['HTTP_X_OPERAMINI_PHONE_UA'] ?? $server['HTTP_X_SKYFIRE_PHONE'] ?? $server['HTTP_USER_AGENT'] ?? '',
             'AJAX' => 'XMLHttpRequest' === ($server['HTTP_X_REQUESTED_WITH'] ?? null),
             'ALIAS' => null,
@@ -177,19 +177,20 @@ final class App extends Magic
             'CASELESS' => false,
             'CLI' => $cli,
             'CODE' => 200,
+            'CONTROLLER' => null,
+            'CONTROLLER_ARGS' => null,
             'COOKIE' => $cookie,
             'DEBUG' => 0,
             'DICT' => null,
             'DNSBL' => null,
-            'DRY' => true,
             'ENCODING' => $charset,
             'ENTRY' => $entry,
             'ERROR' => false,
             'EVENTS' => null,
-            'EVENTS_ONCE' => null,
             'EXEMPT' => null,
             'FALLBACK' => 'en',
             'FRAGMENT' => $url['fragment'] ?? null,
+            'GET' => $get,
             'HEADERS' => null,
             'HOST' => $host,
             'IP' => $server['HTTP_X_CLIENT_IP'] ?? self::cutbefore($server['HTTP_X_FORWARDED_FOR'] ?? '', ',', $server['REMOTE_ADDR'] ?? ''),
@@ -203,12 +204,11 @@ final class App extends Magic
             'PATH' => self::cutprefix(self::cutprefix(urldecode($url['path']), $base), $entry, '/'),
             'PATTERN' => null,
             'PORT' => $port,
+            'POST' => $post,
             'PROTOCOL' => $server['SERVER_PROTOCOL'] ?? 'HTTP/1.0',
-            'QUERY' => $query,
             'QUIET' => false,
             'RAW' => false,
             'REALM' => $baseUrl.$uri,
-            'REQUEST' => $request,
             'RESPONSE' => null,
             'ROUTE_ALIASES' => array(),
             'ROUTE_HANDLER_CTR' => -1,
@@ -233,22 +233,22 @@ final class App extends Magic
             'VERSION' => self::VERSION,
             'XFRAME' => 'SAMEORIGIN',
         );
-        $this->_init['QUERY'] = $this->_init['REQUEST'] = null;
+        $this->_init = array('GET' => null, 'POST' => null) + $this->_hive;
     }
 
     /**
      * Create App instance with ease.
      *
-     * @param array|null $server  Equivalent to $_SERVER
-     * @param array|null $request Equivalent to $_POST
-     * @param array|null $query   Equivalent to $_GET
-     * @param array|null $cookie  Equivalent to $_COOKIE
+     * @param array|null $get    Equivalent to $_GET
+     * @param array|null $post   Equivalent to $_POST
+     * @param array|null $server Equivalent to $_SERVER
+     * @param array|null $cookie Equivalent to $_COOKIE
      *
      * @return App
      */
-    public static function create(array $server = null, array $request = null, array $query = null, array $cookie = null): App
+    public static function create(array $get = null, array $post = null, array $server = null, array $cookie = null): App
     {
-        return new static($server, $request, $query, $cookie);
+        return new static($get, $post, $server, $cookie);
     }
 
     /**
@@ -258,7 +258,7 @@ final class App extends Magic
      */
     public static function createFromGlobals(): App
     {
-        return new static($_SERVER, $_POST, $_GET, $_COOKIE);
+        return new static($_GET, $_POST, $_SERVER, $_COOKIE);
     }
 
     /**
@@ -686,17 +686,18 @@ final class App extends Magic
      * Apply callable to each member of an array.
      *
      * @param array    $args
-     * @param callable $callable
+     * @param callable $call
      * @param bool     $one
      *
      * @return array
      */
-    public static function walk(array $args, callable $callable, bool $one = true): array
+    public static function walk(array $args, callable $call, bool $one = true): array
     {
         $result = array();
 
         foreach ($args as $key => $arg) {
-            $result[$key] = call_user_func_array($callable, $one ? array($arg) : (array) $arg);
+            $mArgs = $one ? array($arg) : (array) $arg;
+            $result[$key] = $call(...$mArgs);
         }
 
         return $result;
@@ -725,9 +726,41 @@ final class App extends Magic
      *
      * @return string
      */
-    public function ellapsedTime(): string
+    public function ellapsed(): string
     {
         return number_format(microtime(true) - $this->_hive['TIME'], 5).' seconds';
+    }
+
+    /**
+     * Returns trace as string.
+     *
+     * @param array $trace
+     *
+     * @return string
+     */
+    public function trace(array $trace): string
+    {
+        $out = '';
+        $eol = "\n";
+        $cut = (string) $this->_hive['TRACE'];
+        $fix = array(
+            'function' => null,
+            'line' => null,
+            'file' => '',
+            'class' => null,
+            'object' => null,
+            'type' => null,
+            'args' => null,
+        );
+
+        foreach ($trace as $key => $frame) {
+            $frame += $fix;
+
+            $file = str_replace($cut, '', self::fixslashes($frame['file']));
+            $out .= '['.$file.':'.$frame['line'].'] '.$frame['class'].$frame['type'].$frame['function'].$eol;
+        }
+
+        return $out;
     }
 
     /**
@@ -739,8 +772,8 @@ final class App extends Magic
     {
         $verb = $this->_hive['SERVER']['HTTP_X_HTTP_METHOD_OVERRIDE'] ?? $this->_hive['VERB'];
 
-        if ('POST' === $verb && isset($this->_hive['REQUEST']['_method'])) {
-            $verb = strtoupper($this->_hive['REQUEST']['_method']);
+        if ('POST' === $verb && isset($this->_hive['POST']['_method'])) {
+            $verb = strtoupper($this->_hive['POST']['_method']);
         }
 
         $this->_hive['VERB'] = $verb;
@@ -792,7 +825,7 @@ final class App extends Magic
             $this->_hive['FRAGMENT'] = $uri['fragment'];
             $this->_hive['URI'] = $req;
             $this->_hive['REALM'] = $this->_hive['BASEURL'].$req;
-            parse_str($uri['query'], $this->_hive['QUERY']);
+            parse_str($uri['query'], $this->_hive['GET']);
         }
 
         return $this;
@@ -823,60 +856,15 @@ final class App extends Magic
     {
         chdir($cwd);
         $error = error_get_last();
+        $fatalError = array(E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR);
 
         if (!$error && PHP_SESSION_ACTIVE === session_status()) {
             session_commit();
         }
 
-        $fatalError = array(E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR);
-        $event = new GetResponseEvent();
-        $this->trigger(self::EVENT_SHUTDOWN, $event);
-
-        if ($event->isPropagationStopped()) {
-            if (!$this->_hive['SENT']) {
-                $code = $event->getCode();
-                $this->_hive['HEADERS'] = $event->getHeaders();
-                $this->_hive['RESPONSE'] = $event->getResponse();
-                $this->_hive['KBPS'] = $event->getKbps();
-
-                $this->status($code)->send();
-            }
-
-            return;
-        } elseif ($error && in_array($error['type'], $fatalError)) {
+        if (!$this->trigger(self::EVENT_SHUTDOWN, array($error)) && $error && in_array($error['type'], $fatalError)) {
             $this->error(500, $error['message'], array($error));
         }
-    }
-
-    /**
-     * Handle thrown exception.
-     *
-     * @param Throwable $e
-     *
-     * @return App
-     */
-    public function handleException(\Throwable $e): App
-    {
-        $message = $e->getMessage();
-        $httpCode = 500;
-        $errorCode = $e->getCode();
-        $trace = $e->getTrace();
-
-        array_unshift($trace, array(
-            'file' => $e->getFile(),
-            'line' => $e->getLine(),
-            'function' => '***emulated***',
-            'args' => array(),
-        ));
-
-        if ($e instanceof ResponseException) {
-            $httpCode = $errorCode;
-            $errorCode = E_USER_ERROR;
-        }
-
-        $this->error($httpCode, $message, $trace, $errorCode);
-
-        return $this;
     }
 
     /**
@@ -1299,13 +1287,7 @@ final class App extends Magic
             $lkey = strtolower($key);
 
             if (isset($maps[$lkey])) {
-                $call = $maps[$lkey];
-
-                foreach ((array) $val as $arg) {
-                    $args = array_values((array) $arg);
-
-                    call_user_func_array(array($this, $call), $args);
-                }
+                self::walk((array) $val, array($this, $maps[$lkey]), false);
             } else {
                 $this->set($key, $val);
             }
@@ -1482,7 +1464,7 @@ final class App extends Magic
                     $key = array_key_exists('info', $info['cache_list'][0]) ? 'info' : 'key';
                     $items = preg_grep($regex, array_column($info['cache_list'], $key));
 
-                    $this->walk($items, 'apc_delete');
+                    self::walk($items, 'apc_delete');
                 }
                 break;
             case 'apcu':
@@ -1491,23 +1473,23 @@ final class App extends Magic
                     $key = array_key_exists('info', $info['cache_list'][0]) ? 'info' : 'key';
                     $items = preg_grep($regex, array_column($info['cache_list'], $key));
 
-                    $this->walk($items, 'apcu_delete');
+                    self::walk($items, 'apcu_delete');
                 }
                 break;
             case 'folder':
                 $files = glob($this->_hive['CACHE_REF'].$prefix.'*'.$suffix);
 
-                $this->walk((array) $files, 'unlink');
+                self::walk((array) $files, 'unlink');
                 break;
             case 'memcached':
                 $keys = preg_grep($regex, (array) $this->_hive['CACHE_REF']->getAllKeys());
 
-                $this->walk($keys, array($this->_hive['CACHE_REF'], 'delete'));
+                self::walk($keys, array($this->_hive['CACHE_REF'], 'delete'));
                 break;
             case 'redis':
                 $keys = $this->_hive['CACHE_REF']->keys($prefix.'*'.$suffix);
 
-                $this->walk($keys, array($this->_hive['CACHE_REF'], 'del'));
+                self::walk($keys, array($this->_hive['CACHE_REF'], 'del'));
                 break;
         }
 
@@ -1518,20 +1500,18 @@ final class App extends Magic
      * Returns callable of string expression.
      *
      * @param string $expr
-     * @param bool   $create
+     * @param bool   $obj
      *
      * @return mixed
      */
-    public function grab(string $expr, bool $create = true)
+    public function grab(string $expr, bool $obj = true)
     {
-        $obj = explode('->', $expr);
-        if (2 === count($obj)) {
-            return array($create ? $this->service($obj[0]) : $obj[0], $obj[1]);
+        if (2 === count($parts = explode('->', $expr))) {
+            return array($obj ? $this->service($parts[0]) : $parts[0], $parts[1]);
         }
 
-        $static = explode('::', $expr);
-        if (2 === count($static)) {
-            return $static;
+        if (2 === count($parts = explode('::', $expr))) {
+            return $parts;
         }
 
         return $expr;
@@ -1564,27 +1544,15 @@ final class App extends Magic
      */
     public function call($callback, $args = null)
     {
-        $func = is_string($callback) ? $this->grab($callback) : $callback;
+        $call = is_string($callback) ? $this->grab($callback) : $callback;
 
-        if (is_callable($func)) {
-            if (is_array($func)) {
-                $resolvedArgs = $this->resolveArgs(new \ReflectionMethod($func[0], $func[1]), (array) $args);
-            } else {
-                $resolvedArgs = $this->resolveArgs(new \ReflectionFunction($func), (array) $args);
-            }
-
-            return call_user_func_array($func, $resolvedArgs);
+        if (is_array($call)) {
+            $ref = new \ReflectionMethod(reset($call), next($call));
+        } else {
+            $ref = new \ReflectionFunction($call);
         }
 
-        if (is_array($func)) {
-            $message = 'Call to undefined method '.get_class($func[0]).'::'.$func[1].'.';
-
-            throw new \BadMethodCallException($message);
-        }
-
-        $message = 'Call to undefined function '.$func.'.';
-
-        throw new \BadFunctionCallException($message);
+        return $call(...$this->resolveArgs($ref, (array) $args));
     }
 
     /**
@@ -1634,16 +1602,12 @@ final class App extends Magic
             return $this;
         }
 
-        if (isset($this->_hive['SERVICES'][$id])) {
-            return $this->_hive['SERVICES'][$id];
+        if (empty($this->_hive['SERVICES'][$id]) && $sid = array_search($id, $this->_hive['SERVICE_ALIASES'])) {
+            $id = $sid;
         }
 
-        if ($sid = array_search($id, $this->_hive['SERVICE_ALIASES'])) {
-            $id = $sid;
-
-            if (isset($this->_hive['SERVICES'][$id])) {
-                return $this->_hive['SERVICES'][$id];
-            }
+        if (isset($this->_hive['SERVICES'][$id])) {
+            return $this->_hive['SERVICES'][$id];
         }
 
         return $this->instance($id);
@@ -1716,9 +1680,7 @@ final class App extends Magic
      */
     public function one(string $eventName, $handler): App
     {
-        $this->_hive['EVENTS_ONCE'][$eventName] = true;
-
-        return $this->on($eventName, $handler);
+        return $this->on($eventName, $handler, true);
     }
 
     /**
@@ -1726,12 +1688,13 @@ final class App extends Magic
      *
      * @param string $eventName
      * @param mixed  $handler
+     * @param bool   $once
      *
      * @return App
      */
-    public function on(string $eventName, $handler): App
+    public function on(string $eventName, $handler, bool $once = false): App
     {
-        $this->_hive['EVENTS'][$eventName] = $handler;
+        $this->_hive['EVENTS'][$eventName] = array($handler, $once);
 
         return $this;
     }
@@ -1745,7 +1708,7 @@ final class App extends Magic
      */
     public function off(string $eventName): App
     {
-        unset($this->_hive['EVENTS'][$eventName], $this->_hive['EVENTS_ONCE'][$eventName]);
+        unset($this->_hive['EVENTS'][$eventName]);
 
         return $this;
     }
@@ -1753,24 +1716,27 @@ final class App extends Magic
     /**
      * Trigger event.
      *
-     * @param string $eventName
-     * @param Event  $event
+     * @param string     $eventName
+     * @param array|null $event
+     * @param bool       $off
      *
-     * @return App
+     * @return bool
      */
-    public function trigger(string $eventName, Event $event): App
+    public function trigger(string $eventName, array $args = null, bool $off = false): bool
     {
         if (isset($this->_hive['EVENTS'][$eventName])) {
-            $handler = $this->_hive['EVENTS'][$eventName];
+            list($handler, $once) = $this->_hive['EVENTS'][$eventName];
 
-            if (isset($this->_hive['EVENTS_ONCE'][$eventName])) {
-                unset($this->_hive['EVENTS'][$eventName], $this->_hive['EVENTS_ONCE'][$eventName]);
+            if ($once || $off) {
+                $this->off($eventName);
             }
 
-            $this->call($handler, array($event));
+            $result = $this->call($handler, $args);
+
+            return is_bool($result) ? $result : false;
         }
 
-        return $this;
+        return false;
     }
 
     /**
@@ -1852,7 +1818,7 @@ final class App extends Magic
             $path = $this->_hive['PATH'];
             $url = $this->_hive['REALM'];
         } elseif (is_array($target)) {
-            $path = call_user_func_array(array($this, 'alias'), $target);
+            $path = $this->alias(...$target);
         } elseif (isset($this->_hive['ROUTE_ALIASES'][$target])) {
             $path = $this->_hive['ROUTE_ALIASES'][$target];
         } elseif (preg_match('/^(\w+)(?:\(([^(]+)\))?((?:\?).+)?$/', $target, $match)) {
@@ -1870,10 +1836,7 @@ final class App extends Magic
             }
         }
 
-        $event = new ReroutingEvent($url, $permanent);
-        $this->trigger(self::EVENT_REROUTE, $event);
-
-        if ($event->isPropagationStopped()) {
+        if ($this->trigger(self::EVENT_REROUTE, array($url, $permanent))) {
             return $this;
         }
 
@@ -1997,9 +1960,9 @@ final class App extends Magic
         $verb = strtoupper($tmp[0]);
         $targetExpr = urldecode($tmp[1]);
         $mode = strtolower($tmp[2] ?? 'none');
-        $target = $this->cutbefore($targetExpr, '?');
-        $query = $this->cutbefore($this->cutafter($targetExpr, '?', '', true), '#');
-        $fragment = $this->cutafter($targetExpr, '#', '', true);
+        $target = self::cutbefore($targetExpr, '?');
+        $query = self::cutbefore(self::cutafter($targetExpr, '?', '', true), '#');
+        $fragment = self::cutafter($targetExpr, '#', '', true);
         $path = $target;
 
         if (isset($this->_hive['ROUTE_ALIASES'][$target])) {
@@ -2016,12 +1979,12 @@ final class App extends Magic
         $this->_hive['URI'] = $this->_hive['BASE'].$path.$query.$fragment;
         $this->_hive['AJAX'] = 'ajax' === $mode;
         $this->_hive['CLI'] = 'cli' === $mode;
-        $this->_hive['REQUEST'] = 'POST' === $verb ? $args : array();
+        $this->_hive['POST'] = 'POST' === $verb ? $args : array();
 
-        parse_str(ltrim($query, '?'), $this->_hive['QUERY']);
+        parse_str(ltrim($query, '?'), $this->_hive['GET']);
 
         if (in_array($verb, array('GET', 'HEAD'))) {
-            $this->_hive['QUERY'] = array_merge($this->_hive['QUERY'], (array) $args);
+            $this->_hive['GET'] = array_merge($this->_hive['GET'], (array) $args);
         } else {
             $this->_hive['BODY'] = $body ?: http_build_query((array) $args);
         }
@@ -2039,10 +2002,12 @@ final class App extends Magic
     public function run(): App
     {
         try {
-            return $this->doRun();
+            $this->doRun();
         } catch (\Throwable $e) {
-            return $this->handleException($e);
+            $this->handleException($e);
         }
+
+        return $this;
     }
 
     /**
@@ -2076,7 +2041,7 @@ final class App extends Magic
         }
 
         foreach ($this->cookies() as $cookies) {
-            call_user_func_array('setcookie', $cookies);
+            setcookie(...$cookies);
         }
 
         foreach (array_filter($this->_hive['HEADERS'], 'is_scalar') as $name => $value) {
@@ -2182,18 +2147,24 @@ final class App extends Magic
      * @param int         $httpCode
      * @param string|null $message
      * @param array|null  $trace
+     * @param array|null  $headers
      * @param int|null    $level
      *
      * @return App
      */
-    public function error(int $httpCode, string $message = null, array $trace = null, int $level = null): App
+    public function error(int $httpCode, string $message = null, array $trace = null, array $headers = null, int $level = null): App
     {
         $this->status($httpCode);
+
+        if (!$trace) {
+            $trace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);
+            array_shift($trace);
+        }
 
         $debug = $this->_hive['DEBUG'];
         $status = $this->_hive['STATUS'];
         $text = $message ?: 'HTTP '.$httpCode.' ('.$this->_hive['VERB'].' '.$this->_hive['PATH'].')';
-        $traceStr = $this->trace($trace);
+        $mTrace = $debug ? $this->trace($trace) : '';
 
         $prior = $this->_hive['ERROR'];
         $this->_hive['ERROR'] = true;
@@ -2202,31 +2173,28 @@ final class App extends Magic
             return $this;
         }
 
-        $event = new GetResponseForErrorEvent($httpCode, $status, $message, $traceStr);
-        $this
-            ->expire(-1)
-            ->logByCode($level ?? E_USER_ERROR, $text.PHP_EOL.$traceStr)
-            ->trigger(self::EVENT_ERROR, $event)
-            ->off(self::EVENT_ERROR)
-            ->mclear('HEADERS,RESPONSE,KBPS');
+        $this->_hive['HEADERS'] = (array) $headers;
 
-        if ($event->isPropagationStopped()) {
-            $this->_hive['HEADERS'] = $event->getHeaders();
-            $this->_hive['RESPONSE'] = $event->getResponse();
-        } elseif ($this->_hive['AJAX']) {
-            $traceInfo = $debug ? array('trace' => $traceStr) : array();
+        $this->expire(-1)->logByCode($level ?? E_USER_ERROR, $text.PHP_EOL.$mTrace);
+
+        if ($this->trigger(self::EVENT_ERROR, array($message, $mTrace), true)) {
+            return $this;
+        }
+
+        if ($this->_hive['AJAX']) {
+            $traceInfo = $debug ? array('trace' => $mTrace) : array();
             $this->_hive['HEADERS']['Content-Type'] = 'application/json';
             $this->_hive['RESPONSE'] = json_encode(array(
                 'status' => $status,
                 'text' => $text,
             ) + $traceInfo);
         } elseif ($this->_hive['CLI']) {
-            $traceInfo = $debug ? $traceStr.PHP_EOL : PHP_EOL;
+            $traceInfo = $debug ? $mTrace.PHP_EOL : PHP_EOL;
             $this->_hive['RESPONSE'] = 'Status : '.$status.PHP_EOL.
                                       'Text   : '.$text.PHP_EOL.
                                       $traceInfo;
         } else {
-            $traceInfo = $debug ? '<pre>'.$traceStr.'</pre>' : '';
+            $traceInfo = $debug ? '<pre>'.$mTrace.'</pre>' : '';
             $this->_hive['HEADERS']['Content-Type'] = 'text/html';
             $this->_hive['RESPONSE'] = '<!DOCTYPE html>'.
                 '<html>'.
@@ -2276,17 +2244,17 @@ final class App extends Magic
     public function logByCode(int $code, string $message): App
     {
         $map = array(
-            // E_ERROR => self::LOG_LEVEL_EMERGENCY,
-            // E_PARSE => self::LOG_LEVEL_EMERGENCY,
-            // E_CORE_ERROR => self::LOG_LEVEL_EMERGENCY,
-            // E_COMPILE_ERROR => self::LOG_LEVEL_EMERGENCY,
+            E_ERROR => self::LOG_LEVEL_EMERGENCY,
+            E_PARSE => self::LOG_LEVEL_EMERGENCY,
+            E_CORE_ERROR => self::LOG_LEVEL_EMERGENCY,
+            E_COMPILE_ERROR => self::LOG_LEVEL_EMERGENCY,
             E_WARNING => self::LOG_LEVEL_ALERT,
-            // E_CORE_WARNING => self::LOG_LEVEL_ALERT,
-            // E_STRICT => self::LOG_LEVEL_CRITICAL,
+            E_CORE_WARNING => self::LOG_LEVEL_ALERT,
+            E_STRICT => self::LOG_LEVEL_CRITICAL,
             E_USER_ERROR => self::LOG_LEVEL_ERROR,
             E_USER_WARNING => self::LOG_LEVEL_WARNING,
             E_NOTICE => self::LOG_LEVEL_NOTICE,
-            // E_COMPILE_WARNING => self::LOG_LEVEL_NOTICE,
+            E_COMPILE_WARNING => self::LOG_LEVEL_NOTICE,
             E_USER_NOTICE => self::LOG_LEVEL_NOTICE,
             E_RECOVERABLE_ERROR => self::LOG_LEVEL_INFO,
             E_DEPRECATED => self::LOG_LEVEL_INFO,
@@ -2358,19 +2326,43 @@ final class App extends Magic
     }
 
     /**
-     * Kernel logic.
+     * Handle thrown exception.
      *
-     * @return App
+     * @param Throwable $e
      */
-    private function doRun(): App
+    private function handleException(\Throwable $e)
     {
-        if ($this->_hive['DRY']) {
-            $this->trigger(self::EVENT_BOOT, new Event());
-            $this->_hive['DRY'] = false;
+        $httpCode = 500;
+        $errorCode = $e->getCode();
+        $message = $e->getMessage();
+        $trace = $e->getTrace();
+        $headers = null;
+
+        array_unshift($trace, array(
+            'file' => $e->getFile(),
+            'line' => $e->getLine(),
+            'function' => '***emulated***',
+            'args' => array(),
+        ));
+
+        if ($e instanceof HttpException) {
+            $httpCode = $errorCode;
+            $errorCode = E_USER_ERROR;
+            $headers = $e->getHeaders();
         }
 
-        if (empty($this->_hive['ROUTES'])) {
-            return $this->error(500, 'No route specified.');
+        $this->error($httpCode, $message, $trace, $headers, $errorCode);
+    }
+
+    /**
+     * Kernel logic.
+     */
+    private function doRun()
+    {
+        $this->trigger(self::EVENT_BOOT, null, true);
+
+        if ($this->trigger(self::EVENT_PRE_ROUTE)) {
+            return;
         }
 
         // @codeCoverageIgnoreStart
@@ -2378,22 +2370,6 @@ final class App extends Magic
             return $this->error(403);
         }
         // @codeCoverageIgnoreEnd
-
-        $event = new GetResponseEvent();
-        $this->trigger(self::EVENT_ROUTE, $event);
-
-        if ($event->isPropagationStopped()) {
-            if ($this->_hive['SENT']) {
-                return $this;
-            }
-
-            $code = $event->getCode();
-            $this->_hive['HEADERS'] = $event->getHeaders();
-            $this->_hive['RESPONSE'] = $event->getResponse();
-            $this->_hive['KBPS'] = $event->getKbps();
-
-            return $this->status($code)->send();
-        }
 
         if ($foundRoute = $this->findRoute()) {
             list($pattern, $routes, $args) = $foundRoute;
@@ -2403,12 +2379,12 @@ final class App extends Magic
 
                 $now = time();
                 $verb = $this->_hive['VERB'];
-                $hash = $this->hash($verb.' '.$this->_hive['URI']).'.url';
+                $hash = self::hash($verb.' '.$this->_hive['URI']).'.url';
 
                 if ($ttl && in_array($verb, array('GET', 'HEAD'))) {
                     if ($this->isCached($hash, $cache)) {
-                        $expireDate = $this->_hive['SERVER']['HTTP_IF_MODIFIED_SINCE'] ?? 0;
-                        $notModified = $expireDate && strtotime($expireDate) + $ttl > $now;
+                        $expDate = $this->_hive['SERVER']['HTTP_IF_MODIFIED_SINCE'] ?? 0;
+                        $notModified = $expDate && strtotime($expDate) + $ttl > $now;
 
                         if ($notModified) {
                             return $this->status(304);
@@ -2429,39 +2405,32 @@ final class App extends Magic
                     $this->expire(0);
                 }
 
-                $event = new GetControllerArgsEvent($controller, $args);
-                $this->trigger(self::EVENT_CONTROLLER_ARGS, $event);
-
+                $this->_hive['CONTROLLER'] = $controller;
+                $this->_hive['CONTROLLER_ARGS'] = $args;
                 $this->_hive['PATTERN'] = $pattern;
                 $this->_hive['ALIAS'] = $alias;
                 $this->_hive['PARAMS'] = $args;
                 $this->_hive['KBPS'] = $kbps;
 
-                $controller = $event->getController();
+                $this->trigger(self::EVENT_CONTROLLER_ARGS, array($controller, $args));
 
-                if (is_callable($controller)) {
+                if (is_callable($this->_hive['CONTROLLER'])) {
                     if (!$this->_hive['RAW'] && !$this->_hive['BODY']) {
                         $this->_hive['BODY'] = file_get_contents('php://input');
                     }
 
-                    $args = $event->getArgs();
-                    $result = $this->call($controller, $args);
+                    $result = $this->call($this->_hive['CONTROLLER'], $this->_hive['CONTROLLER_ARGS']);
+                    $handled = $this->trigger(self::EVENT_POST_ROUTE, array($result));
 
-                    $event = new GetResponseForControllerEvent($result, $this->_hive['HEADERS']);
-                    $this->trigger(self::EVENT_AFTER_ROUTE, $event);
-
-                    $result = $event->getResult();
-
-                    if ($event->isPropagationStopped()) {
-                        $this->_hive['HEADERS'] = $event->getHeaders();
-                        $this->_hive['RESPONSE'] = $event->getResponse();
-                    } elseif (is_scalar($result)) {
-                        $this->_hive['RESPONSE'] = (string) $result;
-                    } elseif (is_array($result)) {
-                        $this->_hive['HEADERS']['Content-Type'] = 'application/json';
-                        $this->_hive['RESPONSE'] = json_encode($result);
-                    } elseif (is_callable($result)) {
-                        call_user_func_array($result, array($this));
+                    if (!$handled) {
+                        if (is_scalar($result)) {
+                            $this->_hive['RESPONSE'] = (string) $result;
+                        } elseif (is_array($result)) {
+                            $this->_hive['HEADERS']['Content-Type'] = 'application/json';
+                            $this->_hive['RESPONSE'] = json_encode($result);
+                        } elseif (is_callable($result)) {
+                            $result($this);
+                        }
                     }
 
                     $shouldBeCached = $ttl && $this->_hive['RESPONSE'] && is_string($this->_hive['RESPONSE']);
@@ -2867,58 +2836,6 @@ final class App extends Magic
     }
 
     /**
-     * Returns trace as string.
-     *
-     * @param array|null &$trace
-     *
-     * @return string
-     */
-    private function trace(array &$trace = null): string
-    {
-        if (!$trace) {
-            $trace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);
-            array_shift($trace);
-        }
-
-        $filteredTrace = array();
-        $debug = $this->_hive['DEBUG'];
-
-        foreach ($trace as $key => $frame) {
-            if (isset($frame['file']) &&
-                ($debug > 1 ||
-                    (__FILE__ !== $frame['file'] || $debug) &&
-                    (
-                        empty($frame['function']) ||
-                        !preg_match('/^(?:(?:trigger|user)_error|__call|call_user_func)/', $frame['function'])
-                    )
-                )) {
-                $filteredTrace[] = $frame;
-            }
-        }
-        $trace = $filteredTrace;
-
-        $out = '';
-        $eol = "\n";
-        $cut = $this->_hive['TRACE'];
-
-        // Analyze stack trace
-        foreach ($trace as $frame) {
-            $line = '';
-
-            if (isset($frame['class'])) {
-                $line .= $frame['class'].$frame['type'];
-            }
-
-            $line .= $frame['function'] ?? null;
-
-            $src = $this->fixslashes($frame['file']);
-            $out .= '['.($cut ? str_replace($cut, '', $src) : $src).':'.$frame['line'].'] '.$line.$eol;
-        }
-
-        return $out;
-    }
-
-    /**
      * Returns message reference.
      *
      * @param string $key
@@ -2948,7 +2865,7 @@ final class App extends Magic
         $langCode = ltrim(preg_replace('/\h+|;q=[0-9.]+/', '', $this->_hive['LANGUAGE']).','.$this->_hive['FALLBACK'], ',');
         $languages = array();
 
-        foreach ($this->split($langCode) as $lang) {
+        foreach (self::split($langCode) as $lang) {
             if (preg_match('/^(\w{2})(?:-(\w{2}))?\b/i', $lang, $parts)) {
                 // Generic language
                 $languages[] = $parts[1];

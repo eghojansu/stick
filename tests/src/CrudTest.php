@@ -205,8 +205,8 @@ class CrudTest extends TestCase
     public function testRenderPost($path, $message, $messageKey)
     {
         $this->app
-            ->on('app_reroute', function (App $app, $event) {
-                $app->set('rerouted', $event->getUrl());
+            ->on('app_reroute', function (App $app, $url) {
+                $app->set('rerouted', $url);
             })
             ->route('GET|POST foo /foo/*', function (App $app, ...$segments) {
                 return $this->crud
@@ -236,7 +236,7 @@ class CrudTest extends TestCase
     }
 
     /**
-     * @expectedException \Fal\Stick\ResponseException
+     * @expectedException \Fal\Stick\HttpException
      */
     public function testRenderViewException()
     {

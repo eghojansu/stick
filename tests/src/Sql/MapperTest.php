@@ -401,8 +401,8 @@ class MapperTest extends TestCase
     public function testDelete()
     {
         $this->filldb();
-        $this->app->one('sql_mapper_delete', function ($event) {
-            $event->stopPropagation();
+        $this->app->one('sql_mapper_delete', function () {
+            return true;
         });
 
         $this->assertEquals(0, $this->mapper->delete());
@@ -420,8 +420,8 @@ class MapperTest extends TestCase
     {
         $this->filldb();
 
-        $this->app->one('sql_mapper_update', function ($event) {
-            $event->stopPropagation();
+        $this->app->one('sql_mapper_update', function () {
+            return true;
         });
 
         $this->mapper->load();
@@ -439,8 +439,8 @@ class MapperTest extends TestCase
 
     public function testInsert()
     {
-        $this->app->one('sql_mapper_insert', function ($event) {
-            $event->stopPropagation();
+        $this->app->one('sql_mapper_insert', function () {
+            return true;
         });
 
         $this->mapper->set('username', 'foo');
