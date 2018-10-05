@@ -180,7 +180,7 @@ final class App extends Magic
             'CONTROLLER' => null,
             'CONTROLLER_ARGS' => null,
             'COOKIE' => $cookie,
-            'DEBUG' => 0,
+            'DEBUG' => false,
             'DICT' => null,
             'DNSBL' => null,
             'ENCODING' => $charset,
@@ -1702,10 +1702,9 @@ final class App extends Magic
             array_shift($trace);
         }
 
-        $debug = $this->_hive['DEBUG'];
         $status = $this->_hive['STATUS'];
         $text = $message ?: 'HTTP '.$httpCode.' ('.$this->_hive['VERB'].' '.$this->_hive['PATH'].')';
-        $mTrace = $debug ? $this->trace($trace) : '';
+        $mTrace = $this->_hive['DEBUG'] ? $this->trace($trace) : '';
 
         $prior = $this->_hive['ERROR'];
         $this->_hive['ERROR'] = true;
@@ -1723,19 +1722,17 @@ final class App extends Magic
         }
 
         if ($this->_hive['AJAX']) {
-            $traceInfo = $debug ? array('trace' => $mTrace) : array();
             $this->_hive['HEADERS']['Content-Type'] = 'application/json';
-            $this->_hive['RESPONSE'] = json_encode(array(
+            $this->_hive['RESPONSE'] = json_encode(array_filter(array(
                 'status' => $status,
                 'text' => $text,
-            ) + $traceInfo);
+                'trace' => $mTrace
+            )));
         } elseif ($this->_hive['CLI']) {
-            $traceInfo = $debug ? $mTrace.PHP_EOL : PHP_EOL;
             $this->_hive['RESPONSE'] = 'Status : '.$status.PHP_EOL.
                                       'Text   : '.$text.PHP_EOL.
-                                      $traceInfo;
+                                      $mTrace.PHP_EOL;
         } else {
-            $traceInfo = $debug ? '<pre>'.$mTrace.'</pre>' : '';
             $this->_hive['HEADERS']['Content-Type'] = 'text/html';
             $this->_hive['RESPONSE'] = '<!DOCTYPE html>'.
                 '<html>'.
@@ -1747,7 +1744,7 @@ final class App extends Magic
                 '<body>'.
                   '<h1>'.$status.'</h1>'.
                   '<p>'.$text.'</p>'.
-                  $traceInfo.
+                  ($mTrace ? '<pre>'.$mTrace.'</pre>' : '').
                 '</body>'.
                 '</html>';
         }
