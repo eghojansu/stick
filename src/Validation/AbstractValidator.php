@@ -43,9 +43,7 @@ abstract class AbstractValidator implements ValidatorInterface
         );
 
         $call = array($this, '_'.$rule);
-        $passedArgs = array_merge(array($value), (array) $args);
-
-        $result = call_user_func_array($call, $passedArgs);
+        $result = $call(...array_merge(array($value), (array) $args));
 
         $this->data = null;
 

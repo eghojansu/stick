@@ -348,7 +348,7 @@ class Mapper extends Magic
      */
     public function fromArray(array $source, callable $transformer = null): Mapper
     {
-        $use = $transformer ? call_user_func_array($transformer, array($source)) : $source;
+        $use = $transformer ? $transformer($source) : $source;
         $fix = array_intersect_key($use, $this->_fields);
 
         foreach ($fix as $key => $value) {
@@ -369,7 +369,7 @@ class Mapper extends Magic
     {
         $result = Util::column($this->_fields + $this->_adhoc + $this->_props, 'value');
 
-        return $transformer ? call_user_func_array($transformer, array($result)) : $result;
+        return $transformer ? $transformer($result) : $result;
     }
 
     /**

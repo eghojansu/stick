@@ -35,8 +35,6 @@ final class NativeValidator implements ValidatorInterface
      */
     public function validate(string $rule, $value, array $args = null, string $field = null, array $validated = null, array $raw = null)
     {
-        $passedArgs = array_merge(array($value), (array) $args);
-
-        return call_user_func_array($rule, $passedArgs);
+        return $rule(...array_merge(array($value), (array) $args));
     }
 }

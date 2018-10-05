@@ -239,9 +239,10 @@ class Crud
                 $this->form = $this->app->service($form);
             } else {
                 $this->form = $this->app->instance(Form::class);
+                $call = $this->options['formBuild'] ?? null;
 
-                if ($this->options['formBuild'] && is_callable($this->options['formBuild'])) {
-                    call_user_func_array($this->options['formBuild'], array($this->form));
+                if (is_callable($call)) {
+                    $call($this->form);
                 }
             }
         }
