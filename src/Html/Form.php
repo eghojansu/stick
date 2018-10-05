@@ -396,8 +396,9 @@ class Form
      */
     public function row(string $name, array $overrideAttr = null): string
     {
-        $throw = !isset($this->_fields[$name]);
-        $this->_app->throws($throw, 'Field not exists: "'.$name.'".');
+        if (!isset($this->_fields[$name])) {
+            throw new \LogicException('Field not exists: "'.$name.'".');
+        }
 
         $field = &$this->_fields[$name];
 
@@ -776,8 +777,9 @@ class Form
         if ($items && is_callable($items)) {
             $items = $this->_app->call($items, array($options));
 
-            $throw = !is_array($items);
-            $this->_app->throws($throw, 'The returned items should be an array.');
+            if (!is_array($items)) {
+                throw new \LogicException('The returned items should be an array.');
+            }
         }
 
         if ($options['expanded']) {

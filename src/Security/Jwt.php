@@ -179,7 +179,9 @@ class Jwt
      */
     public function setKey($encodeKey, $decodeKey = null): Jwt
     {
-        $this->app->throws(empty($encodeKey), 'Key may not be empty.');
+        if (empty($encodeKey)) {
+            throw new \LogicException('Key may not be empty.');
+        }
 
         $this->encodeKey = $encodeKey;
         $this->decodeKey = $decodeKey ?? $encodeKey;
@@ -246,48 +248,54 @@ class Jwt
     {
         $use = explode('.', $token);
 
-        $this->app->throws(3 !== count($use), 'Wrong number of segments.', 'UnexpectedValueException');
+        if (3 !== count($use)) {
+            throw new \UnexpectedValueException('Wrong number of segments.');
+        }
 
         $header = json_decode($this->urldecode($use[0]), true);
         $payload = json_decode($this->urldecode($use[1]), true);
         $signature = $this->urldecode($use[2]);
 
-        $this->app
-            ->throws(null === $header, 'Invalid header encoding.', 'UnexpectedValueException')
-            ->throws(null === $payload, 'Invalid claims encoding.', 'UnexpectedValueException')
-            ->throws(empty($header['alg']), 'Empty algorithm.', 'DomainException')
-        ;
+        if (null === $header) {
+            throw new \UnexpectedValueException('Invalid header encoding.');
+        }
 
-        $throw = $this->supportedAlgorithms && !in_array($header['alg'], $this->supportedAlgorithms);
-        $this->app->throws($throw, 'Algorithm is not allowed.', 'DomainException');
+        if (null === $payload) {
+            throw new \UnexpectedValueException('Invalid claims encoding.');
+        }
+
+        if (empty($header['alg'])) {
+            throw new \DomainException('Empty algorithm.');
+        }
+
+        if ($this->supportedAlgorithms && !in_array($header['alg'], $this->supportedAlgorithms)) {
+            throw new \DomainException('Algorithm is not allowed.');
+        }
 
         // Check the signature
-        $throw = !$this->verify($use[0].'.'.$use[1], $signature, $header['alg'], $this->decodeKey);
-        $this->app->throws($throw, 'Signature verification failed.', 'UnexpectedValueException');
+        if (!$this->verify($use[0].'.'.$use[1], $signature, $header['alg'], $this->decodeKey)) {
+            throw new \UnexpectedValueException('Signature verification failed.');
+        }
 
-        $defaultPayload = array(
-            'nbf' => null,
-            'iat' => null,
-            'exp' => null,
-        );
-        $fix = $payload + $defaultPayload;
+        $fix = $payload;
 
         // Check if the nbf if it is defined. This is the time that the
         // token can actually be used. If it's not yet that time, abort.
-        $throw = $fix['nbf'] && $fix['nbf'] > (time() + $this->leeway);
-        $message = 'Cannot handle token prior to '.date(\DateTime::ISO8601, $fix['nbf'] ?? 0).'.';
-        $this->app->throws($throw, $message, 'RuntimeException');
+        if (isset($fix['nbf']) && $fix['nbf'] > (time() + $this->leeway)) {
+            throw new \RuntimeException('Cannot handle token prior to '.date(\DateTime::ISO8601, $fix['nbf']).'.');
+        }
 
         // Check that this token has been created before 'now'. This prevents
         // using tokens that have been created for later use (and haven't
         // correctly used the nbf claim).
-        $throw = $fix['iat'] && $fix['iat'] > (time() + $this->leeway);
-        $message = 'Cannot handle token prior to '.date(\DateTime::ISO8601, $fix['iat'] ?? 0).'.';
-        $this->app->throws($throw, $message, 'RuntimeException');
+        if (isset($fix['iat']) && $fix['iat'] > (time() + $this->leeway)) {
+            throw new \RuntimeException('Cannot handle token prior to '.date(\DateTime::ISO8601, $fix['iat']).'.');
+        }
 
         // Check if this token has expired.
-        $throw = $fix['exp'] && (time() - $this->leeway) >= $fix['exp'];
-        $this->app->throws($throw, 'Expired token.', 'RuntimeException');
+        if (isset($fix['exp']) && (time() - $this->leeway) >= $fix['exp']) {
+            throw new \RuntimeException('Expired token.');
+        }
 
         return $payload;
     }

@@ -448,9 +448,9 @@ class Connection
                 $str .= ' '.$expr;
             } else {
                 if ('!><' === $b3 || '><' === $b2) {
-                    $throw = !is_array($expr);
-                    $message = 'BETWEEN operator needs an array operand, '.gettype($expr).' given.';
-                    $this->app->throws($throw, $message);
+                    if (!is_array($expr)) {
+                        throw new \LogicException('BETWEEN operator needs an array operand, '.gettype($expr).' given.');
+                    }
 
                     $str .= " :{$kcol}1 AND :{$kcol}2";
                     $result[":{$kcol}1"] = array_shift($expr);
@@ -538,7 +538,9 @@ class Connection
             }
         }
 
-        $this->app->throws(!$rows, 'Table "'.$table.'" contains no defined schema.');
+        if (!$rows) {
+            throw new \LogicException('Table "'.$table.'" contains no defined schema.');
+        }
 
         if ($ttl) {
             // Save to cache backend

@@ -704,24 +704,6 @@ final class App extends Magic
     }
 
     /**
-     * Throws exception if it should be thrown.
-     *
-     * @param bool   $throw
-     * @param string $message
-     * @param string $exception
-     *
-     * @return App
-     */
-    public function throws(bool $throw, string $message, string $exception = 'LogicException'): App
-    {
-        if ($throw) {
-            throw new $exception($message);
-        }
-
-        return $this;
-    }
-
-    /**
      * Returns ellapsed time since application prepared.
      *
      * @return string
@@ -1641,16 +1623,16 @@ final class App extends Magic
 
         $ref = new \ReflectionClass($rule['use'] ?? $rule['class']);
 
-        $throw = !$ref->isInstantiable();
-        $message = 'Unable to create instance for "'.$id.'". Please provide instantiable version of '.$ref->name.'.';
-        $this->throws($throw, $message);
+        if (!$ref->isInstantiable()) {
+            throw new \LogicException('Unable to create instance for "'.$id.'". Please provide instantiable version of '.$ref->name.'.');
+        }
 
         if ($rule['constructor'] && is_callable($rule['constructor'])) {
             $instance = $this->call($rule['constructor']);
 
-            $throw = !$instance || !$instance instanceof $ref->name;
-            $message = 'Constructor of "'.$id.'" should return instance of '.$ref->name.'.';
-            $this->throws($throw, $message);
+            if (!$instance instanceof $ref->name) {
+                throw new \LogicException('Constructor of "'.$id.'" should return instance of '.$ref->name.'.');
+            }
         } elseif ($ref->hasMethod('__construct')) {
             $pArgs = array_replace_recursive((array) $rule['args'], (array) $args);
             $resolvedArgs = $this->resolveArgs($ref->getMethod('__construct'), $pArgs);
@@ -1892,28 +1874,29 @@ final class App extends Magic
     /**
      * Bind handler to route pattern.
      *
-     * @param string $expr
+     * @param string $route
      * @param mixed  $handler
      * @param int    $ttl
      * @param int    $kbps
      *
      * @return App
      */
-    public function route(string $expr, $handler, int $ttl = 0, int $kbps = 0): App
+    public function route(string $route, $handler, int $ttl = 0, int $kbps = 0): App
     {
         $pattern = '/^([\w+|]+)(?:\h+(\w+))?(?:\h+(\/[^\h]*))?(?:\h+(all|ajax|cli|sync))?$/i';
 
-        preg_match($pattern, $expr, $match);
+        preg_match($pattern, $route, $match);
 
-        $throw = 3 > count($match);
-        $message = 'Route should contains at least a verb and path, given "'.$expr.'".';
-        $this->throws($throw, $message);
+        if (count($match) < 3) {
+            throw new \LogicException('Route should contains at least a verb and path, given "'.$route.'".');
+        }
 
         list($verbs, $alias, $path, $mode) = array_slice($match, 1) + array(1 => '', '', 'all');
 
         if (!$path) {
-            $throw = empty($this->_hive['ROUTE_ALIASES'][$alias]);
-            $this->throws($throw, 'Route "'.$alias.'" not exists.');
+            if (empty($this->_hive['ROUTE_ALIASES'][$alias])) {
+                throw new \LogicException('Route "'.$alias.'" not exists.');
+            }
 
             $path = $this->_hive['ROUTE_ALIASES'][$alias];
         }
@@ -1942,20 +1925,20 @@ final class App extends Magic
     /**
      * Mock request.
      *
-     * @param string      $expr
+     * @param string      $route
      * @param array|null  $args
      * @param array|null  $server
      * @param string|null $body
      *
      * @return App
      */
-    public function mock(string $expr, array $args = null, array $server = null, string $body = null): App
+    public function mock(string $route, array $args = null, array $server = null, string $body = null): App
     {
-        $tmp = array_map('trim', explode(' ', $expr));
+        $tmp = array_map('trim', explode(' ', $route));
 
-        $throw = 1 === count($tmp);
-        $message = 'Mock should contains at least a verb and path, given "'.$expr.'".';
-        $this->throws($throw, $message);
+        if (1 === count($tmp)) {
+            throw new \LogicException('Mock should contains at least a verb and path, given "'.$route.'".');
+        }
 
         $verb = strtoupper($tmp[0]);
         $targetExpr = urldecode($tmp[1]);
@@ -2130,10 +2113,10 @@ final class App extends Magic
     public function status(int $code): App
     {
         $name = 'self::HTTP_'.$code;
-        $throw = !defined($name);
-        $message = 'Unsupported HTTP code: '.$code.'.';
 
-        $this->throws($throw, $message, 'DomainException');
+        if (!defined($name)) {
+            throw new \DomainException('Unsupported HTTP code: '.$code.'.');
+        }
 
         $this->_hive['CODE'] = $code;
         $this->_hive['STATUS'] = constant($name);
@@ -2847,10 +2830,10 @@ final class App extends Magic
     private function langRef(string $key): ?string
     {
         $ref = $this->get('DICT.'.$key);
-        $throw = null !== $ref && !is_string($ref);
-        $message = 'Message reference is not a string.';
 
-        $this->throws($throw, $message, 'UnexpectedValueException');
+        if (null !== $ref && !is_string($ref)) {
+            throw new \UnexpectedValueException('Message reference is not a string.');
+        }
 
         return $ref;
     }

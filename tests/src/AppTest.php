@@ -1634,15 +1634,6 @@ class AppTest extends TestCase
         $this->assertEquals(array('foo' => 'bar', 'bar' => 'baz'), $this->app->column($arr, 'foo'));
     }
 
-    /**
-     * @expectedException \LogicException
-     * @expectedExceptionMessage foo.
-     */
-    public function testThrows()
-    {
-        $this->app->throws(true, 'foo.');
-    }
-
     public function testMapperParameterConverter()
     {
         $this->app->mset(array(

@@ -145,6 +145,8 @@ final class Template
         } elseif ($macro = $this->findMacro($func)) {
             $call = array($this, '_macro');
             $mArgs = array($macro, $args);
+        } else {
+            throw new \BadFunctionCallException('Call to undefined function '.$func.'.');
         }
 
         return $call(...$mArgs);
@@ -215,7 +217,9 @@ final class Template
     {
         $realpath = is_file($macro) ? $macro : $this->findMacro($macro);
 
-        $this->app->throws(!$realpath, 'Macro not exists: "'.$macro.'".');
+        if (!$realpath) {
+            throw new \LogicException('Macro not exists: "'.$macro.'".');
+        }
 
         if ($args) {
             $keys = explode(',', 'arg'.implode(',arg', range(1, count($args))));

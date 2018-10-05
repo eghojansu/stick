@@ -136,10 +136,13 @@ class Crud
      */
     public function render(): ?string
     {
-        $this->app
-            ->throws(empty($this->options['segments']), 'Please provide route segments.')
-            ->throws(empty($this->options['mapper']), 'Please provide mapper class or table name.')
-        ;
+        if (empty($this->options['segments'])) {
+            throw new \LogicException('No segments provided.');
+        }
+
+        if (empty($this->options['mapper'])) {
+            throw new \LogicException('No mapper provided.');
+        }
 
         $state = $this->options['state'] ?? $this->options['segments'][0] ?? null;
 
@@ -162,7 +165,9 @@ class Crud
             $view = $this->options['views'][static::STATE_FORBIDDEN] ?? null;
         }
 
-        $this->app->throws(empty($view), 'No view for state: "'.$state.'".');
+        if (empty($view)) {
+            throw new \LogicException('No view for state: "'.$state.'".');
+        }
 
         $data = array(
             'state' => $state,
@@ -268,9 +273,9 @@ class Crud
     {
         if (!in_array($option, static::$restricted) && array_key_exists($option, $this->options)) {
             if (is_array($this->options[$option])) {
-                $throw = !is_array($value);
-                $message = 'Option "'.$option.'" expect array value.';
-                $this->app->throws($throw, $message, 'UnexpectedValueException');
+                if (!is_array($value)) {
+                    throw new \UnexpectedValueException('Option "'.$option.'" expect array value.');
+                }
 
                 $this->options[$option] = array_replace($this->options[$option], $value);
             } else {
@@ -351,7 +356,9 @@ class Crud
         $ids = array_slice($this->options['segments'], $this->options['sidStart'], $this->options['sidEnd']);
         $keys = $this->mapper->keys();
 
-        $this->app->throws(count($ids) !== count($keys), 'Insufficient primary keys!');
+        if (count($ids) !== count($keys)) {
+            throw new \LogicException('Insufficient primary keys!');
+        }
 
         $filters = array_combine(array_keys($keys), $ids);
 
@@ -431,9 +438,9 @@ class Crud
      */
     protected function stateCreate(): bool
     {
-        $this->app->throws(!$this->getForm(), 'Please provide form.');
+        $form = $this->getForm();
 
-        if ($this->form->isSubmitted() && $this->form->valid()) {
+        if ($form->isSubmitted() && $form->valid()) {
             $this->mapper->save();
             $this->app
                 ->set($this->options['createdMessageKey'], $this->message('crud_created'))
@@ -443,7 +450,7 @@ class Crud
             return false;
         }
 
-        $this->data['form'] = $this->form;
+        $this->data['form'] = $form;
 
         return true;
     }
@@ -455,12 +462,12 @@ class Crud
      */
     protected function stateUpdate(): bool
     {
-        $this->app->throws(!$this->getForm(), 'Please provide form.');
+        $form = $this->getForm();
 
         $this->stateView();
-        $this->form->setData($this->mapper->toArray());
+        $form->setData($this->mapper->toArray());
 
-        if ($this->form->isSubmitted() && $this->form->valid()) {
+        if ($form->isSubmitted() && $form->valid()) {
             $this->mapper->save();
             $this->app
                 ->set($this->options['updatedMessageKey'], $this->message('crud_updated'))
@@ -470,7 +477,7 @@ class Crud
             return false;
         }
 
-        $this->data['form'] = $this->form;
+        $this->data['form'] = $form;
 
         return true;
     }

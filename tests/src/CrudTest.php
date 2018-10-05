@@ -173,6 +173,33 @@ class CrudTest extends TestCase
         $this->assertEquals($expected, $actual);
     }
 
+    /**
+     * @expectedException \LogicException
+     * @expectedExceptionMessage No segments provided.
+     */
+    public function testRenderException()
+    {
+        $this->crud->render();
+    }
+
+    /**
+     * @expectedException \LogicException
+     * @expectedExceptionMessage No mapper provided.
+     */
+    public function testRenderException2()
+    {
+        $this->crud->segments(array('foo'))->render();
+    }
+
+    /**
+     * @expectedException \LogicException
+     * @expectedExceptionMessage No view for state: "foo".
+     */
+    public function testRenderException3()
+    {
+        $this->crud->segments(array('foo'))->mapper('user')->render();
+    }
+
     public function testRenderListingSearch()
     {
         $this->app->set('QUERY.keyword', 'foo');
@@ -242,6 +269,22 @@ class CrudTest extends TestCase
     {
         $this->crud
             ->segments(array('view', 100))
+            ->views(array(
+                'view' => 'view.php',
+            ))
+            ->mapper('user')
+            ->render()
+        ;
+    }
+
+    /**
+     * @expectedException \LogicException
+     * @expectedExceptionMessage Insufficient primary keys!
+     */
+    public function testPrepareFilter()
+    {
+        $this->crud
+            ->segments(array('view'))
             ->views(array(
                 'view' => 'view.php',
             ))

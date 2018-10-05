@@ -459,10 +459,10 @@ class Mapper extends Magic
         $fix = $this->_app->arr($ids);
         $vcount = count($fix);
         $pcount = count($this->_keys);
-        $throw = $vcount !== $pcount;
-        $message = 'Insufficient primary keys value. Expect exactly '.$pcount.' parameters, '.$vcount.' given.';
 
-        $this->_app->throws($throw, $message);
+        if ($vcount !== $pcount) {
+            throw new \LogicException('Insufficient primary keys value. Expect exactly '.$pcount.' parameters, '.$vcount.' given.');
+        }
 
         return $this->load(array_combine($this->_keys, $fix));
     }
@@ -952,32 +952,36 @@ class Mapper extends Magic
      *
      * @return mixed
      *
-     * @throws BadMethodCallException If method is undefined
+     * @throws BadMethodCallException If method call cannot be resolved
      */
     public function __call($method, $args)
     {
         $lmethod = strtolower($method);
+        $mMethod = $method;
+        $mArgs = $args;
 
         if ($this->_app->startswith($lmethod, 'get')) {
             $field = $this->_app->snakecase($this->_app->cutprefix($lmethod, 'get'));
-            array_unshift($args, $field);
-            $call = 'get';
+            array_unshift($mArgs, $field);
+            $mMethod = 'get';
         } elseif ($this->_app->startswith($lmethod, 'findby')) {
             $field = $this->_app->snakecase($this->_app->cutprefix($lmethod, 'findby'));
-            $args = $this->fieldArgs($field, $args);
-            $call = 'find';
+            $mArgs = $this->fieldArgs($field, $args);
+            $mMethod = 'find';
         } elseif ($this->_app->startswith($lmethod, 'findoneby')) {
             $field = $this->_app->snakecase($this->_app->cutprefix($lmethod, 'findoneby'));
-            $args = $this->fieldArgs($field, $args);
-            $call = 'findone';
+            $mArgs = $this->fieldArgs($field, $args);
+            $mMethod = 'findone';
         } elseif ($this->_app->startswith($lmethod, 'loadby')) {
             $field = $this->_app->snakecase($this->_app->cutprefix($lmethod, 'loadby'));
-            $args = $this->fieldArgs($field, $args);
-            $call = 'load';
+            $mArgs = $this->fieldArgs($field, $args);
+            $mMethod = 'load';
         } else {
             throw new \BadMethodCallException('Call to undefined method '.static::class.'::'.$method.'.');
         }
 
-        return call_user_func_array(array($this, $call), $args);
+        $call = array($this, $mMethod);
+
+        return $call(...$mArgs);
     }
 }

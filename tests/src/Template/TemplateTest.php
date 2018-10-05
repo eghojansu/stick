@@ -70,8 +70,8 @@ class TemplateTest extends TestCase
     }
 
     /**
-     * @expectedException \Error
-     * @expectedExceptionMessage Call to undefined function unknown_function()
+     * @expectedException \BadFunctionCallException
+     * @expectedExceptionMessage Call to undefined function unknown_function.
      */
     public function testCallException()
     {
