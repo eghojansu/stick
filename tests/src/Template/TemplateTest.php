@@ -45,7 +45,7 @@ class TemplateTest extends TestCase
         $actual = trim($this->template->render('foo.php'));
 
         $this->assertEquals($expected, $actual);
-        $this->assertEquals(3, $this->app->get('HEADERS.Content-Length'));
+        $this->assertEquals(3, $this->app->get('RESPONSE.Content-Length'));
     }
 
     public function callProvider()

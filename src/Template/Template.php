@@ -169,8 +169,10 @@ final class Template
         $template = new TemplateFile($this->app, $this, $file, $data);
         $content = $template->render();
 
-        $this->app->set('HEADERS.Content-Type', $mime);
-        $this->app->set('HEADERS.Content-Length', strlen($content));
+        $this->app->mset(array(
+            'Content-Type' => $mime,
+            'Content-Length' => strlen($content),
+        ), 'RESPONSE.');
 
         return $content;
     }
