@@ -8,7 +8,7 @@
     <whitelist processUncoveredFilesFromWhitelist="true">
       <directory suffix=".php">src</directory>
       <exclude>
-        <directory suffix=".php">src/Validation/dict</directory>
+        <directory suffix=".php">src/Library/Validation/dict</directory>
       </exclude>
     </whitelist>
   </filter>
