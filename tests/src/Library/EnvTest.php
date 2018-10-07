@@ -54,7 +54,7 @@ class EnvTest extends TestCase
 
     public function testLoad()
     {
-        Env::load(FIXTURE.'files/env.ini');
+        Env::load(FIXTURE.'files/env.php');
         $this->assertEquals('bar', Env::get('foo'));
         $this->assertTrue(Env::get('vtrue'));
         $this->assertNull(Env::get('vnull'));

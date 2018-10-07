@@ -30,11 +30,11 @@ final class Env
     /**
      * Load env file.
      *
-     * @param string ...$files
+     * @param mixed $files
      */
-    public static function load(string ...$files): void
+    public static function load($files): void
     {
-        foreach ($files as $file) {
+        foreach (Util::arr($files) as $file) {
             if (is_file($file)) {
                 self::merge(Util::requireFile($file, array()));
             }
