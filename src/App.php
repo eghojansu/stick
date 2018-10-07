@@ -2026,7 +2026,7 @@ final class App extends Magic
     /**
      * Grab controller from handler expression.
      *
-     * @param  string $handler
+     * @param string $handler
      *
      * @return mixed
      */

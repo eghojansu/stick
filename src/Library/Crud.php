@@ -410,7 +410,7 @@ class Crud
     /**
      * Trigger internal event.
      *
-     * @param  string $eventName
+     * @param string $eventName
      */
     protected function trigger(string $eventName): void
     {

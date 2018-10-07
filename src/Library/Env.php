@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace Fal\Stick\Library;
 
+use Fal\Stick\Util;
+
 /**
  * Environment helper.
  *
@@ -28,13 +30,13 @@ final class Env
     /**
      * Load env file.
      *
-     * @param  string ...$files
+     * @param string ...$files
      */
     public static function load(string ...$files): void
     {
         foreach ($files as $file) {
             if (is_file($file)) {
-                self::merge(parse_ini_file($file, true, INI_SCANNER_TYPED));
+                self::merge(Util::requireFile($file, array()));
             }
         }
     }
@@ -52,8 +54,8 @@ final class Env
     /**
      * Returns env value, check global $_ENV too.
      *
-     * @param  string $name
-     * @param  mixed  $default
+     * @param string $name
+     * @param mixed  $default
      *
      * @return mixed
      */
@@ -76,7 +78,7 @@ final class Env
     /**
      * Merge env.
      *
-     * @param  array  $env
+     * @param array $env
      */
     public static function merge(array $env): void
     {
