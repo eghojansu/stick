@@ -103,6 +103,13 @@ class Crud
         'updatedMessageKey' => 'SESSION.alerts.info',
         'deletedMessageKey' => 'SESSION.alerts.warning',
         'wrapperName' => 'crud',
+        'afterLoad' => null,
+        'beforeCreate' => null,
+        'afterCreate' => null,
+        'beforeUpdate' => null,
+        'afterUpdate' => null,
+        'beforeDelete' => null,
+        'afterDelete' => null,
     );
 
     /**
@@ -242,10 +249,9 @@ class Crud
                 $this->form = $this->app->service($form);
             } else {
                 $this->form = $this->app->instance(Form::class);
-                $call = $this->options['formBuild'] ?? null;
 
-                if (is_callable($call)) {
-                    $call($this->form);
+                if (is_callable($call = $this->options['formBuild'] ?? null)) {
+                    $call($this, $this->form);
                 }
             }
         }
@@ -402,6 +408,18 @@ class Crud
     }
 
     /**
+     * Trigger internal event.
+     *
+     * @param  string $eventName
+     */
+    protected function trigger(string $eventName): void
+    {
+        if (is_callable($cb = $this->options[$eventName])) {
+            $cb($this, $this->mapper);
+        }
+    }
+
+    /**
      * Perform state listing.
      *
      * @return bool
@@ -425,6 +443,7 @@ class Crud
     protected function stateView(): bool
     {
         $this->getMapper()->load($this->prepareItemFilters());
+        $this->trigger('afterLoad');
 
         if ($this->mapper->dry()) {
             throw new HttpException(null, 404);
@@ -445,7 +464,10 @@ class Crud
         $form = $this->getForm();
 
         if ($form->isSubmitted() && $form->valid()) {
+            $this->trigger('beforeCreate');
             $this->mapper->save();
+            $this->trigger('afterCreate');
+
             $this->app
                 ->set($this->options['createdMessageKey'], $this->message('crud_created'))
                 ->reroute($this->rerouteTarget())
@@ -472,7 +494,10 @@ class Crud
         $form->setData($this->mapper->toArray());
 
         if ($form->isSubmitted() && $form->valid()) {
+            $this->trigger('beforeUpdate');
             $this->mapper->save();
+            $this->trigger('afterUpdate');
+
             $this->app
                 ->set($this->options['updatedMessageKey'], $this->message('crud_updated'))
                 ->reroute($this->rerouteTarget())
@@ -496,7 +521,10 @@ class Crud
         $this->stateView();
 
         if ('POST' === $this->app->get('VERB')) {
+            $this->trigger('beforeDelete');
             $this->mapper->delete();
+            $this->trigger('afterDelete');
+
             $this->app
                 ->set($this->options['deletedMessageKey'], $this->message('crud_deleted'))
                 ->reroute($this->rerouteTarget())

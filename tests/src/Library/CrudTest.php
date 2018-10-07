@@ -243,6 +243,7 @@ class CrudTest extends TestCase
                         'update' => 'update.php',
                         'delete' => 'delete.php',
                     ))
+                    ->beforeCreate(function() {}) // trigger before create
                     ->mapper('user')
                     ->form('Fixture\\Form\\UserForm')
                     ->render()
