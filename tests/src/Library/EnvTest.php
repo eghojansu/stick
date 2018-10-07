@@ -56,5 +56,7 @@ class EnvTest extends TestCase
     {
         Env::load(FIXTURE.'files/env.ini');
         $this->assertEquals('bar', Env::get('foo'));
+        $this->assertTrue(Env::get('vtrue'));
+        $this->assertNull(Env::get('vnull'));
     }
 }

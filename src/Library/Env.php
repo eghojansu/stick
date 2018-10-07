@@ -34,7 +34,7 @@ final class Env
     {
         foreach ($files as $file) {
             if (is_file($file)) {
-                self::merge(parse_ini_file($file));
+                self::merge(parse_ini_file($file, true, INI_SCANNER_TYPED));
             }
         }
     }
