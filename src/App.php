@@ -293,7 +293,8 @@ final class App extends Magic
             $frame += $fix;
 
             $file = str_replace($cut, '', Util::fixslashes($frame['file']));
-            $out .= '['.$file.':'.$frame['line'].'] '.$frame['class'].$frame['type'].$frame['function'].$eol;
+            $classinfo = $frame['class'] ? $frame['class'].$frame['type'].$frame['function'] : null;
+            $out .= '['.$file.':'.$frame['line'].'] '.$classinfo.$eol;
         }
 
         return $out;
