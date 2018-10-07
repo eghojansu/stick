@@ -102,7 +102,7 @@ class AuthTest extends TestCase
     public function testLogin()
     {
         $user = $this->createUser();
-        $this->app->one('auth_login', function ($auth, $user) {
+        $this->app->one('auth_login', function ($user) {
             $user->setCredentialsExpired(true);
         });
 

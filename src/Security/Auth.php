@@ -116,7 +116,7 @@ class Auth
      */
     public function login(UserInterface $user): Auth
     {
-        $this->app->trigger(self::EVENT_LOGIN, array($this, $user));
+        $this->app->trigger(self::EVENT_LOGIN, array($user));
 
         $this->user = $user;
         $this->app->set(self::SESSION_KEY, $user->getId());
@@ -132,7 +132,7 @@ class Auth
     public function logout(): Auth
     {
         $user = $this->getUser();
-        $this->app->trigger(self::EVENT_LOGOUT, array($this, $user));
+        $this->app->trigger(self::EVENT_LOGOUT, array($user));
 
         $this->userLoaded = false;
         $this->user = null;
@@ -152,7 +152,7 @@ class Auth
             return $this->user;
         }
 
-        if (($user = $this->app->trigger(self::EVENT_LOAD_USER, array($this))) && $user instanceof UserInterface) {
+        if (($user = $this->app->trigger(self::EVENT_LOAD_USER)) && $user instanceof UserInterface) {
             $this->user = $user;
         }
 
