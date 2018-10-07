@@ -85,9 +85,10 @@ class AppTest extends TestCase
             ->route('PUT /put', function () {
                 return 'Put mode';
             })
-            ->route('GET /uncallable/dinamic/@method', 'FakeClass->@method')
             ->route('GET /sync-only sync', 'xxxfooxxx')
             ->route('GET /uncallable', 'xxxfooxxx')
+            ->route('GET /simple-controller-home', 'Fixture\Controller\SimpleController->home')
+            ->route('GET /no-class', 'Fixture\Controller\SimpleControllerX->home')
         ;
     }
 
@@ -914,6 +915,7 @@ class AppTest extends TestCase
             array('/unknown', 'HTTP 404 (GET /unknown)'),
             array('/sync-only', 'HTTP 405 (GET /sync-only)'),
             array('/uncallable', 'HTTP 405 (GET /uncallable)'),
+            array('/no-class', 'HTTP 404 (GET /no-class)'),
             array('/str', 'String response', false),
             array('/arr', '["Array response"]', false),
             array('/call', 'From callable', false),
@@ -924,7 +926,7 @@ class AppTest extends TestCase
             array('/ajax-access', 'Access granted', false, true),
             array('/cli-access', 'Access granted', false, false, true),
             array('/sync-access', 'Access granted', false),
-            array('/uncallable/dinamic/method', 'HTTP 405 (GET /uncallable/dinamic/method)'),
+            array('/simple-controller-home', 'Home', false),
         );
     }
 

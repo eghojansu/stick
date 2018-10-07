@@ -1894,18 +1894,13 @@ final class App extends Magic
             $this->expire(0);
         }
 
-        try {
-            $controller = is_string($handler) ? $this->grab($handler) : $handler;
-            $callable = true;
-        } catch (\Throwable $e) {
-            $callable = false;
-        }
-
         $this->_hive['PARAMS'] = $params;
         $this->_hive['PATTERN'] = $pattern;
         $this->_hive['ALIAS'] = $alias;
 
-        if (!$callable || !is_callable($controller)) {
+        $controller = is_string($handler) ? $this->grabController($handler) : $handler;
+
+        if (!is_callable($controller)) {
             $this->error(405);
 
             return;
@@ -2025,6 +2020,28 @@ final class App extends Magic
         $handlerId = $route[$this->_hive['VERB']] ?? null;
 
         return null === $handlerId ? null : $this->_hive['ROUTE_HANDLERS'][$handlerId];
+    }
+
+    /**
+     * Grab controller from handler expression.
+     *
+     * @param  string $handler
+     *
+     * @return mixed
+     */
+    private function grabController(string $handler)
+    {
+        $check = $this->grab($handler, false);
+
+        if (is_array($check)) {
+            if (!class_exists(reset($check))) {
+                throw new HttpException(null, 404);
+            }
+
+            return $this->grab($handler);
+        }
+
+        return $handler;
     }
 
     /**
