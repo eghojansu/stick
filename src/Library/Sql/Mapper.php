@@ -29,12 +29,12 @@ class Mapper extends Magic
 
     // Supported events
     const EVENT_LOAD = 'sql_mapper_load';
+    const EVENT_BEFORE_INSERT = 'sql_mapper_before_insert';
     const EVENT_INSERT = 'sql_mapper_insert';
-    const EVENT_AFTER_INSERT = 'sql_mapper_after_insert';
+    const EVENT_BEFORE_UPDATE = 'sql_mapper_before_update';
     const EVENT_UPDATE = 'sql_mapper_update';
-    const EVENT_AFTER_UPDATE = 'sql_mapper_after_update';
+    const EVENT_BEFORE_DELETE = 'sql_mapper_before_delete';
     const EVENT_DELETE = 'sql_mapper_delete';
-    const EVENT_AFTER_DELETE = 'sql_mapper_after_delete';
 
     /**
      * App instance.
@@ -556,7 +556,7 @@ class Mapper extends Magic
         $inc = null;
         $driver = $this->_driver;
 
-        if ($this->_app->trigger(self::EVENT_INSERT, array($this))) {
+        if ($this->_app->trigger(self::EVENT_BEFORE_INSERT, array($this))) {
             return $this;
         }
 
@@ -602,7 +602,7 @@ class Mapper extends Magic
             $this->load($filter);
         }
 
-        $this->_app->trigger(self::EVENT_AFTER_INSERT, array($this));
+        $this->_app->trigger(self::EVENT_INSERT, array($this));
 
         return $this;
     }
@@ -620,7 +620,7 @@ class Mapper extends Magic
         $filter = '';
         $changes = array();
 
-        if ($this->_app->trigger(self::EVENT_UPDATE, array($this))) {
+        if ($this->_app->trigger(self::EVENT_BEFORE_UPDATE, array($this))) {
             return $this;
         }
 
@@ -654,7 +654,7 @@ class Mapper extends Magic
 
         // reset changed flag after calling afterupdate
         $this->_fields = $changes;
-        $this->_app->trigger(self::EVENT_AFTER_UPDATE, array($this));
+        $this->_app->trigger(self::EVENT_UPDATE, array($this));
 
         return $this;
     }
@@ -701,7 +701,7 @@ class Mapper extends Magic
             $args[++$ctr] = array($field['initial'], $field['pdo_type']);
         }
 
-        if ($this->_app->trigger(self::EVENT_DELETE, array($this))) {
+        if ($this->_app->trigger(self::EVENT_BEFORE_DELETE, array($this))) {
             return 0;
         }
 
@@ -711,7 +711,7 @@ class Mapper extends Magic
         $this->_query = array_slice($this->_query, 0, $this->_ptr, true) +
                        array_slice($this->_query, $this->_ptr, null, true);
 
-        $this->_app->trigger(self::EVENT_AFTER_DELETE, array($this));
+        $this->_app->trigger(self::EVENT_DELETE, array($this));
         $this->first();
 
         return $out;
