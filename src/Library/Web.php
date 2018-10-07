@@ -11,7 +11,9 @@
 
 declare(strict_types=1);
 
-namespace Fal\Stick;
+namespace Fal\Stick\Library;
+
+use Fal\Stick\App;
 
 /**
  * Web helper (ported from f3 web helper).

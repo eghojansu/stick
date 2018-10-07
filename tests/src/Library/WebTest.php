@@ -14,7 +14,7 @@ declare(strict_types=1);
 namespace Fal\Stick\Test\Library;
 
 use Fal\Stick\App;
-use Fal\Stick\Web;
+use Fal\Stick\Library\Web;
 use PHPUnit\Framework\TestCase;
 
 class WebTest extends TestCase
