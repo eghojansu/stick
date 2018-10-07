@@ -19,7 +19,7 @@ namespace Fal\Stick;
  * It contains the logic of kernel, event dispatcher and listener, route handling,
  * route path generation, services and some other helpers.
  *
- * Request and response also live in this class.
+ * Request and response information also live in this class.
  *
  * @author Eko Kurniawan <ekokurniawanbs@gmail.com>
  */
@@ -35,8 +35,8 @@ final class App extends Magic
 
     const EVENT_BOOT = 'app_boot';
     const EVENT_SHUTDOWN = 'app_shutdown';
-    const EVENT_PRE_ROUTE = 'app_pre_route';
-    const EVENT_POST_ROUTE = 'app_post_route';
+    const EVENT_PREROUTE = 'app_preroute';
+    const EVENT_POSTROUTE = 'app_postroute';
     const EVENT_CONTROLLER_ARGS = 'app_controller_args';
     const EVENT_REROUTE = 'app_reroute';
     const EVENT_ERROR = 'app_error';
@@ -125,48 +125,46 @@ final class App extends Magic
      *
      * @param array|null $get    Equivalent to $_GET
      * @param array|null $post   Equivalent to $_POST
-     * @param array|null $server Equivalent to $_SERVER
      * @param array|null $cookie Equivalent to $_COOKIE
+     * @param array|null $server Equivalent to $_SERVER
      */
-    public function __construct(array $get = null, array $post = null, array $server = null, array $cookie = null)
+    public function __construct(array $get = null, array $post = null, array $cookie = null, array $server = null)
     {
-        $now = microtime(true);
+        $time = microtime(true);
         $charset = 'UTF-8';
 
         ini_set('default_charset', $charset);
 
-        $scriptName = $server['SCRIPT_NAME'] ?? $_SERVER['SCRIPT_NAME'];
-        $scriptFilename = $server['SCRIPT_FILENAME'] ?? $_SERVER['SCRIPT_FILENAME'];
         $cli = 'cli' === PHP_SAPI;
-        $verb = $server['REQUEST_METHOD'] ?? 'GET';
-        $host = $server['SERVER_NAME'] ?? gethostname();
+        $headers = $cli ? null : Util::requestHeaders($server);
+        $scriptname = Util::fixslashes($server['SCRIPT_NAME'] ?? $_SERVER['SCRIPT_NAME']);
         $uri = $server['REQUEST_URI'] ?? '/';
+        $host = $server['SERVER_NAME'] ?? gethostname();
         $uriHost = preg_match('/^\w+:\/\//', $uri) ? '' : '//'.$host;
         $url = parse_url($uriHost.$uri);
-        $port = (int) ($server['HTTP_X_FORWARDED_PORT'] ?? $server['SERVER_PORT'] ?? 80);
-        $secure = 'on' === ($server['HTTPS'] ?? '') || 'https' === ($server['HTTP_X_FORWARDED_PROTO'] ?? '');
-        $base = rtrim(Util::fixslashes(dirname($scriptName)), '/');
-        $entry = '/'.basename($scriptName);
+        $base = dirname($scriptname);
+        $port = (int) ($headers['X-Forwarded-Port'] ?? $server['SERVER_PORT'] ?? 80);
+        $secure = 'on' === ($server['HTTPS'] ?? '') || 'https' === ($headers['X-Forwarded-Proto'] ?? '');
+        $scheme = rtrim('https', chr(115 * ((int) !$secure)));
+        $baseUrl = $scheme.'://'.$host.(in_array($port, array(80, 443)) ? '' : ':'.$port);
+        $entry = '/'.basename($scriptname);
 
         if ($cli) {
             $base = '';
             $entry = '';
         }
 
-        $schar = chr(115 * ((int) !$secure));
-        $scheme = rtrim('https', $schar);
-        $baseUrl = $scheme.'://'.$host.(in_array($port, array(80, 443)) ? '' : ':'.$port);
         $cookieJar = array(
             'expire' => 0,
-            'path' => $base ?: '/',
+            'path' => $base,
             'domain' => (false === strpos($host, '.') || filter_var($host, FILTER_VALIDATE_IP)) ? '' : $host,
             'secure' => $secure,
             'httponly' => true,
         );
 
         $this->_hive = array(
-            'AGENT' => $server['HTTP_X_OPERAMINI_PHONE_UA'] ?? $server['HTTP_X_SKYFIRE_PHONE'] ?? $server['HTTP_USER_AGENT'] ?? '',
-            'AJAX' => 'XMLHttpRequest' === ($server['HTTP_X_REQUESTED_WITH'] ?? null),
+            'AGENT' => $headers['X-Operamini-Phone-Ua'] ?? $headers['X-Skyfire-Phone'] ?? $headers['User-Agent'] ?? '',
+            'AJAX' => 'XMLHttpRequest' === ($headers['X-Requested-With'] ?? null),
             'ALIAS' => null,
             'BASE' => $base,
             'BASEURL' => $baseUrl.$base,
@@ -177,8 +175,6 @@ final class App extends Magic
             'CASELESS' => false,
             'CLI' => $cli,
             'CODE' => 200,
-            'CONTROLLER' => null,
-            'CONTROLLER_ARGS' => null,
             'COOKIE' => $cookie,
             'DEBUG' => false,
             'DICT' => null,
@@ -189,16 +185,15 @@ final class App extends Magic
             'EVENTS' => null,
             'EXEMPT' => null,
             'FALLBACK' => 'en',
-            'FRAGMENT' => $url['fragment'] ?? null,
             'GET' => $get,
-            'HEADERS' => null,
             'HOST' => $host,
-            'IP' => $server['HTTP_X_CLIENT_IP'] ?? Util::cutbefore($server['HTTP_X_FORWARDED_FOR'] ?? '', ',', $server['REMOTE_ADDR'] ?? ''),
+            'IP' => $headers['X-Client-Ip'] ?? Util::cutbefore($headers['X-Forwarded-For'] ?? '', ',', $server['REMOTE_ADDR'] ?? ''),
             'JAR' => $cookieJar,
-            'KBPS' => 0,
             'LANGUAGE' => null,
             'LOCALES' => './dict/',
             'LOG' => null,
+            'MIME' => null,
+            'OUTPUT' => null,
             'PACKAGE' => self::PACKAGE,
             'PARAMS' => null,
             'PATH' => Util::cutprefix(Util::cutprefix(urldecode($url['path']), $base), $entry, '/'),
@@ -209,6 +204,7 @@ final class App extends Magic
             'QUIET' => false,
             'RAW' => false,
             'REALM' => $baseUrl.$uri,
+            'REQUEST' => $headers,
             'RESPONSE' => null,
             'ROUTE_ALIASES' => array(),
             'ROUTE_HANDLER_CTR' => -1,
@@ -217,7 +213,7 @@ final class App extends Magic
             'SCHEME' => $scheme,
             'SEED' => Util::hash($host.$base),
             'SENT' => false,
-            'SERVER' => (array) $server,
+            'SERVER' => $server,
             'SERVICE_ALIASES' => array(),
             'SERVICE_RULES' => array(),
             'SERVICES' => array(),
@@ -225,15 +221,17 @@ final class App extends Magic
             'STATUS' => self::HTTP_200,
             'TEMP' => './var/',
             'THRESHOLD' => self::LOG_LEVEL_ERROR,
-            'TIME' => $now,
-            'TRACE' => Util::fixslashes(realpath(dirname($scriptFilename).'/..').'/'),
+            'TIME' => $time,
+            'TRACE' => Util::fixslashes(realpath(dirname($server['SCRIPT_FILENAME'] ?? $_SERVER['SCRIPT_FILENAME']).'/..').'/'),
             'TZ' => date_default_timezone_get(),
             'URI' => $uri,
-            'VERB' => $verb,
+            'VERB' => $server['REQUEST_METHOD'] ?? 'GET',
             'VERSION' => self::VERSION,
             'XFRAME' => 'SAMEORIGIN',
         );
         $this->_init = array('GET' => null, 'POST' => null) + $this->_hive;
+
+        register_shutdown_function(array($this, 'unload'), getcwd());
     }
 
     /**
@@ -241,12 +239,12 @@ final class App extends Magic
      *
      * @param array|null $get    Equivalent to $_GET
      * @param array|null $post   Equivalent to $_POST
-     * @param array|null $server Equivalent to $_SERVER
      * @param array|null $cookie Equivalent to $_COOKIE
+     * @param array|null $server Equivalent to $_SERVER
      *
      * @return App
      */
-    public static function create(array $get = null, array $post = null, array $server = null, array $cookie = null): App
+    public static function create(array $get = null, array $post = null, array $cookie = null, array $server = null): App
     {
         return new static($get, $post, $server, $cookie);
     }
@@ -258,7 +256,7 @@ final class App extends Magic
      */
     public static function createFromGlobals(): App
     {
-        return new static($_GET, $_POST, $_SERVER, $_COOKIE);
+        return new static($_GET, $_POST, $_COOKIE, $_SERVER);
     }
 
     /**
@@ -288,9 +286,7 @@ final class App extends Magic
             'line' => null,
             'file' => '',
             'class' => null,
-            'object' => null,
             'type' => null,
-            'args' => null,
         );
 
         foreach ($trace as $key => $frame) {
@@ -310,7 +306,7 @@ final class App extends Magic
      */
     public function overrideRequestMethod(): App
     {
-        $verb = $this->_hive['SERVER']['HTTP_X_HTTP_METHOD_OVERRIDE'] ?? $this->_hive['VERB'];
+        $verb = $this->_hive['REQUEST']['X-Http-Method-Override'] ?? $this->_hive['VERB'];
 
         if ('POST' === $verb && isset($this->_hive['POST']['_method'])) {
             $verb = strtoupper($this->_hive['POST']['_method']);
@@ -362,25 +358,10 @@ final class App extends Magic
 
             $this->_hive['VERB'] = 'GET';
             $this->_hive['PATH'] = $uri['path'];
-            $this->_hive['FRAGMENT'] = $uri['fragment'];
             $this->_hive['URI'] = $req;
             $this->_hive['REALM'] = $this->_hive['BASEURL'].$req;
             parse_str($uri['query'], $this->_hive['GET']);
         }
-
-        return $this;
-    }
-
-    /**
-     * Register shutdown handler.
-     *
-     * @return App
-     *
-     * @codeCoverageIgnore
-     */
-    public function registerShutdownHandler(): App
-    {
-        register_shutdown_function(array($this, 'unload'), getcwd());
 
         return $this;
     }
@@ -418,11 +399,11 @@ final class App extends Magic
      */
     public function blacklisted(string $ip): bool
     {
-        if ($this->_hive['DNSBL'] && !in_array($ip, $this->arr($this->_hive['EXEMPT']))) {
+        if ($this->_hive['DNSBL'] && !in_array($ip, Util::arr($this->_hive['EXEMPT']))) {
             // Reverse IPv4 dotted quad
             $rev = implode('.', array_reverse(explode('.', $ip)));
 
-            foreach ($this->arr($this->_hive['DNSBL']) as $server) {
+            foreach (Util::arr($this->_hive['DNSBL']) as $server) {
                 // DNSBL lookup
                 if (checkdnsrr($rev.'.'.$server, 'A')) {
                     return true;
@@ -647,7 +628,10 @@ final class App extends Magic
             case 'FALLBACK':
             case 'LANGUAGE':
             case 'LOCALES':
-                $this->_hive['DICT'] = $this->langLoad();
+                $this->_hive['DICT'] = $this->langLoad(...array(
+                    $this->_hive['LOCALES'],
+                    $this->langLanguages((string) $this->_hive['LANGUAGE'], $this->_hive['FALLBACK']),
+                ));
                 break;
             case 'TZ':
                 date_default_timezone_set($val);
@@ -687,6 +671,18 @@ final class App extends Magic
         }
 
         return $this;
+    }
+
+    /**
+     * Returns hive member as boolean value.
+     *
+     * @param string $key
+     *
+     * @return bool
+     */
+    public function is(string $key): bool
+    {
+        return (bool) $this->get($key);
     }
 
     /**
@@ -1260,23 +1256,21 @@ final class App extends Magic
      * @param array|null $event
      * @param bool       $off
      *
-     * @return bool
+     * @return mixed
      */
-    public function trigger(string $eventName, array $args = null, bool $off = false): bool
+    public function trigger(string $eventName, array $args = null, bool $off = false)
     {
-        if (isset($this->_hive['EVENTS'][$eventName])) {
-            list($handler, $once) = $this->_hive['EVENTS'][$eventName];
-
-            if ($once || $off) {
-                $this->off($eventName);
-            }
-
-            $result = $this->call($handler, $args);
-
-            return is_bool($result) ? $result : false;
+        if (empty($this->_hive['EVENTS'][$eventName])) {
+            return;
         }
 
-        return false;
+        list($handler, $once) = $this->_hive['EVENTS'][$eventName];
+
+        if ($once || $off) {
+            $this->off($eventName);
+        }
+
+        return $this->call($handler, $args);
     }
 
     /**
@@ -1381,14 +1375,18 @@ final class App extends Magic
         }
 
         if ($this->_hive['CLI']) {
-            return $this->mock('GET '.$path.' cli');
+            $this->mock('GET '.$path.' cli');
+
+            return $this;
         }
 
         $this->status(302 - (int) $permanent);
-        $this->_hive['HEADERS']['Location'] = $url;
-        $this->_hive['RESPONSE'] = null;
+        $this->_hive['RESPONSE']['Location'] = $url;
+        $this->_hive['OUTPUT'] = null;
 
-        return $this->send();
+        $this->send();
+
+        return $this;
     }
 
     /**
@@ -1487,10 +1485,8 @@ final class App extends Magic
      * @param array|null  $args
      * @param array|null  $server
      * @param string|null $body
-     *
-     * @return App
      */
-    public function mock(string $route, array $args = null, array $server = null, string $body = null): App
+    public function mock(string $route, array $args = null, array $server = null, string $body = null): void
     {
         $tmp = array_map('trim', explode(' ', $route));
 
@@ -1502,8 +1498,7 @@ final class App extends Magic
         $targetExpr = urldecode($tmp[1]);
         $mode = strtolower($tmp[2] ?? 'none');
         $target = Util::cutbefore($targetExpr, '?');
-        $query = Util::cutbefore(Util::cutafter($targetExpr, '?', '', true), '#');
-        $fragment = Util::cutafter($targetExpr, '#', '', true);
+        $query = Util::cutafter($targetExpr, '?', '', true);
         $path = $target;
 
         if (isset($this->_hive['ROUTE_ALIASES'][$target])) {
@@ -1513,11 +1508,11 @@ final class App extends Magic
             $path = $this->alias($match[1], $args);
         }
 
-        $this->mclear('SENT,RESPONSE,HEADERS,BODY');
+        $this->mclear('SENT,RESPONSE,OUTPUT,BODY');
 
         $this->_hive['VERB'] = $verb;
         $this->_hive['PATH'] = $path;
-        $this->_hive['URI'] = $this->_hive['BASE'].$path.$query.$fragment;
+        $this->_hive['URI'] = $this->_hive['BASE'].$path.$query;
         $this->_hive['AJAX'] = 'ajax' === $mode;
         $this->_hive['CLI'] = 'cli' === $mode;
         $this->_hive['POST'] = 'POST' === $verb ? $args : array();
@@ -1530,101 +1525,72 @@ final class App extends Magic
             $this->_hive['BODY'] = $body ?: http_build_query((array) $args);
         }
 
-        $this->_hive['SERVER'] = ((array) $server) + $this->_hive['SERVER'];
+        $this->_hive['SERVER'] = (array) $server + (array) $this->_hive['SERVER'];
 
-        return $this->run();
+        $this->run();
     }
 
     /**
      * Run kernel logic.
-     *
-     * @return App
      */
-    public function run(): App
+    public function run(): void
     {
+        $this->trigger(self::EVENT_BOOT, null, true);
+
         try {
             $this->doRun();
         } catch (\Throwable $e) {
             $this->handleException($e);
         }
-
-        return $this;
     }
 
     /**
      * Send response headers and content.
      *
+     * @param int|null    $code
+     * @param array|null  $headers
+     * @param string|null $content
+     * @param string|null $mime
+     * @param int         $kbps
+     *
      * @return App
      */
-    public function send(): App
+    public function send(int $code = null, array $headers = null, string $content = null, string $mime = null, int $kbps = 0): App
     {
         if ($this->_hive['SENT']) {
             return $this;
         }
 
+        if ($code) {
+            $this->status($code);
+        }
+
+        $assign = array(
+            'RESPONSE' => $headers,
+            'OUTPUT' => $content,
+            'MIME' => $mime,
+        );
+
+        foreach (array_filter($assign) as $key => $value) {
+            $this->_hive[$key] = $value;
+        }
+
+        if (!$this->_hive['CLI'] && !headers_sent()) {
+            $this->sendHeaders(...array(
+                $this->_hive['PROTOCOL'],
+                $this->_hive['CODE'],
+                $this->_hive['STATUS'],
+                $this->_hive['MIME'],
+                $this->_hive['RESPONSE'],
+                $this->cookies($this->_hive['JAR'], $this->_hive['COOKIE'], $this->_init['COOKIE']),
+            ));
+        }
+
+        if (!$this->_hive['QUIET'] && $this->_hive['OUTPUT']) {
+            $this->sendContent($this->_hive['OUTPUT'], $kbps);
+        }
+
         $this->_hive['SENT'] = true;
-
-        return $this
-            ->sendHeaders()
-            ->sendContent()
-        ;
-    }
-
-    /**
-     * Send response headers.
-     *
-     * @return App
-     */
-    public function sendHeaders(): App
-    {
-        if ($this->_hive['CLI'] || headers_sent()) {
-            return $this;
-        }
-
-        foreach ($this->cookies() as $cookies) {
-            setcookie(...$cookies);
-        }
-
-        foreach (array_filter($this->_hive['HEADERS'], 'is_scalar') as $name => $value) {
-            header($name.': '.$value);
-        }
-
-        header($this->_hive['PROTOCOL'].' '.$this->_hive['CODE'].' '.$this->_hive['STATUS'], true);
-
-        return $this;
-    }
-
-    /**
-     * Send response content.
-     *
-     * @return App
-     */
-    public function sendContent(): App
-    {
-        if ($this->_hive['QUIET'] || empty($this->_hive['RESPONSE'])) {
-            return $this;
-        }
-
-        if (0 >= $this->_hive['KBPS']) {
-            echo $this->_hive['RESPONSE'];
-
-            return $this;
-        }
-
-        $now = microtime(true);
-        $ctr = 0;
-        $kbps = $this->_hive['KBPS'];
-
-        foreach (str_split($this->_hive['RESPONSE'], 1024) as $part) {
-            // Throttle output
-            ++$ctr;
-
-            if ($ctr / $kbps > ($elapsed = microtime(true) - $now) && !connection_aborted()) {
-                usleep((int) (1e6 * ($ctr / $kbps - $elapsed)));
-            }
-
-            echo $part;
-        }
 
         return $this;
     }
@@ -1638,7 +1604,7 @@ final class App extends Magic
      */
     public function expire(int $secs = 0): App
     {
-        $headers = &$this->_hive['HEADERS'];
+        $headers = &$this->_hive['RESPONSE'];
 
         $headers['X-Powered-By'] = $this->_hive['PACKAGE'];
         $headers['X-Frame-Options'] = $this->_hive['XFRAME'];
@@ -1657,6 +1623,8 @@ final class App extends Magic
             $headers['Cache-Control'] = 'no-cache, no-store, must-revalidate';
             $headers['Expires'] = gmdate('r', 0);
         }
+
+        unset($headers);
 
         return $this;
     }
@@ -1713,28 +1681,30 @@ final class App extends Magic
             return $this;
         }
 
-        $this->_hive['HEADERS'] = (array) $headers;
+        $this->_hive['RESPONSE'] = (array) $headers;
 
         $this->expire(-1)->logByCode($level ?? E_USER_ERROR, $text.PHP_EOL.$mTrace);
 
-        if ($this->trigger(self::EVENT_ERROR, array($message, $mTrace), true)) {
+        if ($response = $this->trigger(self::EVENT_ERROR, array($message, $mTrace), true)) {
+            $this->sendResponse($response);
+
             return $this;
         }
 
         if ($this->_hive['AJAX']) {
-            $this->_hive['HEADERS']['Content-Type'] = 'application/json';
-            $this->_hive['RESPONSE'] = json_encode(array_filter(array(
+            $this->_hive['MIME'] = 'application/json';
+            $this->_hive['OUTPUT'] = json_encode(array_filter(array(
                 'status' => $status,
                 'text' => $text,
-                'trace' => $mTrace
+                'trace' => $mTrace,
             )));
         } elseif ($this->_hive['CLI']) {
-            $this->_hive['RESPONSE'] = 'Status : '.$status.PHP_EOL.
+            $this->_hive['OUTPUT'] = 'Status : '.$status.PHP_EOL.
                                       'Text   : '.$text.PHP_EOL.
                                       $mTrace.PHP_EOL;
         } else {
-            $this->_hive['HEADERS']['Content-Type'] = 'text/html';
-            $this->_hive['RESPONSE'] = '<!DOCTYPE html>'.
+            $this->_hive['MIME'] = 'text/html';
+            $this->_hive['OUTPUT'] = '<!DOCTYPE html>'.
                 '<html>'.
                 '<head>'.
                   '<meta charset="'.$this->_hive['ENCODING'].'">'.
@@ -1765,7 +1735,7 @@ final class App extends Magic
         $shouldWrite = $this->_hive['LOG'] && (self::LOG_LEVELS[$level] ?? 100) <= (self::LOG_LEVELS[$this->_hive['THRESHOLD']] ?? 101);
 
         if ($shouldWrite) {
-            $this->logWrite($message, $level);
+            $this->logWrite($this->logDir(), $message, $level);
         }
 
         return $this;
@@ -1880,7 +1850,6 @@ final class App extends Magic
             'file' => $e->getFile(),
             'line' => $e->getLine(),
             'function' => '***emulated***',
-            'args' => array(),
         ));
 
         if ($e instanceof HttpException) {
@@ -1895,101 +1864,74 @@ final class App extends Magic
     /**
      * Kernel logic.
      */
-    private function doRun()
+    private function doRun(): void
     {
-        $this->trigger(self::EVENT_BOOT, null, true);
+        if ($response = $this->trigger(self::EVENT_PREROUTE)) {
+            $this->sendResponse($response);
 
-        if ($this->trigger(self::EVENT_PRE_ROUTE)) {
             return;
         }
 
-        // @codeCoverageIgnoreStart
-        if ($this->blacklisted($this->_hive['IP'])) {
-            return $this->error(403);
+        if (!$route = $this->findRoute()) {
+            $this->error(404);
+
+            return;
         }
-        // @codeCoverageIgnoreEnd
 
-        if ($foundRoute = $this->findRoute()) {
-            list($pattern, $routes, $args) = $foundRoute;
+        list($handler, $alias, $ttl, $kbps, $pattern, $params) = $route;
+        $hash = Util::hash($this->_hive['VERB'].' '.$this->_hive['PATH']).'.url';
+        $checkCache = $ttl && in_array($this->_hive['VERB'], array('GET', 'HEAD'));
 
-            if ($foundController = $this->findController($routes, $args)) {
-                list($controller, $alias, $ttl, $kbps) = $foundController;
+        if ($checkCache) {
+            if ($response = $this->isRequestCached($hash, $ttl, $kbps)) {
+                $this->send(...$response);
 
-                $now = time();
-                $verb = $this->_hive['VERB'];
-                $hash = Util::hash($verb.' '.$this->_hive['URI']).'.url';
-
-                if ($ttl && in_array($verb, array('GET', 'HEAD'))) {
-                    if ($this->isCached($hash, $cache)) {
-                        $expDate = $this->_hive['SERVER']['HTTP_IF_MODIFIED_SINCE'] ?? 0;
-                        $notModified = $expDate && strtotime($expDate) + $ttl > $now;
-
-                        if ($notModified) {
-                            return $this->status(304);
-                        }
-
-                        list($content, $lastModified) = $cache;
-                        list($headers, $response) = $content;
-
-                        $newExpireDate = $lastModified + $ttl - $now;
-                        $this->_hive['HEADERS'] = $headers;
-                        $this->_hive['RESPONSE'] = $response;
-
-                        return $this->expire($newExpireDate);
-                    }
-
-                    $this->expire($ttl);
-                } else {
-                    $this->expire(0);
-                }
-
-                $this->_hive['CONTROLLER'] = $controller;
-                $this->_hive['CONTROLLER_ARGS'] = $args;
-                $this->_hive['PATTERN'] = $pattern;
-                $this->_hive['ALIAS'] = $alias;
-                $this->_hive['PARAMS'] = $args;
-                $this->_hive['KBPS'] = $kbps;
-
-                $this->trigger(self::EVENT_CONTROLLER_ARGS, array($controller, $args));
-
-                if (is_callable($this->_hive['CONTROLLER'])) {
-                    if (!$this->_hive['RAW'] && !$this->_hive['BODY']) {
-                        $this->_hive['BODY'] = file_get_contents('php://input');
-                    }
-
-                    $result = $this->call($this->_hive['CONTROLLER'], $this->_hive['CONTROLLER_ARGS']);
-                    $handled = $this->trigger(self::EVENT_POST_ROUTE, array($result));
-
-                    if (!$handled) {
-                        if (is_scalar($result)) {
-                            $this->_hive['RESPONSE'] = (string) $result;
-                        } elseif (is_array($result)) {
-                            $this->_hive['HEADERS']['Content-Type'] = 'application/json';
-                            $this->_hive['RESPONSE'] = json_encode($result);
-                        } elseif (is_callable($result)) {
-                            $result($this);
-                        }
-                    }
-
-                    $shouldBeCached = $ttl && $this->_hive['RESPONSE'] && is_string($this->_hive['RESPONSE']);
-
-                    if ($shouldBeCached) {
-                        $this->cacheSet($hash, array(
-                            $this->_hive['HEADERS'],
-                            $this->_hive['RESPONSE'],
-                        ));
-                    }
-
-                    return $this->send();
-                }
-
-                return $this->error(404);
+                return;
             }
 
-            return $this->error(405);
+            $this->expire($ttl);
+        } else {
+            $this->expire(0);
         }
 
-        return $this->error(404);
+        try {
+            $controller = is_string($handler) ? $this->grab($handler) : $handler;
+            $callable = true;
+        } catch (\Throwable $e) {
+            $callable = false;
+        }
+
+        $this->_hive['PARAMS'] = $params;
+        $this->_hive['PATTERN'] = $pattern;
+        $this->_hive['ALIAS'] = $alias;
+
+        if (!$callable || !is_callable($controller)) {
+            $this->error(405);
+
+            return;
+        }
+
+        $args = (array) ($this->trigger(self::EVENT_CONTROLLER_ARGS, array($controller, $params)) ?? $params);
+        $result = $this->call($controller, $args);
+
+        if ($response = $this->trigger(self::EVENT_POSTROUTE, array($result))) {
+            $this->sendResponse($response);
+        } else {
+            if (is_string($result)) {
+                $this->_hive['OUTPUT'] = $result;
+            } elseif (is_callable($result)) {
+                $result($this);
+            } elseif (is_array($result)) {
+                $this->_hive['OUTPUT'] = json_encode($result);
+                $this->_hive['MIME'] = 'application/json';
+            }
+
+            $this->send();
+        }
+
+        if ($checkCache) {
+            $this->cacheRequest($hash, $ttl);
+        }
     }
 
     /**
@@ -2003,7 +1945,11 @@ final class App extends Magic
 
         foreach ($this->_hive['ROUTES'] as $pattern => $routes) {
             if (preg_match($this->regexify($pattern).$modifier, $this->_hive['PATH'], $match)) {
-                return array($pattern, $routes, $this->collectParams($match));
+                if ($handler = $this->findHandler($routes)) {
+                    return $handler + array(4 => $pattern, $this->collectParams($match));
+                }
+
+                return null;
             }
         }
 
@@ -2069,64 +2015,34 @@ final class App extends Magic
      * Returns route handler and definition.
      *
      * @param array $routes
-     * @param array $args
      *
      * @return array|null
      */
-    private function findController(array $routes, array $args): ?array
+    private function findHandler(array $routes): ?array
     {
         $mode = $this->_hive['AJAX'] ? self::REQ_AJAX : ($this->_hive['CLI'] ? self::REQ_CLI : self::REQ_SYNC);
         $route = $routes[$mode] ?? $routes[self::REQ_ALL] ?? null;
         $handlerId = $route[$this->_hive['VERB']] ?? null;
-        $controller = null;
 
-        if (isset($handlerId)) {
-            $controller = $this->_hive['ROUTE_HANDLERS'][$handlerId];
-            $handler = &$controller[0];
-
-            if (is_string($handler)) {
-                // Replace route pattern tokens in handler if any
-                $replace = array_filter($args, 'is_scalar');
-                $search = explode(',', '@'.implode(',@', array_keys($replace)));
-                $handler = str_replace($search, $replace, $handler);
-                $check = $this->grab($handler, false);
-
-                if (is_array($check) && !class_exists($check[0])) {
-                    $controller = null;
-                } else {
-                    $handler = $this->grab($handler);
-                }
-            }
-        }
-
-        return $controller;
+        return null === $handlerId ? null : $this->_hive['ROUTE_HANDLERS'][$handlerId];
     }
 
     /**
-     * Returns prepared cookies to send.
+     * Handle response from trigger result.
      *
-     * @return array
+     * @param string|array $response
      */
-    private function cookies(): array
+    private function sendResponse($response): void
     {
-        $jar = array_combine(range(2, count($this->_hive['JAR']) + 1), array_values($this->_hive['JAR']));
-        $init = (array) $this->_init['COOKIE'];
-        $current = (array) $this->_hive['COOKIE'];
-        $cookies = array();
+        $mResponse = $response;
 
-        foreach ($current as $name => $value) {
-            if (!isset($init[$name]) || $init[$name] !== $value) {
-                $cookies[$name] = array($name, $value) + $jar;
-            }
+        if (is_string($response)) {
+            $mResponse = array(null, null, $response);
         }
 
-        foreach ($init as $name => $value) {
-            if (!isset($current[$name])) {
-                $cookies[$name] = array($name, '', strtotime('-1 year')) + $jar;
-            }
+        if (is_array($mResponse)) {
+            $this->send(...$mResponse);
         }
-
-        return $cookies;
     }
 
     /**
@@ -2325,6 +2241,65 @@ final class App extends Magic
     }
 
     /**
+     * Check is current request cached.
+     *
+     * @param string $key
+     * @param int    $ttl
+     * @param int    $kbps
+     *
+     * @return array|null
+     */
+    private function isRequestCached(string $key, int $ttl, int $kbps): ?array
+    {
+        if (!$this->isCached($key, $cache)) {
+            return null;
+        }
+
+        $time = time();
+        $expDate = $this->_hive['REQUEST']['If-Modified-Since'] ?? 0;
+        $notModified = $expDate && strtotime($expDate) + $ttl > $time;
+
+        if ($notModified) {
+            return array(304);
+        }
+
+        list($content, $lastModified) = $cache;
+        list($code, $headers, $response, $mime) = $content;
+
+        $newExpDate = $lastModified + $ttl - $time;
+
+        $this->expire($newExpDate);
+
+        $newHeaders = $this->_hive['RESPONSE'];
+
+        return array(
+            $code,
+            $newHeaders + (array) $headers,
+            $response,
+            $mime,
+            $kbps,
+        );
+    }
+
+    /**
+     * Cache output.
+     *
+     * @param string $key
+     * @param int    $ttl
+     */
+    private function cacheRequest(string $key, int $ttl): void
+    {
+        if ($this->_hive['OUTPUT'] && is_string($this->_hive['OUTPUT'])) {
+            $this->cacheSet($key, array(
+                $this->_hive['CODE'],
+                $this->_hive['RESPONSE'],
+                $this->_hive['OUTPUT'],
+                $this->_hive['MIME'],
+            ), $ttl);
+        }
+    }
+
+    /**
      * Returns log directory.
      *
      * @return string
@@ -2334,25 +2309,6 @@ final class App extends Magic
         $dir = $this->_hive['LOG'];
 
         return $dir && is_dir($dir) ? $dir : $this->_hive['TEMP'].$dir;
-    }
-
-    /**
-     * Write log message.
-     *
-     * @param string $message
-     * @param string $level
-     */
-    private function logWrite(string $message, string $level): void
-    {
-        $prefix = $this->logDir().'log_';
-        $ext = '.log';
-        $files = glob($prefix.date('Y-m').'*'.$ext);
-
-        $file = $files[0] ?? $prefix.date('Y-m-d').$ext;
-        $content = date('Y-m-d G:i:s.u').' '.$level.' '.$message.PHP_EOL;
-
-        Util::mkdir(dirname($file));
-        Util::write($file, $content, true);
     }
 
     /**
@@ -2376,13 +2332,36 @@ final class App extends Magic
     }
 
     /**
+     * Write log message.
+     *
+     * @param string $dir
+     * @param string $message
+     * @param string $level
+     */
+    private function logWrite(string $dir, string $message, string $level): void
+    {
+        $prefix = $dir.'log_';
+        $ext = '.log';
+        $files = glob($prefix.date('Y-m').'*'.$ext);
+
+        $file = $files[0] ?? $prefix.date('Y-m-d').$ext;
+        $content = date('Y-m-d G:i:s.u').' '.$level.' '.$message.PHP_EOL;
+
+        Util::mkdir(dirname($file));
+        Util::write($file, $content, true);
+    }
+
+    /**
      * Get languages.
+     *
+     * @param string $language
+     * @param string $fallback
      *
      * @return array
      */
-    private function langLanguages(): array
+    private function langLanguages(string $language, string $fallback): array
     {
-        $langCode = ltrim(preg_replace('/\h+|;q=[0-9.]+/', '', $this->_hive['LANGUAGE']).','.$this->_hive['FALLBACK'], ',');
+        $langCode = ltrim(preg_replace('/\h+|;q=[0-9.]+/', '', $language).','.$fallback, ',');
         $languages = array();
 
         foreach (Util::split($langCode) as $lang) {
@@ -2403,20 +2382,107 @@ final class App extends Magic
     /**
      * Load languages.
      *
+     * @param string|array $dir
+     * @param array        $languages
+     *
      * @return array
      */
-    private function langLoad(): array
+    private function langLoad($dir, array $languages): array
     {
         $dict = array();
 
-        foreach ($this->langLanguages() as $lang) {
-            foreach (Util::arr($this->_hive['LOCALES']) as $dir) {
-                if (is_file($file = $dir.$lang.'.php')) {
+        foreach ($languages as $language) {
+            foreach (Util::arr($dir) as $dir) {
+                if (is_file($file = $dir.$language.'.php')) {
                     $dict = array_replace_recursive($dict, Util::requireFile($file, array()));
                 }
             }
         }
 
         return $dict;
+    }
+
+    /**
+     * Send response headers.
+     *
+     * @param string $protocol
+     * @param int    $code
+     * @param string $status
+     * @param string $mime
+     * @param array  $headers
+     * @param array  $cookies
+     */
+    private function sendHeaders(string $protocol, int $code, string $status, string $mime = null, array $headers = null, array $cookies = null): void
+    {
+        foreach ((array) $cookies as $cookie) {
+            setcookie(...$cookie);
+        }
+
+        foreach (array_filter((array) $headers, 'is_scalar') as $name => $value) {
+            header($name.': '.$value);
+        }
+
+        if ($mime && (!$headers || !preg_grep('/^content-type$/i', array_keys($headers)))) {
+            header('Content-Type: '.$mime);
+        }
+
+        header($protocol.' '.$code.' '.$status, true);
+    }
+
+    /**
+     * Send response content.
+     */
+    private function sendContent(string $response = null, int $kbps = 0): void
+    {
+        if ($kbps <= 0) {
+            echo $response;
+
+            return;
+        }
+
+        $now = microtime(true);
+        $ctr = 0;
+
+        foreach (str_split($response, 1024) as $part) {
+            // Throttle output
+            ++$ctr;
+
+            if ($ctr / $kbps > ($elapsed = microtime(true) - $now) && !connection_aborted()) {
+                usleep((int) (1e6 * ($ctr / $kbps - $elapsed)));
+            }
+
+            echo $part;
+        }
+    }
+
+    /**
+     * Returns prepared cookies to send.
+     *
+     * @param array      $jar
+     * @param array|null $current
+     * @param array|null $init
+     *
+     * @return array
+     */
+    private function cookies(array $jar, array $current = null, array $init = null): array
+    {
+        $jar = array_combine(range(2, count($jar) + 1), array_values($jar));
+        $mInit = (array) $init;
+        $mCurrent = (array) $current;
+        $cookies = array();
+
+        foreach ($mCurrent as $name => $value) {
+            if (!isset($mInit[$name]) || $mInit[$name] !== $value) {
+                $cookies[$name] = array($name, $value) + $jar;
+            }
+        }
+
+        foreach ($mInit as $name => $value) {
+            if (!isset($mCurrent[$name])) {
+                $cookies[$name] = array($name, '', strtotime('-1 year')) + $jar;
+            }
+        }
+
+        return $cookies;
     }
 }

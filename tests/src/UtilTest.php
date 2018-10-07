@@ -204,15 +204,6 @@ class UtilTest extends TestCase
         $this->assertEquals('foo', Util::requireFile(FIXTURE.'files/foo.php'));
     }
 
-    public function testNotNullFalse()
-    {
-        $this->assertTrue(Util::notNullFalse(''));
-        $this->assertTrue(Util::notNullFalse(-1));
-        $this->assertTrue(Util::notNullFalse(0));
-        $this->assertFalse(Util::notNullFalse(null));
-        $this->assertFalse(Util::notNullFalse(false));
-    }
-
     public function testWalk()
     {
         $this->assertEquals(array(true, false, false), Util::walk(array(1, 'foo', 'bar'), 'is_numeric'));
@@ -223,5 +214,22 @@ class UtilTest extends TestCase
         $arr = array('foo' => array('foo' => 'bar'), 'bar' => array('foo' => 'baz'));
 
         $this->assertEquals(array('foo' => 'bar', 'bar' => 'baz'), Util::column($arr, 'foo'));
+    }
+
+    public function testDashCase()
+    {
+        $this->assertEquals('Foo-Bar', Util::dashCase('FOO_BAR'));
+        $this->assertEquals('X-Foo-Bar', Util::dashCase('X_FOO_BAR'));
+    }
+
+    public function testRequestHeaders()
+    {
+        $source = array(
+            'CONTENT_TYPE' => 'foo',
+            'HTTP_X_FOO_BAR' => 'baz',
+        );
+        $expected = array_combine(array('Content-Type', 'X-Foo-Bar'), $source);
+
+        $this->assertEquals($expected, Util::requestHeaders($source));
     }
 }

@@ -48,7 +48,11 @@ class Html
     {
         $str = '';
 
-        foreach (array_filter($attr, 'Fal\Stick\Util::notNullFalse') as $prop => $value) {
+        foreach ($attr as $prop => $value) {
+            if (null === $value || false === $value) {
+                continue;
+            }
+
             if (is_numeric($prop)) {
                 $str .= is_string($value) ? ' '.trim($value) : '';
             } else {

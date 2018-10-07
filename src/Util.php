@@ -21,15 +21,26 @@ namespace Fal\Stick;
 final class Util
 {
     /**
-     * Returns true if val is null or false.
+     * Collect request headers.
      *
-     * @param mixed $val
+     * @param array|null $server
      *
-     * @return bool
+     * @return array
      */
-    public static function notNullFalse($val): bool
+    public static function requestHeaders(array $server = null): array
     {
-        return !(null === $val || false === $val);
+        $headers = array();
+        $raw = array('CONTENT_LENGTH', 'CONTENT_TYPE');
+
+        foreach ((array) $server as $key => $val) {
+            if (in_array($key, $raw)) {
+                $headers[self::dashCase($key)] = $val;
+            } elseif ($name = self::cutprefix($key, 'HTTP_', '')) {
+                $headers[self::dashCase($name)] = $val;
+            }
+        }
+
+        return $headers;
     }
 
     /**
@@ -210,6 +221,18 @@ final class Util
     }
 
     /**
+     * Returns "Dash-Case" string from "DASH_CASE".
+     *
+     * @param string $name
+     *
+     * @return string
+     */
+    public static function dashCase(string $name): string
+    {
+        return strtr(ucwords(strtr(strtolower($name), '_', ' ')), ' ', '-');
+    }
+
+    /**
      * Returns true if dir exists or successfully created.
      *
      * @param string $path
@@ -278,7 +301,7 @@ final class Util
     {
         $content = require $file;
 
-        return self::notNullFalse($content) ? $content : $default;
+        return $content ?: $default;
     }
 
     /**
@@ -317,6 +340,54 @@ final class Util
         }
 
         return $val;
+    }
+
+    /**
+     * Returns array of val.
+     *
+     * It does check given val, if it is not an array it splitted.
+     *
+     * @param string|array $val
+     *
+     * @return array
+     */
+    public static function arr($val): array
+    {
+        return is_array($val) ? $val : self::split((string) $val);
+    }
+
+    /**
+     * Advanced array_column.
+     *
+     * @param array  $input
+     * @param string $column_key
+     *
+     * @return array
+     */
+    public static function column(array $input, string $column_key): array
+    {
+        return array_combine(array_keys($input), array_column($input, $column_key));
+    }
+
+    /**
+     * Apply callable to each member of an array.
+     *
+     * @param array    $args
+     * @param callable $call
+     * @param bool     $one
+     *
+     * @return array
+     */
+    public static function walk(array $args, callable $call, bool $one = true): array
+    {
+        $result = array();
+
+        foreach ($args as $key => $arg) {
+            $mArgs = $one ? array($arg) : (array) $arg;
+            $result[$key] = $call(...$mArgs);
+        }
+
+        return $result;
     }
 
     /**
@@ -409,53 +480,5 @@ final class Util
         }
 
         return $res;
-    }
-
-    /**
-     * Returns array of val.
-     *
-     * It does check given val, if it is not an array it splitted.
-     *
-     * @param string|array $val
-     *
-     * @return array
-     */
-    public static function arr($val): array
-    {
-        return is_array($val) ? $val : self::split((string) $val);
-    }
-
-    /**
-     * Advanced array_column.
-     *
-     * @param array  $input
-     * @param string $column_key
-     *
-     * @return array
-     */
-    public static function column(array $input, string $column_key): array
-    {
-        return array_combine(array_keys($input), array_column($input, $column_key));
-    }
-
-    /**
-     * Apply callable to each member of an array.
-     *
-     * @param array    $args
-     * @param callable $call
-     * @param bool     $one
-     *
-     * @return array
-     */
-    public static function walk(array $args, callable $call, bool $one = true): array
-    {
-        $result = array();
-
-        foreach ($args as $key => $arg) {
-            $mArgs = $one ? array($arg) : (array) $arg;
-            $result[$key] = $call(...$mArgs);
-        }
-
-        return $result;
     }
 }

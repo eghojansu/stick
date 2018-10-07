@@ -257,7 +257,7 @@ class CrudTest extends TestCase
         )));
 
         $expected = $this->app->get('BASEURL').'/foo/index?page=1';
-        $this->assertNull($this->app->get('RESPONSE'));
+        $this->assertNull($this->app->get('OUTPUT'));
         $this->assertEquals($expected, $this->app->get('rerouted'));
         $this->assertEquals($message, $this->app->get($messageKey));
     }

@@ -152,7 +152,11 @@ class Auth
             return $this->user;
         }
 
-        if (!$this->app->trigger(self::EVENT_LOAD_USER, array($this)) && $userId = $this->getSessionUserId()) {
+        if (($user = $this->app->trigger(self::EVENT_LOAD_USER, array($this))) && $user instanceof UserInterface) {
+            $this->user = $user;
+        }
+
+        if ($userId = $this->getSessionUserId()) {
             $this->user = $this->provider->findById($userId);
         }
 
