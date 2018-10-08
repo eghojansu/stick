@@ -173,7 +173,7 @@ class Twbs3FormTest extends TestCase
             $submitted = array('foo' => 'bar');
             $this->app->mset(array(
                 'VERB' => 'POST',
-                'REQUEST' => array('twbs3_form' => array('_form' => 'twbs3_form') + $submitted),
+                'POST' => array('twbs3_form' => array('_form' => 'twbs3_form') + $submitted),
             ));
             $this->form->setData($submitted);
             $this->form->isSubmitted();
@@ -187,7 +187,7 @@ class Twbs3FormTest extends TestCase
     {
         $this->app->mset(array(
             'VERB' => 'POST',
-            'REQUEST' => array('twbs3_form' => array('_form' => 'twbs3_form')),
+            'POST' => array('twbs3_form' => array('_form' => 'twbs3_form')),
         ));
         $this->form->add('foo', 'text', array(
             'constraints' => 'required',

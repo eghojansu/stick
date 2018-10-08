@@ -69,8 +69,8 @@ class FormTest extends TestCase
         $post = array('post' => 'foo');
         $foo = array('foo' => 'foo');
         $this->app->mset(array(
-            'REQUEST' => array('form' => $post),
-            'QUERY' => array('form' => $get),
+            'POST' => array('form' => $post),
+            'GET' => array('form' => $get),
             'FOO' => array('form' => $foo),
         ));
 
@@ -85,9 +85,6 @@ class FormTest extends TestCase
 
         $this->form->setVerb('foo')->setSubmittedData(null);
         $this->assertEquals($foo, $this->form->getSubmittedData());
-
-        $this->form->setVerb('bar')->setSubmittedData(null);
-        $this->assertEquals($post, $this->form->getSubmittedData());
     }
 
     public function testSetSubmittedData()
@@ -125,7 +122,7 @@ class FormTest extends TestCase
         $this->assertFalse($this->form->isSubmitted());
         $this->app->mset(array(
             'VERB' => 'POST',
-            'REQUEST' => array('form' => array('_form' => 'form')),
+            'POST' => array('form' => array('_form' => 'form')),
         ));
         $this->form->setSubmittedData(null);
         $this->assertTrue($this->form->isSubmitted());
@@ -150,7 +147,7 @@ class FormTest extends TestCase
     {
         $this->app->mset(array(
             'VERB' => 'POST',
-            'REQUEST' => array('form' => array('_form' => 'form') + $submitted),
+            'POST' => array('form' => array('_form' => 'form') + $submitted),
         ));
 
         foreach ($fields as $field => $definitions) {
@@ -244,7 +241,7 @@ class FormTest extends TestCase
     {
         $this->app->mset(array(
             'VERB' => 'POST',
-            'REQUEST' => array('form' => array('_form' => 'form')),
+            'POST' => array('form' => array('_form' => 'form')),
         ));
 
         $this->form->add('foo', 'text', array(
@@ -345,7 +342,7 @@ class FormTest extends TestCase
             $submitted = array('foo' => 'bar');
             $this->app->mset(array(
                 'VERB' => 'POST',
-                'REQUEST' => array('form' => array('_form' => 'form') + $submitted),
+                'POST' => array('form' => array('_form' => 'form') + $submitted),
             ));
             $this->form->setData($submitted);
             $this->form->isSubmitted();

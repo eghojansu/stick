@@ -197,7 +197,7 @@ class HtmlTest extends TestCase
             ->route('GET baz /baz/*', 'baz')
             ->route('GET qux /qux/@qux/*', 'qux')
             ->set('ALIAS', $alias)
-            ->set('QUERY', $query)
+            ->set('GET', $query)
         ;
         $expected = $content ? '<nav aria-label="Page navigation"><ul class="pagination">'.$content.'</ul></nav>' : $content;
 

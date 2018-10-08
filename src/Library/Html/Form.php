@@ -223,15 +223,7 @@ class Form
     public function getSubmittedData(): array
     {
         if (null === $this->_submittedData) {
-            $key = 'REQUEST';
-
-            if ('GET' === $this->_verb) {
-                $key = 'QUERY';
-            } elseif ($this->_app->exists($this->_verb)) {
-                $key = $this->_verb;
-            }
-
-            $this->_submittedData = $this->_app->get($key.'.'.$this->_name) ?? array();
+            $this->_submittedData = $this->_app->get($this->_verb.'.'.$this->_name) ?? array();
         }
 
         return $this->_submittedData;
