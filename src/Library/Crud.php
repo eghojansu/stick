@@ -208,7 +208,7 @@ class Crud
             'title' => $this->options['title'] ?? 'Manage '.Util::titleCase($this->getMapper()->table()),
             'subtitle' => $this->options['subtitle'] ?? Util::titleCase($state),
         );
-        $this->template->addFunction('crudLink', function($args = 'index', $query = null) {
+        $this->template->addFunction('crudLink', function ($args = 'index', $query = null) {
             return $this->app->path($this->route, Util::arr($args), $query);
         });
 

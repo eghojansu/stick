@@ -126,10 +126,10 @@ class TemplateTest extends TestCase
     public function testRenderModification()
     {
         $this->app
-            ->one('template_before_render', function() {
+            ->one('template_before_render', function () {
                 return 'bar';
             })
-            ->one('template_after_render', function() {
+            ->one('template_after_render', function () {
                 return 'baz';
             })
         ;
