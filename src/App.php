@@ -1736,7 +1736,7 @@ final class App extends Magic
         $shouldWrite = $this->_hive['LOG'] && (self::LOG_LEVELS[$level] ?? 100) <= (self::LOG_LEVELS[$this->_hive['THRESHOLD']] ?? 101);
 
         if ($shouldWrite) {
-            $this->logWrite($this->logDir(), $message, $level);
+            $this->logWrite($this->_hive['LOG'], $message, $level);
         }
 
         return $this;
@@ -1788,7 +1788,7 @@ final class App extends Magic
             return array();
         }
 
-        $pattern = $this->logDir().'log_*.log';
+        $pattern = $this->_hive['LOG'].'log_*.log';
         $files = glob($pattern);
 
         if (!$from) {
@@ -2315,18 +2315,6 @@ final class App extends Magic
                 $this->_hive['MIME'],
             ), $ttl);
         }
-    }
-
-    /**
-     * Returns log directory.
-     *
-     * @return string
-     */
-    private function logDir(): string
-    {
-        $dir = $this->_hive['LOG'];
-
-        return $dir && is_dir($dir) ? $dir : $this->_hive['TEMP'].$dir;
     }
 
     /**

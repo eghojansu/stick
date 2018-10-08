@@ -36,7 +36,7 @@ class ConnectionTest extends TestCase
         $app = App::create()->mset(array(
             'TEMP' => TEMP,
             'CACHE' => $cacheDsn,
-            'LOG' => 'logs-connection/',
+            'LOG' => TEMP.'logs-connection/',
             'THRESHOLD' => App::LOG_LEVEL_DEBUG,
         ))->logClear()->cacheReset();
 
