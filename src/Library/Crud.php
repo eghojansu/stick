@@ -92,6 +92,7 @@ class Crud
         'subtitle' => null,
         'form' => null,
         'formBuild' => null,
+        'formOptions' => null,
         'fieldOrders' => null,
         'fieldLabels' => null,
         'mapper' => null,
@@ -109,7 +110,8 @@ class Crud
         'updatedMessageKey' => 'SESSION.alerts.info',
         'deletedMessageKey' => 'SESSION.alerts.warning',
         'wrapperName' => 'crud',
-        'afterLoad' => null,
+        'onPrepareData' => null,
+        'onLoad' => null,
         'beforeCreate' => null,
         'afterCreate' => null,
         'beforeUpdate' => null,
@@ -270,8 +272,8 @@ class Crud
             } else {
                 $this->form = $this->app->instance(Form::class);
 
-                if (is_callable($call = $this->options['formBuild'] ?? null)) {
-                    $call($this, $this->form);
+                if (is_callable($this->options['formBuild'])) {
+                    $this->app->call($this->options['formBuild']);
                 }
             }
         }
@@ -341,6 +343,28 @@ class Crud
         $this->data[$name] = $value;
 
         return $this;
+    }
+
+    /**
+     * Returns state.
+     *
+     * @return string
+     */
+    public function getState(): ?string
+    {
+        return $this->state;
+    }
+
+    /**
+     * Returns bool if state equals with current state.
+     *
+     * @param string $state
+     *
+     * @return bool
+     */
+    public function isState(string $state): bool
+    {
+        return $this->state === $state;
     }
 
     /**
@@ -431,12 +455,48 @@ class Crud
      * Trigger internal event.
      *
      * @param string $eventName
+     *
+     * @return mixed
      */
-    protected function trigger(string $eventName): void
+    protected function trigger(string $eventName)
     {
-        if (is_callable($cb = $this->options[$eventName])) {
-            $cb($this, $this->mapper);
+        if (is_callable($this->options[$eventName])) {
+            return $this->app->call($this->options[$eventName]);
         }
+
+        return null;
+    }
+
+    /**
+     * Resolve form options.
+     *
+     * @return array
+     */
+    protected function resolveFormOptions(): array
+    {
+        $option = $this->options['formOptions'];
+
+        if (is_callable($option)) {
+            return (array) $this->app->call($option);
+        }
+
+        return (array) $option;
+    }
+
+    /**
+     * Prepare data before assign to update.
+     *
+     * @return array
+     */
+    protected function prepareData(): array
+    {
+        $data = $this->mapper->toArray();
+
+        if (is_callable($this->options['onPrepareData'])) {
+            $data = (array) $this->app->call($this->options['onPrepareData']) + $data;
+        }
+
+        return $data;
     }
 
     /**
@@ -463,7 +523,7 @@ class Crud
     protected function stateView(): bool
     {
         $this->getMapper()->load($this->prepareItemFilters());
-        $this->trigger('afterLoad');
+        $this->trigger('onLoad');
 
         if ($this->mapper->dry()) {
             throw new HttpException(null, 404);
@@ -482,10 +542,11 @@ class Crud
     protected function stateCreate(): bool
     {
         $form = $this->getForm();
+        $form->build($this->resolveFormOptions());
 
         if ($form->isSubmitted() && $form->valid()) {
-            $this->trigger('beforeCreate');
-            $this->mapper->fromArray($form->getData())->save();
+            $data = (array) $this->trigger('beforeCreate');
+            $this->mapper->fromArray($data + $form->getData())->save();
             $this->trigger('afterCreate');
 
             $this->app
@@ -511,11 +572,11 @@ class Crud
         $form = $this->getForm();
 
         $this->stateView();
-        $form->setData($this->mapper->toArray());
+        $form->build($this->resolveFormOptions(), $this->prepareData());
 
         if ($form->isSubmitted() && $form->valid()) {
-            $this->trigger('beforeUpdate');
-            $this->mapper->fromArray($form->getData())->save();
+            $data = (array) $this->trigger('beforeUpdate');
+            $this->mapper->fromArray($data + $form->getData())->save();
             $this->trigger('afterUpdate');
 
             $this->app

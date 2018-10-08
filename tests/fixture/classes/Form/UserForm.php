@@ -11,7 +11,7 @@ class UserForm extends Form
     /**
      * {@inheritdoc}
      */
-    protected function build()
+    protected function doBuild(array $options)
     {
         $this
             ->add('username')

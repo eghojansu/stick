@@ -421,6 +421,14 @@ class ConnectionTest extends TestCase
             array('`foo` = bar + 1'),
             array('foo' => '```bar + 1'),
         );
+        $filter[] = array(
+            array('`foo` = :foo AND `foo` <> :foo__2', ':foo' => 1, ':foo__2' => 2),
+            array('foo' => 1, 'foo <>' => 2),
+        );
+        $filter[] = array(
+            array('`foo` = :foo AND (`foo` <> :foo__2 AND `foo` > :foo__3)', ':foo' => 1, ':foo__2' => 2, ':foo__3' => 0),
+            array('foo' => 1, array('foo <>' => 2, 'foo >' => 0)),
+        );
 
         return $filter;
     }

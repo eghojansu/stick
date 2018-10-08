@@ -385,4 +385,9 @@ class FormTest extends TestCase
 
         $this->assertEquals('bar', $this->form->foo);
     }
+
+    public function testBuild()
+    {
+        $this->assertSame($this->form, $this->form->build(array('foo'), array('bar')));
+    }
 }

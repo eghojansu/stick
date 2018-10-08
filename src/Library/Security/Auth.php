@@ -210,9 +210,13 @@ class Auth
     {
         $path = $this->app->get('PATH');
 
+        if (in_array($path, (array) $this->options['excludes'])) {
+            return false;
+        }
+
         if ($path === $this->options['loginPath']) {
             if ($this->isLogged()) {
-                $this->app->reroute($this->options['redirect']);
+                $this->app->reroute($this->resolveRedirection());
 
                 return true;
             }
@@ -296,8 +300,11 @@ class Auth
      *
      * Valid options:
      *
-     *     loginPath       string|array route/path to redirect if user anonymous
+     *     loginPath       string       route/path to redirect if user anonymous
      *     redirect        string|array route/path to redirect if user has been login
+     *                                  If string passed it will be used to redirect for all roles.
+     *                                  If array passed, key will be evaluated as role and value as target.
+     *     excludes        string|array excludes path
      *     rules           array        path with valid roles, example: ['/secure' => 'ROLE_USER,ROLE_ADMIN']
      *     roleHierarchy   array        like in symfony roles, example: ['ROLE_ADMIN' => 'ROLE_USER']
      *
@@ -310,6 +317,7 @@ class Auth
         $this->options = $options + array(
             'loginPath' => '/login',
             'redirect' => '/',
+            'excludes' => '/logout',
             'rules' => array(),
             'roleHierarchy' => array(),
         );
@@ -339,5 +347,27 @@ class Auth
         }
 
         return $roles;
+    }
+
+    /**
+     * Resolve redirection path.
+     *
+     * @return string
+     */
+    protected function resolveRedirection(): string
+    {
+        $target = $this->options['redirect'];
+
+        if (is_string($target)) {
+            return $target;
+        }
+
+        foreach ((array) $target as $role => $path) {
+            if ($this->isGranted($role)) {
+                return $path;
+            }
+        }
+
+        return '/';
     }
 }

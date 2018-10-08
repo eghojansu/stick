@@ -111,8 +111,6 @@ class Form
         if (!$this->_name) {
             $this->setName(Util::snakeCase(Util::classname(static::class)));
         }
-
-        $this->build();
     }
 
     /**
@@ -307,6 +305,25 @@ class Form
     }
 
     /**
+     * Build form.
+     *
+     * @param array|null $options
+     * @param array|null $data
+     *
+     * @return Form
+     */
+    public function build(array $options = null, array $data = null): Form
+    {
+        if ($data) {
+            $this->setData($data);
+        }
+
+        $this->doBuild((array) $options);
+
+        return $this;
+    }
+
+    /**
      * Returns form submitted state.
      *
      * @return bool
@@ -329,20 +346,20 @@ class Form
      */
     public function valid(): bool
     {
-        if ($this->_submitted) {
-            list($rules, $messages) = $this->findRules();
-            $valid = $this->_validator->validate($this->_submittedData, $rules, $messages);
-
-            $no_validation_keys = array_diff(array_keys($this->_fields), array_keys($rules));
-            $no_validation = array_intersect_key($this->_submittedData, array_flip($no_validation_keys));
-
-            $this->_data = $valid['data'] + $no_validation + $this->_data;
-            $this->_errors = $valid['errors'];
-
-            return $valid['success'];
+        if (!$this->_submitted) {
+            throw new \LogicException('You can not validate unsubmitted form.');
         }
 
-        throw new \LogicException('You can not validate unsubmitted form.');
+        list($rules, $messages) = $this->findRules();
+        $valid = $this->_validator->validate($this->_submittedData, $rules, $messages);
+
+        $no_validation_keys = array_diff(array_keys($this->_fields), array_keys($rules));
+        $no_validation = array_intersect_key($this->_submittedData, array_flip($no_validation_keys));
+
+        $this->_data = $valid['data'] + $no_validation + $this->_data;
+        $this->_errors = $valid['errors'];
+
+        return $valid['success'];
     }
 
     /**
@@ -483,8 +500,10 @@ class Form
      * Build this form.
      *
      * Override this method to add fields.
+     *
+     * @param array $options
      */
-    protected function build()
+    protected function doBuild(array $options)
     {
     }
 

@@ -608,9 +608,8 @@ class AppTest extends TestCase
         $this->assertEquals(array('Fixture\\Services\\Author', 'getName'), $this->app->grab('Fixture\\Services\\Author->getName', false));
         $this->assertEquals(array('Fixture\\Services\\Author', 'getName'), $this->app->grab('Fixture\\Services\\Author::getName'));
 
-        $mark = time();
-        $grabbed = $this->app->grab('DateTime->getTimestamp');
-        $this->assertLessthan(1, $grabbed[0]->getTimestamp() - $mark);
+        $grabbed = $this->app->grab('Fixture\ReturnsFoo->foo');
+        $this->assertEquals('foo', $grabbed());
     }
 
     public function testCall()

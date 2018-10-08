@@ -49,6 +49,7 @@ class AuthTest extends TestCase
         $this->assertEquals(array(
             'loginPath' => '/login',
             'redirect' => '/',
+            'excludes' => '/logout',
             'rules' => array(),
             'roleHierarchy' => array(),
         ), $this->auth->getOptions());
@@ -59,6 +60,7 @@ class AuthTest extends TestCase
         $this->assertEquals(array(
             'loginPath' => '/foo',
             'redirect' => '/',
+            'excludes' => '/logout',
             'rules' => array(),
             'roleHierarchy' => array(),
         ), $this->auth->setOptions(array(
@@ -195,13 +197,17 @@ class AuthTest extends TestCase
             array('Home', true, $admin, '/login'),
             array(null, false, null, '/login'),
             array('Login', true, null, '/'),
+            array('Home', true, $admin, '/login', array('ROLE_ADMIN' => '/')),
+            array('Home', true, $admin, '/login', null),
+            array(null, false, $admin, '/logout'),
+            array(null, false, null, '/logout'),
         );
     }
 
     /**
      * @dataProvider guardProvider
      */
-    public function testGuard($expected, $expectedBool, $user, $path)
+    public function testGuard($expected, $expectedBool, $user, $path, $redirect = '/')
     {
         $this->app->mset(array(
             'QUIET' => true,
@@ -218,6 +224,7 @@ class AuthTest extends TestCase
             'rules' => array(
                 '/' => 'ROLE_ADMIN',
             ),
+            'redirect' => $redirect,
         ));
 
         $this->app->set('PATH', $path);

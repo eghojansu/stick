@@ -395,10 +395,11 @@ class Connection
      *      ['field #comment in case duplicate field cannot be avoided' => 2]   = 'field = 2'
      *
      * @param string|array $filter
+     * @param array|null   $lookup
      *
      * @return array
      */
-    public function buildFilter($filter): array
+    public function buildFilter($filter, array $lookup = null): array
     {
         if (!$filter) {
             return array();
@@ -411,13 +412,27 @@ class Connection
         $ctr = 0;
         $str = '';
         $result = array();
+        $mLookup = (array) $lookup;
+        $ensureKey = function (string $key, array $keys) {
+            if (in_array($key, $keys)) {
+                $seq = 2;
+
+                while (preg_grep('/^'.$key.'__'.$seq.'$/', $keys)) {
+                    ++$seq;
+                }
+
+                return $key.'__'.$seq;
+            }
+
+            return $key;
+        };
 
         foreach ((array) $filter as $key => $value) {
             if (is_numeric($key)) {
                 if (is_string($value)) {
                     // raw
                     $str .= ' '.$value;
-                } elseif ($cfilter = $this->buildFilter((array) $value)) {
+                } elseif ($cfilter = $this->buildFilter((array) $value, $result + $mLookup)) {
                     $str .= ' AND ('.array_shift($cfilter).')';
                     $result = array_merge($result, $cfilter);
                 }
@@ -453,31 +468,33 @@ class Connection
                         throw new \LogicException('BETWEEN operator needs an array operand, '.gettype($expr).' given.');
                     }
 
-                    $str .= " :{$kcol}1 AND :{$kcol}2";
-                    $result[":{$kcol}1"] = array_shift($expr);
-                    $result[":{$kcol}2"] = array_shift($expr);
+                    $kcol1 = ':'.$kcol.'1';
+                    $kcol2 = ':'.$kcol.'2';
+                    $str .= ' '.$kcol1.' AND '.$kcol2;
+                    $result[$kcol1] = array_shift($expr);
+                    $result[$kcol2] = array_shift($expr);
                 } elseif ('![]' === $b3 || '[]' === $b2) {
                     $str .= ' (';
                     $i = 1;
 
                     foreach ((array) $expr as $val) {
-                        $k = ":{$kcol}{$i}";
-                        $str .= "$k, ";
+                        $k = ':'.$kcol.$i;
+                        $str .= $k.', ';
                         $result[$k] = $val;
                         ++$i;
                     }
 
                     $str = rtrim($str, ', ').')';
                 } elseif (is_array($expr)) {
-                    $cfilter = $this->buildFilter($expr);
+                    $cfilter = $this->buildFilter($expr, $result + $mLookup);
 
                     if ($cfilter) {
                         $str .= ' ('.array_shift($cfilter).')';
                         $result = array_merge($result, $cfilter);
                     }
                 } elseif ($kcol) {
-                    $k = ":{$kcol}";
-                    $str .= " $k";
+                    $k = $ensureKey(':'.$kcol, array_keys($result + $mLookup));
+                    $str .= ' '.$k;
                     $result[$k] = $expr;
                 } else {
                     $str .= ' '.$expr;

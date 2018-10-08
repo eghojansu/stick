@@ -258,6 +258,8 @@ class CrudTest extends TestCase
                     ->beforeCreate(function () {}) // trigger before create
                     ->mapper('user')
                     ->form('Fixture\\Form\\UserForm')
+                    ->formOptions(function () {})
+                    ->onPrepareData(function () {})
                     ->render()
                 ;
             })
@@ -306,5 +308,20 @@ class CrudTest extends TestCase
             ->mapper('user')
             ->render()
         ;
+    }
+
+    public function testSetData()
+    {
+        $this->assertEquals('bar', $this->crud->setData('foo', 'bar')->getData('foo'));
+    }
+
+    public function testGetState()
+    {
+        $this->assertNull($this->crud->getState());
+    }
+
+    public function testIsState()
+    {
+        $this->assertFalse($this->crud->isState('foo'));
     }
 }
