@@ -23,6 +23,9 @@ use Fal\Stick\Util;
  */
 final class Template
 {
+    const EVENT_BEFORE_RENDER = 'template_before_render';
+    const EVENT_AFTER_RENDER = 'template_after_render';
+
     /**
      * @var App
      */
@@ -166,11 +169,39 @@ final class Template
      */
     public function render(string $file, array $data = null, string $mime = 'text/html'): string
     {
-        $template = new TemplateFile($this->app, $this, $file, $data);
-        $content = $template->render();
+        $mData = $data;
+        $mMime = $mime;
+        $prepend = null;
+        $result = $this->app->trigger(self::EVENT_BEFORE_RENDER, array($file, $data, $mime));
+
+        if ($result) {
+            if (is_string($result)) {
+                $result = array($result);
+            }
+
+            if (is_array($result)) {
+                list($prepend, $mData, $mMime) = $result + array(1 => $data, $mime);
+            }
+        }
+
+        $template = new TemplateFile($this->app, $this, $file, $mData);
+        $content = $prepend.$template->render();
+        $result = $this->app->trigger(self::EVENT_AFTER_RENDER, array($content, $file, $mData, $mMime));
+
+        if ($result) {
+            if (is_string($result)) {
+                $result = array($result);
+            }
+
+            if (is_array($result)) {
+                list($append, $mMime) = $result + array(1 => $mime);
+
+                $content .= $append;
+            }
+        }
 
         $this->app->mset(array(
-            'Content-Type' => $mime,
+            'Content-Type' => $mMime,
             'Content-Length' => strlen($content),
         ), 'RESPONSE.');
 

@@ -153,7 +153,9 @@ class CrudTest extends TestCase
      */
     public function testRender($path, $output)
     {
+        $this->app->route('GET foo /foo/*', 'foo');
         $this->crud
+            ->route('foo')
             ->segments(explode('/', $path))
             ->views(array(
                 'listing' => 'listing.php',
@@ -179,7 +181,7 @@ class CrudTest extends TestCase
      */
     public function testRenderException()
     {
-        $this->crud->render();
+        $this->crud->route('foo')->render();
     }
 
     /**
@@ -188,7 +190,7 @@ class CrudTest extends TestCase
      */
     public function testRenderException2()
     {
-        $this->crud->segments(array('foo'))->render();
+        $this->crud->route('foo')->segments(array('foo'))->render();
     }
 
     /**
@@ -197,13 +199,23 @@ class CrudTest extends TestCase
      */
     public function testRenderException3()
     {
-        $this->crud->segments(array('foo'))->mapper('user')->render();
+        $this->crud->route('foo')->segments(array('foo'))->mapper('user')->render();
+    }
+
+    /**
+     * @expectedException \LogicException
+     * @expectedExceptionMessage No route defined.
+     */
+    public function testRenderException4()
+    {
+        $this->crud->render();
     }
 
     public function testRenderListingSearch()
     {
-        $this->app->set('QUERY.keyword', 'foo');
+        $this->app->set('GET.keyword', 'foo');
         $this->crud
+            ->route('foo')
             ->segments(array('index'))
             ->searchable('username')
             ->views(array(
@@ -269,6 +281,7 @@ class CrudTest extends TestCase
     public function testRenderViewException()
     {
         $this->crud
+            ->route('foo')
             ->segments(array('view', 100))
             ->views(array(
                 'view' => 'view.php',
@@ -285,6 +298,7 @@ class CrudTest extends TestCase
     public function testPrepareFilter()
     {
         $this->crud
+            ->route('foo')
             ->segments(array('view'))
             ->views(array(
                 'view' => 'view.php',

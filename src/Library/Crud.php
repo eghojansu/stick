@@ -63,6 +63,11 @@ class Crud
     protected $state;
 
     /**
+     * @var string
+     */
+    protected $route;
+
+    /**
      * @var int
      */
     protected $page;
@@ -98,6 +103,7 @@ class Crud
         'sidStart' => 1,
         'sidEnd' => 1,
         'page' => null,
+        'route' => null,
         'routeArgs' => array(),
         'createdMessageKey' => 'SESSION.alerts.success',
         'updatedMessageKey' => 'SESSION.alerts.info',
@@ -110,6 +116,9 @@ class Crud
         'afterUpdate' => null,
         'beforeDelete' => null,
         'afterDelete' => null,
+        'states' => null,
+        'views' => null,
+        'fields' => null,
     );
 
     /**
@@ -146,6 +155,12 @@ class Crud
      */
     public function render(): ?string
     {
+        $this->route = $this->options['route'] ?? $this->app->get('ALIAS');
+
+        if (empty($this->route)) {
+            throw new \LogicException('No route defined.');
+        }
+
         if (empty($this->options['segments'])) {
             throw new \LogicException('No segments provided.');
         }
@@ -162,7 +177,7 @@ class Crud
 
         $out = true;
         $enabled = $this->options['states'][$state] ?? false;
-        $this->page = (int) ($this->options['page'] ?? $this->app->get('QUERY.'.static::QUERY_PAGE) ?? 1);
+        $this->page = (int) ($this->options['page'] ?? $this->app->get('GET.'.static::QUERY_PAGE) ?? 1);
 
         if ($enabled) {
             $handle = 'state'.$state;
@@ -180,6 +195,8 @@ class Crud
         }
 
         $data = array(
+            'route' => $this->route,
+            'routeArgs' => $this->options['routeArgs'],
             'state' => $state,
             'fields' => $this->fields,
             'page' => $this->page,
@@ -191,6 +208,9 @@ class Crud
             'title' => $this->options['title'] ?? 'Manage '.Util::titleCase($this->getMapper()->table()),
             'subtitle' => $this->options['subtitle'] ?? Util::titleCase($state),
         );
+        $this->template->addFunction('crudLink', function($args = 'index', $query = null) {
+            return $this->app->path($this->route, Util::arr($args), $query);
+        });
 
         return $out ? $this->template->render($view, array(
             $this->options['wrapperName'] => $data + $this->data + $complement,
@@ -347,7 +367,7 @@ class Crud
      */
     protected function prepareFilters(string $keyword): array
     {
-        $filters = array();
+        $filters = $this->options['filters'];
 
         foreach ($keyword ? Util::arr($this->options['searchable']) : array() as $field) {
             $filters[$field] = Util::endswith($field, '~') ? '%'.$keyword.'%' : $keyword;
@@ -401,7 +421,7 @@ class Crud
     protected function rerouteTarget(array $args = null, array $query = null): array
     {
         return array(
-            $this->app->get('ALIAS'),
+            $this->route,
             $this->options['routeArgs'] + ($args ?? array('index')),
             ((array) $query) + array(static::QUERY_PAGE => $this->page),
         );
@@ -426,7 +446,7 @@ class Crud
      */
     protected function stateListing(): bool
     {
-        $keyword = (string) $this->app->get('QUERY.'.static::QUERY_KEYWORD);
+        $keyword = (string) $this->app->get('GET.'.static::QUERY_KEYWORD);
         $filters = $this->prepareFilters($keyword);
 
         $this->data['keyword'] = $keyword;
@@ -465,7 +485,7 @@ class Crud
 
         if ($form->isSubmitted() && $form->valid()) {
             $this->trigger('beforeCreate');
-            $this->mapper->save();
+            $this->mapper->fromArray($form->getData())->save();
             $this->trigger('afterCreate');
 
             $this->app
@@ -495,7 +515,7 @@ class Crud
 
         if ($form->isSubmitted() && $form->valid()) {
             $this->trigger('beforeUpdate');
-            $this->mapper->save();
+            $this->mapper->fromArray($form->getData())->save();
             $this->trigger('afterUpdate');
 
             $this->app

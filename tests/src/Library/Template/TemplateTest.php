@@ -122,4 +122,21 @@ class TemplateTest extends TestCase
 
         $this->assertEquals($expected, $actual);
     }
+
+    public function testRenderModification()
+    {
+        $this->app
+            ->one('template_before_render', function() {
+                return 'bar';
+            })
+            ->one('template_after_render', function() {
+                return 'baz';
+            })
+        ;
+
+        $expected = 'barfoobaz';
+        $actual = $this->template->render('foo.php');
+
+        $this->assertEquals($expected, $actual);
+    }
 }
