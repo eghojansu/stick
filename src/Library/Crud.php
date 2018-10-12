@@ -111,6 +111,7 @@ class Crud
         'deletedMessageKey' => 'SESSION.alerts.warning',
         'wrapperName' => 'crud',
         'onPrepareData' => null,
+        'onDisplay' => null,
         'onLoad' => null,
         'beforeCreate' => null,
         'afterCreate' => null,
@@ -196,6 +197,7 @@ class Crud
             throw new \LogicException('No view for state: "'.$state.'".');
         }
 
+        $onDisplay = $this->options['onDisplay'];
         $data = array(
             'route' => $this->route,
             'routeArgs' => $this->options['routeArgs'],
@@ -212,6 +214,9 @@ class Crud
         );
         $this->template->addFunction('crudLink', function ($args = 'index', $query = null) {
             return $this->app->path($this->route, Util::arr($args), $query);
+        });
+        $this->template->addFunction('crudDisplay', function(string $field, Mapper $item) use ($onDisplay) {
+            return is_callable($onDisplay) ? $this->app->call($onDisplay, array($field, $item)) : $item->get($field);
         });
 
         return $out ? $this->template->render($view, array(
