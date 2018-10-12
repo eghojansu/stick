@@ -14,11 +14,12 @@ declare(strict_types=1);
 namespace Fal\Stick\Library;
 
 use Fal\Stick\App;
-use Fal\Stick\Util;
 use Fal\Stick\HttpException;
 use Fal\Stick\Library\Html\Form;
+use Fal\Stick\Library\Security\Auth;
 use Fal\Stick\Library\Sql\Mapper;
 use Fal\Stick\Library\Template\Template;
+use Fal\Stick\Util;
 
 /**
  * Logic for handling CRUD.
@@ -46,6 +47,11 @@ class Crud
      * @var Template
      */
     protected $template;
+
+    /**
+     * @var Auth
+     */
+    protected $auth;
 
     /**
      * @var Form
@@ -122,6 +128,7 @@ class Crud
         'states' => null,
         'views' => null,
         'fields' => null,
+        'roles' => null,
     );
 
     /**
@@ -134,8 +141,9 @@ class Crud
      *
      * @param App      $app
      * @param Template $template
+     * @param Auth     $auth
      */
-    public function __construct(App $app, Template $template)
+    public function __construct(App $app, Template $template, Auth $auth)
     {
         $states = array(
             static::STATE_LISTING,
@@ -144,11 +152,16 @@ class Crud
             static::STATE_UPDATE,
             static::STATE_DELETE,
         );
+        $nullStates = array_fill_keys($states, null);
+
         $this->app = $app;
         $this->template = $template;
+        $this->auth = $auth;
 
         $this->options['states'] = array_fill_keys($states, true);
-        $this->options['views'] = $this->options['fields'] = array_fill_keys($states, null);
+        $this->options['views'] = $nullStates;
+        $this->options['fields'] = $nullStates;
+        $this->options['roles'] = $nullStates;
     }
 
     /**
@@ -184,7 +197,14 @@ class Crud
 
         if ($enabled) {
             $handle = 'state'.$state;
+            $role = $this->options['roles'][$state] ?? null;
             $view = $this->options['views'][$state] ?? null;
+
+            if ($role && !$this->auth->isGranted($role)) {
+                $this->app->error(405);
+
+                return null;
+            }
 
             $this->state = $state;
             $this->prepareFields();
