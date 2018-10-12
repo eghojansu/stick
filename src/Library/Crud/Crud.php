@@ -11,7 +11,7 @@
 
 declare(strict_types=1);
 
-namespace Fal\Stick\Library;
+namespace Fal\Stick\Library\Crud;
 
 use Fal\Stick\App;
 use Fal\Stick\HttpException;
@@ -34,9 +34,6 @@ class Crud
     const STATE_UPDATE = 'update';
     const STATE_DELETE = 'delete';
     const STATE_FORBIDDEN = 'forbidden';
-
-    const QUERY_KEYWORD = 'keyword';
-    const QUERY_PAGE = 'page';
 
     /**
      * @var App
@@ -64,26 +61,6 @@ class Crud
     protected $mapper;
 
     /**
-     * @var string
-     */
-    protected $state;
-
-    /**
-     * @var string
-     */
-    protected $route;
-
-    /**
-     * @var int
-     */
-    protected $page;
-
-    /**
-     * @var array
-     */
-    protected $fields = array();
-
-    /**
      * @var array
      */
     protected static $restricted = array(
@@ -93,38 +70,55 @@ class Crud
     /**
      * @var array
      */
+    protected $hive = array(
+        'state' => null,
+        'route' => null,
+        'page' => null,
+        'keyword' => null,
+        'fields' => array(),
+    );
+
+    /**
+     * @var array
+     */
     protected $options = array(
         'title' => null,
         'subtitle' => null,
         'form' => null,
-        'formBuild' => null,
-        'formOptions' => null,
-        'fieldOrders' => null,
-        'fieldLabels' => null,
+        'form_build' => null,
+        'form_options' => null,
+        'field_orders' => null,
+        'field_labels' => null,
         'mapper' => null,
         'state' => null,
         'filters' => array(),
-        'listingOptions' => null,
+        'listing_options' => null,
         'searchable' => null,
         'segments' => null,
-        'sidStart' => 1,
-        'sidEnd' => 1,
+        'sid_start' => 1,
+        'sid_end' => 1,
         'page' => null,
+        'page_query_name' => 'page',
+        'keyword' => null,
+        'keyword_query_name' => 'keyword',
         'route' => null,
-        'routeArgs' => array(),
-        'createdMessageKey' => 'SESSION.alerts.success',
-        'updatedMessageKey' => 'SESSION.alerts.info',
-        'deletedMessageKey' => 'SESSION.alerts.warning',
-        'wrapperName' => 'crud',
-        'onPrepareData' => null,
-        'onDisplay' => null,
-        'onLoad' => null,
-        'beforeCreate' => null,
-        'afterCreate' => null,
-        'beforeUpdate' => null,
-        'afterUpdate' => null,
-        'beforeDelete' => null,
-        'afterDelete' => null,
+        'route_args' => array(),
+        'created_message' => 'Data has been created.',
+        'updated_message' => 'Data has been updated.',
+        'deleted_message' => 'Data has been deleted.',
+        'created_message_key' => 'SESSION.alerts.success',
+        'updated_message_key' => 'SESSION.alerts.info',
+        'deleted_message_key' => 'SESSION.alerts.warning',
+        'wrapper_name' => 'crud',
+        'on_prepare_data' => null,
+        'on_display' => null,
+        'on_load' => null,
+        'before_create' => null,
+        'after_create' => null,
+        'before_update' => null,
+        'after_update' => null,
+        'before_delete' => null,
+        'after_delete' => null,
         'states' => null,
         'views' => null,
         'fields' => null,
@@ -135,6 +129,13 @@ class Crud
      * @var array
      */
     protected $data = array();
+
+    /**
+     * Reroute back target.
+     *
+     * @var array
+     */
+    protected $back;
 
     /**
      * Class constructor.
@@ -171,9 +172,9 @@ class Crud
      */
     public function render(): ?string
     {
-        $this->route = $this->options['route'] ?? $this->app->get('ALIAS');
+        $this->hive['route'] = $this->options['route'] ?? $this->app->get('ALIAS');
 
-        if (empty($this->route)) {
+        if (empty($this->hive['route'])) {
             throw new \LogicException('No route defined.');
         }
 
@@ -191,57 +192,59 @@ class Crud
             $state = static::STATE_LISTING;
         }
 
-        $out = true;
+        $wrapperName = $this->options['wrapper_name'];
+        $pageName = $this->options['page_query_name'];
+        $keywordName = $this->options['keyword_query_name'];
         $enabled = $this->options['states'][$state] ?? false;
-        $this->page = (int) ($this->options['page'] ?? $this->app->get('GET.'.static::QUERY_PAGE) ?? 1);
+        $roles = $this->options['roles'][$state] ?? null;
 
-        if ($enabled) {
+        $this->hive['state'] = $state;
+        $this->hive['keyword'] = $this->options['keyword'] ?? $this->app->get('GET.'.$keywordName) ?? null;
+        $this->hive['page'] = (int) ($this->options['page'] ?? $this->app->get('GET.'.$pageName) ?? 1);
+        $this->back = array(
+            $this->hive['route'],
+            array_merge($this->options['route_args'], array('index')),
+            array_filter(array(
+                $pageName => $this->hive['page'],
+                $keywordName => $this->hive['keyword'],
+            ), 'is_scalar'),
+        );
+
+        if ($enabled && (!$roles || $this->auth->isGranted($roles))) {
             $handle = 'state'.$state;
-            $role = $this->options['roles'][$state] ?? null;
             $view = $this->options['views'][$state] ?? null;
 
-            if ($role && !$this->auth->isGranted($role)) {
-                $this->app->error(405);
-
-                return null;
-            }
-
-            $this->state = $state;
             $this->prepareFields();
             $out = $this->$handle();
         } else {
             $view = $this->options['views'][static::STATE_FORBIDDEN] ?? null;
+            $out = true;
         }
 
         if (empty($view)) {
             throw new \LogicException('No view for state: "'.$state.'".');
         }
 
-        $onDisplay = $this->options['onDisplay'];
-        $data = array(
-            'route' => $this->route,
-            'routeArgs' => $this->options['routeArgs'],
-            'state' => $state,
-            'fields' => $this->fields,
-            'page' => $this->page,
-            'query_page' => static::QUERY_PAGE,
-            'query_keyword' => static::QUERY_KEYWORD,
-            'searchable' => $this->options['searchable'],
-        );
+        if (!$out) {
+            return null;
+        }
+
+        $pick = array('searchable', 'route_args', 'page_query_name', 'keyword_query_name');
+        $data = array_intersect_key($this->options, array_flip($pick));
         $complement = array(
             'title' => $this->options['title'] ?? 'Manage '.Util::titleCase($this->getMapper()->table()),
             'subtitle' => $this->options['subtitle'] ?? Util::titleCase($state),
         );
-        $this->template->addFunction('crudLink', function ($args = 'index', $query = null) {
-            return $this->app->path($this->route, Util::arr($args), $query);
-        });
-        $this->template->addFunction('crudDisplay', function(string $field, Mapper $item) use ($onDisplay) {
-            return is_callable($onDisplay) ? $this->app->call($onDisplay, array($field, $item)) : $item->get($field);
-        });
+        $crudData = new CrudData(...array(
+            $this->app,
+            $this->auth,
+            $this->hive['route'],
+            $this->options['roles'],
+            $this->hive + $data + $complement + $this->data,
+            $this->options['on_display'],
+        ));
 
-        return $out ? $this->template->render($view, array(
-            $this->options['wrapperName'] => $data + $this->data + $complement,
-        )) : null;
+        return $this->template->render($view, array($wrapperName => $crudData));
     }
 
     /**
@@ -297,8 +300,8 @@ class Crud
             } else {
                 $this->form = $this->app->instance(Form::class);
 
-                if (is_callable($this->options['formBuild'])) {
-                    $this->app->call($this->options['formBuild']);
+                if (is_callable($this->options['form_build'])) {
+                    $this->app->call($this->options['form_build'], array($this->form));
                 }
             }
         }
@@ -328,15 +331,17 @@ class Crud
      */
     public function setOption(string $option, $value = null): Crud
     {
-        if (!in_array($option, static::$restricted) && array_key_exists($option, $this->options)) {
-            if (is_array($this->options[$option])) {
+        $name = Util::snakeCase($option);
+
+        if (!in_array($name, static::$restricted) && array_key_exists($name, $this->options)) {
+            if (is_array($this->options[$name])) {
                 if (!is_array($value)) {
-                    throw new \UnexpectedValueException('Option "'.$option.'" expect array value.');
+                    throw new \UnexpectedValueException('Option "'.$name.'" expect array value.');
                 }
 
-                $this->options[$option] = array_replace($this->options[$option], $value);
+                $this->options[$name] = array_replace($this->options[$name], $value);
             } else {
-                $this->options[$option] = $value;
+                $this->options[$name] = $value;
             }
         }
 
@@ -371,51 +376,41 @@ class Crud
     }
 
     /**
-     * Returns state.
+     * Returns hive value.
      *
-     * @return string
+     * @param string $name
+     *
+     * @return mixed
      */
-    public function getState(): ?string
+    public function getHive(string $name)
     {
-        return $this->state;
+        return $this->hive[$name] ?? null;
     }
 
     /**
-     * Returns bool if state equals with current state.
-     *
-     * @param string $state
-     *
-     * @return bool
-     */
-    public function isState(string $state): bool
-    {
-        return $this->state === $state;
-    }
-
-    /**
-     * Prepare fields.
+     * Prepare fields, ensure field has label and name member.
      */
     protected function prepareFields(): void
     {
-        $fields = (array) ($this->options['fields'][$this->state] ?? $this->getMapper()->schema());
-        $keys = array_unique(array_merge((array) $this->options['fieldOrders'], array_keys($fields)));
-        $this->fields = array_fill_keys($keys, array());
+        $fields = (array) ($this->options['fields'][$this->hive['state']] ?? $this->getMapper()->schema());
+        $keys = array_unique(array_merge((array) $this->options['field_orders'], array_keys($fields)));
+        $this->hive['fields'] = array_fill_keys($keys, array());
 
-        foreach ($fields as $field => $def) {
-            $label = $this->app->trans($field, null, Util::titleCase($field));
-            $this->fields[$field] = ((array) $def) + array('label' => $label);
+        foreach ($fields as $name => $field) {
+            $label = $this->app->trans($name, null, Util::titleCase($name));
+            $default = compact('label', 'name');
+            $this->hive['fields'][$name] = ((array) $field) + $default;
         }
     }
 
     /**
      * Prepare listing filters.
      *
-     * @param string $keyword
-     *
      * @return array
      */
-    protected function prepareFilters(string $keyword): array
+    protected function prepareFilters(): array
     {
+        $keyword = $this->hive['keyword'];
         $filters = $this->options['filters'];
 
         foreach ($keyword ? Util::arr($this->options['searchable']) : array() as $field) {
@@ -432,7 +427,7 @@ class Crud
      */
     protected function prepareItemFilters(): array
     {
-        $ids = array_slice($this->options['segments'], $this->options['sidStart'], $this->options['sidEnd']);
+        $ids = array_slice($this->options['segments'], $this->options['sid_start'], $this->options['sid_end']);
         $keys = $this->mapper->keys();
 
         if (count($ids) !== count($keys)) {
@@ -453,27 +448,10 @@ class Crud
      */
     protected function message(string $key): string
     {
-        return $this->app->trans($key, array(
-            'table' => $this->getMapper()->table(),
-            'id' => implode(', ', $this->mapper->keys()),
+        return strtr($this->options[$key.'_message'] ?? '', array(
+            '%table%' => $this->getMapper()->table(),
+            '%id%' => implode(', ', $this->mapper->keys()),
         ));
-    }
-
-    /**
-     * Returns rerouted target.
-     *
-     * @param array|null $args
-     * @param array|null $query
-     *
-     * @return array
-     */
-    protected function rerouteTarget(array $args = null, array $query = null): array
-    {
-        return array(
-            $this->route,
-            $this->options['routeArgs'] + ($args ?? array('index')),
-            ((array) $query) + array(static::QUERY_PAGE => $this->page),
-        );
     }
 
     /**
@@ -499,7 +477,7 @@ class Crud
      */
     protected function resolveFormOptions(): array
     {
-        $option = $this->options['formOptions'];
+        $option = $this->options['form_options'];
 
         if (is_callable($option)) {
             return (array) $this->app->call($option);
@@ -517,8 +495,8 @@ class Crud
     {
         $data = $this->mapper->toArray();
 
-        if (is_callable($this->options['onPrepareData'])) {
-            $data = (array) $this->app->call($this->options['onPrepareData']) + $data;
+        if (is_callable($this->options['on_prepare_data'])) {
+            $data = (array) $this->app->call($this->options['on_prepare_data']) + $data;
         }
 
         return $data;
@@ -531,11 +509,11 @@ class Crud
      */
     protected function stateListing(): bool
     {
-        $keyword = (string) $this->app->get('GET.'.static::QUERY_KEYWORD);
-        $filters = $this->prepareFilters($keyword);
-
-        $this->data['keyword'] = $keyword;
-        $this->data['data'] = $this->getMapper()->paginate($this->page, $filters, $this->options['listingOptions']);
+        $this->data['data'] = $this->getMapper()->paginate(...array(
+            $this->hive['page'],
+            $this->prepareFilters(),
+            $this->options['listing_options'],
+        ));
 
         return true;
     }
@@ -548,7 +526,7 @@ class Crud
     protected function stateView(): bool
     {
         $this->getMapper()->load($this->prepareItemFilters());
-        $this->trigger('onLoad');
+        $this->trigger('on_load');
 
         if ($this->mapper->dry()) {
             throw new HttpException(null, 404);
@@ -566,17 +544,16 @@ class Crud
      */
     protected function stateCreate(): bool
     {
-        $form = $this->getForm();
-        $form->build($this->resolveFormOptions());
+        $form = $this->getForm()->build($this->resolveFormOptions());
 
         if ($form->isSubmitted() && $form->valid()) {
-            $data = (array) $this->trigger('beforeCreate');
+            $data = (array) $this->trigger('before_create');
             $this->mapper->fromArray($data + $form->getData())->save();
-            $this->trigger('afterCreate');
+            $this->trigger('after_create');
 
             $this->app
-                ->set($this->options['createdMessageKey'], $this->message('crud_created'))
-                ->reroute($this->rerouteTarget())
+                ->set($this->options['created_message_key'], $this->message('created'))
+                ->reroute($this->back)
             ;
 
             return false;
@@ -594,19 +571,18 @@ class Crud
      */
     protected function stateUpdate(): bool
     {
-        $form = $this->getForm();
-
         $this->stateView();
-        $form->build($this->resolveFormOptions(), $this->prepareData());
+
+        $form = $this->getForm()->build($this->resolveFormOptions(), $this->prepareData());
 
         if ($form->isSubmitted() && $form->valid()) {
-            $data = (array) $this->trigger('beforeUpdate');
+            $data = (array) $this->trigger('before_update');
             $this->mapper->fromArray($data + $form->getData())->save();
-            $this->trigger('afterUpdate');
+            $this->trigger('after_update');
 
             $this->app
-                ->set($this->options['updatedMessageKey'], $this->message('crud_updated'))
-                ->reroute($this->rerouteTarget())
+                ->set($this->options['updated_message_key'], $this->message('updated'))
+                ->reroute($this->back)
             ;
 
             return false;
@@ -627,13 +603,13 @@ class Crud
         $this->stateView();
 
         if ('POST' === $this->app->get('VERB')) {
-            $this->trigger('beforeDelete');
+            $this->trigger('before_delete');
             $this->mapper->delete();
-            $this->trigger('afterDelete');
+            $this->trigger('after_delete');
 
             $this->app
-                ->set($this->options['deletedMessageKey'], $this->message('crud_deleted'))
-                ->reroute($this->rerouteTarget())
+                ->set($this->options['deleted_message_key'], $this->message('deleted'))
+                ->reroute($this->back)
             ;
 
             return false;
