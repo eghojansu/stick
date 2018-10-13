@@ -63,13 +63,6 @@ class Crud
     /**
      * @var array
      */
-    protected static $restricted = array(
-        'states',
-    );
-
-    /**
-     * @var array
-     */
     protected $hive = array(
         'state' => null,
         'route' => null,
@@ -102,7 +95,7 @@ class Crud
         'keyword' => null,
         'keyword_query_name' => 'keyword',
         'route' => null,
-        'route_args' => array(),
+        'route_args' => null,
         'created_message' => 'Data has been created.',
         'updated_message' => 'Data has been updated.',
         'deleted_message' => 'Data has been deleted.',
@@ -186,24 +179,22 @@ class Crud
             throw new \LogicException('No mapper provided.');
         }
 
+        $map = array('index' => self::STATE_LISTING);
         $state = $this->options['state'] ?? $this->options['segments'][0] ?? null;
-
-        if ('index' === $state) {
-            $state = static::STATE_LISTING;
-        }
+        $mState = $map[$state] ?? $state;
 
         $wrapperName = $this->options['wrapper_name'];
         $pageName = $this->options['page_query_name'];
         $keywordName = $this->options['keyword_query_name'];
-        $enabled = $this->options['states'][$state] ?? false;
-        $roles = $this->options['roles'][$state] ?? null;
+        $enabled = $this->options['states'][$mState] ?? false;
+        $roles = $this->options['roles'][$mState] ?? null;
 
-        $this->hive['state'] = $state;
+        $this->hive['state'] = $mState;
         $this->hive['keyword'] = $this->options['keyword'] ?? $this->app->get('GET.'.$keywordName) ?? null;
         $this->hive['page'] = (int) ($this->options['page'] ?? $this->app->get('GET.'.$pageName) ?? 1);
         $this->back = array(
             $this->hive['route'],
-            array_merge($this->options['route_args'], array('index')),
+            array_merge((array) $this->options['route_args'], array('index')),
             array_filter(array(
                 $pageName => $this->hive['page'],
                 $keywordName => $this->hive['keyword'],
@@ -211,8 +202,8 @@ class Crud
         );
 
         if ($enabled && (!$roles || $this->auth->isGranted($roles))) {
-            $handle = 'state'.$state;
-            $view = $this->options['views'][$state] ?? null;
+            $handle = 'state'.$mState;
+            $view = $this->options['views'][$mState] ?? null;
 
             $this->prepareFields();
             $out = $this->$handle();
@@ -222,7 +213,7 @@ class Crud
         }
 
         if (empty($view)) {
-            throw new \LogicException('No view for state: "'.$state.'".');
+            throw new \LogicException('No view for state: "'.$mState.'".');
         }
 
         if (!$out) {
@@ -232,8 +223,8 @@ class Crud
         $pick = array('searchable', 'route_args', 'page_query_name', 'keyword_query_name');
         $data = array_intersect_key($this->options, array_flip($pick));
         $complement = array(
-            'title' => $this->options['title'] ?? 'Manage '.Util::titleCase($this->getMapper()->table()),
-            'subtitle' => $this->options['subtitle'] ?? Util::titleCase($state),
+            'title' => $this->options['title'] ?? 'Manage '.Util::titleCase($this->mapper()->table()),
+            'subtitle' => $this->options['subtitle'] ?? Util::titleCase($mState),
         );
         $crudData = new CrudData(...array(
             $this->app,
@@ -262,12 +253,124 @@ class Crud
     }
 
     /**
-     * Returns CRUD mapper instance.
+     * Sets fields for state.
      *
-     * @return Mapper|null
+     * @param  mixed $states
+     * @param  mixed $fields
+     *
+     * @return Crud
      */
-    public function getMapper(): ?Mapper
+    public function fields($states, $fields): Crud
     {
+        $this->options['fields'] = array_fill_keys(Util::arr($states), $fields) + $this->options['fields'];
+
+        return $this;
+    }
+
+    /**
+     * Sets view for state.
+     *
+     * @param  string $state
+     * @param  string $view
+     *
+     * @return Crud
+     */
+    public function view(string $state, string $view): Crud
+    {
+        $this->options['views'][$state] = $view;
+
+        return $this;
+    }
+
+    /**
+     * Sets roles for state.
+     *
+     * @param  string $state
+     * @param  string $roles
+     *
+     * @return Crud
+     */
+    public function role(string $state, string $roles): Crud
+    {
+        $this->options['roles'][$state] = $roles;
+
+        return $this;
+    }
+
+    /**
+     * Set segments.
+     *
+     * @param  string|array $segments
+     *
+     * @return Crud
+     */
+    public function segments($segments): Crud
+    {
+        $this->options['segments'] = is_string($segments) ? explode('/', $segments) : $segments;
+
+        return $this;
+    }
+
+    /**
+     * Returns option value.
+     *
+     * @param string|null $name
+     *
+     * @return mixed
+     */
+    public function option(string $name = null)
+    {
+        return $name ? $this->options[$name] ?? null : $this->options;
+    }
+
+    /**
+     * Sets or get data value.
+     *
+     * Null value is ignored.
+     *
+     * @param string $name
+     * @param mixed  $value
+     *
+     * @return mixed
+     */
+    public function data(string $name, $value = null)
+    {
+        if (null === $value) {
+            return $this->data[$name] ?? null;
+        }
+
+        $this->data[$name] = $value;
+
+        return $this;
+    }
+
+    /**
+     * Returns hive value.
+     *
+     * @param string $name
+     *
+     * @return mixed
+     */
+    public function hive(string $name)
+    {
+        return $this->hive[$name] ?? null;
+    }
+
+    /**
+     * Sets or get CRUD mapper instance.
+     *
+     * @param mixed $mapper
+     *
+     * @return Mapper|Crud|null
+     */
+    public function mapper($mapper = null)
+    {
+        if (null !== $mapper) {
+            $this->options['mapper'] = $mapper;
+
+            return $this;
+        }
+
         $map = $this->options['mapper'];
 
         if (!$this->mapper && $map) {
@@ -286,10 +389,18 @@ class Crud
     /**
      * Returns form instance.
      *
-     * @return Form
+     * @param mixed $form
+     *
+     * @return Form|Crud
      */
-    public function getForm(): Form
+    public function form($form = null)
     {
+        if (null !== $form) {
+            $this->options['form'] = $form;
+
+            return $this;
+        }
+
         if (!$this->form) {
             $form = $this->options['form'];
 
@@ -310,90 +421,22 @@ class Crud
     }
 
     /**
-     * Returns option value.
-     *
-     * @param string|null $name
-     *
-     * @return mixed
-     */
-    public function getOption(string $name = null)
-    {
-        return $name ? $this->options[$name] ?? null : $this->options;
-    }
-
-    /**
-     * Sets option.
-     *
-     * @param string $option
-     * @param mixed  $value
-     *
-     * @return Crud
-     */
-    public function setOption(string $option, $value = null): Crud
-    {
-        $name = Util::snakeCase($option);
-
-        if (!in_array($name, static::$restricted) && array_key_exists($name, $this->options)) {
-            if (is_array($this->options[$name])) {
-                if (!is_array($value)) {
-                    throw new \UnexpectedValueException('Option "'.$name.'" expect array value.');
-                }
-
-                $this->options[$name] = array_replace($this->options[$name], $value);
-            } else {
-                $this->options[$name] = $value;
-            }
-        }
-
-        return $this;
-    }
-
-    /**
-     * Returns data value.
-     *
-     * @param string|null $name
-     *
-     * @return mixed
-     */
-    public function getData(string $name = null)
-    {
-        return $name ? $this->data[$name] ?? null : $this->data;
-    }
-
-    /**
-     * Sets data.
-     *
-     * @param string $name
-     * @param mixed  $value
-     *
-     * @return Crud
-     */
-    public function setData(string $name, $value): Crud
-    {
-        $this->data[$name] = $value;
-
-        return $this;
-    }
-
-    /**
-     * Returns hive value.
-     *
-     * @param string $name
-     *
-     * @return mixed
-     */
-    public function getHive(string $name)
-    {
-        return $this->hive[$name] ?? null;
-    }
-
-    /**
      * Prepare fields, ensure field has label and name member.
      */
     protected function prepareFields(): void
     {
-        $fields = (array) ($this->options['fields'][$this->hive['state']] ?? $this->getMapper()->schema());
-        $keys = array_unique(array_merge((array) $this->options['field_orders'], array_keys($fields)));
+        $fields = $this->options['fields'][$this->hive['state']] ?? null;
+
+        if ($fields) {
+            if (is_string($fields)) {
+                $fields = array_fill_keys(Util::split($fields), null);
+            }
+        } else {
+            $fields = $this->mapper()->schema();
+        }
+
+        $orders = Util::arr($this->options['field_orders']);
+        $keys = array_unique(array_merge($orders, array_keys($fields)));
         $this->hive['fields'] = array_fill_keys($keys, array());
 
         foreach ($fields as $name => $field) {
@@ -449,7 +492,7 @@ class Crud
     protected function message(string $key): string
     {
         return strtr($this->options[$key.'_message'] ?? '', array(
-            '%table%' => $this->getMapper()->table(),
+            '%table%' => $this->mapper()->table(),
             '%id%' => implode(', ', $this->mapper->keys()),
         ));
     }
@@ -509,7 +552,7 @@ class Crud
      */
     protected function stateListing(): bool
     {
-        $this->data['data'] = $this->getMapper()->paginate(...array(
+        $this->data['data'] = $this->mapper()->paginate(...array(
             $this->hive['page'],
             $this->prepareFilters(),
             $this->options['listing_options'],
@@ -525,7 +568,7 @@ class Crud
      */
     protected function stateView(): bool
     {
-        $this->getMapper()->load($this->prepareItemFilters());
+        $this->mapper()->load($this->prepareItemFilters());
         $this->trigger('on_load');
 
         if ($this->mapper->dry()) {
@@ -544,7 +587,7 @@ class Crud
      */
     protected function stateCreate(): bool
     {
-        $form = $this->getForm()->build($this->resolveFormOptions());
+        $form = $this->form()->build($this->resolveFormOptions());
 
         if ($form->isSubmitted() && $form->valid()) {
             $data = (array) $this->trigger('before_create');
@@ -573,7 +616,7 @@ class Crud
     {
         $this->stateView();
 
-        $form = $this->getForm()->build($this->resolveFormOptions(), $this->prepareData());
+        $form = $this->form()->build($this->resolveFormOptions(), $this->prepareData());
 
         if ($form->isSubmitted() && $form->valid()) {
             $data = (array) $this->trigger('before_update');
@@ -619,17 +662,31 @@ class Crud
     }
 
     /**
-     * Proxy to setOption.
+     * Setting option via method call.
      *
-     * @param string $method
+     * @param string $option
      * @param array  $args
      *
      * @return Crud
      */
-    public function __call($method, $args)
+    public function __call($option, $args)
     {
         if ($args) {
-            $this->setOption($method, $args[0]);
+            $name = Util::snakeCase($option);
+
+            if (array_key_exists($name, $this->options)) {
+                $value = $args[0];
+
+                if (is_array($this->options[$name])) {
+                    if (!is_array($value)) {
+                        throw new \UnexpectedValueException('Option "'.$name.'" expect array value.');
+                    }
+
+                    $this->options[$name] = array_replace($this->options[$name], $value);
+                } else {
+                    $this->options[$name] = $value;
+                }
+            }
         }
 
         return $this;
