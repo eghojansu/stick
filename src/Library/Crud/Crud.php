@@ -255,8 +255,8 @@ class Crud
     /**
      * Sets fields for state.
      *
-     * @param  mixed $states
-     * @param  mixed $fields
+     * @param mixed $states
+     * @param mixed $fields
      *
      * @return Crud
      */
@@ -270,8 +270,8 @@ class Crud
     /**
      * Sets view for state.
      *
-     * @param  string $state
-     * @param  string $view
+     * @param string $state
+     * @param string $view
      *
      * @return Crud
      */
@@ -285,8 +285,8 @@ class Crud
     /**
      * Sets roles for state.
      *
-     * @param  string $state
-     * @param  string $roles
+     * @param string $state
+     * @param string $roles
      *
      * @return Crud
      */
@@ -300,7 +300,7 @@ class Crud
     /**
      * Set segments.
      *
-     * @param  string|array $segments
+     * @param string|array $segments
      *
      * @return Crud
      */
