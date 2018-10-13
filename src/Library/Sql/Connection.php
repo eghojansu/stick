@@ -517,8 +517,6 @@ class Connection
      * @param int    $ttl
      *
      * @return array
-     *
-     * @throws LogicException If schema contains nothing
      */
     public function schema(string $table, $fields = null, int $ttl = 0): array
     {
@@ -556,11 +554,7 @@ class Connection
             }
         }
 
-        if (!$rows) {
-            throw new \LogicException('Table "'.$table.'" contains no defined schema.');
-        }
-
-        if ($ttl) {
+        if ($ttl && $rows) {
             // Save to cache backend
             $this->app->cacheSet($hash, $rows, $ttl);
         }
