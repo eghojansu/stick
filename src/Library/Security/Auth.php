@@ -200,6 +200,44 @@ class Auth
     }
 
     /**
+     * Get options.
+     *
+     * @return array
+     */
+    public function getOptions(): array
+    {
+        return $this->options;
+    }
+
+    /**
+     * Set options.
+     *
+     * Valid options:
+     *
+     *  - login         string login path
+     *  - logout        string logout path
+     *  - redirect      string redirect path if not granted
+     *  - rules         array  path with valid roles, example: ['/secure' => 'ROLE_USER,ROLE_ADMIN']
+     *  - roleHierarchy array  like in symfony roles, example: ['ROLE_ADMIN' => 'ROLE_USER']
+     *
+     * @param array $options
+     *
+     * @return Auth
+     */
+    public function setOptions(array $options): Auth
+    {
+        $this->options = $options + array(
+            'login' => '/login',
+            'logout' => null,
+            'redirect' => '/',
+            'rules' => array(),
+            'roleHierarchy' => array(),
+        );
+
+        return $this;
+    }
+
+    /**
      * Do guard.
      *
      * Return true if request has been redirected.
@@ -210,13 +248,16 @@ class Auth
     {
         $path = $this->app->get('PATH');
 
-        if (in_array($path, (array) $this->options['excludes'])) {
-            return false;
+        if ($this->options['logout'] && $this->options['logout'] === $path) {
+            $this->logout();
+            $this->app->reroute($this->options['redirect']);
+
+            return true;
         }
 
-        if ($path === $this->options['loginPath']) {
+        if ($this->options['login'] === $path) {
             if ($this->isLogged()) {
-                $this->app->reroute($this->resolveRedirection());
+                $this->app->reroute($this->options['redirect']);
 
                 return true;
             }
@@ -226,7 +267,7 @@ class Auth
 
         foreach ($this->options['rules'] as $check => $roles) {
             if (preg_match('#'.$check.'#', $path) && !$this->isGranted($roles)) {
-                $this->app->reroute($this->options['loginPath']);
+                $this->app->reroute($this->options['login']);
 
                 return true;
             }
@@ -245,24 +286,20 @@ class Auth
     public function isGranted($checkRoles): bool
     {
         $user = $this->getUser();
+        $userRoles = $user ? $user->getRoles() : array('ROLE_ANONYMOUS');
+        $mCheckRoles = Util::arr($checkRoles);
 
-        if (!$user || !($userRoles = $user->getRoles())) {
-            return false;
-        }
-
-        $use = Util::arr($checkRoles);
-
-        if (array_intersect($use, $userRoles)) {
+        if (array_intersect($mCheckRoles, $userRoles)) {
             return true;
         }
 
         $roles = array();
 
-        foreach ($userRoles as $userRole) {
-            $roles = array_merge($roles, array($userRole), $this->getRoleHierarchy($userRole));
+        foreach ($userRoles as $role) {
+            $roles = array_merge($roles, $this->getRoleHierarchy($role));
         }
 
-        return (bool) array_intersect($use, $roles);
+        return (bool) array_intersect($mCheckRoles, $roles);
     }
 
     /**
@@ -286,55 +323,15 @@ class Auth
     }
 
     /**
-     * Get options.
-     *
-     * @return array
-     */
-    public function getOptions(): array
-    {
-        return $this->options;
-    }
-
-    /**
-     * Set options.
-     *
-     * Valid options:
-     *
-     *     loginPath       string       route/path to redirect if user anonymous
-     *     redirect        string|array route/path to redirect if user has been login
-     *                                  If string passed it will be used to redirect for all roles.
-     *                                  If array passed, key will be evaluated as role and value as target.
-     *     excludes        string|array excludes path
-     *     rules           array        path with valid roles, example: ['/secure' => 'ROLE_USER,ROLE_ADMIN']
-     *     roleHierarchy   array        like in symfony roles, example: ['ROLE_ADMIN' => 'ROLE_USER']
-     *
-     * @param array $options
-     *
-     * @return Auth
-     */
-    public function setOptions(array $options): Auth
-    {
-        $this->options = $options + array(
-            'loginPath' => '/login',
-            'redirect' => '/',
-            'excludes' => '/logout',
-            'rules' => array(),
-            'roleHierarchy' => array(),
-        );
-
-        return $this;
-    }
-
-    /**
      * Get hierarchy for specific role.
      *
      * @param string $role
      *
      * @return array
      */
-    protected function getRoleHierarchy($role): array
+    protected function getRoleHierarchy(string $role): array
     {
-        $roles = array();
+        $roles = array($role);
 
         if (array_key_exists($role, $this->options['roleHierarchy'])) {
             $children = Util::arr($this->options['roleHierarchy'][$role]);
@@ -347,27 +344,5 @@ class Auth
         }
 
         return $roles;
-    }
-
-    /**
-     * Resolve redirection path.
-     *
-     * @return string
-     */
-    protected function resolveRedirection(): string
-    {
-        $target = $this->options['redirect'];
-
-        if (is_string($target)) {
-            return $target;
-        }
-
-        foreach ((array) $target as $role => $path) {
-            if ($this->isGranted($role)) {
-                return $path;
-            }
-        }
-
-        return '/';
     }
 }
