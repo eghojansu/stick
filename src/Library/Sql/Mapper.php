@@ -240,18 +240,9 @@ class Mapper extends Magic
 
         $targetMap = $this->_db->quotekey($targetMapper->table());
         $bridgeMap = $this->_db->quotekey($bridgeMapper->table());
-        $targetFields = '';
-
-        foreach ($targetMapper->_fields as $name => $field) {
-            $targetFields .= ', '.$targetMap.'.'.$this->_db->quotekey($name);
-        }
-
-        foreach ($targetMapper->_adhoc as $name => $field) {
-            $targetFields .= ','.$field['expr'].' AS '.$this->_db->quotekey($name);
-        }
-
-        $targetFields = ltrim($targetFields, ', ');
+        $targetFields = $targetMapper->stringifyFields();
         $key = $bridgeMapper->table().'.'.$bridgeFK;
+
         $filter[$key] = $this->get($targetPK);
 
         $args = $targetMapper->stringifyFilterOptions($filter, $options);
@@ -264,7 +255,7 @@ class Mapper extends Magic
                 $this->_map.'.'.$this->_db->quotekey($targetPK).
             $args[0];
 
-        $targetMapper->_query = array_map(array($targetMapper, 'factory'), $this->_db->exec($sql, $args[1]));
+        $targetMapper->_query = $targetMapper->constructMaps($this->_db->exec($sql, $args[1]));
         $targetMapper->skip(0);
 
         return $targetMapper;
@@ -557,7 +548,7 @@ class Mapper extends Magic
     public function count($filter = null, array $options = null, int $ttl = 0): int
     {
         $shouldHack = in_array($this->_driver, array(Connection::DB_MSSQL, Connection::DB_DBLIB, Connection::DB_SQLSRV));
-        $fields = substr('TOP 100 PERCENT *'.$this->stringifyAdhoc(), 16 * ((bool) !$shouldHack));
+        $fields = substr('TOP 100 PERCENT *', 16 * ((bool) !$shouldHack));
         list($sql, $args) = $this->stringify($fields, $filter, $options);
 
         $sql = 'SELECT COUNT(*) AS '.$this->_db->quotekey('_rows').
@@ -644,11 +635,9 @@ class Mapper extends Magic
      */
     public function find($filter = null, array $options = null, int $ttl = 0): array
     {
-        $useGroup = isset($options['group']) && !in_array($this->_driver, array(Connection::DB_MYSQL, Connection::DB_SQLITE));
-        $fields = $useGroup ? $options['group'] : implode(',', array_map(array($this->_db, 'quotekey'), array_keys($this->_fields)));
-        list($sql, $args) = $this->stringify($fields.$this->stringifyAdhoc(), $filter, $options);
+        list($sql, $args) = $this->stringify($this->stringifyFields(), $filter, $options);
 
-        return array_map(array($this, 'factory'), $this->_db->exec($sql, $args, $ttl));
+        return $this->constructMaps($this->_db->exec($sql, $args, $ttl));
     }
 
     /**
@@ -903,6 +892,26 @@ class Mapper extends Magic
     }
 
     /**
+     * Convert fields and adhoc as select column.
+     *
+     * @return string
+     */
+    protected function stringifyFields(): string
+    {
+        $fields = '';
+
+        foreach ($this->_fields as $name => $field) {
+            $fields .= ', '.$this->_map.'.'.$this->_db->quotekey($name);
+        }
+
+        foreach ($this->_adhoc as $name => $field) {
+            $fields .= ', '.$field['expr'].' AS '.$this->_db->quotekey($name);
+        }
+
+        return ltrim($fields, ', ');
+    }
+
+    /**
      * Build select query.
      *
      * @param string            $fields
@@ -933,13 +942,14 @@ class Mapper extends Magic
             'group' => null,
             'having' => null,
             'order' => null,
+            'join' => null,
             'limit' => 0,
             'offset' => 0,
         );
         $use = ((array) $options) + $default;
         $driver = $this->_driver;
         $order = '';
-        $sql = '';
+        $sql = rtrim(' '.$use['join']);
         $args = array();
 
         $f = $this->_db->buildFilter($filter);
@@ -1011,19 +1021,15 @@ class Mapper extends Magic
     }
 
     /**
-     * Convert adhoc as select column.
+     * Construct mapper from records.
      *
-     * @return string
+     * @param array $rows
+     *
+     * @return array
      */
-    protected function stringifyAdhoc(): string
+    protected function constructMaps(array $rows): array
     {
-        $res = '';
-
-        foreach ($this->_adhoc as $key => $field) {
-            $res .= ','.$field['expr'].' AS '.$this->_db->quotekey($key);
-        }
-
-        return $res;
+        return array_map(array($this, 'factory'), $rows);
     }
 
     /**
