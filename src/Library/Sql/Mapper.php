@@ -146,7 +146,128 @@ class Mapper extends Magic
      */
     public function create(string $table, array $fields = null, int $ttl = 60): Mapper
     {
-        return new self($this->_app, $this->_db, $table, $fields, $ttl);
+        if (is_subclass_of($table, self::class)) {
+            return $this->_app->instance($table);
+        }
+
+        return $this->_app->instance(static::class, compact('table', 'fields', 'ttl'));
+    }
+
+    /**
+     * One to one relation.
+     *
+     * @param string      $target
+     * @param string|null $relation
+     * @param array|null  $filter
+     * @param array|null  $options
+     *
+     * @return Mapper
+     */
+    public function hasOne(string $target, string $relation = null, array $filter = null, array $options = null): Mapper
+    {
+        return $this->hasMany(...array(
+            $target,
+            $relation,
+            $filter,
+            array('limit' => 1) + (array) $options,
+        ));
+    }
+
+    /**
+     * One to many relation.
+     *
+     * @param string      $target
+     * @param string|null $relation
+     * @param array|null  $filter
+     * @param array|null  $options
+     *
+     * @return Mapper
+     */
+    public function hasMany(string $target, string $relation = null, array $filter = null, array $options = null): Mapper
+    {
+        $mapper = $this->create($target);
+        $default = array($this->_table.'_id', 'id');
+        list($foreignKey, $primaryKey) = array_filter(array_map('trim', explode('=', (string) $relation))) + $default;
+
+        $filter[$foreignKey] = $this->get($primaryKey);
+
+        return $mapper->load($filter, $options);
+    }
+
+    /**
+     * One to one relation (inversed).
+     *
+     * @param string      $target
+     * @param string|null $relation
+     * @param array|null  $filter
+     * @param array|null  $options
+     *
+     * @return Mapper
+     */
+    public function belongsTo(string $target, string $relation = null, array $filter = null, array $options = null): Mapper
+    {
+        $mapper = $this->create($target);
+        $default = array($mapper->table().'_id', 'id');
+        list($foreignKey, $primaryKey) = array_filter(array_map('trim', explode('=', (string) $relation))) + $default;
+
+        $filter[$primaryKey] = $this->get($foreignKey);
+
+        return $mapper->load($filter, $options);
+    }
+
+    /**
+     * Many to many relation, via brigde mapper.
+     *
+     * @param string      $target
+     * @param string      $bridge
+     * @param string|null $targetRelation
+     * @param string|null $bridgeRelation
+     * @param array|null  $filter
+     * @param array|null  $options
+     *
+     * @return Mapper
+     */
+    public function belongsToMany(string $target, string $bridge, string $targetRelation = null, string $bridgeRelation = null, array $filter = null, array $options = null): Mapper
+    {
+        $targetMapper = $this->create($target);
+        $bridgeMapper = $this->create($bridge);
+
+        $targetRelationDefault = array($targetMapper->table().'_id', 'id');
+        list($targetFK, $targetPK) = array_filter(array_map('trim', explode('=', (string) $targetRelation))) + $targetRelationDefault;
+
+        $bridgeRelationDefault = array($this->_table.'_id', 'id');
+        list($bridgeFK, $bridgePK) = array_filter(array_map('trim', explode('=', (string) $bridgeRelation))) + $bridgeRelationDefault;
+
+        $targetMap = $this->_db->quotekey($targetMapper->table());
+        $bridgeMap = $this->_db->quotekey($bridgeMapper->table());
+        $targetFields = '';
+
+        foreach ($targetMapper->_fields as $name => $field) {
+            $targetFields .= ', '.$targetMap.'.'.$this->_db->quotekey($name);
+        }
+
+        foreach ($targetMapper->_adhoc as $name => $field) {
+            $targetFields .= ','.$field['expr'].' AS '.$this->_db->quotekey($name);
+        }
+
+        $targetFields = ltrim($targetFields, ', ');
+        $key = $bridgeMapper->table().'.'.$bridgeFK;
+        $filter[$key] = $this->get($targetPK);
+
+        $args = $targetMapper->stringifyFilterOptions($filter, $options);
+        $sql = 'SELECT '.$targetFields.' FROM '.$targetMap.
+            ' JOIN '.$bridgeMap.' ON '.
+                $bridgeMap.'.'.$this->_db->quotekey($targetFK).'='.
+                $targetMap.'.'.$this->_db->quotekey($bridgePK).
+            ' JOIN '.$this->_map.' ON '.
+                $bridgeMap.'.'.$this->_db->quotekey($bridgeFK).'='.
+                $this->_map.'.'.$this->_db->quotekey($targetPK).
+            $args[0];
+
+        $targetMapper->_query = array_map(array($targetMapper, 'factory'), $this->_db->exec($sql, $args[1]));
+        $targetMapper->skip(0);
+
+        return $targetMapper;
     }
 
     /**
@@ -160,7 +281,7 @@ class Mapper extends Magic
     }
 
     /**
-     * Returns fields name.
+     * Returns schema fields and adhoc name.
      *
      * @return array
      */
@@ -556,7 +677,7 @@ class Mapper extends Magic
         $inc = null;
         $driver = $this->_driver;
 
-        if ($this->_app->trigger(self::EVENT_BEFORE_INSERT, array($this))) {
+        if ($this->_app->trigger(static::EVENT_BEFORE_INSERT, array($this))) {
             return $this;
         }
 
@@ -602,7 +723,7 @@ class Mapper extends Magic
             $this->load($filter);
         }
 
-        $this->_app->trigger(self::EVENT_INSERT, array($this));
+        $this->_app->trigger(static::EVENT_INSERT, array($this));
 
         return $this;
     }
@@ -620,7 +741,7 @@ class Mapper extends Magic
         $filter = '';
         $changes = array();
 
-        if ($this->_app->trigger(self::EVENT_BEFORE_UPDATE, array($this))) {
+        if ($this->_app->trigger(static::EVENT_BEFORE_UPDATE, array($this))) {
             return $this;
         }
 
@@ -654,7 +775,7 @@ class Mapper extends Magic
 
         // reset changed flag after calling afterupdate
         $this->_fields = $changes;
-        $this->_app->trigger(self::EVENT_UPDATE, array($this));
+        $this->_app->trigger(static::EVENT_UPDATE, array($this));
 
         return $this;
     }
@@ -701,7 +822,7 @@ class Mapper extends Magic
             $args[++$ctr] = array($field['initial'], $field['pdo_type']);
         }
 
-        if ($this->_app->trigger(self::EVENT_BEFORE_DELETE, array($this))) {
+        if ($this->_app->trigger(static::EVENT_BEFORE_DELETE, array($this))) {
             return 0;
         }
 
@@ -711,7 +832,7 @@ class Mapper extends Magic
         $this->_query = array_slice($this->_query, 0, $this->_ptr, true) +
                        array_slice($this->_query, $this->_ptr, null, true);
 
-        $this->_app->trigger(self::EVENT_DELETE, array($this));
+        $this->_app->trigger(static::EVENT_DELETE, array($this));
         $this->first();
 
         return $out;
@@ -792,6 +913,22 @@ class Mapper extends Magic
      */
     protected function stringify(string $fields, $filter = null, array $options = null): array
     {
+        $result = $this->stringifyFilterOptions($filter, $options);
+        $result[0] = 'SELECT '.$fields.' FROM '.$this->_map.$result[0];
+
+        return $result;
+    }
+
+    /**
+     * Convert filter and options to string and args.
+     *
+     * @param mixed      $filter
+     * @param array|null $options
+     *
+     * @return array
+     */
+    protected function stringifyFilterOptions($filter = null, array $options = null): array
+    {
         $default = array(
             'group' => null,
             'having' => null,
@@ -802,9 +939,8 @@ class Mapper extends Magic
         $use = ((array) $options) + $default;
         $driver = $this->_driver;
         $order = '';
-
+        $sql = '';
         $args = array();
-        $sql = 'SELECT '.$fields.' FROM '.$this->_map;
 
         $f = $this->_db->buildFilter($filter);
         if ($f) {
@@ -831,8 +967,8 @@ class Mapper extends Magic
         // @codeCoverageIgnoreStart
         if (in_array($driver, array(Connection::DB_MSSQL, Connection::DB_SQLSRV, Connection::DB_ODBC)) && ($use['limit'] || $use['offset'])) {
             // order by pkey when no ordering option was given
-            if (!$use['order'] && $this->keys) {
-                $order = ' ORDER BY '.implode(',', array_map(array($this->_db, 'quotekey'), $this->keys));
+            if (!$use['order'] && $this->_keys) {
+                $order = ' ORDER BY '.implode(',', array_map(array($this->_db, 'quotekey'), $this->_keys));
             }
 
             $ofs = (int) $use['offset'];
@@ -916,9 +1052,24 @@ class Mapper extends Magic
 
         $mapper->_query = array(clone $mapper);
 
-        $this->_app->trigger(self::EVENT_LOAD, array($mapper));
+        $this->_app->trigger(static::EVENT_LOAD, array($mapper));
 
         return $mapper;
+    }
+
+    /**
+     * Returns normalized field.
+     *
+     * @param string $str
+     * @param int    $start
+     *
+     * @return string
+     */
+    protected function fieldFix(string $str, int $start): string
+    {
+        $field = substr($str, $start);
+
+        return isset($this->_fields[$field]) ? $field : Util::snakecase($field);
     }
 
     /**
@@ -958,31 +1109,25 @@ class Mapper extends Magic
     public function __call($method, $args)
     {
         $lmethod = strtolower($method);
-        $mMethod = $method;
+        $call = $method;
         $mArgs = $args;
 
-        if (Util::startswith($lmethod, 'get')) {
-            $field = Util::snakecase(Util::cutprefix($lmethod, 'get'));
-            array_unshift($mArgs, $field);
-            $mMethod = 'get';
-        } elseif (Util::startswith($lmethod, 'findby')) {
-            $field = Util::snakecase(Util::cutprefix($lmethod, 'findby'));
-            $mArgs = $this->fieldArgs($field, $args);
-            $mMethod = 'find';
-        } elseif (Util::startswith($lmethod, 'findoneby')) {
-            $field = Util::snakecase(Util::cutprefix($lmethod, 'findoneby'));
-            $mArgs = $this->fieldArgs($field, $args);
-            $mMethod = 'findone';
-        } elseif (Util::startswith($lmethod, 'loadby')) {
-            $field = Util::snakecase(Util::cutprefix($lmethod, 'loadby'));
-            $mArgs = $this->fieldArgs($field, $args);
-            $mMethod = 'load';
+        if ('get' === substr($lmethod, 0, 3)) {
+            array_unshift($mArgs, $this->fieldFix($method, 3));
+            $call = 'get';
+        } elseif ('findby' === substr($lmethod, 0, 6)) {
+            $mArgs = $this->fieldArgs($this->fieldFix($method, 6), $args);
+            $call = 'find';
+        } elseif ('findoneby' === substr($lmethod, 0, 9)) {
+            $mArgs = $this->fieldArgs($this->fieldFix($method, 9), $args);
+            $call = 'findone';
+        } elseif ('loadby' === substr($lmethod, 0, 6)) {
+            $mArgs = $this->fieldArgs($this->fieldFix($method, 6), $args);
+            $call = 'load';
         } else {
             throw new \BadMethodCallException('Call to undefined method '.static::class.'::'.$method.'.');
         }
 
-        $call = array($this, $mMethod);
-
-        return $call(...$mArgs);
+        return $this->$call(...$mArgs);
     }
 }

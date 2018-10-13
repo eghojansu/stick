@@ -58,12 +58,12 @@ class CrudData extends Magic
     /**
      * Class constructor.
      *
-     * @param App    $app
-     * @param Auth   $auth
-     * @param string $route
-     * @param array  $roles
-     * @param array  $data
-     * @param callable|null  $displayer
+     * @param App           $app
+     * @param Auth          $auth
+     * @param string        $route
+     * @param array         $roles
+     * @param array         $data
+     * @param callable|null $displayer
      */
     public function __construct(App $app, Auth $auth, string $route, array $roles, array $data, callable $displayer = null)
     {
@@ -114,8 +114,8 @@ class CrudData extends Magic
     /**
      * Returns crud link.
      *
-     * @param  mixed $path
-     * @param  mixed $query
+     * @param mixed $path
+     * @param mixed $query
      *
      * @return string
      */
@@ -129,8 +129,8 @@ class CrudData extends Magic
     /**
      * Returns display for item field.
      *
-     * @param  string $field
-     * @param  Mapper $item
+     * @param string $field
+     * @param Mapper $item
      *
      * @return mixed
      */
@@ -146,7 +146,7 @@ class CrudData extends Magic
     /**
      * Returns true if state roles not exists or role is granted.
      *
-     * @param  string $state
+     * @param string $state
      *
      * @return bool
      */
