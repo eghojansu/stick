@@ -217,6 +217,7 @@ class Auth
      *  - login         string login path
      *  - logout        string logout path
      *  - redirect      string redirect path if not granted
+     *  - excludes      array|string  exclude paths from being check
      *  - rules         array  path with valid roles, example: ['/secure' => 'ROLE_USER,ROLE_ADMIN']
      *  - roleHierarchy array  like in symfony roles, example: ['ROLE_ADMIN' => 'ROLE_USER']
      *
@@ -230,6 +231,7 @@ class Auth
             'login' => '/login',
             'logout' => null,
             'redirect' => '/',
+            'excludes' => null,
             'rules' => array(),
             'roleHierarchy' => array(),
         );
@@ -247,6 +249,10 @@ class Auth
     public function guard(): bool
     {
         $path = $this->app->get('PATH');
+
+        if (in_array($path, Util::arr($this->options['excludes']))) {
+            return false;
+        }
 
         if ($this->options['logout'] && $this->options['logout'] === $path) {
             $this->logout();
