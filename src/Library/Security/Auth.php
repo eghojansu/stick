@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 namespace Fal\Stick\Library\Security;
 
-use Fal\Stick\App;
+use Fal\Stick\Fw;
 use Fal\Stick\Util;
 
 /**
@@ -35,9 +35,9 @@ class Auth
     const EVENT_LOAD_USER = 'auth_load_user';
 
     /**
-     * @var App
+     * @var Fw
      */
-    protected $app;
+    protected $fw;
 
     /**
      * @var UserProviderInterface
@@ -67,14 +67,14 @@ class Auth
     /**
      * Class constructor.
      *
-     * @param App                      $app
+     * @param Fw                       $fw
      * @param UserProviderInterface    $provider
      * @param PasswordEncoderInterface $encoder
      * @param array                    $options
      */
-    public function __construct(App $app, UserProviderInterface $provider, PasswordEncoderInterface $encoder, array $options = null)
+    public function __construct(Fw $fw, UserProviderInterface $provider, PasswordEncoderInterface $encoder, array $options = null)
     {
-        $this->app = $app;
+        $this->fw = $fw;
         $this->provider = $provider;
         $this->encoder = $encoder;
         $this->setOptions((array) $options);
@@ -116,10 +116,10 @@ class Auth
      */
     public function login(UserInterface $user): Auth
     {
-        $this->app->trigger(self::EVENT_LOGIN, array($user));
+        $this->fw->trigger(self::EVENT_LOGIN, array($user));
 
         $this->user = $user;
-        $this->app->set(self::SESSION_KEY, $user->getId());
+        $this->fw->set(self::SESSION_KEY, $user->getId());
 
         return $this;
     }
@@ -132,11 +132,11 @@ class Auth
     public function logout(): Auth
     {
         $user = $this->getUser();
-        $this->app->trigger(self::EVENT_LOGOUT, array($user));
+        $this->fw->trigger(self::EVENT_LOGOUT, array($user));
 
         $this->userLoaded = false;
         $this->user = null;
-        $this->app->clear(self::SESSION_KEY);
+        $this->fw->clear(self::SESSION_KEY);
 
         return $this;
     }
@@ -152,7 +152,7 @@ class Auth
             return $this->user;
         }
 
-        if (($user = $this->app->trigger(self::EVENT_LOAD_USER)) && $user instanceof UserInterface) {
+        if (($user = $this->fw->trigger(self::EVENT_LOAD_USER)) && $user instanceof UserInterface) {
             $this->user = $user;
         }
 
@@ -186,7 +186,7 @@ class Auth
      */
     public function getSessionUserId(): ?string
     {
-        return $this->app->get(self::SESSION_KEY);
+        return $this->fw->get(self::SESSION_KEY);
     }
 
     /**
@@ -248,7 +248,7 @@ class Auth
      */
     public function guard(): bool
     {
-        $path = $this->app->get('PATH');
+        $path = $this->fw->get('PATH');
 
         if (in_array($path, Util::arr($this->options['excludes']))) {
             return false;
@@ -256,14 +256,14 @@ class Auth
 
         if ($this->options['logout'] && $this->options['logout'] === $path) {
             $this->logout();
-            $this->app->reroute($this->options['redirect']);
+            $this->fw->reroute($this->options['redirect']);
 
             return true;
         }
 
         if ($this->options['login'] === $path) {
             if ($this->isLogged()) {
-                $this->app->reroute($this->options['redirect']);
+                $this->fw->reroute($this->options['redirect']);
 
                 return true;
             }
@@ -273,7 +273,7 @@ class Auth
 
         foreach ($this->options['rules'] as $check => $roles) {
             if (preg_match('#'.$check.'#', $path) && !$this->isGranted($roles)) {
-                $this->app->reroute($this->options['login']);
+                $this->fw->reroute($this->options['login']);
 
                 return true;
             }

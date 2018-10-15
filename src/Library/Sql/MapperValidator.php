@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 namespace Fal\Stick\Library\Sql;
 
-use Fal\Stick\App;
+use Fal\Stick\Fw;
 use Fal\Stick\Library\Validation\AbstractValidator;
 
 /**
@@ -24,9 +24,9 @@ use Fal\Stick\Library\Validation\AbstractValidator;
 class MapperValidator extends AbstractValidator
 {
     /**
-     * @var App
+     * @var Fw
      */
-    private $app;
+    private $fw;
 
     /**
      * @var Connection
@@ -36,12 +36,12 @@ class MapperValidator extends AbstractValidator
     /**
      * Class constructor.
      *
-     * @param App        $app
+     * @param Fw         $fw
      * @param Connection $db
      */
-    public function __construct(App $app, Connection $db)
+    public function __construct(Fw $fw, Connection $db)
     {
-        $this->app = $app;
+        $this->fw = $fw;
         $this->db = $db;
     }
 
@@ -56,7 +56,7 @@ class MapperValidator extends AbstractValidator
      */
     protected function _exists($val, $table, $column): bool
     {
-        $mapper = new Mapper($this->app, $this->db, $table);
+        $mapper = new Mapper($this->fw, $this->db, $table);
         $mapper->load(array($column => $val), array('limit' => 1));
 
         return $mapper->valid();
@@ -75,7 +75,7 @@ class MapperValidator extends AbstractValidator
      */
     protected function _unique($val, $table, $column, $fid = null, $id = null): bool
     {
-        $mapper = new Mapper($this->app, $this->db, $table);
+        $mapper = new Mapper($this->fw, $this->db, $table);
         $mapper->load(array($column => $val), array('limit' => 1));
 
         return $mapper->dry() || ($fid && (!$mapper->exists($fid) || $mapper->get($fid) == $id));

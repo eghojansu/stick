@@ -23,7 +23,7 @@ namespace Fal\Stick;
  *
  * @author Eko Kurniawan <ekokurniawanbs@gmail.com>
  */
-final class App extends Magic
+final class Fw extends Magic
 {
     const PACKAGE = 'Stick-Framework';
     const VERSION = 'v0.1.0';
@@ -235,26 +235,26 @@ final class App extends Magic
     }
 
     /**
-     * Create App instance with ease.
+     * Create Fw instance with ease.
      *
      * @param array|null $get    Equivalent to $_GET
      * @param array|null $post   Equivalent to $_POST
      * @param array|null $cookie Equivalent to $_COOKIE
      * @param array|null $server Equivalent to $_SERVER
      *
-     * @return App
+     * @return Fw
      */
-    public static function create(array $get = null, array $post = null, array $cookie = null, array $server = null): App
+    public static function create(array $get = null, array $post = null, array $cookie = null, array $server = null): Fw
     {
         return new static($get, $post, $server, $cookie);
     }
 
     /**
-     * Create App instance from globals environment.
+     * Create Fw instance from globals environment.
      *
-     * @return App
+     * @return Fw
      */
-    public static function createFromGlobals(): App
+    public static function createFromGlobals(): Fw
     {
         return new static($_GET, $_POST, $_COOKIE, $_SERVER);
     }
@@ -303,9 +303,9 @@ final class App extends Magic
     /**
      * Override request method with Custom http method override or request post method hack.
      *
-     * @return App
+     * @return Fw
      */
-    public function overrideRequestMethod(): App
+    public function overrideRequestMethod(): Fw
     {
         $verb = $this->_hive['REQUEST']['X-Http-Method-Override'] ?? $this->_hive['VERB'];
 
@@ -321,9 +321,9 @@ final class App extends Magic
     /**
      * Convert console arguments to path and queries.
      *
-     * @return App
+     * @return Fw
      */
-    public function emulateCliRequest(): App
+    public function emulateCliRequest(): Fw
     {
         if ($this->_hive['CLI'] && isset($this->_hive['SERVER']['argv'])) {
             $argv = $this->_hive['SERVER']['argv'] + array(1 => '/');
@@ -543,9 +543,9 @@ final class App extends Magic
      * @param string $key
      * @param array  &$var
      *
-     * @return App
+     * @return Fw
      */
-    public function unref(string $key, array &$var = null): App
+    public function unref(string $key, array &$var = null): Fw
     {
         $parts = explode('.', $key);
         $last = array_pop($parts);
@@ -692,9 +692,9 @@ final class App extends Magic
      * @param array       $values
      * @param string|null $prefix
      *
-     * @return App
+     * @return Fw
      */
-    public function mset(array $values, string $prefix = null): App
+    public function mset(array $values, string $prefix = null): Fw
     {
         foreach ($values as $key => $value) {
             $this->set($prefix.$key, $value);
@@ -708,11 +708,9 @@ final class App extends Magic
      *
      * @param array|string $keys
      *
-     * @return App
-     *
-     * @see App::arr For detail how to pass string keys
+     * @return Fw
      */
-    public function mclear($keys): App
+    public function mclear($keys): Fw
     {
         foreach (Util::arr($keys) as $key) {
             $this->clear($key);
@@ -727,9 +725,9 @@ final class App extends Magic
      * @param string $key
      * @param string $str
      *
-     * @return App
+     * @return Fw
      */
-    public function prepend(string $key, string $str): App
+    public function prepend(string $key, string $str): Fw
     {
         return $this->set($key, $str.$this->get($key));
     }
@@ -740,9 +738,9 @@ final class App extends Magic
      * @param string $key
      * @param string $str
      *
-     * @return App
+     * @return Fw
      */
-    public function append(string $key, string $str): App
+    public function append(string $key, string $str): Fw
     {
         return $this->set($key, $this->get($key).$str);
     }
@@ -753,9 +751,9 @@ final class App extends Magic
      * @param string $source
      * @param string $target
      *
-     * @return App
+     * @return Fw
      */
-    public function copy(string $source, string $target): App
+    public function copy(string $source, string $target): Fw
     {
         return $this->set($target, $this->get($source));
     }
@@ -766,9 +764,9 @@ final class App extends Magic
      * @param string $source
      * @param string $target
      *
-     * @return App
+     * @return Fw
      */
-    public function cut(string $source, string $target): App
+    public function cut(string $source, string $target): Fw
     {
         return $this->copy($source, $target)->clear($source);
     }
@@ -793,7 +791,7 @@ final class App extends Magic
      *
      * Expect file which return multidimensional array.
      *
-     * All key except below will be added to App hive.
+     * All key except below will be added to Fw hive.
      *
      *  * configs: to load another configuration file
      *  * routes: to register routes
@@ -804,9 +802,9 @@ final class App extends Magic
      *
      * @param string $file
      *
-     * @return App
+     * @return Fw
      */
-    public function config(string $file): App
+    public function config(string $file): Fw
     {
         // Config map
         $maps = array(
@@ -985,9 +983,9 @@ final class App extends Magic
      *
      * @param string $suffix
      *
-     * @return App
+     * @return Fw
      */
-    public function cacheReset(string $suffix = ''): App
+    public function cacheReset(string $suffix = ''): Fw
     {
         $this->cacheLoad();
 
@@ -1059,9 +1057,9 @@ final class App extends Magic
      *
      * @param mixed $callable
      *
-     * @return App
+     * @return Fw
      */
-    public function wrap($callable): App
+    public function wrap($callable): Fw
     {
         $this->call($callable);
 
@@ -1098,9 +1096,9 @@ final class App extends Magic
      * @param string $id
      * @param mixed  $rule
      *
-     * @return App
+     * @return Fw
      */
-    public function rule(string $id, $rule = null): App
+    public function rule(string $id, $rule = null): Fw
     {
         unset($this->_hive['SERVICES'][$id]);
 
@@ -1213,9 +1211,9 @@ final class App extends Magic
      * @param string $eventName
      * @param mixed  $handler
      *
-     * @return App
+     * @return Fw
      */
-    public function one(string $eventName, $handler): App
+    public function one(string $eventName, $handler): Fw
     {
         return $this->on($eventName, $handler, true);
     }
@@ -1227,9 +1225,9 @@ final class App extends Magic
      * @param mixed  $handler
      * @param bool   $once
      *
-     * @return App
+     * @return Fw
      */
-    public function on(string $eventName, $handler, bool $once = false): App
+    public function on(string $eventName, $handler, bool $once = false): Fw
     {
         $this->_hive['EVENTS'][$eventName] = array($handler, $once);
 
@@ -1241,9 +1239,9 @@ final class App extends Magic
      *
      * @param string $eventName
      *
-     * @return App
+     * @return Fw
      */
-    public function off(string $eventName): App
+    public function off(string $eventName): Fw
     {
         unset($this->_hive['EVENTS'][$eventName]);
 
@@ -1345,9 +1343,9 @@ final class App extends Magic
      * @param mixed $target
      * @param bool  $permanent
      *
-     * @return App
+     * @return Fw
      */
-    public function reroute($target = null, bool $permanent = false): App
+    public function reroute($target = null, bool $permanent = false): Fw
     {
         if (!$target) {
             $path = $this->_hive['PATH'];
@@ -1396,9 +1394,9 @@ final class App extends Magic
      * @param string|obj $class
      * @param array      $routes
      *
-     * @return App
+     * @return Fw
      */
-    public function map($class, array $routes): App
+    public function map($class, array $routes): Fw
     {
         $obj = is_object($class);
 
@@ -1419,9 +1417,9 @@ final class App extends Magic
      * @param string $target
      * @param bool   $permanent
      *
-     * @return App
+     * @return Fw
      */
-    public function redirect(string $expr, string $target, bool $permanent = true): App
+    public function redirect(string $expr, string $target, bool $permanent = true): Fw
     {
         return $this->route($expr, function () use ($target, $permanent) {
             return $this->reroute($target, $permanent);
@@ -1436,9 +1434,9 @@ final class App extends Magic
      * @param int    $ttl
      * @param int    $kbps
      *
-     * @return App
+     * @return Fw
      */
-    public function route(string $route, $handler, int $ttl = 0, int $kbps = 0): App
+    public function route(string $route, $handler, int $ttl = 0, int $kbps = 0): Fw
     {
         $pattern = '/^([\w+|]+)(?:\h+(\w+))?(?:\h+(\/[^\h]*))?(?:\h+(all|ajax|cli|sync))?$/i';
 
@@ -1554,9 +1552,9 @@ final class App extends Magic
      * @param string|null $mime
      * @param int         $kbps
      *
-     * @return App
+     * @return Fw
      */
-    public function send(int $code = null, array $headers = null, string $content = null, string $mime = null, int $kbps = 0): App
+    public function send(int $code = null, array $headers = null, string $content = null, string $mime = null, int $kbps = 0): Fw
     {
         if ($this->_hive['SENT']) {
             return $this;
@@ -1601,9 +1599,9 @@ final class App extends Magic
      *
      * @param int $secs
      *
-     * @return App
+     * @return Fw
      */
-    public function expire(int $secs = 0): App
+    public function expire(int $secs = 0): Fw
     {
         $headers = &$this->_hive['RESPONSE'];
 
@@ -1635,9 +1633,9 @@ final class App extends Magic
      *
      * @param int $code
      *
-     * @return App
+     * @return Fw
      */
-    public function status(int $code): App
+    public function status(int $code): Fw
     {
         $name = 'self::HTTP_'.$code;
 
@@ -1660,9 +1658,9 @@ final class App extends Magic
      * @param array|null  $headers
      * @param int|null    $level
      *
-     * @return App
+     * @return Fw
      */
-    public function error(int $httpCode, string $message = null, array $trace = null, array $headers = null, int $level = null): App
+    public function error(int $httpCode, string $message = null, array $trace = null, array $headers = null, int $level = null): Fw
     {
         $this->status($httpCode);
 
@@ -1729,9 +1727,9 @@ final class App extends Magic
      * @param string $level
      * @param string $message
      *
-     * @return App
+     * @return Fw
      */
-    public function log(string $level, string $message): App
+    public function log(string $level, string $message): Fw
     {
         $shouldWrite = $this->_hive['LOG'] && (self::LOG_LEVELS[$level] ?? 100) <= (self::LOG_LEVELS[$this->_hive['THRESHOLD']] ?? 101);
 
@@ -1748,9 +1746,9 @@ final class App extends Magic
      * @param int    $code
      * @param string $message
      *
-     * @return App
+     * @return Fw
      */
-    public function logByCode(int $code, string $message): App
+    public function logByCode(int $code, string $message): Fw
     {
         $map = array(
             E_ERROR => self::LOG_LEVEL_EMERGENCY,
@@ -1823,9 +1821,9 @@ final class App extends Magic
      * @param string|null $from
      * @param string|null $to
      *
-     * @return App
+     * @return Fw
      */
-    public function logClear(string $from = null, string $to = null): App
+    public function logClear(string $from = null, string $to = null): Fw
     {
         foreach ($this->logFiles($from, $to) as $file) {
             unlink($file);

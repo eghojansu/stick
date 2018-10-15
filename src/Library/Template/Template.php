@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 namespace Fal\Stick\Library\Template;
 
-use Fal\Stick\App;
+use Fal\Stick\Fw;
 use Fal\Stick\Util;
 
 /**
@@ -27,9 +27,9 @@ final class Template
     const EVENT_AFTER_RENDER = 'template_after_render';
 
     /**
-     * @var App
+     * @var Fw
      */
-    private $app;
+    private $fw;
 
     /**
      * Template directories.
@@ -58,12 +58,12 @@ final class Template
     /**
      * Class constructor.
      *
-     * @param App          $app
+     * @param Fw           $fw
      * @param string|array $dirs
      */
-    public function __construct(App $app, $dirs = './template/')
+    public function __construct(Fw $fw, $dirs = './template/')
     {
-        $this->app = $app;
+        $this->fw = $fw;
         $this->setDirs($dirs);
     }
 
@@ -142,8 +142,8 @@ final class Template
             $call = $this->funcs[$func];
         } elseif (in_array(strtolower($func), array('e', 'filter', 'macro'))) {
             $call = array($this, '_'.$func);
-        } elseif (method_exists($this->app, $func)) {
-            $call = array($this->app, $func);
+        } elseif (method_exists($this->fw, $func)) {
+            $call = array($this->fw, $func);
         } elseif (method_exists(Util::class, $func)) {
             $call = array(Util::class, $func);
         } elseif (is_callable($func)) {
@@ -172,7 +172,7 @@ final class Template
         $mData = $data;
         $mMime = $mime;
         $prepend = null;
-        $result = $this->app->trigger(self::EVENT_BEFORE_RENDER, array($file, $data, $mime));
+        $result = $this->fw->trigger(self::EVENT_BEFORE_RENDER, array($file, $data, $mime));
 
         if ($result) {
             if (is_string($result)) {
@@ -184,9 +184,9 @@ final class Template
             }
         }
 
-        $template = new TemplateFile($this->app, $this, $file, $mData);
+        $template = new TemplateFile($this->fw, $this, $file, $mData);
         $content = $prepend.$template->render();
-        $result = $this->app->trigger(self::EVENT_AFTER_RENDER, array($content, $file, $mData, $mMime));
+        $result = $this->fw->trigger(self::EVENT_AFTER_RENDER, array($content, $file, $mData, $mMime));
 
         if ($result) {
             if (is_string($result)) {
@@ -200,7 +200,7 @@ final class Template
             }
         }
 
-        $this->app->mset(array(
+        $this->fw->mset(array(
             'Content-Type' => $mMime,
             'Content-Length' => strlen($content),
         ), 'RESPONSE.');
@@ -262,7 +262,7 @@ final class Template
             $args = array_combine($keys, $args);
         }
 
-        $template = new TemplateFile($this->app, $this, $realpath, $args);
+        $template = new TemplateFile($this->fw, $this, $realpath, $args);
 
         return $template->render();
     }

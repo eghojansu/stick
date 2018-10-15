@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 namespace Fal\Stick\Library\Crud;
 
-use Fal\Stick\App;
+use Fal\Stick\Fw;
 use Fal\Stick\HttpException;
 use Fal\Stick\Library\Html\Form;
 use Fal\Stick\Library\Security\Auth;
@@ -36,9 +36,9 @@ class Crud
     const STATE_FORBIDDEN = 'forbidden';
 
     /**
-     * @var App
+     * @var Fw
      */
-    protected $app;
+    protected $fw;
 
     /**
      * @var Template
@@ -133,11 +133,11 @@ class Crud
     /**
      * Class constructor.
      *
-     * @param App      $app
+     * @param Fw       $app
      * @param Template $template
      * @param Auth     $auth
      */
-    public function __construct(App $app, Template $template, Auth $auth)
+    public function __construct(Fw $fw, Template $template, Auth $auth)
     {
         $states = array(
             static::STATE_LISTING,
@@ -148,7 +148,7 @@ class Crud
         );
         $nullStates = array_fill_keys($states, null);
 
-        $this->app = $app;
+        $this->fw = $fw;
         $this->template = $template;
         $this->auth = $auth;
 
@@ -165,7 +165,7 @@ class Crud
      */
     public function render(): ?string
     {
-        $this->hive['route'] = $this->options['route'] ?? $this->app->get('ALIAS');
+        $this->hive['route'] = $this->options['route'] ?? $this->fw->get('ALIAS');
 
         if (empty($this->hive['route'])) {
             throw new \LogicException('No route defined.');
@@ -190,8 +190,8 @@ class Crud
         $roles = $this->options['roles'][$mState] ?? null;
 
         $this->hive['state'] = $mState;
-        $this->hive['keyword'] = $this->options['keyword'] ?? $this->app->get('GET.'.$keywordName) ?? null;
-        $this->hive['page'] = (int) ($this->options['page'] ?? $this->app->get('GET.'.$pageName) ?? 1);
+        $this->hive['keyword'] = $this->options['keyword'] ?? $this->fw->get('GET.'.$keywordName) ?? null;
+        $this->hive['page'] = (int) ($this->options['page'] ?? $this->fw->get('GET.'.$pageName) ?? 1);
         $this->back = array(
             $this->hive['route'],
             array_merge((array) $this->options['route_args'], array('index')),
@@ -227,7 +227,7 @@ class Crud
             'subtitle' => $this->options['subtitle'] ?? Util::titleCase($mState),
         );
         $crudData = new CrudData(...array(
-            $this->app,
+            $this->fw,
             $this->auth,
             $this->hive['route'],
             $this->options['roles'],
@@ -377,9 +377,9 @@ class Crud
             if ($map instanceof Mapper) {
                 $this->mapper = $map;
             } elseif (class_exists($map)) {
-                $this->mapper = $this->app->service($map);
+                $this->mapper = $this->fw->service($map);
             } else {
-                $this->mapper = $this->app->instance(Mapper::class, array($map));
+                $this->mapper = $this->fw->instance(Mapper::class, array($map));
             }
         }
 
@@ -407,12 +407,12 @@ class Crud
             if ($form instanceof Form) {
                 $this->form = $form;
             } elseif ($form && class_exists($form)) {
-                $this->form = $this->app->service($form);
+                $this->form = $this->fw->service($form);
             } else {
-                $this->form = $this->app->instance(Form::class);
+                $this->form = $this->fw->instance(Form::class);
 
                 if (is_callable($this->options['form_build'])) {
-                    $this->app->call($this->options['form_build'], array($this->form));
+                    $this->fw->call($this->options['form_build'], array($this->form));
                 }
             }
         }
@@ -440,7 +440,7 @@ class Crud
         $this->hive['fields'] = array_fill_keys($keys, array());
 
         foreach ($fields as $name => $field) {
-            $label = $this->app->trans($name, null, Util::titleCase($name));
+            $label = $this->fw->trans($name, null, Util::titleCase($name));
             $default = compact('label', 'name');
             $this->hive['fields'][$name] = ((array) $field) + $default;
         }
@@ -507,7 +507,7 @@ class Crud
     protected function trigger(string $eventName)
     {
         if (is_callable($this->options[$eventName])) {
-            return $this->app->call($this->options[$eventName]);
+            return $this->fw->call($this->options[$eventName]);
         }
 
         return null;
@@ -523,7 +523,7 @@ class Crud
         $option = $this->options['form_options'];
 
         if (is_callable($option)) {
-            return (array) $this->app->call($option);
+            return (array) $this->fw->call($option);
         }
 
         return (array) $option;
@@ -539,7 +539,7 @@ class Crud
         $data = $this->mapper->toArray();
 
         if (is_callable($this->options['on_prepare_data'])) {
-            $data = (array) $this->app->call($this->options['on_prepare_data']) + $data;
+            $data = (array) $this->fw->call($this->options['on_prepare_data']) + $data;
         }
 
         return $data;
@@ -594,7 +594,7 @@ class Crud
             $this->mapper->fromArray($data + $form->getData())->save();
             $this->trigger('after_create');
 
-            $this->app
+            $this->fw
                 ->set($this->options['created_message_key'], $this->message('created'))
                 ->reroute($this->back)
             ;
@@ -623,7 +623,7 @@ class Crud
             $this->mapper->fromArray($data + $form->getData())->save();
             $this->trigger('after_update');
 
-            $this->app
+            $this->fw
                 ->set($this->options['updated_message_key'], $this->message('updated'))
                 ->reroute($this->back)
             ;
@@ -645,12 +645,12 @@ class Crud
     {
         $this->stateView();
 
-        if ('POST' === $this->app->get('VERB')) {
+        if ('POST' === $this->fw->get('VERB')) {
             $this->trigger('before_delete');
             $this->mapper->delete();
             $this->trigger('after_delete');
 
-            $this->app
+            $this->fw
                 ->set($this->options['deleted_message_key'], $this->message('deleted'))
                 ->reroute($this->back)
             ;

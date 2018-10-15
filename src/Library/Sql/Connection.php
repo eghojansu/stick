@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 namespace Fal\Stick\Library\Sql;
 
-use Fal\Stick\App;
+use Fal\Stick\Fw;
 use Fal\Stick\Util;
 
 /**
@@ -69,9 +69,9 @@ class Connection
     private $pdo;
 
     /**
-     * @var App
+     * @var Fw
      */
-    private $app;
+    private $fw;
 
     /**
      * Driver name.
@@ -99,7 +99,7 @@ class Connection
      *
      * @var string
      */
-    private $logLevel = App::LOG_LEVEL_INFO;
+    private $logLevel = Fw::LOG_LEVEL_INFO;
 
     /**
      * Transaction status.
@@ -116,12 +116,12 @@ class Connection
     /**
      * Class constructor.
      *
-     * @param App   $app
+     * @param Fw    $fw
      * @param array $options
      */
-    public function __construct(App $app, array $options)
+    public function __construct(Fw $fw, array $options)
     {
-        $this->app = $app;
+        $this->fw = $fw;
         $this->setOptions($options);
     }
 
@@ -269,7 +269,7 @@ class Connection
 
                 Util::walk((array) $o['commands'], array($this->pdo, 'exec'));
             } catch (\PDOException $e) {
-                $this->app->log(App::LOG_LEVEL_EMERGENCY, $e->getMessage());
+                $this->fw->log(Fw::LOG_LEVEL_EMERGENCY, $e->getMessage());
 
                 throw new \LogicException('Invalid database configuration.');
             }
@@ -525,9 +525,9 @@ class Connection
         $hash = Util::hash($table.var_export($fields, true)).'.schema';
         $db = $this->getDbName();
 
-        if ($ttl && $this->app->isCached($hash, $data)) {
+        if ($ttl && $this->fw->isCached($hash, $data)) {
             $message = sprintf('(%.1fms) [CACHED] Retrieving schema of %s table', 1e3 * (microtime(true) - $start), $table);
-            $this->app->log($this->logLevel, $message);
+            $this->fw->log($this->logLevel, $message);
 
             return $data[0];
         }
@@ -556,11 +556,11 @@ class Connection
 
         if ($ttl && $rows) {
             // Save to cache backend
-            $this->app->cacheSet($hash, $rows, $ttl);
+            $this->fw->cacheSet($hash, $rows, $ttl);
         }
 
         $message = sprintf('(%.1fms) Retrieving schema of %s table (%s)', 1e3 * (microtime(true) - $start), $table, $cmd[0]);
-        $this->app->log($this->logLevel, $message);
+        $this->fw->log($this->logLevel, $message);
 
         return $rows;
     }
@@ -761,9 +761,9 @@ class Connection
             $rawQuery = $this->buildQuery($cmd, $arg);
             $errInfo = $this->options['debug'] ? ' ('.$rawQuery.')' : null;
 
-            if ($ttl && $this->app->isCached($hash, $data)) {
+            if ($ttl && $this->fw->isCached($hash, $data)) {
                 $res[$i] = $data[0];
-                $this->app->log($this->logLevel, $this->buildLog($rawQuery, $start, null, true));
+                $this->fw->log($this->logLevel, $this->buildLog($rawQuery, $start, null, true));
 
                 continue;
             }
@@ -790,7 +790,7 @@ class Connection
 
             $log = $this->buildLog($rawQuery);
             $query->execute();
-            $this->app->log($this->logLevel, $this->buildLog(null, $start, $log));
+            $this->fw->log($this->logLevel, $this->buildLog(null, $start, $log));
 
             $error = $query->errorinfo();
 
@@ -819,7 +819,7 @@ class Connection
 
                 if ($ttl) {
                     // Save to cache backend
-                    $this->app->cacheSet($hash, $res[$i], $ttl);
+                    $this->fw->cacheSet($hash, $res[$i], $ttl);
                 }
             } else {
                 $this->rows = $res[$i] = $query->rowcount();

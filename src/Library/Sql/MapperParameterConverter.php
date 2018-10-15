@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 namespace Fal\Stick\Library\Sql;
 
-use Fal\Stick\App;
+use Fal\Stick\Fw;
 use Fal\Stick\HttpException;
 
 /**
@@ -27,9 +27,9 @@ use Fal\Stick\HttpException;
 final class MapperParameterConverter
 {
     /**
-     * @var App
+     * @var Fw
      */
-    private $app;
+    private $fw;
 
     /**
      * @var Connection
@@ -69,14 +69,14 @@ final class MapperParameterConverter
     /**
      * Class constructor.
      *
-     * @param App        $app
+     * @param Fw         $fw
      * @param Connection $db
      * @param mixed      $handler
      * @param array      $params
      */
-    public function __construct(App $app, Connection $db, $handler, array $params)
+    public function __construct(Fw $fw, Connection $db, $handler, array $params)
     {
-        $this->app = $app;
+        $this->fw = $fw;
         $this->db = $db;
         $this->params = $params;
         $this->keys = array_keys($params);
@@ -127,7 +127,7 @@ final class MapperParameterConverter
      */
     private function resolveMapper(string $class): Mapper
     {
-        $mapper = new $class($this->app, $this->db);
+        $mapper = new $class($this->fw, $this->db);
         $keys = array_keys($mapper->keys());
         $kcount = count($keys);
         $vals = array_slice($this->params, $this->ptr, $kcount);
@@ -138,7 +138,7 @@ final class MapperParameterConverter
         if ($mapper->dry()) {
             $message = 'Record of '.$mapper->getTable().' is not found.';
             $args = array_combine(explode(',', '%'.implode('%,%', $keys).'%'), $vals);
-            $response = $this->app->transAlt('message.record_not_found', $args, $message);
+            $response = $this->fw->transAlt('message.record_not_found', $args, $message);
 
             throw new HttpException($response, 404);
         }

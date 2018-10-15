@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 namespace Fal\Stick\Library\Template;
 
-use Fal\Stick\App;
+use Fal\Stick\Fw;
 
 /**
  * Template file wrapper.
@@ -26,9 +26,9 @@ class TemplateFile
     const CLEAN_RIGHT = 2;
 
     /**
-     * @var App
+     * @var Fw
      */
-    private $app;
+    private $fw;
 
     /**
      * Template instance.
@@ -103,14 +103,14 @@ class TemplateFile
     /**
      * Class constructor.
      *
-     * @param App        $app
+     * @param Fw         $fw
      * @param Template   $engine
      * @param string     $file
      * @param array|null $data
      */
-    public function __construct(App $app, Template $engine, string $file, array $data = null)
+    public function __construct(Fw $fw, Template $engine, string $file, array $data = null)
     {
-        $this->app = $app;
+        $this->fw = $fw;
         $this->engine = $engine;
         $this->file = $file;
         $this->data = (array) $data;
@@ -124,7 +124,7 @@ class TemplateFile
      */
     public function render(): string
     {
-        extract($this->data + $this->app->hive());
+        extract($this->data + $this->fw->hive());
         ob_start();
         $this->level = ob_get_level();
         include $this->realpath;
@@ -181,7 +181,7 @@ class TemplateFile
      */
     protected function load(string $file, array $data = null): string
     {
-        $template = new TemplateFile($this->app, $this->engine, $file, ((array) $data) + $this->data);
+        $template = new TemplateFile($this->fw, $this->engine, $file, ((array) $data) + $this->data);
 
         return $template->render();
     }
@@ -208,7 +208,7 @@ class TemplateFile
             throw new \LogicException('A template could not have self as parent.');
         }
 
-        $this->parent = new TemplateFile($this->app, $this->engine, $file, $this->data);
+        $this->parent = new TemplateFile($this->fw, $this->engine, $file, $this->data);
     }
 
     /**
@@ -298,7 +298,7 @@ class TemplateFile
     }
 
     /**
-     * Proxy to App::service.
+     * Proxy to Fw::service.
      *
      * @param string $serviceName
      *
@@ -306,7 +306,7 @@ class TemplateFile
      */
     protected function service(string $serviceName)
     {
-        return $this->app->service($serviceName);
+        return $this->fw->service($serviceName);
     }
 
     /**

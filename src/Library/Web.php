@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 namespace Fal\Stick\Library;
 
-use Fal\Stick\App;
+use Fal\Stick\Fw;
 
 /**
  * Web helper (ported from f3 web helper).
@@ -23,18 +23,18 @@ use Fal\Stick\App;
 final class Web
 {
     /**
-     * @var App
+     * @var Fw
      */
-    private $app;
+    private $fw;
 
     /**
      * Class constructor.
      *
-     * @param App $app
+     * @param Fw $fw
      */
-    public function __construct(App $app)
+    public function __construct(Fw $fw)
     {
-        $this->app = $app;
+        $this->fw = $fw;
     }
 
     /**
@@ -200,9 +200,9 @@ final class Web
 
         $headers['Accept-Ranges'] = 'bytes';
         $headers['Content-Length'] = $size;
-        $headers['X-Powered-By'] = $this->app->get('PACKAGE');
+        $headers['X-Powered-By'] = $this->fw->get('PACKAGE');
 
-        $this->app->send(200, $headers);
+        $this->fw->send(200, $headers);
 
         if (!$kbps && $flush) {
             while (ob_get_level()) {
@@ -258,13 +258,13 @@ final class Web
     {
         Util::mkdir($dir);
 
-        if ('PUT' === $this->app->get('VERB')) {
-            $tmpDir = $this->app->get('TEMP').'uploads/';
-            $tmp = $tmpDir.$this->app->get('SEED').'.'.Util::hash(uniqid());
+        if ('PUT' === $this->fw->get('VERB')) {
+            $tmpDir = $this->fw->get('TEMP').'uploads/';
+            $tmp = $tmpDir.$this->fw->get('SEED').'.'.Util::hash(uniqid());
 
             Util::mkdir($tmpDir);
 
-            if ($this->app->is('RAW')) {
+            if ($this->fw->is('RAW')) {
                 $src = fopen('php://input', 'r');
                 $dst = fopen($tmp, 'w');
 
@@ -281,10 +281,10 @@ final class Web
                 fclose($dst);
                 fclose($src);
             } else {
-                Util::write($tmp, $this->app->get('BODY'));
+                Util::write($tmp, $this->fw->get('BODY'));
             }
 
-            $base = basename($this->app->get('URI'));
+            $base = basename($this->fw->get('URI'));
             $filename = $base;
 
             if (preg_match('/(.+?)(\.\w+)?$/', $base, $parts)) {

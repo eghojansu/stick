@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 namespace Fal\Stick\Library\Html;
 
-use Fal\Stick\App;
+use Fal\Stick\Fw;
 
 /**
  * Html helper.
@@ -23,18 +23,18 @@ use Fal\Stick\App;
 class Html
 {
     /**
-     * @var App
+     * @var Fw
      */
-    private $_app;
+    private $_fw;
 
     /**
      * Class constructor.
      *
-     * @param App $app
+     * @param Fw $fw
      */
-    public function __construct(App $app)
+    public function __construct(Fw $fw)
     {
-        $this->_app = $app;
+        $this->_fw = $fw;
     }
 
     /**
@@ -354,9 +354,9 @@ class Html
         }
 
         $dConfig = array(
-            'route' => $this->_app->get('ALIAS'),
-            'route_data' => $this->_app->get('PARAMS'),
-            'route_query' => (array) $this->_app->get('GET'),
+            'route' => $this->_fw->get('ALIAS'),
+            'route_data' => $this->_fw->get('PARAMS'),
+            'route_query' => (array) $this->_fw->get('GET'),
             'page_query' => 'page',
             'adjacent' => 2,
             'parent' => array('class' => 'pagination'),
@@ -369,7 +369,7 @@ class Html
         $urlPage = function ($page) use ($mConfig) {
             $query = array($mConfig['page_query'] => $page) + $mConfig['route_query'];
 
-            return $this->_app->path($mConfig['route'], $mConfig['route_data'], $query);
+            return $this->_fw->path($mConfig['route'], $mConfig['route_data'], $query);
         };
         $child = function ($label, array $attr = null, array $wrapperAttr = null, string $el = 'a') {
             $content = $this->element($el, true, (string) $label, $attr);
@@ -480,7 +480,7 @@ class Html
             }
 
             if (empty($aAttr['href'])) {
-                $aAttr['href'] = $mItem['route'] ? $this->_app->path($mItem['route'], $mItem['args'], $mItem['query']) : '#';
+                $aAttr['href'] = $mItem['route'] ? $this->_fw->path($mItem['route'], $mItem['args'], $mItem['query']) : '#';
             }
 
             $iAttr['class'] = trim(($iAttr['class'] ?? null).' '.$aClass[$active]) ?: null;

@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 namespace Fal\Stick\Library\Sql;
 
-use Fal\Stick\App;
+use Fal\Stick\Fw;
 use Fal\Stick\Magic;
 use Fal\Stick\Util;
 
@@ -37,11 +37,11 @@ class Mapper extends Magic
     const EVENT_DELETE = 'sql_mapper_delete';
 
     /**
-     * App instance.
+     * Fw instance.
      *
-     * @var App
+     * @var Fw
      */
-    protected $_app;
+    protected $_fw;
 
     /**
      * Connection instance.
@@ -112,20 +112,20 @@ class Mapper extends Magic
     /**
      * Class constructor.
      *
-     * @param App         $app
+     * @param Fw          $fw
      * @param Connection  $db
      * @param string|null $table
      * @param mixed       $fields
      * @param int         $ttl
      */
-    public function __construct(App $app, Connection $db, string $table = null, $fields = null, int $ttl = 60)
+    public function __construct(Fw $fw, Connection $db, string $table = null, $fields = null, int $ttl = 60)
     {
         $driver = $db->getDriver();
         $use = $table ?? $this->_table ?? Util::snakecase(Util::classname($this));
         $fix = Connection::DB_OCI === $driver ? strtoupper($use) : $use;
         $schema = $db->schema($fix, $fields, $ttl);
 
-        $this->_app = $app;
+        $this->_fw = $fw;
         $this->_db = $db;
         $this->_driver = $driver;
         $this->_table = $use;
@@ -147,10 +147,10 @@ class Mapper extends Magic
     public function create(string $table, array $fields = null, int $ttl = 60): Mapper
     {
         if (is_subclass_of($table, self::class)) {
-            return $this->_app->instance($table);
+            return $this->_fw->instance($table);
         }
 
-        return $this->_app->instance(static::class, compact('table', 'fields', 'ttl'));
+        return $this->_fw->instance(static::class, compact('table', 'fields', 'ttl'));
     }
 
     /**
@@ -666,7 +666,7 @@ class Mapper extends Magic
         $inc = null;
         $driver = $this->_driver;
 
-        if ($this->_app->trigger(static::EVENT_BEFORE_INSERT, array($this))) {
+        if ($this->_fw->trigger(static::EVENT_BEFORE_INSERT, array($this))) {
             return $this;
         }
 
@@ -712,7 +712,7 @@ class Mapper extends Magic
             $this->load($filter);
         }
 
-        $this->_app->trigger(static::EVENT_INSERT, array($this));
+        $this->_fw->trigger(static::EVENT_INSERT, array($this));
 
         return $this;
     }
@@ -730,7 +730,7 @@ class Mapper extends Magic
         $filter = '';
         $changes = array();
 
-        if ($this->_app->trigger(static::EVENT_BEFORE_UPDATE, array($this))) {
+        if ($this->_fw->trigger(static::EVENT_BEFORE_UPDATE, array($this))) {
             return $this;
         }
 
@@ -764,7 +764,7 @@ class Mapper extends Magic
 
         // reset changed flag after calling afterupdate
         $this->_fields = $changes;
-        $this->_app->trigger(static::EVENT_UPDATE, array($this));
+        $this->_fw->trigger(static::EVENT_UPDATE, array($this));
 
         return $this;
     }
@@ -811,7 +811,7 @@ class Mapper extends Magic
             $args[++$ctr] = array($field['initial'], $field['pdo_type']);
         }
 
-        if ($this->_app->trigger(static::EVENT_BEFORE_DELETE, array($this))) {
+        if ($this->_fw->trigger(static::EVENT_BEFORE_DELETE, array($this))) {
             return 0;
         }
 
@@ -821,7 +821,7 @@ class Mapper extends Magic
         $this->_query = array_slice($this->_query, 0, $this->_ptr, true) +
                        array_slice($this->_query, $this->_ptr, null, true);
 
-        $this->_app->trigger(static::EVENT_DELETE, array($this));
+        $this->_fw->trigger(static::EVENT_DELETE, array($this));
         $this->first();
 
         return $out;
@@ -1058,7 +1058,7 @@ class Mapper extends Magic
 
         $mapper->_query = array(clone $mapper);
 
-        $this->_app->trigger(static::EVENT_LOAD, array($mapper));
+        $this->_fw->trigger(static::EVENT_LOAD, array($mapper));
 
         return $mapper;
     }

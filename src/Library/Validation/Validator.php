@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 namespace Fal\Stick\Library\Validation;
 
-use Fal\Stick\App;
+use Fal\Stick\Fw;
 use Fal\Stick\Util;
 
 /**
@@ -24,9 +24,9 @@ use Fal\Stick\Util;
 final class Validator
 {
     /**
-     * @var App
+     * @var Fw
      */
-    private $app;
+    private $fw;
 
     /**
      * @var array
@@ -36,11 +36,11 @@ final class Validator
     /**
      * Class constructor.
      *
-     * @param App $app
+     * @param Fw $fw
      */
-    public function __construct(App $app)
+    public function __construct(Fw $fw)
     {
-        $this->app = $app->prepend('LOCALES', __DIR__.'/dict/;');
+        $this->fw = $fw->prepend('LOCALES', __DIR__.'/dict/;');
     }
 
     /**
@@ -73,7 +73,7 @@ final class Validator
 
         foreach ($rules as $field => $fieldRules) {
             foreach (Util::parseExpr($fieldRules) as $rule => $args) {
-                $value = array_key_exists($field, $validated) ? $validated[$field] : $this->app->ref($field, false, $data);
+                $value = array_key_exists($field, $validated) ? $validated[$field] : $this->fw->ref($field, false, $data);
                 $validator = $this->findValidator($rule);
                 $result = $validator->validate($rule, $value, $args, $field, $validated, $data);
 
@@ -85,7 +85,7 @@ final class Validator
 
                     break;
                 } else {
-                    $ref = &$this->app->ref($field, true, $validated);
+                    $ref = &$this->fw->ref($field, true, $validated);
                     $ref = true === $result ? $value : $result;
                 }
             }
@@ -144,6 +144,6 @@ final class Validator
             $data['{'.$k.'}'] = is_array($v) ? implode(',', $v) : (string) $v;
         }
 
-        return $this->app->transAlt($key, $data, $fallback, $alt);
+        return $this->fw->transAlt($key, $data, $fallback, $alt);
     }
 }

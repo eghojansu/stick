@@ -17,7 +17,7 @@ Example usage.
 
 require 'vendor/autoload.php';
 
-Fal\Stick\App::createFromGlobals()
+Fal\Stick\Fw::createFromGlobals()
     ->route('GET home /', function() {
         return 'Welcome home, Vanilla lover!';
     })

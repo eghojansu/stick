@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 namespace Fal\Stick\Library\Html;
 
-use Fal\Stick\App;
+use Fal\Stick\Fw;
 use Fal\Stick\Util;
 use Fal\Stick\Library\Validation\Validator;
 
@@ -25,9 +25,9 @@ use Fal\Stick\Library\Validation\Validator;
 class Form
 {
     /**
-     * @var App
+     * @var Fw
      */
-    protected $_app;
+    protected $_fw;
 
     /**
      * @var Html
@@ -98,13 +98,13 @@ class Form
     /**
      * Class constructor.
      *
-     * @param App       $app
+     * @param Fw        $fw
      * @param Html      $html
      * @param Validator $validator
      */
-    public function __construct(App $app, Html $html, Validator $validator)
+    public function __construct(Fw $fw, Html $html, Validator $validator)
     {
-        $this->_app = $app;
+        $this->_fw = $fw;
         $this->_html = $html;
         $this->_validator = $validator;
 
@@ -221,7 +221,7 @@ class Form
     public function getSubmittedData(): array
     {
         if (null === $this->_submittedData) {
-            $this->_submittedData = $this->_app->get($this->_verb.'.'.$this->_name) ?? array();
+            $this->_submittedData = $this->_fw->get($this->_verb.'.'.$this->_name) ?? array();
         }
 
         return $this->_submittedData;
@@ -332,7 +332,7 @@ class Form
     {
         $data = $this->getSubmittedData() + array('_form' => null);
 
-        $this->_submitted = $this->_verb === $this->_app->get('VERB') && $data['_form'] === $this->_name;
+        $this->_submitted = $this->_verb === $this->_fw->get('VERB') && $data['_form'] === $this->_name;
 
         return $this->_submitted;
     }
@@ -420,7 +420,7 @@ class Form
 
         $type = strtolower($field['type']);
         $options = array_replace_recursive(((array) $field['options']) + array(
-            'label' => $this->_app->trans($name, null, Util::titleCase($name)),
+            'label' => $this->_fw->trans($name, null, Util::titleCase($name)),
             'label_attr' => array(),
             'attr' => array(),
         ), array('attr' => (array) $overrideAttr));
@@ -470,7 +470,7 @@ class Form
 
         foreach ($this->_buttons as $name => $button) {
             $type = $button['type'];
-            $label = $button['label'] ?: $this->_app->trans($name, null, Util::titleCase($name));
+            $label = $button['label'] ?: $this->_fw->trans($name, null, Util::titleCase($name));
 
             $buttons .= ' '.$this->inputButton($label, $type, $name, $button['attr']);
         }
@@ -787,7 +787,7 @@ class Form
         $items = $options['items'];
 
         if ($items && is_callable($items)) {
-            $items = $this->_app->call($items, array($options));
+            $items = $this->_fw->call($items, array($options));
 
             if (!is_array($items)) {
                 throw new \LogicException('The returned items should be an array.');

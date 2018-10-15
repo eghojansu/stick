@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 namespace Fal\Stick\Library\Crud;
 
-use Fal\Stick\App;
+use Fal\Stick\Fw;
 use Fal\Stick\Library\Security\Auth;
 use Fal\Stick\Library\Sql\Mapper;
 use Fal\Stick\Magic;
@@ -26,9 +26,9 @@ use Fal\Stick\Magic;
 class CrudData extends Magic
 {
     /**
-     * @var App
+     * @var Fw
      */
-    private $app;
+    private $fw;
 
     /**
      * @var Auth
@@ -58,16 +58,16 @@ class CrudData extends Magic
     /**
      * Class constructor.
      *
-     * @param App           $app
+     * @param Fw            $app
      * @param Auth          $auth
      * @param string        $route
      * @param array         $roles
      * @param array         $data
      * @param callable|null $displayer
      */
-    public function __construct(App $app, Auth $auth, string $route, array $roles, array $data, callable $displayer = null)
+    public function __construct(Fw $fw, Auth $auth, string $route, array $roles, array $data, callable $displayer = null)
     {
-        $this->app = $app;
+        $this->fw = $fw;
         $this->auth = $auth;
         $this->route = $route;
         $this->roles = $roles;
@@ -123,7 +123,7 @@ class CrudData extends Magic
     {
         $args = is_string($path) ? explode('/', $path) : $path;
 
-        return $this->app->path($this->route, $args, $query);
+        return $this->fw->path($this->route, $args, $query);
     }
 
     /**
@@ -137,7 +137,7 @@ class CrudData extends Magic
     public function display(string $field, Mapper $item = null)
     {
         if (is_callable($this->displayer)) {
-            return $this->app->call($this->displayer, array($field, $item));
+            return $this->fw->call($this->displayer, array($field, $item));
         }
 
         return $item[$field] ?? null;
