@@ -229,7 +229,7 @@ final class Fw extends Magic
     }
 
     /**
-     * Create Fw instance with ease.
+     * Create Fw instance with ease, if null globals variable will be used.
      *
      * @param array|null $get    Equivalent to $_GET
      * @param array|null $post   Equivalent to $_POST
@@ -240,17 +240,7 @@ final class Fw extends Magic
      */
     public static function create(array $get = null, array $post = null, array $cookie = null, array $server = null): Fw
     {
-        return new static($get, $post, $server, $cookie);
-    }
-
-    /**
-     * Create Fw instance from globals environment.
-     *
-     * @return Fw
-     */
-    public static function createFromGlobals(): Fw
-    {
-        return new static($_GET, $_POST, $_COOKIE, $_SERVER);
+        return new self($get ?? $_GET, $post ?? $_POST, $cookie ?? $_COOKIE, $server ?? $_SERVER);
     }
 
     /**
