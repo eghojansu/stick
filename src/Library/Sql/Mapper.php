@@ -207,7 +207,7 @@ class Mapper extends Magic
     public function belongsTo(string $target, string $relation = null, array $filter = null, array $options = null): Mapper
     {
         $mapper = $this->create($target);
-        $default = array($mapper->table().'_id', 'id');
+        $default = array($mapper->_table.'_id', 'id');
         list($foreignKey, $primaryKey) = array_filter(array_map('trim', explode('=', (string) $relation))) + $default;
 
         $filter[$primaryKey] = $this->get($foreignKey);
@@ -232,30 +232,26 @@ class Mapper extends Magic
         $targetMapper = $this->create($target);
         $bridgeMapper = $this->create($bridge);
 
-        $targetRelationDefault = array($targetMapper->table().'_id', 'id');
+        $targetRelationDefault = array($targetMapper->_table.'_id', 'id');
         list($targetFK, $targetPK) = array_filter(array_map('trim', explode('=', (string) $targetRelation))) + $targetRelationDefault;
 
         $bridgeRelationDefault = array($this->_table.'_id', 'id');
         list($bridgeFK, $bridgePK) = array_filter(array_map('trim', explode('=', (string) $bridgeRelation))) + $bridgeRelationDefault;
 
-        $targetMap = $this->_db->quotekey($targetMapper->table());
-        $bridgeMap = $this->_db->quotekey($bridgeMapper->table());
-        $targetFields = $targetMapper->stringifyFields();
-        $key = $bridgeMapper->table().'.'.$bridgeFK;
+        $filter[$bridgeMapper->_table.'.'.$bridgeFK] = $this->get($targetPK);
 
-        $filter[$key] = $this->get($targetPK);
-
-        $args = $targetMapper->stringifyFilterOptions($filter, $options);
-        $sql = 'SELECT '.$targetFields.' FROM '.$targetMap.
-            ' JOIN '.$bridgeMap.' ON '.
-                $bridgeMap.'.'.$this->_db->quotekey($targetFK).'='.
-                $targetMap.'.'.$this->_db->quotekey($bridgePK).
+        $qb = QueryBuilder::create($targetMapper);
+        list($criteria, $args) = $qb->filterOptions($filter, $options);
+        $sql = 'SELECT '.$qb->fields().' FROM '.$targetMapper->_map.
+            ' JOIN '.$bridgeMapper->_map.' ON '.
+                $bridgeMapper->_map.'.'.$this->_db->quotekey($targetFK).'='.
+                $targetMapper->_map.'.'.$this->_db->quotekey($bridgePK).
             ' JOIN '.$this->_map.' ON '.
-                $bridgeMap.'.'.$this->_db->quotekey($bridgeFK).'='.
+                $bridgeMapper->_map.'.'.$this->_db->quotekey($bridgeFK).'='.
                 $this->_map.'.'.$this->_db->quotekey($targetPK).
-            $args[0];
+            $criteria;
 
-        $targetMapper->_query = $targetMapper->constructMaps($this->_db->exec($sql, $args[1]));
+        $targetMapper->_query = $targetMapper->factories($this->_db->exec($sql, $args));
         $targetMapper->skip(0);
 
         return $targetMapper;
@@ -272,6 +268,16 @@ class Mapper extends Magic
     }
 
     /**
+     * Returns normalized and quoted table.
+     *
+     * @return string
+     */
+    public function map(): string
+    {
+        return $this->_map;
+    }
+
+    /**
      * Returns schema fields and adhoc name.
      *
      * @return array
@@ -279,6 +285,16 @@ class Mapper extends Magic
     public function fields(): array
     {
         return array_keys($this->_fields + $this->_adhoc);
+    }
+
+    /**
+     * Returns adhoc definitions.
+     *
+     * @return array
+     */
+    public function adhoc(): array
+    {
+        return $this->_adhoc;
     }
 
     /**
@@ -448,17 +464,23 @@ class Mapper extends Magic
     /**
      * Get primary keys value.
      *
+     * @param bool $withValue
+     *
      * @return array
      */
-    public function keys(): array
+    public function keys(bool $withValue = true): array
     {
-        $result = array();
+        if ($withValue) {
+            $result = array();
 
-        foreach ($this->_keys as $key) {
-            $result[$key] = $this->_fields[$key]['initial'];
+            foreach ($this->_keys as $key) {
+                $result[$key] = $this->_fields[$key]['initial'];
+            }
+
+            return $result;
         }
 
-        return $result;
+        return $this->_keys;
     }
 
     /**
@@ -560,7 +582,7 @@ class Mapper extends Magic
     {
         $shouldHack = in_array($this->_driver, array(Connection::DB_MSSQL, Connection::DB_DBLIB, Connection::DB_SQLSRV));
         $fields = substr('TOP 100 PERCENT *', 16 * ((bool) !$shouldHack));
-        list($sql, $args) = $this->stringify($fields, $filter, $options);
+        list($sql, $args) = QueryBuilder::create($this)->select($fields, $filter, $options);
 
         $sql = 'SELECT COUNT(*) AS '.$this->_db->quotekey('_rows').
                ' FROM ('.$sql.') AS '.$this->_db->quotekey('_temp');
@@ -645,9 +667,10 @@ class Mapper extends Magic
      */
     public function find($filter = null, array $options = null, int $ttl = 0): array
     {
-        list($sql, $args) = $this->stringify($this->stringifyFields(), $filter, $options);
+        $qb = QueryBuilder::create($this);
+        list($sql, $args) = $qb->select($qb->fields(), $filter, $options);
 
-        return $this->constructMaps($this->_db->exec($sql, $args, $ttl));
+        return $this->factories($this->_db->exec($sql, $args, $ttl));
     }
 
     /**
@@ -667,59 +690,29 @@ class Mapper extends Magic
      */
     public function insert(): Mapper
     {
-        $args = array();
-        $ctr = 0;
-        $fields = '';
-        $values = '';
-        $filter = array();
-        $ckeys = array();
-        $inc = null;
-        $driver = $this->_driver;
-
         if ($this->_fw->trigger(static::EVENT_BEFORE_INSERT, array($this))) {
             return $this;
         }
 
-        foreach ($this->_fields as $key => $field) {
-            if (!$inc && $field['pkey']) {
-                $incKey = \PDO::PARAM_INT == $field['pdo_type'] && empty($field['value']) && !$field['nullable'];
+        list($sql, $args, $inc, $changes) = QueryBuilder::create($this)->insert();
 
-                if ($incKey) {
-                    $inc = $key;
-                } else {
-                    $filter[$key] = $this->_db->phpValue($field['pdo_type'], $field['value']);
-                }
-            }
-
-            $changed = $field['changed'] && $key !== $inc;
-
-            if ($changed) {
-                $fields .= ','.$this->_db->quotekey($key);
-                $values .= ',?';
-                $args[++$ctr] = array($field['value'], $field['pdo_type']);
-                $ckeys[] = $key;
-            }
-        }
-
-        if (!$fields) {
+        if (!$sql) {
             return $this;
         }
 
-        $needPrefix = in_array($driver, array(Connection::DB_MSSQL, Connection::DB_DBLIB, Connection::DB_SQLSRV)) && array_intersect($this->keys, $ckeys);
-        $needSuffix = Connection::DB_PGSQL === $driver;
-        $prefix = $needPrefix ? 'SET IDENTITY_INSERT '.$this->_map.' ON;' : '';
-        $suffix = $needSuffix ? ' RETURNING '.$this->_db->quotekey(reset($this->_keys)) : '';
-        $sql = 'INSERT INTO '.$this->_map.' ('.ltrim($fields, ',').') '.'VALUES ('.ltrim($values, ',').')';
-        $lID = $this->_db->exec($prefix.$sql.$suffix, $args);
+        $lID = $this->_db->exec($sql, $args);
 
-        // Reload to obtain default and auto-increment field values
         if ($inc) {
-            $pgSqlId = Connection::DB_PGSQL === $driver && $lID;
+            // Reload to obtain default and auto-increment field values
+            $pgSqlId = Connection::DB_PGSQL === $this->_db->driver() && $lID;
             $id = $pgSqlId ? $lID[0][reset($this->_keys)] : $this->_db->pdo()->lastinsertid();
 
             $this->load(array($inc => $this->_db->phpValue($this->_fields[$inc]['pdo_type'], $id)));
-        } elseif ($filter) {
-            $this->load($filter);
+        } else {
+            // Load manually
+            $this->_fields = $changes;
+            $this->_query = array(clone $this);
+            $this->skip(0);
         }
 
         $this->_fw->trigger(static::EVENT_INSERT, array($this));
@@ -734,41 +727,13 @@ class Mapper extends Magic
      */
     public function update(): Mapper
     {
-        $args = array();
-        $ctr = 0;
-        $pairs = '';
-        $filter = '';
-        $changes = array();
-
         if ($this->_fw->trigger(static::EVENT_BEFORE_UPDATE, array($this))) {
             return $this;
         }
 
-        foreach ($this->_fields as $key => $field) {
-            if ($field['changed']) {
-                $pairs .= ','.$this->_db->quotekey($key).'=?';
-                $args[++$ctr] = array($field['value'], $field['pdo_type']);
-            }
+        list($sql, $args, $changes) = QueryBuilder::create($this)->update();
 
-            $changes[$key] = $field;
-            $changes[$key]['initial'] = $field['value'];
-            $changes[$key]['changed'] = false;
-        }
-
-        foreach ($this->_fields as $key => $field) {
-            if ($field['pkey'] || !$this->_keys) {
-                $filter .= ' AND '.$this->_db->quotekey($key).'=?';
-                $args[++$ctr] = array($field['initial'], $field['pdo_type']);
-            }
-        }
-
-        if ($pairs) {
-            $sql = 'UPDATE '.$this->_map.' SET '.ltrim($pairs, ',');
-
-            if ($filter) {
-                $sql .= ' WHERE'.substr($filter, 4);
-            }
-
+        if ($sql) {
             $this->_db->exec($sql, $args);
         }
 
@@ -789,8 +754,6 @@ class Mapper extends Magic
      */
     public function delete($filter = null, bool $hayati = false): int
     {
-        $sql = 'DELETE FROM '.$this->_map;
-
         if ($filter) {
             if ($hayati) {
                 $out = 0;
@@ -802,7 +765,8 @@ class Mapper extends Magic
                 return $out;
             }
 
-            $args = $this->_db->buildFilter($filter);
+            $sql = 'DELETE FROM '.$this->_map;
+            $args = QueryBuilder::create($this)->filter($filter);
             $criteria = $args ? ' WHERE '.array_shift($args) : '';
 
             return (int) $this->_db->exec($sql.$criteria, $args);
@@ -810,26 +774,16 @@ class Mapper extends Magic
             return 0;
         }
 
-        $args = array();
-        $ctr = 0;
-        $out = 0;
-
-        foreach ($this->_keys as $key) {
-            $field = $this->_fields[$key];
-
-            $filter .= ' AND '.$this->_db->quotekey($key).'=?';
-            $args[++$ctr] = array($field['initial'], $field['pdo_type']);
-        }
-
         if ($this->_fw->trigger(static::EVENT_BEFORE_DELETE, array($this))) {
             return 0;
         }
 
-        $sql .= ' WHERE'.substr($filter, 4);
+        list($sql, $args) = QueryBuilder::create($this)->delete();
         $out = (int) $this->_db->exec($sql, $args);
 
-        $this->_query = array_slice($this->_query, 0, $this->_ptr, true) +
-                       array_slice($this->_query, $this->_ptr, null, true);
+        $front = array_slice($this->_query, 0, $this->_ptr, true);
+        $rear = array_slice($this->_query, $this->_ptr, null, true);
+        $this->_query = $front + $rear;
 
         $this->_fw->trigger(static::EVENT_DELETE, array($this));
         $this->first();
@@ -849,11 +803,9 @@ class Mapper extends Magic
         $this->_ptr += $offset;
 
         if (isset($this->_query[$this->_ptr])) {
-            $row = $this->_query[$this->_ptr];
-
-            $this->_fields = $row->_fields;
-            $this->_adhoc = $row->_adhoc;
-            $this->_props = $row->_props;
+            $this->_fields = &$this->_query[$this->_ptr]->_fields;
+            $this->_adhoc = &$this->_query[$this->_ptr]->_adhoc;
+            $this->_props = &$this->_query[$this->_ptr]->_props;
         } else {
             $this->reset();
         }
@@ -902,142 +854,13 @@ class Mapper extends Magic
     }
 
     /**
-     * Convert fields and adhoc as select column.
-     *
-     * @return string
-     */
-    protected function stringifyFields(): string
-    {
-        $fields = '';
-
-        foreach ($this->_fields as $name => $field) {
-            $fields .= ', '.$this->_map.'.'.$this->_db->quotekey($name);
-        }
-
-        foreach ($this->_adhoc as $name => $field) {
-            $fields .= ', '.$field['expr'].' AS '.$this->_db->quotekey($name);
-        }
-
-        return ltrim($fields, ', ');
-    }
-
-    /**
-     * Build select query.
-     *
-     * @param string            $fields
-     * @param string|array|null $filter
-     * @param array|null        $options
-     *
-     * @return array
-     */
-    protected function stringify(string $fields, $filter = null, array $options = null): array
-    {
-        $result = $this->stringifyFilterOptions($filter, $options);
-        $result[0] = 'SELECT '.$fields.' FROM '.$this->_map.$result[0];
-
-        return $result;
-    }
-
-    /**
-     * Convert filter and options to string and args.
-     *
-     * @param mixed      $filter
-     * @param array|null $options
-     *
-     * @return array
-     */
-    protected function stringifyFilterOptions($filter = null, array $options = null): array
-    {
-        $default = array(
-            'group' => null,
-            'having' => null,
-            'order' => null,
-            'join' => null,
-            'limit' => 0,
-            'offset' => 0,
-        );
-        $use = ((array) $options) + $default;
-        $driver = $this->_driver;
-        $order = '';
-        $sql = rtrim(' '.$use['join']);
-        $args = array();
-
-        $f = $this->_db->buildFilter($filter);
-        if ($f) {
-            $sql .= ' WHERE '.array_shift($f);
-            $args = array_merge($args, $f);
-        }
-
-        if ($use['group']) {
-            $sql .= ' GROUP BY '.$use['group'];
-        }
-
-        $f = $this->_db->buildFilter($use['having']);
-        if ($f) {
-            $sql .= ' HAVING '.array_shift($f);
-            $args = array_merge($args, $f);
-        }
-
-        if ($use['order']) {
-            $order = ' ORDER BY '.$use['order'];
-        }
-
-        // SQL Server fixes
-        // We skip this part to test
-        // @codeCoverageIgnoreStart
-        if (in_array($driver, array(Connection::DB_MSSQL, Connection::DB_SQLSRV, Connection::DB_ODBC)) && ($use['limit'] || $use['offset'])) {
-            // order by pkey when no ordering option was given
-            if (!$use['order'] && $this->_keys) {
-                $order = ' ORDER BY '.implode(',', array_map(array($this->_db, 'quotekey'), $this->_keys));
-            }
-
-            $ofs = (int) $use['offset'];
-            $lmt = (int) $use['limit'];
-
-            if (strncmp($this->_db->version(), '11', 2) >= 0) {
-                // SQL Server >= 2012
-                $sql .= $order.' OFFSET '.$ofs.' ROWS';
-
-                if ($lmt) {
-                    $sql .= ' FETCH NEXT '.$lmt.' ROWS ONLY';
-                }
-            } else {
-                // Require primary keys or order clause
-                // SQL Server 2008
-                $sql = preg_replace(
-                    '/SELECT/',
-                    'SELECT '.
-                    ($lmt > 0 ? 'TOP '.($ofs + $lmt) : '').' ROW_NUMBER() '.
-                    'OVER ('.$order.') AS rnum,',
-                    $sql.$order,
-                    1
-                );
-                $sql = 'SELECT * FROM ('.$sql.') x WHERE rnum > '.$ofs;
-            }
-        } else {
-            $sql .= $order;
-
-            if ($use['limit']) {
-                $sql .= ' LIMIT '.(int) $use['limit'];
-            }
-
-            if ($use['offset']) {
-                $sql .= ' OFFSET '.(int) $use['offset'];
-            }
-        }
-        // @codeCoverageIgnoreEnd
-
-        return array($sql, $args);
-    }
-
-    /**
      * Construct mapper from records.
      *
      * @param array $rows
      *
      * @return array
      */
-    protected function constructMaps(array $rows): array
+    protected function factories(array $rows): array
     {
         return array_map(array($this, 'factory'), $rows);
     }
