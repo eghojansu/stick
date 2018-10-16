@@ -59,7 +59,7 @@ final class QueryBuilder
     /**
      * Create query builder instance.
      *
-     * @param  Mapper $mapper
+     * @param Mapper $mapper
      *
      * @return QueryBuilder
      */
@@ -71,9 +71,9 @@ final class QueryBuilder
     /**
      * Build select query.
      *
-     * @param  string     $fields
-     * @param  mixed      $filter
-     * @param  array|null $options
+     * @param string     $fields
+     * @param mixed      $filter
+     * @param array|null $options
      *
      * @return array
      */
@@ -263,7 +263,6 @@ final class QueryBuilder
                 $suffix,
             ));
         }
-
 
         return array($sql, $args, $inc, $schema);
     }
