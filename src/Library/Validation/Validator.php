@@ -14,7 +14,6 @@ declare(strict_types=1);
 namespace Fal\Stick\Library\Validation;
 
 use Fal\Stick\Fw;
-use Fal\Stick\Util;
 
 /**
  * Validator wrapper.
@@ -40,19 +39,111 @@ final class Validator
      */
     public function __construct(Fw $fw)
     {
-        $this->fw = $fw->prepend('LOCALES', __DIR__.'/dict/;');
+        $this->fw = $fw->unshift('LOCALES', __DIR__.'/dict/');
+    }
+
+    /**
+     * Returns parsed string expression.
+     *
+     * Example:
+     *
+     *     foo:arg,arg2|bar:arg|baz:["array arg"]|qux:{"arg":"foo"}
+     *
+     * @param string $expr
+     *
+     * @return array
+     */
+    public function parseExpr(string $expr): array
+    {
+        $len = strlen($expr);
+        $res = array();
+        $tmp = '';
+        $process = false;
+        $args = array();
+        $quote = null;
+        $astate = 0;
+        $jstate = 0;
+
+        for ($ptr = 0; $ptr < $len; ++$ptr) {
+            $char = $expr[$ptr];
+            $prev = $expr[$ptr - 1] ?? null;
+
+            if (('"' === $char || "'" === $char) && '\\' !== $prev) {
+                if ($quote) {
+                    $quote = $quote === $char ? null : $quote;
+                } else {
+                    $quote = $char;
+                }
+                $tmp .= $char;
+            } elseif (!$quote) {
+                if (':' === $char && 0 === $jstate) {
+                    // next chars is arg
+                    $args[] = $this->fw->cast($tmp);
+                    $tmp = '';
+                } elseif (',' === $char && 0 === $astate && 0 === $jstate) {
+                    if ($tmp) {
+                        $args[] = $this->fw->cast($tmp);
+                        $tmp = '';
+                    }
+                } elseif ('|' === $char) {
+                    $process = true;
+                    if ($tmp) {
+                        $args[] = $this->fw->cast($tmp);
+                        $tmp = '';
+                    }
+                } elseif ('[' === $char) {
+                    $astate = 1;
+                    $tmp .= $char;
+                } elseif (']' === $char && 1 === $astate && 0 === $jstate) {
+                    $astate = 0;
+                    $args[] = json_decode($tmp.$char, true);
+                    $tmp = '';
+                } elseif ('{' === $char) {
+                    $jstate = 1;
+                    $tmp .= $char;
+                } elseif ('}' === $char && 1 === $jstate && 0 === $astate) {
+                    $jstate = 0;
+                    $args[] = json_decode($tmp.$char, true);
+                    $tmp = '';
+                } else {
+                    $tmp .= $char;
+                    $astate += '[' === $char ? 1 : (']' === $char ? -1 : 0);
+                    $jstate += '{' === $char ? 1 : ('}' === $char ? -1 : 0);
+                }
+            } else {
+                $tmp .= $char;
+            }
+
+            if (!$process && $ptr === $len - 1) {
+                $process = true;
+                if ('' !== $tmp) {
+                    $args[] = $this->fw->cast($tmp);
+                    $tmp = '';
+                }
+            }
+
+            if ($process) {
+                if ($args) {
+                    $res[array_shift($args)] = $args;
+                    $args = array();
+                }
+                $process = false;
+            }
+        }
+
+        return $res;
     }
 
     /**
      * Add validator.
      *
-     * @param ValidatorInterface $validator
+     * @param ValidatorInterface ...$validators
      *
      * @return Validator
      */
-    public function add(ValidatorInterface $validator): Validator
+    public function add(ValidatorInterface ...$validators): Validator
     {
-        $this->validators[] = $validator;
+        array_push($this->validators, ...$validators);
 
         return $this;
     }
@@ -72,7 +163,7 @@ final class Validator
         $errors = array();
 
         foreach ($rules as $field => $fieldRules) {
-            foreach (Util::parseExpr($fieldRules) as $rule => $args) {
+            foreach ($this->parseExpr($fieldRules) as $rule => $args) {
                 $value = array_key_exists($field, $validated) ? $validated[$field] : $this->fw->ref($field, false, $data);
                 $validator = $this->findValidator($rule);
                 $result = $validator->validate($rule, $value, $args, $field, $validated, $data);

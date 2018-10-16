@@ -256,13 +256,13 @@ final class Web
      */
     public function receive(string $dir, bool $overwrite = false, bool $slug = true, callable $cb = null, callable $slugCb = null): array
     {
-        Util::mkdir($dir);
+        $this->fw->mkdir($dir);
 
         if ('PUT' === $this->fw->get('VERB')) {
             $tmpDir = $this->fw->get('TEMP').'uploads/';
-            $tmp = $tmpDir.$this->fw->get('SEED').'.'.Util::hash(uniqid());
+            $tmp = $tmpDir.$this->fw->get('SEED').'.'.$this->fw->hash(uniqid());
 
-            Util::mkdir($tmpDir);
+            $this->fw->mkdir($tmpDir);
 
             if ($this->fw->is('RAW')) {
                 $src = fopen('php://input', 'r');
@@ -281,7 +281,7 @@ final class Web
                 fclose($dst);
                 fclose($src);
             } else {
-                Util::write($tmp, $this->fw->get('BODY'));
+                $this->fw->write($tmp, $this->fw->get('BODY'));
             }
 
             $base = basename($this->fw->get('URI'));

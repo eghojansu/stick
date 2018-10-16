@@ -14,7 +14,6 @@ declare(strict_types=1);
 namespace Fal\Stick\Library\Sql;
 
 use Fal\Stick\Fw;
-use Fal\Stick\Util;
 
 /**
  * PDO Wrapper.
@@ -267,7 +266,9 @@ class Connection
             try {
                 $this->pdo = new \PDO((string) $o['dsn'], (string) $o['username'], (string) $o['password'], $o['options']);
 
-                Util::walk((array) $o['commands'], array($this->pdo, 'exec'));
+                foreach ((array) $o['commands'] as $query) {
+                    $this->pdo->exec($query);
+                }
             } catch (\PDOException $e) {
                 $this->fw->log(Fw::LOG_LEVEL_EMERGENCY, $e->getMessage());
 
@@ -512,17 +513,17 @@ class Connection
     /**
      * Returns table schema.
      *
-     * @param string $table
-     * @param mixed  $fields
-     * @param int    $ttl
+     * @param string     $table
+     * @param array|null $fields
+     * @param int        $ttl
      *
      * @return array
      */
-    public function schema(string $table, $fields = null, int $ttl = 0): array
+    public function schema(string $table, array $fields = null, int $ttl = 0): array
     {
         $start = microtime(true);
         $message = '(%.1f) %sRetrieving table "%s" schema';
-        $hash = Util::hash($table.var_export($fields, true)).'.schema';
+        $hash = $this->fw->hash($table.var_export($fields, true)).'.schema';
         $db = $this->getDbName();
 
         if ($ttl && $this->fw->isCached($hash, $data)) {
@@ -538,31 +539,33 @@ class Connection
 
         $cmd = $this->schemaCmd($table, $db);
         $query = $this->pdo()->query($cmd[0]);
-        $schema = $query->fetchAll(\PDO::FETCH_ASSOC);
-        $rows = array();
-        $check = Util::arr($fields);
+        $rows = $query->fetchAll(\PDO::FETCH_ASSOC);
+        $schema = array();
 
-        foreach ($schema as $row) {
-            if (!$check || in_array($row[$cmd[1]], $check)) {
-                $rows[$row[$cmd[1]]] = array(
+        foreach ($rows as $row) {
+            $name = $row[$cmd[1]];
+
+            if (!$fields || in_array($name, $fields)) {
+                $schema[$name] = array(
                     'type' => $row[$cmd[2]],
                     'pdo_type' => $this->pdoType(null, $row[$cmd[2]]),
                     'default' => is_string($row[$cmd[3]]) ? $this->schemaDefaultValue($row[$cmd[3]]) : $row[$cmd[3]],
                     'nullable' => $row[$cmd[4]] == $cmd[5],
                     'pkey' => $row[$cmd[6]] == $cmd[7],
+                    'name' => $name,
                 );
             }
         }
 
-        if ($ttl && $rows) {
+        if ($ttl && $schema) {
             // Save to cache backend
-            $this->fw->cacheSet($hash, $rows, $ttl);
+            $this->fw->cacheSet($hash, $schema, $ttl);
         }
 
         $message = sprintf('(%.1fms) Retrieving schema of %s table (%s)', 1e3 * (microtime(true) - $start), $table, $cmd[0]);
         $this->fw->log($this->logLevel, $message);
 
-        return $rows;
+        return $schema;
     }
 
     /**
@@ -999,7 +1002,7 @@ class Connection
      */
     private function schemaDefaultValue(string $value)
     {
-        return Util::cast(preg_replace('/^\s*([\'"])(.*)\1\s*/', '\2', $value));
+        return $this->fw->cast(preg_replace('/^\s*([\'"])(.*)\1\s*/', '\2', $value));
     }
 
     /**

@@ -136,24 +136,19 @@ final class Fw extends Magic
         ini_set('default_charset', $charset);
 
         $cli = 'cli' === PHP_SAPI;
-        $headers = $cli ? null : Util::requestHeaders($server);
-        $scriptname = Util::fixslashes($server['SCRIPT_NAME'] ?? $_SERVER['SCRIPT_NAME']);
+        $entry = strtr($server['SCRIPT_NAME'] ?? $_SERVER['SCRIPT_NAME'], '\\', '/');
         $uri = $server['REQUEST_URI'] ?? '/';
         $host = $server['SERVER_NAME'] ?? gethostname();
+
+        $h = $cli ? null : $this->requestHeaders((array) $server);
+        $base = $cli ? '' : dirname($entry);
+        $front = $cli ? '' : '/'.basename($entry);
         $uriHost = preg_match('/^\w+:\/\//', $uri) ? '' : '//'.$host;
         $url = parse_url($uriHost.$uri);
-        $base = dirname($scriptname);
-        $port = (int) ($headers['X-Forwarded-Port'] ?? $server['SERVER_PORT'] ?? 80);
-        $secure = 'on' === ($server['HTTPS'] ?? '') || 'https' === ($headers['X-Forwarded-Proto'] ?? '');
-        $scheme = rtrim('https', chr(115 * ((int) !$secure)));
-        $baseUrl = $scheme.'://'.$host.(in_array($port, array(80, 443)) ? '' : ':'.$port);
-        $entry = '/'.basename($scriptname);
-
-        if ($cli) {
-            $base = '';
-            $entry = '';
-        }
-
+        $secure = 'on' === ($server['HTTPS'] ?? null) || 'https' === ($h['X-Forwarded-Proto'] ?? null);
+        $scheme = $secure ? 'https' : 'http';
+        $port = (int) ($h['X-Forwarded-Port'] ?? $server['SERVER_PORT'] ?? 80);
+        $domainPort = $scheme.'://'.$host.(in_array($port, array(80, 443)) ? null : ':'.$port);
         $cookieJar = array(
             'expire' => 0,
             'path' => $base,
@@ -163,75 +158,74 @@ final class Fw extends Magic
         );
 
         $this->_hive = array(
-            'AGENT' => $headers['X-Operamini-Phone-Ua'] ?? $headers['X-Skyfire-Phone'] ?? $headers['User-Agent'] ?? '',
-            'AJAX' => 'XMLHttpRequest' === ($headers['X-Requested-With'] ?? null),
+            'AGENT' => $h['X-Operamini-Phone-Ua'] ?? $h['X-Skyfire-Phone'] ?? $h['User-Agent'] ?? '',
+            'AJAX' => 'XMLHttpRequest' === ($h['X-Requested-With'] ?? null),
             'ALIAS' => null,
+            'ALIASES' => null,
             'BASE' => $base,
-            'BASEURL' => $baseUrl.$base,
+            'BASEURL' => $domainPort.$base,
             'BODY' => null,
             'CACHE' => null,
-            'CACHE_ENGINE' => null,
-            'CACHE_REF' => null,
             'CASELESS' => false,
             'CLI' => $cli,
             'CODE' => 200,
             'COOKIE' => $cookie,
+            'CTR' => -1,
             'DEBUG' => false,
             'DICT' => null,
             'DNSBL' => null,
             'ENCODING' => $charset,
-            'ENTRY' => $entry,
+            'ENGINE' => null,
             'ERROR' => false,
             'EVENTS' => null,
             'EXEMPT' => null,
             'FALLBACK' => 'en',
+            'FRONT' => $front,
             'GET' => $get,
+            'HANDLERS' => null,
             'HOST' => $host,
-            'IP' => $headers['X-Client-Ip'] ?? Util::cutbefore($headers['X-Forwarded-For'] ?? '', ',', $server['REMOTE_ADDR'] ?? ''),
+            'ID' => null,
+            'IP' => strstr(($h['X-Client-Ip'] ?? $h['X-Forwarded-For'] ?? $server['REMOTE_ADDR'] ?? '').',', ',', true),
             'JAR' => $cookieJar,
             'LANGUAGE' => null,
-            'LOCALES' => './dict/',
+            'LOCALES' => null,
             'LOG' => null,
             'MIME' => null,
             'OUTPUT' => null,
             'PACKAGE' => self::PACKAGE,
             'PARAMS' => null,
-            'PATH' => Util::cutprefix(Util::cutprefix(urldecode($url['path']), $base), $entry, '/'),
+            'PATH' => preg_replace('/^'.preg_quote($front, '/').'/', '', preg_replace('/^'.preg_quote($base, '/').'/', '', urldecode($url['path']))) ?: '/',
             'PATTERN' => null,
             'PORT' => $port,
             'POST' => $post,
             'PROTOCOL' => $server['SERVER_PROTOCOL'] ?? 'HTTP/1.0',
             'QUIET' => false,
             'RAW' => false,
-            'REALM' => $baseUrl.$uri,
-            'REQUEST' => $headers,
+            'REF' => null,
+            'REQUEST' => $h,
             'RESPONSE' => null,
-            'ROUTE_ALIASES' => array(),
-            'ROUTE_HANDLER_CTR' => -1,
-            'ROUTE_HANDLERS' => array(),
-            'ROUTES' => array(),
+            'ROUTES' => null,
+            'RULES' => null,
             'SCHEME' => $scheme,
-            'SEED' => Util::hash($host.$base),
+            'SEED' => $this->hash($host.$base),
             'SENT' => false,
             'SERVER' => $server,
-            'SERVICE_ALIASES' => array(),
-            'SERVICE_RULES' => array(),
-            'SERVICES' => array(),
+            'SERVICES' => null,
             'SESSION' => null,
             'STATUS' => self::HTTP_200,
             'TEMP' => './var/',
             'THRESHOLD' => self::LOG_LEVEL_ERROR,
             'TIME' => $time,
-            'TRACE' => Util::fixslashes(realpath(dirname($server['SCRIPT_FILENAME'] ?? $_SERVER['SCRIPT_FILENAME']).'/..').'/'),
             'TZ' => date_default_timezone_get(),
             'URI' => $uri,
+            'URL' => $domainPort.$uri,
             'VERB' => $server['REQUEST_METHOD'] ?? 'GET',
             'VERSION' => self::VERSION,
             'XFRAME' => 'SAMEORIGIN',
         );
         $this->_init = array('GET' => null, 'POST' => null) + $this->_hive;
 
-        register_shutdown_function(array($this, 'unload'), getcwd());
+        // register_shutdown_function(array($this, 'unload'), getcwd());
     }
 
     /**
@@ -260,6 +254,141 @@ final class Fw extends Magic
     }
 
     /**
+     * Returns the return value of required file.
+     *
+     * It does ensure loaded file have no access to caller scope.
+     *
+     * @param string $file
+     * @param mixed  $default
+     *
+     * @return mixed
+     */
+    public static function requireFile(string $file, $default = null)
+    {
+        $content = is_file($file) ? (require $file) : null;
+
+        return $content ?: $default;
+    }
+
+    /**
+     * Returns true if dir exists or successfully created.
+     *
+     * @param string $path
+     * @param int    $mode
+     * @param bool   $recursive
+     *
+     * @return bool
+     */
+    public function mkdir(string $path, int $mode = 0755, bool $recursive = true): bool
+    {
+        return file_exists($path) ? true : mkdir($path, $mode, $recursive);
+    }
+
+    /**
+     * Returns file content with option to apply Unix LF as standard line ending.
+     *
+     * @param string $file
+     * @param bool   $lf
+     *
+     * @return string
+     */
+    public function read(string $file, bool $lf = false): string
+    {
+        $out = is_file($file) ? file_get_contents($file) : '';
+
+        return $lf ? preg_replace('/\r\n|\r/', "\n", $out) : $out;
+    }
+
+    /**
+     * Exclusive file write.
+     *
+     * @param string $file
+     * @param string $data
+     * @param bool   $append
+     *
+     * @return int|false
+     */
+    public function write(string $file, string $data, bool $append = false)
+    {
+        return file_put_contents($file, $data, LOCK_EX | ((int) $append * FILE_APPEND));
+    }
+
+    /**
+     * Delete file if exists.
+     *
+     * @param string $file
+     *
+     * @return bool
+     */
+    public function delete(string $file): bool
+    {
+        return is_file($file) ? unlink($file) : false;
+    }
+
+    /**
+     * Returns PHP-value of val.
+     *
+     * @param mixed $val
+     *
+     * @return mixed
+     */
+    public function cast($val)
+    {
+        if (is_numeric($val)) {
+            return $val + 0;
+        }
+
+        if (is_scalar($val)) {
+            $val = trim($val);
+
+            if (preg_match('/^\w+$/i', $val) && defined($val)) {
+                return constant($val);
+            }
+        }
+
+        return $val;
+    }
+
+    /**
+     * Returns 64bit/base36 hash.
+     *
+     * @param string $str
+     *
+     * @return string
+     */
+    public function hash(string $str): string
+    {
+        return str_pad(base_convert(substr(sha1($str), -16), 16, 36), 11, '0', STR_PAD_LEFT);
+    }
+
+    /**
+     * Collect request headers.
+     *
+     * @param array $server
+     *
+     * @return array
+     */
+    public function requestHeaders(array $server): array
+    {
+        $headers = array();
+        $special = array(
+            'CONTENT_LENGTH' => 'Content-Length',
+            'CONTENT_TYPE' => 'Content-Type',
+        );
+
+        foreach ($server as $key => $val) {
+            if (isset($special[$key])) {
+                $headers[$special[$key]] = $val;
+            } elseif ('HTTP' === strstr($key, '_', true) && $name = strstr($key, '_')) {
+                $mKey = strtr(ucwords(strtr(strtolower(substr($name, 1)), '_', ' ')), ' ', '-');
+                $headers[$mKey] = $val;
+            }
+        }
+
+        return $headers;
+    }
+
+    /**
      * Returns ellapsed time since application prepared.
      *
      * @return string
@@ -280,7 +409,6 @@ final class Fw extends Magic
     {
         $out = '';
         $eol = "\n";
-        $cut = (string) $this->_hive['TRACE'];
         $fix = array(
             'function' => null,
             'line' => null,
@@ -292,9 +420,9 @@ final class Fw extends Magic
         foreach ($trace as $key => $frame) {
             $frame += $fix;
 
-            $file = str_replace($cut, '', Util::fixslashes($frame['file']));
-            $classinfo = $frame['class'] ? $frame['class'].$frame['type'].$frame['function'] : null;
-            $out .= '['.$file.':'.$frame['line'].'] '.$classinfo.$eol;
+            $location = strtr($frame['file'], '\\', '/').':'.$frame['line'];
+            $info = $frame['class'] ? $frame['class'].$frame['type'].$frame['function'] : null;
+            $out .= '['.$location.'] '.$info.$eol;
         }
 
         return $out;
@@ -360,7 +488,7 @@ final class Fw extends Magic
             $this->_hive['VERB'] = 'GET';
             $this->_hive['PATH'] = $uri['path'];
             $this->_hive['URI'] = $req;
-            $this->_hive['REALM'] = $this->_hive['BASEURL'].$req;
+            $this->_hive['URL'] = $this->_hive['BASEURL'].$req;
             parse_str($uri['query'], $this->_hive['GET']);
         }
 
@@ -400,11 +528,11 @@ final class Fw extends Magic
      */
     public function blacklisted(string $ip): bool
     {
-        if ($this->_hive['DNSBL'] && !in_array($ip, Util::arr($this->_hive['EXEMPT']))) {
+        if ($this->_hive['DNSBL'] && !in_array($ip, (array) $this->_hive['EXEMPT'])) {
             // Reverse IPv4 dotted quad
             $rev = implode('.', array_reverse(explode('.', $ip)));
 
-            foreach (Util::arr($this->_hive['DNSBL']) as $server) {
+            foreach ((array) $this->_hive['DNSBL'] as $server) {
                 // DNSBL lookup
                 if (checkdnsrr($rev.'.'.$server, 'A')) {
                     return true;
@@ -620,8 +748,8 @@ final class Fw extends Magic
 
         switch ($key) {
             case 'CACHE':
-                $this->_hive['CACHE_ENGINE'] = null;
-                $this->_hive['CACHE_REF'] = null;
+                $this->_hive['ENGINE'] = null;
+                $this->_hive['REF'] = null;
                 break;
             case 'ENCODING':
                 ini_set('charset', $val);
@@ -630,7 +758,7 @@ final class Fw extends Magic
             case 'LANGUAGE':
             case 'LOCALES':
                 $this->_hive['DICT'] = $this->langLoad(...array(
-                    $this->_hive['LOCALES'],
+                    (array) $this->_hive['LOCALES'],
                     $this->langLanguages((string) $this->_hive['LANGUAGE'], $this->_hive['FALLBACK']),
                 ));
                 break;
@@ -706,13 +834,13 @@ final class Fw extends Magic
     /**
      * Massive hive member remove.
      *
-     * @param array|string $keys
+     * @param string ...$keys
      *
      * @return Fw
      */
-    public function mclear($keys): Fw
+    public function mclear(string ...$keys): Fw
     {
-        foreach (Util::arr($keys) as $key) {
+        foreach ($keys as $key) {
             $this->clear($key);
         }
 
@@ -743,6 +871,68 @@ final class Fw extends Magic
     public function append(string $key, string $str): Fw
     {
         return $this->set($key, $this->get($key).$str);
+    }
+
+    /**
+     * Push val to array member.
+     *
+     * @param string $key
+     * @param mixed  $val
+     *
+     * @return Fw
+     */
+    public function push(string $key, $val): Fw
+    {
+        $var = (array) $this->get($key);
+        array_push($var, $val);
+
+        return $this->set($key, $var);
+    }
+
+    /**
+     * Pop from array member.
+     *
+     * @param string $key
+     *
+     * @return mixed
+     */
+    public function pop(string $key)
+    {
+        $var = $this->get($key);
+        $var = (array) $var;
+
+        return array_pop($var);
+    }
+
+    /**
+     * Unshift val to array member.
+     *
+     * @param string $key
+     * @param mixed  $val
+     *
+     * @return Fw
+     */
+    public function unshift(string $key, $val): Fw
+    {
+        $var = (array) $this->get($key);
+        array_unshift($var, $val);
+
+        return $this->set($key, $var);
+    }
+
+    /**
+     * Shift from array member.
+     *
+     * @param string $key
+     *
+     * @return mixed
+     */
+    public function shift(string $key)
+    {
+        $var = &$this->get($key);
+        $var = (array) $var;
+
+        return array_shift($var);
     }
 
     /**
@@ -787,7 +977,7 @@ final class Fw extends Magic
     }
 
     /**
-     * Load configuration from a file.
+     * Load configuration from an ini file.
      *
      * Expect file which return multidimensional array.
      *
@@ -816,13 +1006,17 @@ final class Fw extends Magic
             'listeners' => 'on',
             'listeners_once' => 'one',
         );
-        $content = file_exists($file) ? Util::requireFile($file, array()) : array();
+        $content = file_exists($file) ? self::requireFile($file, array()) : array();
 
         foreach ($content as $key => $val) {
             $lkey = strtolower($key);
+            $call = $maps[$lkey] ?? null;
 
-            if (isset($maps[$lkey])) {
-                Util::walk((array) $val, array($this, $maps[$lkey]), false);
+            if ($call) {
+                foreach ((array) $val as $args) {
+                    $args = (array) $args;
+                    $this->$call(...$args);
+                }
             } else {
                 $this->set($key, $val);
             }
@@ -866,17 +1060,17 @@ final class Fw extends Magic
 
         $ndx = $this->_hive['SEED'].'.'.$key;
 
-        switch ($this->_hive['CACHE_ENGINE']) {
+        switch ($this->_hive['ENGINE']) {
             case 'apc':
                 return apc_exists($ndx);
             case 'apcu':
                 return apcu_exists($ndx);
             case 'folder':
-                return (bool) $this->cacheParse($key, Util::read($this->_hive['CACHE_REF'].$ndx));
+                return (bool) $this->cacheParse($key, $this->read($this->_hive['REF'].$ndx));
             case 'memcached':
-                return (bool) $this->_hive['CACHE_REF']->get($ndx);
+                return (bool) $this->_hive['REF']->get($ndx);
             case 'redis':
-                return (bool) $this->_hive['CACHE_REF']->exists($ndx);
+                return (bool) $this->_hive['REF']->exists($ndx);
         }
 
         return false;
@@ -896,7 +1090,7 @@ final class Fw extends Magic
         $ndx = $this->_hive['SEED'].'.'.$key;
         $raw = null;
 
-        switch ($this->_hive['CACHE_ENGINE']) {
+        switch ($this->_hive['ENGINE']) {
             case 'apc':
                 $raw = apc_fetch($ndx);
                 break;
@@ -904,13 +1098,13 @@ final class Fw extends Magic
                 $raw = apcu_fetch($ndx);
                 break;
             case 'folder':
-                $raw = Util::read($this->_hive['CACHE_REF'].$ndx);
+                $raw = $this->read($this->_hive['REF'].$ndx);
                 break;
             case 'memcached':
-                $raw = $this->_hive['CACHE_REF']->get($ndx);
+                $raw = $this->_hive['REF']->get($ndx);
                 break;
             case 'redis':
-                $raw = $this->_hive['CACHE_REF']->get($ndx);
+                $raw = $this->_hive['REF']->get($ndx);
                 break;
         }
 
@@ -933,17 +1127,17 @@ final class Fw extends Magic
         $ndx = $this->_hive['SEED'].'.'.$key;
         $content = $this->cacheCompact($val, (int) microtime(true), $ttl);
 
-        switch ($this->_hive['CACHE_ENGINE']) {
+        switch ($this->_hive['ENGINE']) {
             case 'apc':
                 return apc_store($ndx, $content, $ttl);
             case 'apcu':
                 return apcu_store($ndx, $content, $ttl);
             case 'folder':
-                return false !== Util::write($this->_hive['CACHE_REF'].str_replace(array('/', '\\'), '', $ndx), $content);
+                return false !== $this->write($this->_hive['REF'].str_replace(array('/', '\\'), '', $ndx), $content);
             case 'memcached':
-                return $this->_hive['CACHE_REF']->set($ndx, $content, $ttl);
+                return $this->_hive['REF']->set($ndx, $content, $ttl);
             case 'redis':
-                return $this->_hive['CACHE_REF']->set($ndx, $content, array_filter(array('ex' => $ttl)));
+                return $this->_hive['REF']->set($ndx, $content, array_filter(array('ex' => $ttl)));
         }
 
         return true;
@@ -962,17 +1156,17 @@ final class Fw extends Magic
 
         $ndx = $this->_hive['SEED'].'.'.$key;
 
-        switch ($this->_hive['CACHE_ENGINE']) {
+        switch ($this->_hive['ENGINE']) {
             case 'apc':
                 return apc_delete($ndx);
             case 'apcu':
                 return apcu_delete($ndx);
             case 'folder':
-                return Util::delete($this->_hive['CACHE_REF'].$ndx);
+                return $this->delete($this->_hive['REF'].$ndx);
             case 'memcached':
-                return $this->_hive['CACHE_REF']->delete($ndx);
+                return $this->_hive['REF']->delete($ndx);
             case 'redis':
-                return (bool) $this->_hive['CACHE_REF']->del($ndx);
+                return (bool) $this->_hive['REF']->del($ndx);
         }
 
         return true;
@@ -991,15 +1185,18 @@ final class Fw extends Magic
 
         $prefix = $this->_hive['SEED'];
         $regex = '/'.preg_quote($prefix, '/').'\..+'.preg_quote($suffix, '/').'/';
+        $default = array(self::class);
 
-        switch ($this->_hive['CACHE_ENGINE']) {
+        switch ($this->_hive['ENGINE']) {
             case 'apc':
                 $info = apc_cache_info('user');
                 if ($info && isset($info['cache_list']) && $info['cache_list']) {
                     $key = array_key_exists('info', $info['cache_list'][0]) ? 'info' : 'key';
                     $items = preg_grep($regex, array_column($info['cache_list'], $key));
 
-                    Util::walk($items, 'apc_delete');
+                    foreach ($items ?: $default as $item) {
+                        apc_delete($item);
+                    }
                 }
                 break;
             case 'apcu':
@@ -1008,23 +1205,31 @@ final class Fw extends Magic
                     $key = array_key_exists('info', $info['cache_list'][0]) ? 'info' : 'key';
                     $items = preg_grep($regex, array_column($info['cache_list'], $key));
 
-                    Util::walk($items, 'apcu_delete');
+                    foreach ($items ?: $default as $item) {
+                        apcu_delete($item);
+                    }
                 }
                 break;
             case 'folder':
-                $files = glob($this->_hive['CACHE_REF'].$prefix.'*'.$suffix);
+                $items = glob($this->_hive['REF'].$prefix.'*'.$suffix);
 
-                Util::walk((array) $files, 'unlink');
+                foreach ($items as $item) {
+                    unlink($item);
+                }
                 break;
             case 'memcached':
-                $keys = preg_grep($regex, (array) $this->_hive['CACHE_REF']->getAllKeys());
+                $items = preg_grep($regex, (array) $this->_hive['REF']->getAllKeys());
 
-                Util::walk($keys, array($this->_hive['CACHE_REF'], 'delete'));
+                foreach ($items ?: $default as $item) {
+                    $this->_hive['REF']->delete($item);
+                }
                 break;
             case 'redis':
-                $keys = $this->_hive['CACHE_REF']->keys($prefix.'*'.$suffix);
+                $items = $this->_hive['REF']->keys($prefix.'*'.$suffix);
 
-                Util::walk($keys, array($this->_hive['CACHE_REF'], 'del'));
+                foreach ($items ?: $default as $item) {
+                    $this->_hive['REF']->del($item);
+                }
                 break;
         }
 
@@ -1115,10 +1320,10 @@ final class Fw extends Magic
 
         $serviceRule += array('class' => $id, 'service' => true);
 
-        $this->_hive['SERVICE_RULES'][$id] = $serviceRule;
+        $this->_hive['RULES'][$id] = $serviceRule;
 
         if ($id !== $serviceRule['class']) {
-            $this->_hive['SERVICE_ALIASES'][$id] = $serviceRule['class'];
+            $this->_hive['ID'][$id] = $serviceRule['class'];
         }
 
         return $this;
@@ -1133,11 +1338,11 @@ final class Fw extends Magic
      */
     public function service(string $id)
     {
-        if (in_array($id, array('app', self::class))) {
+        if (in_array($id, array('fw', self::class))) {
             return $this;
         }
 
-        if (empty($this->_hive['SERVICES'][$id]) && $sid = array_search($id, $this->_hive['SERVICE_ALIASES'])) {
+        if (empty($this->_hive['SERVICES'][$id]) && $this->_hive['ID'] && $sid = array_search($id, $this->_hive['ID'])) {
             $id = $sid;
         }
 
@@ -1168,10 +1373,10 @@ final class Fw extends Magic
             'boot' => null,
         );
 
-        if (isset($this->_hive['SERVICE_RULES'][$id])) {
-            $rule = $this->_hive['SERVICE_RULES'][$id] + $rule;
-        } elseif ($sid = array_search($id, $this->_hive['SERVICE_ALIASES'])) {
-            $rule = $this->_hive['SERVICE_RULES'][$sid] + $rule;
+        if (isset($this->_hive['RULES'][$id])) {
+            $rule = $this->_hive['RULES'][$id] + $rule;
+        } elseif ($this->_hive['ID'] && $sid = array_search($id, $this->_hive['ID'])) {
+            $rule = $this->_hive['RULES'][$sid] + $rule;
         }
 
         $ref = new \ReflectionClass($rule['use'] ?? $rule['class']);
@@ -1285,8 +1490,8 @@ final class Fw extends Magic
     {
         $q = rtrim('?'.(is_array($query) ? http_build_query($query) : $query), '?');
 
-        if (isset($this->_hive['ROUTE_ALIASES'][$alias])) {
-            $pattern = $this->_hive['ROUTE_ALIASES'][$alias];
+        if (isset($this->_hive['ALIASES'][$alias])) {
+            $pattern = $this->_hive['ALIASES'][$alias];
 
             if ($args) {
                 $keywordCount = substr_count($pattern, '@');
@@ -1312,7 +1517,7 @@ final class Fw extends Magic
     }
 
     /**
-     * Returns path from alias name, with BASE and ENTRY as prefix.
+     * Returns path from alias name, with BASE and FRONT as prefix.
      *
      * @param string $alias
      * @param mixed  $args
@@ -1322,11 +1527,11 @@ final class Fw extends Magic
      */
     public function path(string $alias, $args = null, $query = null): string
     {
-        return $this->_hive['BASE'].$this->_hive['ENTRY'].$this->alias($alias, $args, $query);
+        return $this->_hive['BASE'].$this->_hive['FRONT'].$this->alias($alias, $args, $query);
     }
 
     /**
-     * Returns path with BASEURL as prefix.
+     * Returns path with BASE as prefix.
      *
      * @param string $path
      *
@@ -1349,11 +1554,11 @@ final class Fw extends Magic
     {
         if (!$target) {
             $path = $this->_hive['PATH'];
-            $url = $this->_hive['REALM'];
+            $url = $this->_hive['URL'];
         } elseif (is_array($target)) {
             $path = $this->alias(...$target);
-        } elseif (isset($this->_hive['ROUTE_ALIASES'][$target])) {
-            $path = $this->_hive['ROUTE_ALIASES'][$target];
+        } elseif (isset($this->_hive['ALIASES'][$target])) {
+            $path = $this->_hive['ALIASES'][$target];
         } elseif (preg_match('/^(\w+)(?:\(([^(]+)\))?((?:\?).+)?$/', $target, $match)) {
             parse_str(strtr($match[2] ?? '', ',', '&'), $args);
             $path = $this->alias($match[1], $args, $match[3] ?? null);
@@ -1365,7 +1570,7 @@ final class Fw extends Magic
             $url = $path;
 
             if ('/' === $path[0] && (empty($path[1]) || '/' !== $path[1])) {
-                $url = $this->_hive['BASEURL'].$this->_hive['ENTRY'].$path;
+                $url = $this->_hive['BASEURL'].$this->_hive['FRONT'].$path;
             }
         }
 
@@ -1449,21 +1654,21 @@ final class Fw extends Magic
         list($verbs, $alias, $path, $mode) = array_slice($match, 1) + array(1 => '', '', 'all');
 
         if (!$path) {
-            if (empty($this->_hive['ROUTE_ALIASES'][$alias])) {
+            if (empty($this->_hive['ALIASES'][$alias])) {
                 throw new \LogicException('Route "'.$alias.'" not exists.');
             }
 
-            $path = $this->_hive['ROUTE_ALIASES'][$alias];
+            $path = $this->_hive['ALIASES'][$alias];
         }
 
-        $ptr = ++$this->_hive['ROUTE_HANDLER_CTR'];
+        $ptr = ++$this->_hive['CTR'];
         $mMode = constant('self::REQ_'.strtoupper($mode));
 
         foreach (array_filter(explode('|', strtoupper($verbs))) as $verb) {
             $this->_hive['ROUTES'][$path][$mMode][$verb] = $ptr;
         }
 
-        $this->_hive['ROUTE_HANDLERS'][$ptr] = array(
+        $this->_hive['HANDLERS'][$ptr] = array(
             $handler,
             $alias,
             $ttl,
@@ -1471,7 +1676,7 @@ final class Fw extends Magic
         );
 
         if ($alias) {
-            $this->_hive['ROUTE_ALIASES'][$alias] = $path;
+            $this->_hive['ALIASES'][$alias] = $path;
         }
 
         return $this;
@@ -1496,18 +1701,18 @@ final class Fw extends Magic
         $verb = strtoupper($tmp[0]);
         $targetExpr = urldecode($tmp[1]);
         $mode = strtolower($tmp[2] ?? 'none');
-        $target = Util::cutbefore($targetExpr, '?');
-        $query = Util::cutafter($targetExpr, '?', '', true);
+        $target = strstr($targetExpr.'?', '?', true);
+        $query = trim(strstr($targetExpr.'?', '?'), '?');
         $path = $target;
 
-        if (isset($this->_hive['ROUTE_ALIASES'][$target])) {
-            $path = $this->_hive['ROUTE_ALIASES'][$target];
+        if (isset($this->_hive['ALIASES'][$target])) {
+            $path = $this->_hive['ALIASES'][$target];
         } elseif (preg_match('/^(\w+)\(([^(]+)\)$/', $target, $match)) {
             parse_str(strtr($match[2], ',', '&'), $args);
             $path = $this->alias($match[1], $args);
         }
 
-        $this->mclear('SENT,RESPONSE,OUTPUT,BODY');
+        $this->mclear('SENT', 'RESPONSE', 'OUTPUT', 'BODY');
 
         $this->_hive['VERB'] = $verb;
         $this->_hive['PATH'] = $path;
@@ -1878,7 +2083,7 @@ final class Fw extends Magic
         }
 
         list($handler, $alias, $ttl, $kbps, $pattern, $params) = $route;
-        $hash = Util::hash($this->_hive['VERB'].' '.$this->_hive['PATH']).'.url';
+        $hash = $this->hash($this->_hive['VERB'].' '.$this->_hive['PATH']).'.url';
         $checkCache = $ttl && in_array($this->_hive['VERB'], array('GET', 'HEAD'));
 
         if ($checkCache) {
@@ -2018,7 +2223,7 @@ final class Fw extends Magic
         $route = $routes[$mode] ?? $routes[self::REQ_ALL] ?? null;
         $handlerId = $route[$this->_hive['VERB']] ?? null;
 
-        return null === $handlerId ? null : $this->_hive['ROUTE_HANDLERS'][$handlerId];
+        return null === $handlerId ? null : $this->_hive['HANDLERS'][$handlerId];
     }
 
     /**
@@ -2158,8 +2363,8 @@ final class Fw extends Magic
     private function cacheLoad(): void
     {
         $dsn = $this->_hive['CACHE'];
-        $engine = &$this->_hive['CACHE_ENGINE'];
-        $ref = &$this->_hive['CACHE_REF'];
+        $engine = &$this->_hive['ENGINE'];
+        $ref = &$this->_hive['REF'];
 
         if ($engine || !$dsn) {
             return;
@@ -2215,7 +2420,7 @@ final class Fw extends Magic
         }
 
         if ($fallback === $engine) {
-            Util::mkdir($ref);
+            $this->mkdir($ref);
         }
     }
 
@@ -2351,8 +2556,8 @@ final class Fw extends Magic
         $file = $files[0] ?? $prefix.date('Y-m-d').$ext;
         $content = date('Y-m-d G:i:s.u').' '.$level.' '.$message.PHP_EOL;
 
-        Util::mkdir(dirname($file));
-        Util::write($file, $content, true);
+        $this->mkdir(dirname($file));
+        $this->write($file, $content, true);
     }
 
     /**
@@ -2365,41 +2570,41 @@ final class Fw extends Magic
      */
     private function langLanguages(string $language, string $fallback): array
     {
-        $langCode = ltrim(preg_replace('/\h+|;q=[0-9.]+/', '', $language).','.$fallback, ',');
-        $languages = array();
+        $codes = ltrim(preg_replace('/\h+|;q=[0-9.]+/', '', $language).','.$fallback, ',');
+        $langs = array_filter(array_map('trim', explode(',', $codes)));
+        $result = array();
 
-        foreach (Util::split($langCode) as $lang) {
+        foreach ($langs as $lang) {
             if (preg_match('/^(\w{2})(?:-(\w{2}))?\b/i', $lang, $parts)) {
                 // Generic language
-                $languages[] = $parts[1];
+                $result[] = $parts[1];
 
                 if (isset($parts[2])) {
                     // Specific language
-                    $languages[] = $parts[1].'-'.strtoupper($parts[2]);
+                    $result[] = $parts[1].'-'.strtoupper($parts[2]);
                 }
             }
         }
 
-        return array_unique($languages);
+        return array_unique($result);
     }
 
     /**
      * Load languages.
      *
-     * @param string|array $dir
-     * @param array        $languages
+     * @param array $dirs
+     * @param array $languages
      *
      * @return array
      */
-    private function langLoad($dir, array $languages): array
+    private function langLoad(array $dirs, array $languages): array
     {
         $dict = array();
 
         foreach ($languages as $language) {
-            foreach (Util::arr($dir) as $dir) {
-                if (is_file($file = $dir.$language.'.php')) {
-                    $dict = array_replace_recursive($dict, Util::requireFile($file, array()));
-                }
+            foreach ($dirs as $dir) {
+                $file = $dir.$language.'.php';
+                $dict = array_replace_recursive($dict, self::requireFile($file, array()));
             }
         }
 

@@ -14,8 +14,8 @@ declare(strict_types=1);
 namespace Fal\Stick\Library\Sql;
 
 use Fal\Stick\Fw;
+use Fal\Stick\Library\Str;
 use Fal\Stick\Magic;
-use Fal\Stick\Util;
 
 /**
  * Sql record mapper.
@@ -115,13 +115,13 @@ class Mapper extends Magic
      * @param Fw          $fw
      * @param Connection  $db
      * @param string|null $table
-     * @param mixed       $fields
+     * @param array|null  $fields
      * @param int         $ttl
      */
-    public function __construct(Fw $fw, Connection $db, string $table = null, $fields = null, int $ttl = 60)
+    public function __construct(Fw $fw, Connection $db, string $table = null, array $fields = null, int $ttl = 60)
     {
         $driver = $db->getDriver();
-        $use = $table ?? $this->_table ?? Util::snakecase(Util::classname($this));
+        $use = $table ?? $this->_table ?? Str::snakecase(Str::classname($this));
         $fix = Connection::DB_OCI === $driver ? strtoupper($use) : $use;
         $schema = $db->schema($fix, $fields, $ttl);
 
@@ -131,7 +131,7 @@ class Mapper extends Magic
         $this->_table = $use;
         $this->_fields = $schema;
         $this->_map = $db->quotekey($fix);
-        $this->_keys = array_keys(array_filter(Util::column($schema, 'pkey')));
+        $this->_keys = array_keys(array_filter(array_column($schema, 'pkey', 'name')));
         $this->reset();
     }
 
@@ -360,9 +360,9 @@ class Mapper extends Magic
             $this->_adhoc[$key]['value'] = $val;
         } elseif (is_scalar($val)) {
             // Parenthesize expression in case it's a subquery
-            $this->_adhoc[$key] = array('expr' => '('.$val.')', 'value' => null);
+            $this->_adhoc[$key] = array('expr' => '('.$val.')', 'value' => null, 'name' => $key);
         } else {
-            $this->_props[$key] = array('self' => false, 'value' => $val);
+            $this->_props[$key] = array('self' => false, 'value' => $val, 'name' => $key);
         }
 
         return $this;
@@ -400,10 +400,17 @@ class Mapper extends Magic
             unset($field);
         }
 
-        $nullAdhoc = array_fill_keys(array_keys($this->_adhoc), array('value' => null));
-        $selfProps = array_filter(Util::column($this->_props, 'self'));
-        $this->_adhoc = array_replace_recursive($this->_adhoc, $nullAdhoc);
-        $this->_props = array_intersect_key($this->_props, $selfProps);
+        foreach ($this->_adhoc as &$field) {
+            $field['value'] = null;
+            unset($field);
+        }
+
+        foreach (array_keys($this->_props) as $field) {
+            if ($this->_props[$field]['self']) {
+                unset($this->_props[$field]);
+            }
+        }
+
         $this->_query = array();
         $this->_ptr = 0;
 
@@ -445,9 +452,13 @@ class Mapper extends Magic
      */
     public function keys(): array
     {
-        $keys = array_flip($this->_keys);
+        $result = array();
 
-        return Util::column(array_merge($keys, array_intersect_key($this->_fields, $keys)), 'initial');
+        foreach ($this->_keys as $key) {
+            $result[$key] = $this->_fields[$key]['initial'];
+        }
+
+        return $result;
     }
 
     /**
@@ -479,7 +490,7 @@ class Mapper extends Magic
      */
     public function toArray(callable $transformer = null): array
     {
-        $result = Util::column($this->_fields + $this->_adhoc + $this->_props, 'value');
+        $result = array_column($this->_fields + $this->_adhoc + $this->_props, 'value', 'name');
 
         return $transformer ? $transformer($result) : $result;
     }
@@ -561,23 +572,22 @@ class Mapper extends Magic
     /**
      * Load mapper filtered by given primary keys value.
      *
-     * @param string|array $ids
+     * @param mixed ...$ids
      *
      * @return Mapper
      *
      * @throws LogicException If given argument count is not match with primary keys count
      */
-    public function withId($ids): Mapper
+    public function withId(...$ids): Mapper
     {
-        $fix = Util::arr($ids);
-        $vcount = count($fix);
+        $vcount = count($ids);
         $pcount = count($this->_keys);
 
         if ($vcount !== $pcount) {
             throw new \LogicException('Insufficient primary keys value. Expect exactly '.$pcount.' parameters, '.$vcount.' given.');
         }
 
-        return $this->load(array_combine($this->_keys, $fix));
+        return $this->load(array_combine($this->_keys, $ids));
     }
 
     /**
@@ -1075,7 +1085,7 @@ class Mapper extends Magic
     {
         $field = substr($str, $start);
 
-        return isset($this->_fields[$field]) ? $field : Util::snakecase($field);
+        return isset($this->_fields[$field]) ? $field : Str::snakecase($field);
     }
 
     /**

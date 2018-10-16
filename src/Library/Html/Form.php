@@ -14,7 +14,7 @@ declare(strict_types=1);
 namespace Fal\Stick\Library\Html;
 
 use Fal\Stick\Fw;
-use Fal\Stick\Util;
+use Fal\Stick\Library\Str;
 use Fal\Stick\Library\Validation\Validator;
 
 /**
@@ -109,7 +109,7 @@ class Form
         $this->_validator = $validator;
 
         if (!$this->_name) {
-            $this->setName(Util::snakeCase(Util::classname(static::class)));
+            $this->setName(Str::snakeCase(Str::classname(static::class)));
         }
     }
 
@@ -420,7 +420,7 @@ class Form
 
         $type = strtolower($field['type']);
         $options = array_replace_recursive(((array) $field['options']) + array(
-            'label' => $this->_fw->trans($name, null, Util::titleCase($name)),
+            'label' => $this->_fw->trans($name, null, Str::titleCase($name)),
             'label_attr' => array(),
             'attr' => array(),
         ), array('attr' => (array) $overrideAttr));
@@ -470,7 +470,7 @@ class Form
 
         foreach ($this->_buttons as $name => $button) {
             $type = $button['type'];
-            $label = $button['label'] ?: $this->_fw->trans($name, null, Util::titleCase($name));
+            $label = $button['label'] ?: $this->_fw->trans($name, null, Str::titleCase($name));
 
             $buttons .= ' '.$this->inputButton($label, $type, $name, $button['attr']);
         }

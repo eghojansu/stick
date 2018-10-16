@@ -130,10 +130,10 @@ final class MapperParameterConverter
         $mapper = new $class($this->fw, $this->db);
         $keys = array_keys($mapper->keys());
         $kcount = count($keys);
-        $vals = array_slice($this->params, $this->ptr, $kcount);
+        $vals = array_values(array_slice($this->params, $this->ptr, $kcount));
         $vcount = count($vals);
 
-        $mapper->withId($vals);
+        $mapper->withId(...$vals);
 
         if ($mapper->dry()) {
             $message = 'Record of '.$mapper->getTable().' is not found.';

@@ -18,8 +18,8 @@ use Fal\Stick\HttpException;
 use Fal\Stick\Library\Html\Form;
 use Fal\Stick\Library\Security\Auth;
 use Fal\Stick\Library\Sql\Mapper;
+use Fal\Stick\Library\Str;
 use Fal\Stick\Library\Template\Template;
-use Fal\Stick\Util;
 
 /**
  * Logic for handling CRUD.
@@ -223,8 +223,8 @@ class Crud
         $pick = array('searchable', 'route_args', 'page_query_name', 'keyword_query_name');
         $data = array_intersect_key($this->options, array_flip($pick));
         $complement = array(
-            'title' => $this->options['title'] ?? 'Manage '.Util::titleCase($this->mapper()->table()),
-            'subtitle' => $this->options['subtitle'] ?? Util::titleCase($mState),
+            'title' => $this->options['title'] ?? 'Manage '.Str::titleCase($this->mapper()->table()),
+            'subtitle' => $this->options['subtitle'] ?? Str::titleCase($mState),
         );
         $crudData = new CrudData(...array(
             $this->fw,
@@ -247,7 +247,7 @@ class Crud
      */
     public function disabled($states): Crud
     {
-        $this->options['states'] = array_fill_keys(Util::arr($states), false) + $this->options['states'];
+        $this->options['states'] = array_fill_keys($this->arr($states), false) + $this->options['states'];
 
         return $this;
     }
@@ -255,14 +255,14 @@ class Crud
     /**
      * Sets fields for state.
      *
-     * @param mixed $states
-     * @param mixed $fields
+     * @param string|array $states
+     * @param mixed        $fields
      *
      * @return Crud
      */
     public function fields($states, $fields): Crud
     {
-        $this->options['fields'] = array_fill_keys(Util::arr($states), $fields) + $this->options['fields'];
+        $this->options['fields'] = array_fill_keys($this->arr($states), $fields) + $this->options['fields'];
 
         return $this;
     }
@@ -429,19 +429,21 @@ class Crud
 
         if ($fields) {
             if (is_string($fields)) {
-                $fields = array_fill_keys(Util::split($fields), null);
+                $fields = array_fill_keys($this->arr($fields), null);
             }
         } else {
             $fields = $this->mapper()->schema();
         }
 
-        $orders = Util::arr($this->options['field_orders']);
+        $orders = $this->arr($this->options['field_orders']);
         $keys = array_unique(array_merge($orders, array_keys($fields)));
         $this->hive['fields'] = array_fill_keys($keys, array());
 
         foreach ($fields as $name => $field) {
-            $label = $this->fw->trans($name, null, Util::titleCase($name));
-            $default = compact('label', 'name');
+            $default = array(
+                'name' => $name,
+                'label' => $this->fw->trans($name, null, Str::titleCase($name)),
+            );
             $this->hive['fields'][$name] = ((array) $field) + $default;
         }
     }
@@ -456,8 +458,8 @@ class Crud
         $keyword = $this->hive['keyword'];
         $filters = $this->options['filters'];
 
-        foreach ($keyword ? Util::arr($this->options['searchable']) : array() as $field) {
-            $filters[$field] = Util::endswith($field, '~') ? '%'.$keyword.'%' : $keyword;
+        foreach ($keyword ? $this->arr($this->options['searchable']) : array() as $field) {
+            $filters[$field] = Str::endswith($field, '~') ? '%'.$keyword.'%' : $keyword;
         }
 
         return $filters;
@@ -543,6 +545,18 @@ class Crud
         }
 
         return $data;
+    }
+
+    /**
+     * Normalize fields definitions.
+     *
+     * @param mixed $val
+     *
+     * @return array
+     */
+    protected function arr($val): array
+    {
+        return is_array($val) ? $val : array_filter(array_map('trim', explode(',', (string) $val)));
     }
 
     /**
@@ -672,7 +686,7 @@ class Crud
     public function __call($option, $args)
     {
         if ($args) {
-            $name = Util::snakeCase($option);
+            $name = Str::snakeCase($option);
 
             if (array_key_exists($name, $this->options)) {
                 $value = $args[0];

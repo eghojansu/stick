@@ -14,7 +14,6 @@ declare(strict_types=1);
 namespace Fal\Stick\Library\Template;
 
 use Fal\Stick\Fw;
-use Fal\Stick\Util;
 
 /**
  * PHP Template engine.
@@ -39,16 +38,6 @@ final class Template
     private $dirs;
 
     /**
-     * Function aliases.
-     *
-     * @var array
-     */
-    private $funcs = array(
-        'upper' => 'strtoupper',
-        'lower' => 'strtolower',
-    );
-
-    /**
      * Macro aliases.
      *
      * @var array
@@ -56,15 +45,24 @@ final class Template
     private $macros = array();
 
     /**
+     * Function aliases.
+     *
+     * @var array
+     */
+    private $funcs = array(
+        'e' => 'htmlspecialchars',
+    );
+
+    /**
      * Class constructor.
      *
-     * @param Fw           $fw
-     * @param string|array $dirs
+     * @param Fw    $fw
+     * @param array $dirs
      */
-    public function __construct(Fw $fw, $dirs = './template/')
+    public function __construct(Fw $fw, array $dirs = null)
     {
         $this->fw = $fw;
-        $this->setDirs($dirs);
+        $this->setDirs((array) $dirs);
     }
 
     /**
@@ -80,15 +78,14 @@ final class Template
     /**
      * Sets template directories, can be merged if needed.
      *
-     * @param string|array $dirs
-     * @param bool         $merge
+     * @param array $dirs
+     * @param bool  $merge
      *
      * @return Template
      */
-    public function setDirs($dirs, bool $merge = false): Template
+    public function setDirs(array $dirs, bool $merge = false): Template
     {
-        $newDirs = Util::arr($dirs);
-        $this->dirs = $merge ? array_merge($this->dirs, $newDirs) : $newDirs;
+        $this->dirs = $merge ? array_merge($this->dirs, $dirs) : $dirs;
 
         return $this;
     }
@@ -140,16 +137,12 @@ final class Template
 
         if (isset($this->funcs[$func])) {
             $call = $this->funcs[$func];
-        } elseif (in_array(strtolower($func), array('e', 'filter', 'macro'))) {
-            $call = array($this, '_'.$func);
+        } elseif ('macro' === $func) {
+            $call = array($this, 'macro');
         } elseif (method_exists($this->fw, $func)) {
             $call = array($this->fw, $func);
-        } elseif (method_exists(Util::class, $func)) {
-            $call = array(Util::class, $func);
-        } elseif (is_callable($func)) {
-            $call = $func;
         } elseif ($macro = $this->findMacro($func)) {
-            $call = array($this, '_macro');
+            $call = array($this, 'macro');
             $mArgs = array($macro, $args);
         } else {
             throw new \BadFunctionCallException('Call to undefined function '.$func.'.');
@@ -209,37 +202,6 @@ final class Template
     }
 
     /**
-     * Call function in sequences.
-     *
-     * @param mixed  $val
-     * @param string $filters
-     *
-     * @return mixed
-     */
-    private function _filter($val, string $filters)
-    {
-        foreach (Util::parseExpr($filters) as $callable => $args) {
-            $cArgs = array_merge(array($val), $args);
-            $val = $this->call($callable, $cArgs);
-        }
-
-        return $val;
-    }
-
-    /**
-     * Escape variable.
-     *
-     * @param string      $val
-     * @param string|null $filters
-     *
-     * @return string
-     */
-    private function _e(string $val, string $filters = null): string
-    {
-        return $this->_filter($val, ltrim($filters.'|htmlspecialchars', '|'));
-    }
-
-    /**
      * Returns rendered macro.
      *
      * @param string     $macro
@@ -249,7 +211,7 @@ final class Template
      *
      * @throws LogicException If macro not exists
      */
-    private function _macro(string $macro, array $args = null): string
+    private function macro(string $macro, array $args = null): string
     {
         $realpath = is_file($macro) ? $macro : $this->findMacro($macro);
 

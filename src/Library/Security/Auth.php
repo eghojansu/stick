@@ -14,7 +14,6 @@ declare(strict_types=1);
 namespace Fal\Stick\Library\Security;
 
 use Fal\Stick\Fw;
-use Fal\Stick\Util;
 
 /**
  * Authentication utils.
@@ -250,7 +249,7 @@ class Auth
     {
         $path = $this->fw->get('PATH');
 
-        if (in_array($path, Util::arr($this->options['excludes']))) {
+        if (in_array($path, (array) $this->options['excludes'])) {
             return false;
         }
 
@@ -272,7 +271,9 @@ class Auth
         }
 
         foreach ($this->options['rules'] as $check => $roles) {
-            if (preg_match('#'.$check.'#', $path) && !$this->isGranted($roles)) {
+            $mRoles = (array) $roles;
+
+            if (preg_match('#'.$check.'#', $path) && !$this->isGranted(...$mRoles)) {
                 $this->fw->reroute($this->options['login']);
 
                 return true;
@@ -285,15 +286,15 @@ class Auth
     /**
      * Check roles against current user roles.
      *
-     * @param string|array $checkRoles
+     * @param string ...$checkRoles
      *
      * @return bool
      */
-    public function isGranted($checkRoles): bool
+    public function isGranted(string ...$checkRoles): bool
     {
         $user = $this->getUser();
         $userRoles = $user ? $user->getRoles() : array('ROLE_ANONYMOUS');
-        $mCheckRoles = Util::arr($checkRoles);
+        $mCheckRoles = $checkRoles;
 
         if (array_intersect($mCheckRoles, $userRoles)) {
             return true;
@@ -340,7 +341,7 @@ class Auth
         $roles = array($role);
 
         if (array_key_exists($role, $this->options['roleHierarchy'])) {
-            $children = Util::arr($this->options['roleHierarchy'][$role]);
+            $children = (array) $this->options['roleHierarchy'][$role];
 
             foreach ($children as $child) {
                 $roles = array_merge($roles, $this->getRoleHierarchy($child));

@@ -46,73 +46,289 @@ Example of framework usage as an CMS: [Stick-Bootstrap][4].
 
 ## System Variables
 
-System variables all in UPPER CASE.
+System variables and its *expected* type.
 
-- AGENT: Client user agent.
-- AJAX: Ajax request status.
-- ALIAS: Current route alias.
-- BASE: Base path.
-- BASEURL: Base url.
-- BODY: Request body.
-- CACHE: Cache definition.
-- CACHE_ENGINE: Cache engine.
-- CACHE_REF: Cache ref.
-- CASELESS: Wether route should match ignore case or not.
-- CLI: Cli request status.
-- CODE: Http response code.
-- COOKIE: Cookies.
-- DEBUG: Debug status.
-- DICT: Dictionaries.
-- DNSBL: Dns block list.
-- ENCODING: Charset.
-- ENTRY: Entry script name to embbed in url.
-- ERROR: Error status.
-- EVENTS: Event handlers.
-- EXEMPT: Dns white list.
-- FALLBACK: Language fallback.
-- GET: Equivalent with ```$_GET```.
-- HOST: Server host.
-- IP: Client ip address.
-- JAR: Cookie jar.
-- LANGUAGE: Language.
-- LOCALES: Locales path.
-- LOG: Log path, if value empty then log will be disabled.
-- MIME: Response content type.
-- OUTPUT: Response content.
-- PACKAGE: Package name.
-- PARAMS: Current route parameters.
-- PATH: Current path.
-- PATTERN: Current route pattern.
-- PORT: Server port.
-- POST: Equivalent with ```$_POST```.
-- PROTOCOL: Http protocol.
-- QUIET: Wether to send hold response content or flush it.
-- RAW: Is request body will be manually processed or not.
-- REALM: Current url.
-- REQUEST: Request headers.
-- RESPONSE: Response headers.
-- ROUTE_ALIASES: Route aliases.
-- ROUTE_HANDLER_CTR: Route counter.
-- ROUTE_HANDLERS: Route handlers.
-- ROUTES: Route definitions.
-- SCHEME: Http schema.
-- SEED: Application seed.
-- SENT: Response sent status.
-- SERVER: Equivalent with ```$_SERVER```.
-- SERVICE_ALIASES: Service aliases.
-- SERVICE_RULES: Service rules.
-- SERVICES: Service instances.
-- SESSION: Equivalent with ```$_SESSION```.
-- STATUS: Response status text.
-- TEMP: Temporary path.
-- THRESHOLD: Log threshold.
-- TIME: Time since app construction.
-- TRACE: Cut path in trace file.
-- TZ: Current timezone.
-- URI: Current request URI.
-- VERB: Request method.
-- VERSION: Package version.
-- XFRAME: Xframe header.
+- AGENT (`string`)
+
+  Client user agent name.
+
+- AJAX (`bool`)
+
+  Ajax request status.
+
+- ALIAS (`string`)
+
+  Current matched route alias.
+
+- ALIASES (`array`)
+
+  Route aliases.
+
+- BASE (`string`)
+
+  Url base path.
+
+- BASEURL (`string`)
+
+  Base url.
+
+- BODY (`mixed`)
+
+  Request body.
+
+- CACHE (`string`)
+
+  Cache configuration.
+
+- CASELESS (`bool`)
+
+  Should route matching ignore case?
+
+- CLI (`bool`)
+
+  Cli request status.
+
+- CODE (`int`)
+
+  Http response code.
+
+- COOKIE (`array`)
+
+  Equivalent with `$_COOKIE`.
+
+- CTR (`int`)
+
+  Route map hander counter (*internal usage*).
+
+- DEBUG (`bool`)
+
+  Debug status.
+
+- DICT (`array`)
+
+  Dictionaries.
+
+- DNSBL (`array`)
+
+  Dns blacklist.
+
+- ENCODING (`string`)
+
+  Default charset.
+
+- ENGINE (`mixed`)
+
+  Cache engine definition (*internal usage*).
+
+- ERROR (`bool`)
+
+  Error status.
+
+- EVENTS (`array`)
+
+  Registered event handlers (*internal usage*).
+
+- EXEMPT (`array`)
+
+  Dns whitelist.
+
+- FALLBACK (`string`)
+
+  Language fallback.
+
+- FRONT (`string`)
+
+  This value will be added after url base path (BASE) and before url path.
+
+  Example:
+  ```php
+  $BASE = '/foo';
+  $FRONT = '/index.php';
+  $urlPath = '/bar';
+
+  // generated url will be:
+  $BASE.$FRONT.$urlPath // /foo/index.php/bar
+  ```
+
+- GET (`array`)
+
+  Equivalent with `$_GET`.
+
+- HANDLERS (`array`)
+
+  Route handlers (*internal usage*).
+
+- HOST (`string`)
+
+  Server host.
+
+- ID (`array`)
+
+  Service indexes.
+
+- IP (`string`)
+
+  Client Ip Address.
+
+- JAR (`array`)
+
+  Cookie jar.
+
+- LANGUAGE (`string`)
+
+  Language used. Support multiple language (separated by comma (,));
+
+- LOCALES (`array`)
+
+  Directories contains dictionary files (in php). File should returns array of language key and content.
+
+  Example:
+
+  ```php
+  // id-ID.php
+  // Indonesian language.
+  return array(
+    'apple' => 'Apple',
+    'i' => array(
+      'like' => array(
+        'melon' => 'Aku suka melon.'
+        'mango' => 'Aku suka mangga.'
+      ),
+    ),
+  );
+  ```
+
+- LOG (`string`)
+
+  Log directory. If not empty it will enable logging.
+
+- MIME (`string`)
+
+  Response content type.
+
+- OUTPUT (`string`)
+
+  Response content.
+
+- PACKAGE (`string`)
+
+  Package name.
+
+- PARAMS (`array`)
+
+  Current route parameters.
+
+- PATH (`string`)
+
+  Current request path.
+
+- PATTERN (`string`)
+
+  Current matched pattern.
+
+- PORT (`int`)
+
+  Server port.
+
+- POST (`array`)
+
+  Equivalent with `$_POST`.
+
+- PROTOCOL (`string`)
+
+  Http protocol.
+
+- QUIET (`bool`)
+
+  Response will be hold if these value is true.
+
+- RAW (`bool`)
+
+  Should framework read request body?
+
+- REF (`mixed`)
+
+  Cache engine instance (*internal usage*).
+
+- REQUEST (`array`)
+
+  Request headers.
+
+- RESPONSE (`array`)
+
+  Response headers.
+
+- ROUTES (`array`)
+
+  Routes definitions.
+
+- RULES (`array`)
+
+  Service rules.
+
+- SCHEME (`string`)
+
+  Http scheme.
+
+- SEED (`string`)
+
+  Application seed.
+
+- SENT (`bool`)
+
+  Is response sent?
+
+- SERVER (`array`)
+
+  Equivalent with `$_SERVER`
+
+- SERVICES (`array`)
+
+  Service instances.
+
+- SESSION (`array`)
+
+  Equivalent with `$_SESSION`.
+
+- STATUS (`string`)
+
+  Http status text.
+
+- TEMP (`string`)
+
+  Temp directory.
+
+- THRESHOLD (`string`)
+
+  Log threshold.
+
+- TIME (`float`)
+
+  Microtime since framework construction.
+
+- TZ (`string`)
+
+  Timezone.
+
+- URI (`string`)
+
+  Request URI.
+
+- URL (`string`)
+
+  Request URL.
+
+- VERB (`string`)
+
+  Http method.
+
+- VERSION (`string`)
+
+  Package version.
+
+- XFRAME (`string`)
+
+  Xframe header.
 
 [1]: http://fatfreeframework.com
 [2]: http://symfony.com
