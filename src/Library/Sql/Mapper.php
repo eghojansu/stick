@@ -120,7 +120,7 @@ class Mapper extends Magic
      */
     public function __construct(Fw $fw, Connection $db, string $table = null, array $fields = null, int $ttl = 60)
     {
-        $driver = $db->getDriver();
+        $driver = $db->driver();
         $use = $table ?? $this->_table ?? Str::snakecase(Str::classname($this));
         $fix = Connection::DB_OCI === $driver ? strtoupper($use) : $use;
         $schema = $db->schema($fix, $fields, $ttl);
@@ -994,7 +994,7 @@ class Mapper extends Magic
             $ofs = (int) $use['offset'];
             $lmt = (int) $use['limit'];
 
-            if (strncmp($this->_db->getVersion(), '11', 2) >= 0) {
+            if (strncmp($this->_db->version(), '11', 2) >= 0) {
                 // SQL Server >= 2012
                 $sql .= $order.' OFFSET '.$ofs.' ROWS';
 

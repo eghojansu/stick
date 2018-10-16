@@ -115,92 +115,6 @@ class Connection
     /**
      * Class constructor.
      *
-     * @param Fw    $fw
-     * @param array $options
-     */
-    public function __construct(Fw $fw, array $options)
-    {
-        $this->fw = $fw;
-        $this->setOptions($options);
-    }
-
-    /**
-     * Returns database driver name.
-     *
-     * @return string
-     */
-    public function getDriver(): string
-    {
-        if (null === $this->driver) {
-            $this->driver = $this->pdo()->getAttribute(\PDO::ATTR_DRIVER_NAME);
-        }
-
-        return $this->driver;
-    }
-
-    /**
-     * Returns database driver version.
-     *
-     * @return string
-     */
-    public function getVersion(): string
-    {
-        if (null === $this->version) {
-            $this->version = $this->pdo()->getAttribute(\PDO::ATTR_SERVER_VERSION);
-        }
-
-        return $this->version;
-    }
-
-    /**
-     * Returns current database name.
-     *
-     * @return string
-     */
-    public function getDbName(): string
-    {
-        return $this->dbname;
-    }
-
-    /**
-     * Returns logLevel.
-     *
-     * @return string
-     */
-    public function getLogLevel(): string
-    {
-        return $this->logLevel;
-    }
-
-    /**
-     * Set logLevel.
-     *
-     * In case you need to change log level higher or lower.
-     *
-     * @param string $logLevel
-     *
-     * @return Connection
-     */
-    public function setLogLevel(string $logLevel): Connection
-    {
-        $this->logLevel = $logLevel;
-
-        return $this;
-    }
-
-    /**
-     * Returns options.
-     *
-     * @return array
-     */
-    public function getOptions(): array
-    {
-        return $this->options;
-    }
-
-    /**
-     * Set options.
-     *
      * Available options (and its default value):
      *
      *     debug    bool    false           enable debug mode
@@ -209,13 +123,12 @@ class Connection
      *     password string  null
      *     username string  null
      *     options  array   []              A key=>value array of driver-specific connection options
-     *     commands array   void            Commands to be executed
+     *     commands array   void            Commands to be executed right after connection success
      *
+     * @param Fw    $fw
      * @param array $options
-     *
-     * @return Connection
      */
-    public function setOptions(array $options): Connection
+    public function __construct(Fw $fw, array $options)
     {
         $defaults = array(
             'debug' => false,
@@ -230,6 +143,7 @@ class Connection
         $fix = $options + $defaults;
         $dsn = $fix['dsn'];
         $driver = 'unknown';
+        $dbname = '';
         $driverDefaults = array(
             self::DB_MYSQL => array('options' => array(
                 \PDO::MYSQL_ATTR_INIT_COMMAND => 'SET NAMES '.strtolower(str_replace('-', '', $fix['encoding'])).';',
@@ -238,16 +152,76 @@ class Connection
 
         if ($dsn && preg_match($pattern, $dsn, $match)) {
             $driver = strstr($dsn, ':', true);
-            $this->dbname = $match[1];
+            $dbname = $match[1];
         }
 
+        $this->dbname = $dbname;
         $this->options = array_replace_recursive($fix, $driverDefaults[$driver] ?? array());
-        $this->pdo = null;
-        $this->driver = null;
-        $this->version = null;
-        $this->trans = false;
+        $this->fw = $fw;
+    }
+
+    /**
+     * Returns database driver name.
+     *
+     * @return string
+     */
+    public function driver(): string
+    {
+        if (null === $this->driver) {
+            $this->driver = $this->pdo()->getAttribute(\PDO::ATTR_DRIVER_NAME);
+        }
+
+        return $this->driver;
+    }
+
+    /**
+     * Returns database driver version.
+     *
+     * @return string
+     */
+    public function version(): string
+    {
+        if (null === $this->version) {
+            $this->version = $this->pdo()->getAttribute(\PDO::ATTR_SERVER_VERSION);
+        }
+
+        return $this->version;
+    }
+
+    /**
+     * Returns current database name.
+     *
+     * @return string
+     */
+    public function dbname(): string
+    {
+        return $this->dbname;
+    }
+
+    /**
+     * Set logLevel.
+     *
+     * In case you need to change log level higher or lower.
+     *
+     * @param string $logLevel
+     *
+     * @return Connection
+     */
+    public function logLevel(string $logLevel): Connection
+    {
+        $this->logLevel = $logLevel;
 
         return $this;
+    }
+
+    /**
+     * Returns options.
+     *
+     * @return array
+     */
+    public function options(): array
+    {
+        return $this->options;
     }
 
     /**
@@ -261,12 +235,15 @@ class Connection
     public function pdo(): \PDO
     {
         if (null === $this->pdo) {
-            $o = $this->options;
-
             try {
-                $this->pdo = new \PDO((string) $o['dsn'], (string) $o['username'], (string) $o['password'], $o['options']);
+                $this->pdo = new \PDO(...array(
+                    (string) $this->options['dsn'],
+                    (string) $this->options['username'],
+                    (string) $this->options['password'],
+                    $this->options['options'],
+                ));
 
-                foreach ((array) $o['commands'] as $query) {
+                foreach ((array) $this->options['commands'] as $query) {
                     $this->pdo->exec($query);
                 }
             } catch (\PDOException $e) {
@@ -524,7 +501,7 @@ class Connection
         $start = microtime(true);
         $message = '(%.1f) %sRetrieving table "%s" schema';
         $hash = $this->fw->hash($table.var_export($fields, true)).'.schema';
-        $db = $this->getDbName();
+        $db = $this->dbname();
 
         if ($ttl && $this->fw->isCached($hash, $data)) {
             $message = sprintf('(%.1fms) [CACHED] Retrieving schema of %s table', 1e3 * (microtime(true) - $start), $table);
@@ -578,7 +555,7 @@ class Connection
      */
     public function quote($val, $type = null): string
     {
-        if (self::DB_ODBC === $this->getDriver()) {
+        if (self::DB_ODBC === $this->driver()) {
             return is_string($val) ? str_replace('\'', '\'\'', $val) : (string) $val;
         }
 
@@ -595,7 +572,7 @@ class Connection
      */
     public function quotekey(string $key, bool $split = true): string
     {
-        $driver = $this->getDriver();
+        $driver = $this->driver();
         $engines = array(
             self::DB_SQLITE => '``',
             self::DB_SQLITE2 => '``',
@@ -715,7 +692,7 @@ class Connection
         $auto = false;
         $count = 1;
         $one = true;
-        $driver = $this->getDriver();
+        $driver = $this->driver();
         $fetchPattern = array(
             '/(?:^[\s\(]*(?:EXPLAIN|SELECT|PRAGMA|SHOW)|RETURNING)\b/is',
             '/^\s*(?:CALL|EXEC)\b/is',
@@ -844,7 +821,7 @@ class Connection
      *
      * @return int
      */
-    public function getRows(): int
+    public function rows(): int
     {
         return $this->rows;
     }
@@ -984,7 +961,7 @@ class Connection
                 'FIELD', 'TYPE', 'DEFVAL', 'NULLABLE', 'Y', 'PKEY', 'P',
             ),
         );
-        $driver = $this->getDriver();
+        $driver = $this->driver();
 
         if (isset($engines[$driver])) {
             return $cmds[$engines[$driver]];
