@@ -225,7 +225,7 @@ final class Fw extends Magic
         );
         $this->_init = array('GET' => null, 'POST' => null) + $this->_hive;
 
-        // register_shutdown_function(array($this, 'unload'), getcwd());
+        register_shutdown_function(array($this, 'unload'), getcwd());
     }
 
     /**
@@ -999,8 +999,7 @@ final class Fw extends Magic
         $content = file_exists($file) ? self::requireFile($file, array()) : array();
 
         foreach ($content as $key => $val) {
-            $lkey = strtolower($key);
-            $call = $maps[$lkey] ?? null;
+            $call = $maps[strtolower($key)] ?? null;
 
             if ($call) {
                 foreach ((array) $val as $args) {
