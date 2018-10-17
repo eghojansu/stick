@@ -34,8 +34,11 @@ final class Env
     {
         foreach ($files as $file) {
             if (is_file($file)) {
-                $__DIR__ = dirname($file);
-                self::merge(parse_ini_file($file, true, INI_SCANNER_TYPED));
+                self::merge(parse_ini_string(...array(
+                    str_replace('%__DIR__%', dirname($file), file_get_contents($file)),
+                    true,
+                    INI_SCANNER_TYPED,
+                )));
             }
         }
     }
