@@ -152,13 +152,13 @@ final class Template
     /**
      * Encode characters to equivalent HTML entities.
      *
-     * @param  mixed $arg
+     * @param mixed $arg
      *
      * @return mixed
      */
     public function esc($arg)
     {
-        return $this->fw->recursive($arg, function($val) {
+        return $this->fw->recursive($arg, function ($val) {
             return is_string($val) ? $this->fw->encode($val) : $val;
         });
     }
@@ -166,13 +166,13 @@ final class Template
     /**
      * Decode HTML entities to equivalent characters.
      *
-     * @param  mixed $arg
+     * @param mixed $arg
      *
      * @return mixed
      */
     public function raw($arg)
     {
-        return $this->fw->recursive($arg, function($val) {
+        return $this->fw->recursive($arg, function ($val) {
             return is_string($val) ? $this->fw->decode($val) : $val;
         });
     }

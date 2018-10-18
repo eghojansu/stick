@@ -382,7 +382,7 @@ final class Fw extends Magic
     /**
      * Convert special characters to HTML entities.
      *
-     * @param  string $str
+     * @param string $str
      *
      * @return string
      */
@@ -394,7 +394,7 @@ final class Fw extends Magic
     /**
      * Convert HTML entities back to characters.
      *
-     * @param  string $str
+     * @param string $str
      *
      * @return string
      */
@@ -1288,9 +1288,9 @@ final class Fw extends Magic
     /**
      * Invoke callback recursively for all data types.
      *
-     * @param  mixed    $arg
-     * @param  callable $cb
-     * @param  array    $stack
+     * @param mixed    $arg
+     * @param callable $cb
+     * @param array    $stack
      *
      * @return mixed
      */
