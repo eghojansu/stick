@@ -22,7 +22,7 @@ use Fal\Stick\Magic;
  *
  * @author Eko Kurniawan <ekokurniawanbs@gmail.com>
  */
-class Mapper extends Magic
+class Mapper extends Magic implements \IteratorAggregate
 {
     // Paginate perpage
     const PAGINATE_LIMIT = 10;
@@ -151,6 +151,16 @@ class Mapper extends Magic
         }
 
         return $this->_fw->instance(static::class, compact('table', 'fields', 'ttl'));
+    }
+
+    /**
+     * Retrieve external iterator for fields.
+     *
+     * @return ArrayIterator
+     */
+    public function getIterator()
+    {
+        return new \ArrayIterator($this->toArray());
     }
 
     /**

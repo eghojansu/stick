@@ -124,7 +124,13 @@ class TemplateFile
      */
     public function render(): string
     {
-        extract($this->data + $this->fw->hive());
+        $data = $this->data + $this->fw->hive();
+
+        if ($this->engine->isAutoEscape()) {
+            $data = $this->engine->esc($data);
+        }
+
+        extract($data);
         ob_start();
         $this->level = ob_get_level();
         include $this->realpath;
@@ -313,13 +319,13 @@ class TemplateFile
      * Proxy to Template::call.
      *
      * @param string $func
-     * @param mixed  $args
+     * @param array  $args
      *
      * @return mixed
      */
     public function __call($func, $args)
     {
-        return $this->engine->call($func, $args);
+        return $this->engine->$func(...$args);
     }
 
     /**

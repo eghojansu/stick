@@ -164,6 +164,7 @@ final class Fw extends Magic
             'ALIASES' => null,
             'BASE' => $base,
             'BASEURL' => $domainPort.$base,
+            'BITMASK' => ENT_COMPAT,
             'BODY' => null,
             'CACHE' => null,
             'CASELESS' => false,
@@ -376,6 +377,30 @@ final class Fw extends Magic
         }
 
         return $headers;
+    }
+
+    /**
+     * Convert special characters to HTML entities.
+     *
+     * @param  string $str
+     *
+     * @return string
+     */
+    public function encode(string $str): string
+    {
+        return htmlspecialchars($str, $this->_hive['BITMASK'], $this->_hive['ENCODING']);
+    }
+
+    /**
+     * Convert HTML entities back to characters.
+     *
+     * @param  string $str
+     *
+     * @return string
+     */
+    public function decode(string $str): string
+    {
+        return htmlspecialchars_decode($str, $this->_hive['BITMASK']);
     }
 
     /**
@@ -1258,6 +1283,63 @@ final class Fw extends Magic
         $this->call($callable);
 
         return $this;
+    }
+
+    /**
+     * Invoke callback recursively for all data types.
+     *
+     * @param  mixed    $arg
+     * @param  callable $cb
+     * @param  array    $stack
+     *
+     * @return mixed
+     */
+    public function recursive($arg, callable $cb, array $stack = array())
+    {
+        if ($stack) {
+            foreach ($stack as $node) {
+                if ($arg === $node) {
+                    return $arg;
+                }
+            }
+        }
+
+        $type = gettype($arg);
+
+        if ('object' === $type) {
+            $ref = new \ReflectionClass($arg);
+
+            if ($ref->isCloneable()) {
+                $arg = clone $arg;
+                $cast = is_a($arg, 'IteratorAggregate') ? iterator_to_array($arg) : get_object_vars($arg);
+
+                foreach ($cast as $key => $val) {
+                    $arg->$key = $this->recursive(...array(
+                        $val,
+                        $cb,
+                        array_merge($stack, array($arg)),
+                    ));
+                }
+            }
+
+            return $arg;
+        }
+
+        if ('array' === $type) {
+            $copy = array();
+
+            foreach ($arg as $key => $val) {
+                $copy[$key] = $this->recursive(...array(
+                    $val,
+                    $cb,
+                    array_merge($stack, array($arg)),
+                ));
+            }
+
+            return $copy;
+        }
+
+        return $cb($arg);
     }
 
     /**

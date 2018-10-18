@@ -38,6 +38,11 @@ final class Template
     private $dirs;
 
     /**
+     * @var bool
+     */
+    private $autoEscape;
+
+    /**
      * Macro aliases.
      *
      * @var array
@@ -49,19 +54,19 @@ final class Template
      *
      * @var array
      */
-    private $funcs = array(
-        'e' => 'htmlspecialchars',
-    );
+    private $funcs = array();
 
     /**
      * Class constructor.
      *
      * @param Fw    $fw
      * @param array $dirs
+     * @param bool  $escape
      */
-    public function __construct(Fw $fw, array $dirs = null)
+    public function __construct(Fw $fw, array $dirs = null, bool $escape = true)
     {
         $this->fw = $fw;
+        $this->autoEscape = $escape;
         $this->setDirs((array) $dirs);
     }
 
@@ -121,34 +126,83 @@ final class Template
     }
 
     /**
-     * Call registered function.
+     * Set autoescape status.
      *
-     * @param string $func
-     * @param mixed  $args
+     * @param bool $autoEscape
+     *
+     * @return Template
+     */
+    public function setAutoEscape(bool $autoEscape): Template
+    {
+        $this->autoEscape = $autoEscape;
+
+        return $this;
+    }
+
+    /**
+     * Returns autoescape status.
+     *
+     * @return bool
+     */
+    public function isAutoEscape(): bool
+    {
+        return $this->autoEscape;
+    }
+
+    /**
+     * Encode characters to equivalent HTML entities.
+     *
+     * @param  mixed $arg
      *
      * @return mixed
-     *
-     * @throws BadFunctionCallException if function cannot be resolved
      */
-    public function call(string $func, array $args = null)
+    public function esc($arg)
     {
-        $call = $func;
-        $mArgs = (array) $args;
+        return $this->fw->recursive($arg, function($val) {
+            return is_string($val) ? $this->fw->encode($val) : $val;
+        });
+    }
 
-        if (isset($this->funcs[$func])) {
-            $call = $this->funcs[$func];
-        } elseif ('macro' === $func) {
-            $call = array($this, 'macro');
-        } elseif (method_exists($this->fw, $func)) {
-            $call = array($this->fw, $func);
-        } elseif ($macro = $this->findMacro($func)) {
-            $call = array($this, 'macro');
-            $mArgs = array($macro, $args);
-        } else {
-            throw new \BadFunctionCallException('Call to undefined function '.$func.'.');
+    /**
+     * Decode HTML entities to equivalent characters.
+     *
+     * @param  mixed $arg
+     *
+     * @return mixed
+     */
+    public function raw($arg)
+    {
+        return $this->fw->recursive($arg, function($val) {
+            return is_string($val) ? $this->fw->decode($val) : $val;
+        });
+    }
+
+    /**
+     * Returns rendered macro.
+     *
+     * @param string     $macro
+     * @param array|null $args
+     *
+     * @return string
+     *
+     * @throws LogicException If macro not exists
+     */
+    public function macro(string $macro, array $args = null): string
+    {
+        $realpath = is_file($macro) ? $macro : $this->findMacro($macro);
+
+        if (!$realpath) {
+            throw new \LogicException('Macro not exists: "'.$macro.'".');
         }
 
-        return $call(...$mArgs);
+        if ($args) {
+            $keys = explode(',', 'arg'.implode(',arg', range(1, count($args))));
+            $args = array_combine($keys, $args);
+        }
+
+        $template = new TemplateFile($this->fw, $this, $realpath, $args);
+
+        return $template->render();
     }
 
     /**
@@ -202,34 +256,6 @@ final class Template
     }
 
     /**
-     * Returns rendered macro.
-     *
-     * @param string     $macro
-     * @param array|null $args
-     *
-     * @return string
-     *
-     * @throws LogicException If macro not exists
-     */
-    private function macro(string $macro, array $args = null): string
-    {
-        $realpath = is_file($macro) ? $macro : $this->findMacro($macro);
-
-        if (!$realpath) {
-            throw new \LogicException('Macro not exists: "'.$macro.'".');
-        }
-
-        if ($args) {
-            $keys = explode(',', 'arg'.implode(',arg', range(1, count($args))));
-            $args = array_combine($keys, $args);
-        }
-
-        $template = new TemplateFile($this->fw, $this, $realpath, $args);
-
-        return $template->render();
-    }
-
-    /**
      * Returns true if macro file exists.
      *
      * @param string $macro
@@ -252,5 +278,33 @@ final class Template
         }
 
         return null;
+    }
+
+    /**
+     * Call registered function.
+     *
+     * @param string $func
+     * @param array  $args
+     *
+     * @return mixed
+     *
+     * @throws BadFunctionCallException if function cannot be resolved
+     */
+    public function __call($func, $args)
+    {
+        $call = $func;
+
+        if (isset($this->funcs[$func])) {
+            $call = $this->funcs[$func];
+        } elseif (method_exists($this->fw, $func)) {
+            $call = array($this->fw, $func);
+        } elseif ($macro = $this->findMacro($func)) {
+            $call = array($this, 'macro');
+            $args = array($macro, $args);
+        } else {
+            throw new \BadFunctionCallException('Call to undefined function '.$func.'.');
+        }
+
+        return $call(...$args);
     }
 }

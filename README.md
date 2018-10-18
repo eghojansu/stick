@@ -72,6 +72,10 @@ System variables and its *expected* type.
 
   Base url.
 
+- BITMASK (`int`)
+
+  htmlspecialchars flags bitmask.
+
 - BODY (`mixed`)
 
   Request body.
