@@ -114,7 +114,7 @@ class TemplateFile
         $this->engine = $engine;
         $this->file = $file;
         $this->data = (array) $data;
-        $this->realpath = is_file($this->file) ? $this->file : $this->findFile();
+        $this->realpath = $this->findFile();
     }
 
     /**
@@ -124,7 +124,8 @@ class TemplateFile
      */
     public function render(): string
     {
-        $data = $this->data + $this->fw->hive();
+        $excludes = array('HANDLERS', 'ROUTES', 'SERVICES');
+        $data = $this->data + array_fill_keys($excludes, null) + $this->fw->hive();
 
         if ($this->engine->isAutoEscape()) {
             $data = $this->engine->esc($data);

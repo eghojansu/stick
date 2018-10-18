@@ -189,9 +189,7 @@ final class Template
      */
     public function macro(string $macro, array $args = null): string
     {
-        $realpath = is_file($macro) ? $macro : $this->findMacro($macro);
-
-        if (!$realpath) {
+        if (!$path = $this->findMacro($macro)) {
             throw new \LogicException('Macro not exists: "'.$macro.'".');
         }
 
@@ -200,7 +198,7 @@ final class Template
             $args = array_combine($keys, $args);
         }
 
-        $template = new TemplateFile($this->fw, $this, $realpath, $args);
+        $template = new TemplateFile($this->fw, $this, $path, $args);
 
         return $template->render();
     }
@@ -256,7 +254,7 @@ final class Template
     }
 
     /**
-     * Returns true if macro file exists.
+     * Returns macro path if macro file exists.
      *
      * @param string $macro
      *
@@ -266,14 +264,10 @@ final class Template
     {
         $id = $this->macros[$macro] ?? $macro;
 
-        if (is_file($id)) {
-            return $id;
-        }
-
         foreach ($this->dirs as $dir) {
-            if (is_file($file = $dir.'macros/'.$id) ||
-                is_file($file = $dir.'macros/'.$id.'.php')) {
-                return $file;
+            if (is_file($dir.($path = 'macros/'.$id)) ||
+                is_file($dir.($path = 'macros/'.$id.'.php'))) {
+                return $path;
             }
         }
 
@@ -298,11 +292,9 @@ final class Template
             $call = $this->funcs[$func];
         } elseif (method_exists($this->fw, $func)) {
             $call = array($this->fw, $func);
-        } elseif ($macro = $this->findMacro($func)) {
-            $call = array($this, 'macro');
-            $args = array($macro, $args);
         } else {
-            throw new \BadFunctionCallException('Call to undefined function '.$func.'.');
+            $call = array($this, 'macro');
+            $args = array($func, $args);
         }
 
         return $call(...$args);
