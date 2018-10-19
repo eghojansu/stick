@@ -229,6 +229,7 @@ class Crud
         $crudData = new CrudData(...array(
             $this->fw,
             $this->auth,
+            $this->options['states'],
             $this->hive['route'],
             $this->options['roles'],
             $this->hive + $data + $complement + $this->data,
@@ -245,7 +246,7 @@ class Crud
      *
      * @return Crud
      */
-    public function disabled($states): Crud
+    public function disable($states): Crud
     {
         $this->options['states'] = array_fill_keys($this->arr($states), false) + $this->options['states'];
 

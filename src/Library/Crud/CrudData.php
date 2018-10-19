@@ -43,6 +43,11 @@ class CrudData extends Magic
     /**
      * @var array
      */
+    private $states;
+
+    /**
+     * @var array
+     */
     private $roles;
 
     /**
@@ -60,15 +65,17 @@ class CrudData extends Magic
      *
      * @param Fw            $app
      * @param Auth          $auth
+     * @param states        $roles
      * @param string        $route
      * @param array         $roles
      * @param array         $data
      * @param callable|null $displayer
      */
-    public function __construct(Fw $fw, Auth $auth, string $route, array $roles, array $data, callable $displayer = null)
+    public function __construct(Fw $fw, Auth $auth, array $states, string $route, array $roles, array $data, callable $displayer = null)
     {
         $this->fw = $fw;
         $this->auth = $auth;
+        $this->states = $states;
         $this->route = $route;
         $this->roles = $roles;
         $this->data = $data;
@@ -152,8 +159,9 @@ class CrudData extends Magic
      */
     public function isGranted(string $state): bool
     {
+        $enabled = $this->states[$state] ?? false;
         $roles = $this->roles[$state] ?? null;
 
-        return !$roles || $this->auth->isGranted($roles);
+        return $enabled && (!$roles || $this->auth->isGranted($roles));
     }
 }
