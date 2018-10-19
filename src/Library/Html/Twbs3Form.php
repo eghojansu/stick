@@ -20,6 +20,10 @@ namespace Fal\Stick\Library\Html;
  */
 class Twbs3Form extends Form
 {
+    const MARK_NONE = 0;
+    const MARK_SUCCESS = 1;
+    const MARK_ERROR = 2;
+
     /**
      * Left column class name.
      *
@@ -40,6 +44,37 @@ class Twbs3Form extends Form
      * @var string
      */
     protected $_rightColClass = 'col-sm-10';
+
+    /**
+     * Mark field state.
+     *
+     * @var int
+     */
+    protected $_markState = self::MARK_ERROR;
+
+    /**
+     * Returns mark state.
+     *
+     * @return int
+     */
+    public function getMarkState(): int
+    {
+        return $this->_markState;
+    }
+
+    /**
+     * Set mark state.
+     *
+     * @param int $markState
+     *
+     * @return Twbs3Form
+     */
+    public function setMarkState(int $markState): Twbs3Form
+    {
+        $this->_markState = $markState;
+
+        return $this;
+    }
 
     /**
      * Returns left column class name.
@@ -225,7 +260,11 @@ class Twbs3Form extends Form
         $wrapperClass = 'form-group';
 
         if ($this->_submitted && isset($this->_fields[$field]['options']['constraints'])) {
-            $wrapperClass .= $errors ? ' has-error' : ' has-success';
+            if (($this->_markState & self::MARK_SUCCESS) && !$errors) {
+                $wrapperClass .= ' has-success';
+            } elseif (($this->_markState & self::MARK_ERROR) && $errors) {
+                $wrapperClass .= ' has-error';
+            }
         }
 
         if (in_array($type, array('checkbox', 'radio'))) {
