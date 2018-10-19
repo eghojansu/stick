@@ -177,7 +177,7 @@ final class Fw extends Magic
             'DNSBL' => null,
             'ENCODING' => $charset,
             'ENGINE' => null,
-            'ERROR' => false,
+            'ERROR' => null,
             'EVENTS' => null,
             'EXEMPT' => null,
             'FALLBACK' => 'en',
@@ -521,13 +521,15 @@ final class Fw extends Magic
     {
         chdir($cwd);
         $error = error_get_last();
-        $fatalError = array(E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR);
+        $fatal = array(E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR);
 
         if (!$error && PHP_SESSION_ACTIVE === session_status()) {
             session_commit();
         }
 
-        if (!$this->trigger(self::EVENT_SHUTDOWN, array($error)) && $error && in_array($error['type'], $fatalError)) {
+        $handled = $this->trigger(self::EVENT_SHUTDOWN, array($error));
+
+        if (!$handled && $error && in_array($error['type'], $fatal)) {
             $this->error(500, $error['message'], array($error));
         }
     }
@@ -1950,17 +1952,29 @@ final class Fw extends Magic
         $mTrace = $this->_hive['DEBUG'] ? $this->trace($trace) : '';
 
         $prior = $this->_hive['ERROR'];
-        $this->_hive['ERROR'] = true;
+        $this->_hive['ERROR'] = array(
+            'code' => $httpCode,
+            'status' => $status,
+            'text' => $text,
+            'trace' => $mTrace,
+        );
 
         if ($prior) {
             return $this;
         }
 
         $this->_hive['RESPONSE'] = (array) $headers;
-
         $this->expire(-1)->logByCode($level ?? E_USER_ERROR, $text.PHP_EOL.$mTrace);
 
-        if ($response = $this->trigger(self::EVENT_ERROR, array($message, $mTrace), true)) {
+        try {
+            $response = $this->trigger(self::EVENT_ERROR, array($message, $mTrace), true);
+        } catch (\Throwable $e) {
+            $response = true;
+            $this->_hive['ERROR'] = null;
+            $this->handleException($e);
+        }
+
+        if ($response) {
             $this->sendResponse($response);
 
             return $this;
