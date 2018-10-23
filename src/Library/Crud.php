@@ -213,6 +213,18 @@ class Crud extends Magic implements \IteratorAggregate
     }
 
     /**
+     * Check functions.
+     *
+     * @param  string $name
+     *
+     * @return bool
+     */
+    public function hasFunction(string $name): bool
+    {
+        return isset($this->_funcs[$name]);
+    }
+
+    /**
      * Enable state.
      *
      * @param string|array $states
