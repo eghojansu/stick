@@ -1793,6 +1793,7 @@ final class Fw extends Magic
         $this->_hive['AJAX'] = 'ajax' === $mode;
         $this->_hive['CLI'] = 'cli' === $mode;
         $this->_hive['POST'] = 'POST' === $verb ? $args : array();
+        $this->_hive['URL'] = $this->_hive['BASEURL'].$this->_hive['URI'];
 
         parse_str(ltrim($query, '?'), $this->_hive['GET']);
 

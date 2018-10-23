@@ -109,6 +109,7 @@ class Crud extends Magic implements \IteratorAggregate
         'views' => null,
         'fields' => null,
         'roles' => null,
+        'create_new' => false,
     );
 
     /**
@@ -445,14 +446,21 @@ class Crud extends Magic implements \IteratorAggregate
             '%table%' => $this->_data['mapper']->table(),
             '%id%' => implode(', ', $this->_data['mapper']->keys()),
         ));
-        $this->_fw->set($var, $message)->reroute(array(
-            $this->_data['route'],
-            array_merge((array) $this->_options['route_args'], array('index')),
-            array_filter(array(
-                $this->_options['page_query_name'] => $this->_data['page'],
-                $this->_options['keyword_query_name'] => $this->_data['keyword'],
-            ), 'is_scalar'),
-        ));
+
+        if ($this->_options['create_new'] && $this->_data['form']->create_new && 'create' === $this->_data['state']) {
+            $target = null;
+        } else {
+            $target = array(
+                $this->_data['route'],
+                array_merge((array) $this->_options['route_args'], array('index')),
+                array_filter(array(
+                    $this->_options['page_query_name'] => $this->_data['page'],
+                    $this->_options['keyword_query_name'] => $this->_data['keyword'],
+                ), 'is_scalar'),
+            );
+        }
+
+        $this->_fw->set($var, $message)->reroute($target);
 
         return false;
     }
