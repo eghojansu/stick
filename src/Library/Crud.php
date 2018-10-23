@@ -110,6 +110,8 @@ class Crud extends Magic implements \IteratorAggregate
         'fields' => null,
         'roles' => null,
         'create_new' => false,
+        'create_new_label' => null,
+        'create_new_session_key' => 'SESSION.crud_create_new',
     );
 
     /**
@@ -442,14 +444,17 @@ class Crud extends Magic implements \IteratorAggregate
     protected function goBack(string $key, string $messageKey): bool
     {
         $var = $this->_options[$key];
+        $createNewKey = $this->_options['create_new_session_key'];
         $message = strtr($this->_options[$messageKey.'_message'] ?? '', array(
             '%table%' => $this->_data['mapper']->table(),
             '%id%' => implode(', ', $this->_data['mapper']->keys()),
         ));
 
         if ($this->_options['create_new'] && $this->_data['form']->create_new && 'create' === $this->_data['state']) {
+            $createNew = true;
             $target = null;
         } else {
+            $createNew = false;
             $target = array(
                 $this->_data['route'],
                 array_merge((array) $this->_options['route_args'], array('index')),
@@ -460,7 +465,11 @@ class Crud extends Magic implements \IteratorAggregate
             );
         }
 
-        $this->_fw->set($var, $message)->reroute($target);
+        $this->_fw
+            ->set($var, $message)
+            ->set($createNewKey, $createNew)
+            ->reroute($target)
+        ;
 
         return false;
     }
@@ -576,31 +585,31 @@ class Crud extends Magic implements \IteratorAggregate
     }
 
     /**
-     * Resolve form options.
+     * Prepare form.
      *
-     * @return array
+     * @return Form
      */
-    protected function resolveFormOptions(): array
+    protected function prepareForm(): Form
     {
-        $option = $this->_options['form_options'];
+        $values = array_filter($this->_data['mapper']->toArray(), 'is_scalar');
+        $initial = $this->_data['mapper']->toArray('initial');
+        $data = ((array) $this->trigger('on_prepare_data')) + $values + $initial;
+        $options = $this->_options['form_options'];
 
-        if (is_callable($option)) {
-            return (array) $this->_fw->call($option);
+        if (is_callable($options)) {
+            $options = $this->_fw->call($options);
         }
 
-        return (array) $option;
-    }
+        $this->_data['form']->build((array) $options, $data);
 
-    /**
-     * Prepare data before assign to update.
-     *
-     * @return array
-     */
-    protected function prepareData(): array
-    {
-        $data = array_filter($this->_data['mapper']->toArray(), 'is_scalar') + $this->_data['mapper']->toArray('initial');
+        if ($this->_options['create_new'] && 'create' === $this->_data['state'] && !$this->_data['form']->fieldExists('create_new')) {
+            $this->_data['form']->add('create_new', 'checkbox', array(
+                'label' => $this->_options['create_new_label'],
+                'attr' => array('checked' => $this->_fw->get($this->_options['create_new_session_key'])),
+            ));
+        }
 
-        return ((array) $this->trigger('on_prepare_data')) + $data;
+        return $this->_data['form'];
     }
 
     /**
@@ -655,7 +664,7 @@ class Crud extends Magic implements \IteratorAggregate
      */
     protected function stateCreate(): bool
     {
-        $form = $this->_data['form']->build($this->resolveFormOptions(), $this->prepareData());
+        $form = $this->prepareForm();
 
         if ($form->isSubmitted() && $form->valid()) {
             $data = (array) $this->trigger('before_create');
@@ -677,7 +686,7 @@ class Crud extends Magic implements \IteratorAggregate
     {
         $this->stateView();
 
-        $form = $this->_data['form']->build($this->resolveFormOptions(), $this->prepareData());
+        $form = $this->prepareForm();
 
         if ($form->isSubmitted() && $form->valid()) {
             $data = (array) $this->trigger('before_update');

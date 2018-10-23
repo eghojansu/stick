@@ -275,6 +275,18 @@ class Form extends Magic implements \IteratorAggregate
     }
 
     /**
+     * Returns true if field exists.
+     *
+     * @param  string $name
+     *
+     * @return bool
+     */
+    public function fieldExists(string $name): bool
+    {
+        return isset($this->_fields[$name]);
+    }
+
+    /**
      * Returns the form buttons.
      *
      * @return array
@@ -282,6 +294,18 @@ class Form extends Magic implements \IteratorAggregate
     public function getButtons(): array
     {
         return $this->_buttons;
+    }
+
+    /**
+     * Returns true if button exists.
+     *
+     * @param  string $name
+     *
+     * @return bool
+     */
+    public function buttonExists(string $name): bool
+    {
+        return isset($this->_buttons[$name]);
     }
 
     /**
