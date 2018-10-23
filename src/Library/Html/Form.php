@@ -16,13 +16,14 @@ namespace Fal\Stick\Library\Html;
 use Fal\Stick\Fw;
 use Fal\Stick\Library\Str;
 use Fal\Stick\Library\Validation\Validator;
+use Fal\Stick\Magic;
 
 /**
  * Form helper.
  *
  * @author Eko Kurniawan <ekokurniawanbs@gmail.com>
  */
-class Form
+class Form extends Magic implements \IteratorAggregate
 {
     /**
      * @var Fw
@@ -114,31 +115,53 @@ class Form
     }
 
     /**
-     * Returns single field value.
-     *
-     * @param string $field
-     * @param mixed  $default
-     *
-     * @return mixed
+     * {@inheritdoc}
      */
-    public function get(string $field, $default = null)
+    public function exists(string $key): bool
     {
-        return array_key_exists($field, $this->_data) ? $this->_data[$field] : $default;
+        return array_key_exists($key, $this->_data);
     }
 
     /**
-     * Sets field value.
-     *
-     * @param string $field
-     * @param mixed  $value
-     *
-     * @return Form
+     * {@inheritdoc}
      */
-    public function set(string $field, $value): Form
+    public function &get(string $key)
     {
-        $this->_data[$field] = $value;
+        if (!$this->exists($key)) {
+            $this->_data[$key] = null;
+        }
+
+        return $this->_data[$key];
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function set(string $key, $val): Magic
+    {
+        $this->_data[$key] = $val;
 
         return $this;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function clear(string $key): Magic
+    {
+        unset($this->_data[$key]);
+
+        return $this;
+    }
+
+    /**
+     * Retrieve external iterator for data.
+     *
+     * @return ArrayIterator
+     */
+    public function getIterator()
+    {
+        return new \ArrayIterator($this->_data);
     }
 
     /**
@@ -873,28 +896,5 @@ class Form
     protected function formName(string $field): string
     {
         return $this->_name.'['.$field.']';
-    }
-
-    /**
-     * Convenience method to get single field value.
-     *
-     * @param string $field
-     *
-     * @return mixed
-     */
-    public function __get($field)
-    {
-        return $this->get($field);
-    }
-
-    /**
-     * Convenience method to sets single field value.
-     *
-     * @param string $field
-     * @param mixed  $value
-     */
-    public function __set($field, $value)
-    {
-        $this->set($field, $value);
     }
 }

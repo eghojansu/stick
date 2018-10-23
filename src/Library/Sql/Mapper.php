@@ -516,13 +516,14 @@ class Mapper extends Magic implements \IteratorAggregate
     /**
      * Cast mapper to array.
      *
+     * @param string        $from take value from initial, default or value
      * @param callable|null $func
      *
      * @return array
      */
-    public function toArray(callable $transformer = null): array
+    public function toArray(string $from = 'value', callable $transformer = null): array
     {
-        $result = array_column($this->_fields + $this->_adhoc + $this->_props, 'value', 'name');
+        $result = array_column($this->_fields + $this->_adhoc + $this->_props, $from, 'name');
 
         return $transformer ? $transformer($result) : $result;
     }
