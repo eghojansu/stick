@@ -210,6 +210,20 @@ class Crud extends Magic implements \IteratorAggregate
     }
 
     /**
+     * Enable state.
+     *
+     * @param string|array $states
+     *
+     * @return Crud
+     */
+    public function enable($states): Crud
+    {
+        $this->_options['states'] = array_fill_keys($this->arr($states), true) + $this->_options['states'];
+
+        return $this;
+    }
+
+    /**
      * Disable state.
      *
      * @param string|array $states
