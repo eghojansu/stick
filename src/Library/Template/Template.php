@@ -121,25 +121,25 @@ final class Template
     /**
      * Encode characters to equivalent HTML entities.
      *
-     * @param string $str
+     * @param string|null $str
      *
      * @return string
      */
-    public function esc(string $str): string
+    public function esc(string $str = null): string
     {
-        return $this->fw->encode($str);
+        return $this->fw->encode((string) $str);
     }
 
     /**
      * Decode HTML entities to equivalent characters.
      *
-     * @param string $str
+     * @param string|null $str
      *
      * @return string
      */
-    public function raw(string $str): string
+    public function raw(string $str = null): string
     {
-        return $this->fw->decode($str);
+        return $this->fw->decode((string) $str);
     }
 
     /**
