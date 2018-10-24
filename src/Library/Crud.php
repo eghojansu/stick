@@ -337,7 +337,8 @@ class Crud extends Magic
             throw new \LogicException('No route defined.');
         }
 
-        $args = is_string($path) ? explode('/', $path) : $path;
+        $paths = is_string($path) ? explode('/', $path) : $path;
+        $args = array_merge((array) $this->_options['route_args'], $paths);
 
         return $this->_fw->path($this->_data['route'], $args, $query);
     }
