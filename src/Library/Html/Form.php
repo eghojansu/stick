@@ -23,7 +23,7 @@ use Fal\Stick\Magic;
  *
  * @author Eko Kurniawan <ekokurniawanbs@gmail.com>
  */
-class Form extends Magic implements \IteratorAggregate
+class Form extends Magic
 {
     /**
      * @var Fw
@@ -155,16 +155,6 @@ class Form extends Magic implements \IteratorAggregate
     }
 
     /**
-     * Retrieve external iterator for data.
-     *
-     * @return ArrayIterator
-     */
-    public function getIterator()
-    {
-        return new \ArrayIterator($this->_data);
-    }
-
-    /**
      * Returns the form name.
      *
      * @return string
@@ -277,7 +267,7 @@ class Form extends Magic implements \IteratorAggregate
     /**
      * Returns true if field exists.
      *
-     * @param  string $name
+     * @param string $name
      *
      * @return bool
      */
@@ -299,7 +289,7 @@ class Form extends Magic implements \IteratorAggregate
     /**
      * Returns true if button exists.
      *
-     * @param  string $name
+     * @param string $name
      *
      * @return bool
      */

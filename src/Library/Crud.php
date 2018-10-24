@@ -26,7 +26,7 @@ use Fal\Stick\Magic;
  *
  * @author Eko Kurniawan <ekokurniawanbs@gmail.com>
  */
-class Crud extends Magic implements \IteratorAggregate
+class Crud extends Magic
 {
     const STATE_LISTING = 'listing';
     const STATE_VIEW = 'view';
@@ -188,16 +188,6 @@ class Crud extends Magic implements \IteratorAggregate
     }
 
     /**
-     * Retrieve external iterator for data.
-     *
-     * @return ArrayIterator
-     */
-    public function getIterator()
-    {
-        return new \ArrayIterator($this->_data);
-    }
-
-    /**
      * Register function.
      *
      * @param string   $name
@@ -215,7 +205,7 @@ class Crud extends Magic implements \IteratorAggregate
     /**
      * Check functions.
      *
-     * @param  string $name
+     * @param string $name
      *
      * @return bool
      */

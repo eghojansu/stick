@@ -38,11 +38,6 @@ final class Template
     private $dirs;
 
     /**
-     * @var bool
-     */
-    private $autoEscape;
-
-    /**
      * Macro aliases.
      *
      * @var array
@@ -61,12 +56,10 @@ final class Template
      *
      * @param Fw    $fw
      * @param array $dirs
-     * @param bool  $escape
      */
-    public function __construct(Fw $fw, array $dirs = null, bool $escape = true)
+    public function __construct(Fw $fw, array $dirs = null)
     {
         $this->fw = $fw;
-        $this->autoEscape = $escape;
         $this->setDirs((array) $dirs);
     }
 
@@ -126,55 +119,27 @@ final class Template
     }
 
     /**
-     * Set autoescape status.
-     *
-     * @param bool $autoEscape
-     *
-     * @return Template
-     */
-    public function setAutoEscape(bool $autoEscape): Template
-    {
-        $this->autoEscape = $autoEscape;
-
-        return $this;
-    }
-
-    /**
-     * Returns autoescape status.
-     *
-     * @return bool
-     */
-    public function isAutoEscape(): bool
-    {
-        return $this->autoEscape;
-    }
-
-    /**
      * Encode characters to equivalent HTML entities.
      *
-     * @param mixed $arg
+     * @param string $str
      *
-     * @return mixed
+     * @return string
      */
-    public function esc($arg)
+    public function esc(string $str): string
     {
-        return $this->fw->recursive($arg, function ($val) {
-            return is_string($val) ? $this->fw->encode($val) : $val;
-        });
+        return $this->fw->encode($str);
     }
 
     /**
      * Decode HTML entities to equivalent characters.
      *
-     * @param mixed $arg
+     * @param string $str
      *
-     * @return mixed
+     * @return string
      */
-    public function raw($arg)
+    public function raw(string $str): string
     {
-        return $this->fw->recursive($arg, function ($val) {
-            return is_string($val) ? $this->fw->decode($val) : $val;
-        });
+        return $this->fw->decode($str);
     }
 
     /**

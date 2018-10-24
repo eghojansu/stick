@@ -1288,63 +1288,6 @@ final class Fw extends Magic
     }
 
     /**
-     * Invoke callback recursively for all data types.
-     *
-     * @param mixed    $arg
-     * @param callable $cb
-     * @param array    $stack
-     *
-     * @return mixed
-     */
-    public function recursive($arg, callable $cb, array $stack = array())
-    {
-        if ($stack) {
-            foreach ($stack as $node) {
-                if ($arg === $node) {
-                    return $arg;
-                }
-            }
-        }
-
-        $type = gettype($arg);
-
-        if ('object' === $type) {
-            $ref = new \ReflectionClass($arg);
-
-            if ($ref->isCloneable()) {
-                $arg = clone $arg;
-                $cast = is_a($arg, 'IteratorAggregate') ? iterator_to_array($arg) : get_object_vars($arg);
-
-                foreach ($cast as $key => $val) {
-                    $arg->$key = $this->recursive(...array(
-                        $val,
-                        $cb,
-                        array_merge($stack, array($arg)),
-                    ));
-                }
-            }
-
-            return $arg;
-        }
-
-        if ('array' === $type) {
-            $copy = array();
-
-            foreach ($arg as $key => $val) {
-                $copy[$key] = $this->recursive(...array(
-                    $val,
-                    $cb,
-                    array_merge($stack, array($arg)),
-                ));
-            }
-
-            return $copy;
-        }
-
-        return $cb($arg);
-    }
-
-    /**
      * Returns result of callable.
      *
      * Callable can be expression like this "FooClass->fooMethod".

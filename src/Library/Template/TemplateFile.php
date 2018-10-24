@@ -124,14 +124,7 @@ class TemplateFile
      */
     public function render(): string
     {
-        $excludes = array('HANDLERS', 'ROUTES', 'SERVICES');
-        $data = $this->data + array_fill_keys($excludes, null) + $this->fw->hive();
-
-        if ($this->engine->isAutoEscape()) {
-            $data = $this->engine->esc($data);
-        }
-
-        extract($data);
+        extract($this->data + array('HANDLERS' => null, 'ROUTES' => null, 'SERVICES' => null) + $this->fw->hive());
         ob_start();
         $this->level = ob_get_level();
         include $this->realpath;
