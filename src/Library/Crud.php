@@ -203,15 +203,19 @@ class Crud extends Magic
     }
 
     /**
-     * Check functions.
+     * Call registered functions.
      *
-     * @param string $name
+     * @param string     $name
+     * @param array|null $args
+     * @param mixed      $default
      *
-     * @return bool
+     * @return mixed
      */
-    public function hasFunction(string $name): bool
+    public function call(string $name, array $args = null, $default = null)
     {
-        return isset($this->_funcs[$name]);
+        $cb = $this->_funcs[$name] ?? null;
+
+        return $cb ? $this->_fw->call($cb, $args) : $default;
     }
 
     /**
@@ -722,7 +726,7 @@ class Crud extends Magic
     }
 
     /**
-     * Setting option via method call or call registered function.
+     * Setting option via method call
      *
      * @param string $option
      * @param array  $args
@@ -731,10 +735,6 @@ class Crud extends Magic
      */
     public function __call($option, $args)
     {
-        if (isset($this->_funcs[$option])) {
-            return $this->_fw->call($this->_funcs[$option], $args);
-        }
-
         if ($args) {
             $name = Str::snakeCase($option);
 
