@@ -430,6 +430,8 @@ class Crud extends Magic
         $this->_data['route_args'] = $this->_options['route_args'];
         $this->_data['page_query_name'] = $this->_options['page_query_name'];
         $this->_data['keyword_query_name'] = $this->_options['keyword_query_name'];
+        $this->_data['title'] = $this->_options['title'];
+        $this->_data['subtitle'] = $this->_options['subtitle'];
 
         if (empty($this->_data['title'])) {
             $this->_data['title'] = 'Manage '.Str::titleCase($this->_data['mapper']->table());
