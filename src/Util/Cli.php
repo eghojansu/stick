@@ -131,12 +131,12 @@ final class Cli
     /**
      * Write to console with new line.
      *
-     * @param string $str
-     * @param mixed  ...$args
+     * @param string|null $str
+     * @param mixed       ...$args
      *
      * @return Cli
      */
-    public function writeln(string $str, ...$args): Cli
+    public function writeln(string $str = null, ...$args): Cli
     {
         echo $this->colorize(sprintf($str, ...$args)).PHP_EOL;
 
