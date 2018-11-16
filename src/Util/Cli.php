@@ -23,59 +23,122 @@ namespace Fal\Stick\Util;
 final class Cli
 {
     /**
-     * Foreground color.
-     *
      * @var array
      */
-    private static $fgColors = array(
-        'black' => '0;30',
-        'dark_gray' => '1;30',
-        'blue' => '0;34',
-        'light_blue' => '1;34',
-        'green' => '0;32',
-        'light_green' => '1;32',
-        'cyan' => '0;36',
-        'light_cyan' => '1;36',
-        'red' => '0;31',
-        'light_red' => '1;31',
-        'purple' => '0;35',
-        'light_purple' => '1;35',
-        'brown' => '0;33',
-        'yellow' => '1;33',
-        'light_gray' => '0;37',
-        'white' => '1;37',
+    private static $availableForegroundColors = array(
+        'black' => array('set' => 30, 'unset' => 39),
+        'red' => array('set' => 31, 'unset' => 39),
+        'green' => array('set' => 32, 'unset' => 39),
+        'yellow' => array('set' => 33, 'unset' => 39),
+        'blue' => array('set' => 34, 'unset' => 39),
+        'magenta' => array('set' => 35, 'unset' => 39),
+        'cyan' => array('set' => 36, 'unset' => 39),
+        'white' => array('set' => 37, 'unset' => 39),
+        'default' => array('set' => 39, 'unset' => 39),
     );
 
     /**
-     * Background color.
-     *
      * @var array
      */
-    private static $bgColors = array(
-        'black' => '40',
-        'red' => '41',
-        'green' => '42',
-        'yellow' => '43',
-        'blue' => '44',
-        'magenta' => '45',
-        'cyan' => '46',
-        'light_gray' => '47',
+    private static $availableBackgroundColors = array(
+        'black' => array('set' => 40, 'unset' => 49),
+        'red' => array('set' => 41, 'unset' => 49),
+        'green' => array('set' => 42, 'unset' => 49),
+        'yellow' => array('set' => 43, 'unset' => 49),
+        'blue' => array('set' => 44, 'unset' => 49),
+        'magenta' => array('set' => 45, 'unset' => 49),
+        'cyan' => array('set' => 46, 'unset' => 49),
+        'white' => array('set' => 47, 'unset' => 49),
+        'default' => array('set' => 49, 'unset' => 49),
     );
+
+    /**
+     * @var array
+     */
+    private static $availableOptions = array(
+        'bold' => array('set' => 1, 'unset' => 22),
+        'underscore' => array('set' => 4, 'unset' => 24),
+        'blink' => array('set' => 5, 'unset' => 25),
+        'reverse' => array('set' => 7, 'unset' => 27),
+        'conceal' => array('set' => 8, 'unset' => 28),
+    );
+
+    /**
+     * @var array
+     */
+    private $styles = array(
+        'error' => array('white', 'red', null),
+        'info' => array('green', null, null),
+        'comment' => array('yellow', null, null),
+        'question' => array('black', 'cyan', null),
+    );
+
+    /**
+     * Class constructor.
+     *
+     * @param array|null $styles
+     */
+    public function __construct(array $styles = null)
+    {
+        foreach ((array) $styles as $style => $definition) {
+            $args = array_values((array) $definition);
+
+            $this->addStyle($style, ...$args);
+        }
+    }
+
+    /**
+     * Get style definition.
+     *
+     * @param string $name
+     *
+     * @return array|null
+     */
+    public function getStyle(string $name): ?array
+    {
+        return $this->styles[$name] ?? null;
+    }
+
+    /**
+     * Add style definition.
+     *
+     * @param string      $name
+     * @param string|null $foreground
+     * @param string|null $background
+     * @param array|null  $options
+     *
+     * @return Cli
+     */
+    public function addStyle(string $name, string $foreground = null, string $background = null, array $options = null): Cli
+    {
+        $style = array(
+            isset(self::$availableForegroundColors[$foreground]) ? $foreground : null,
+            isset(self::$availableBackgroundColors[$background]) ? $background : null,
+            null,
+        );
+
+        foreach ((array) $options as $option) {
+            if (isset(self::$availableOptions[$option])) {
+                $style[2][] = $option;
+            }
+        }
+
+        $this->styles[$name] = $style;
+
+        return $this;
+    }
 
     /**
      * Write to console with new line.
      *
-     * @param string      $line
-     * @param string|null $color   Foreground and background color, separated by colon
-     * @param int         $newline
+     * @param string $str
+     * @param mixed  ...$args
      *
      * @return Cli
      */
-    public function writeln(string $line, string $color = null, int $newline = 1): Cli
+    public function writeln(string $str, ...$args): Cli
     {
-        $c = $this->parseColor($color);
-
-        echo $c[0].$c[1].$line.$c[2].str_repeat(PHP_EOL, $newline);
+        echo $this->colorize(sprintf($str, ...$args)).PHP_EOL;
 
         return $this;
     }
@@ -83,33 +146,154 @@ final class Cli
     /**
      * Write to console.
      *
-     * @param string      $line
-     * @param string|null $color
+     * @param string $line
+     * @param mixed  ...$args
      *
      * @return Cli
      */
-    public function write(string $line, string $color = null): Cli
+    public function write(string $str, ...$args): Cli
     {
-        return $this->writeln($line, $color, 0);
+        echo $this->colorize(sprintf($str, ...$args));
+
+        return $this;
     }
 
     /**
-     * Returns parsed color.
+     * Colorize a message.
      *
-     * @param string|null $color
+     * @param string $message
+     *
+     * @return string
+     */
+    public function colorize(string $message): string
+    {
+        return $this->build($this->parse($message));
+    }
+
+    /**
+     * Build message tree.
+     *
+     * @param string $message
      *
      * @return array
      */
-    private function parseColor(string $color = null): array
+    private function parse(string $message): array
     {
-        if ($color) {
-            list($fg, $bg) = explode(':', $color) + array(1 => 'none');
-            $fgFix = self::$fgColors[$fg] ?? self::$fgColors['white'];
-            $bgFix = isset(self::$bgColors[$bg]) ? "\033[".self::$bgColors[$bg].'m' : '';
+        $ptr = 0;
+        $width = 5;
+        $tmp = '';
+        $tree = array();
+        $len = strlen($message);
+        $tags = implode('|', array_keys($this->styles));
 
-            return array("\033[".$fgFix.'m', $bgFix, "\033[0m");
+        for (; $ptr < $len;) {
+            $pattern = "/^(.{0,$width})?<(\/)?($tags)\b>/is";
+
+            if (preg_match($pattern, substr($message, $ptr), $match)) {
+                if ($tmp || $match[1]) {
+                    $tree[] = $tmp.$match[1];
+                }
+
+                if ($match[2]) {
+                    $stack = array();
+                    for ($i = count($tree) - 1; $i >= 0; --$i) {
+                        $item = $tree[$i];
+                        if (is_array($item) && array_key_exists($match[3], $item) && !isset($item[$match[3]][0])) {
+                            $tree[$i][$match[3]] += array_reverse($stack);
+                            $tree = array_slice($tree, 0, $i + 1);
+                            break;
+                        } else {
+                            $stack[] = $item;
+                        }
+                    }
+                } else {
+                    $node = &$tree[][$match[3]];
+                    $node = array();
+                }
+
+                $tmp = '';
+                $ptr += strlen($match[0]);
+                $width = 5;
+            } else {
+                $tmp .= substr($message, $ptr, $width);
+                $ptr += $width;
+                $width += (int) ($width < 50);
+            }
         }
 
-        return array('', '', '');
+        if ($tmp) {
+            $tree[] = $tmp;
+        }
+
+        unset($node, $tmp);
+
+        return $tree;
+    }
+
+    /**
+     * Build message based on tree.
+     *
+     * @param array $tree
+     *
+     * @return string
+     */
+    private function build(array $tree): string
+    {
+        $out = '';
+
+        foreach ($tree as $key => $node) {
+            if (is_string($node)) {
+                $out .= $node;
+            } elseif (isset($this->styles[$key])) {
+                $out .= $this->applyStyle($key, $this->build($node));
+            } else {
+                $out .= $this->build($node);
+            }
+        }
+
+        return $out;
+    }
+
+    /**
+     * Apply style to message.
+     *
+     * @param string $style
+     * @param string $message
+     *
+     * @return string
+     */
+    private function applyStyle(string $style, string $message): string
+    {
+        list($fg, $bg, $options) = $this->styles[$style];
+        $f = self::$availableForegroundColors[$fg] ?? null;
+        $b = self::$availableBackgroundColors[$bg] ?? null;
+
+        $setCodes = '';
+        $unsetCodes = '';
+
+        if (null !== $f) {
+            $setCodes .= ';'.$f['set'];
+            $unsetCodes .= ';'.$f['unset'];
+        }
+
+        if (null !== $b) {
+            $setCodes .= ';'.$b['set'];
+            $unsetCodes .= ';'.$b['unset'];
+        }
+
+        foreach ((array) $options as $option) {
+            $o = self::$availableOptions[$option] ?? null;
+
+            if (null !== $o) {
+                $setCodes .= ';'.$o['set'];
+                $unsetCodes .= ';'.$o['unset'];
+            }
+        }
+
+        if (!$setCodes) {
+            return $message;
+        }
+
+        return sprintf("\033[%sm%s\033[%sm", ltrim($setCodes, ';'), $message, ltrim($unsetCodes, ';'));
     }
 }
