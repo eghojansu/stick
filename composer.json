@@ -24,5 +24,8 @@
     "require-dev": {
         "ext-PDO": "*",
         "phpunit/phpunit": "^7.4"
-    }
+    },
+    "bin": [
+        "stick"
+    ]
 }

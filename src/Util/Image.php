@@ -21,8 +21,6 @@ use Fal\Stick\Fw;
  * Ported from F3\Image.
  *
  * @author Eko Kurniawan <ekokurniawanbs@gmail.com>
- *
- * @codeCoverageIgnore
  */
 class Image
 {
@@ -54,13 +52,22 @@ class Image
     protected $file;
 
     /**
+     * Default export/dump format.
+     *
+     * @var string
+     */
+    protected $defaultFormat;
+
+    /**
      * Class constructor.
      *
-     * @param Fw $fw
+     * @param Fw     $fw
+     * @param string $defaultFormat
      */
-    public function __construct(Fw $fw)
+    public function __construct(Fw $fw, string $defaultFormat = 'png')
     {
         $this->fw = $fw;
+        $this->defaultFormat = $defaultFormat;
     }
 
     /**
@@ -74,13 +81,126 @@ class Image
     }
 
     /**
+     * Compare image by create the difference.
+     *
+     * (https://www.phpied.com/image-diff/).
+     *
+     * @param string $imgA
+     * @param string $imgB
+     *
+     * @return float
+     */
+    public static function pixelCompare(string $imgA, string $imgB): float
+    {
+        $resA = null;
+        $resB = null;
+
+        if ($imgA) {
+            $resA = imagecreatefromstring($imgA);
+        }
+
+        if ($imgB) {
+            $resB = imagecreatefromstring($imgB);
+        }
+
+        if (!$imgA || !$imgB || !$resA || !$resB) {
+            throw new \LogicException('Both image should be valid!');
+        }
+
+        $xA = imagesx($resA);
+        $yA = imagesy($resA);
+
+        if ($xA !== imagesx($resB) && $yA !== imagesy($resB)) {
+            imagedestroy($resA);
+            imagedestroy($resB);
+
+            return 100.0;
+        }
+
+        $differentPixels = 0;
+
+        for ($x = 0; $x < $xA; ++$x) {
+            for ($y = 0; $y < $yA; ++$y) {
+                $rgbA = imagecolorat($resA, $x, $y);
+                $pixA = imagecolorsforindex($resA, $rgbA);
+
+                $rgbB = imagecolorat($resB, $x, $y);
+                $pixB = imagecolorsforindex($resB, $rgbB);
+
+                $differentPixels += (int) ($pixA !== $pixB);
+            }
+        }
+
+        imagedestroy($resA);
+        imagedestroy($resB);
+
+        return $differentPixels / ($xA * $yA);
+    }
+
+    /**
      * Create new instance.
      *
      * @return Image
      */
     public function create(): Image
     {
-        return new static($this->fw);
+        return new static($this->fw, $this->defaultFormat);
+    }
+
+    /**
+     * Convert RGB hex triad to array.
+     *
+     * @param int|string $color
+     *
+     * @return array
+     */
+    public function rgb($color): array
+    {
+        $mColor = $color;
+
+        if (is_string($color)) {
+            $mColor = hexdec($color);
+        }
+
+        $hex = str_pad(dechex($mColor), $mColor < 4096 ? 3 : 6, '0', STR_PAD_LEFT);
+        $len = strlen($hex);
+
+        if ($len > 6) {
+            throw new \LogicException(sprintf('Invalid color specified: 0x%s', $hex));
+        }
+
+        $result = array();
+        $repeat = 6 / $len;
+
+        foreach (str_split($hex, $len / 3) as $hue) {
+            $result[] = hexdec(str_repeat($hue, $repeat));
+        }
+
+        return $result;
+    }
+
+    /**
+     * Returns default format.
+     *
+     * @return string
+     */
+    public function getDefaultFormat(): string
+    {
+        return $this->defaultFormat;
+    }
+
+    /**
+     * Sets default format.
+     *
+     * @param string $format
+     *
+     * @return Image
+     */
+    public function setDefaultFormat(string $format): Image
+    {
+        $this->defaultFormat = $format;
+
+        return $this;
     }
 
     /**
@@ -88,7 +208,7 @@ class Image
      *
      * @return resource|null
      */
-    public function getData(): ?resource
+    public function getData()
     {
         return $this->data;
     }
@@ -139,7 +259,7 @@ class Image
      */
     public function base64(string $format = null, ...$args): string
     {
-        return 'data:image/'.($format ?? 'png').';base64,'.base64_encode($this->dump($format, ...$args));
+        return 'data:image/'.($format ?? $this->defaultFormat).';base64,'.base64_encode($this->dump($format, ...$args));
     }
 
     /**
@@ -152,10 +272,12 @@ class Image
      */
     public function dump(string $format = null, ...$args): string
     {
-        $formatter = 'image'.($format ?? 'png');
+        $this->check();
+
+        $formatter = 'image'.($format ?? $this->defaultFormat);
 
         if (!is_callable($formatter)) {
-            throw new \LogicException(sprintf('Image function "%s" does not exists.', $format));
+            throw new \LogicException(sprintf('Image function "%s" does not exists.', $formatter));
         }
 
         ob_start();
@@ -172,12 +294,14 @@ class Image
      */
     public function render(string $format = null, ...$args): void
     {
+        $content = $this->dump($format, ...$args);
         $headers = array(
-            'Content-Type' => 'image/'.($format ?? 'png'),
+            'Content-Type' => 'image/'.($format ?? $this->defaultFormat),
+            'Content-Length' => strlen($content),
             'X-Powered-By' => $this->fw['PACKAGE'],
         );
 
-        $this->fw->send(200, $headers, $this->dump($format, ...$args));
+        $this->fw->send(200, $headers, $content);
     }
 
     /**
@@ -195,43 +319,7 @@ class Image
             throw new \LogicException('No file to save!');
         }
 
-        if (!$this->data) {
-            throw new \LogicException('No image data!');
-        }
-
         return false !== $this->fw->write($mFile, $this->dump());
-    }
-
-    /**
-     * Convert RGB hex triad to array.
-     *
-     * @param int|string $color
-     *
-     * @return array
-     */
-    public function rgb($color): array
-    {
-        $mColor = $color;
-
-        if (is_string($color)) {
-            $mColor = hexdec($color);
-        }
-
-        $hex = str_pad(dechex($mColor), $mColor < 4096 ? 3 : 6, '0', STR_PAD_LEFT);
-        $len = strlen($hex);
-
-        if ($len > 6) {
-            throw new \LogicException(sprintf('Invalid color specified: 0x%s', $hex));
-        }
-
-        $result = array();
-        $repeat = 6 / $len;
-
-        foreach (str_split($hex, $len / 3) as $hue) {
-            $result[] = hexdec(str_repeat($hue, $repeat));
-        }
-
-        return $result;
     }
 
     /**
@@ -241,6 +329,8 @@ class Image
      */
     public function width(): int
     {
+        $this->check();
+
         return imagesx($this->data);
     }
 
@@ -251,6 +341,8 @@ class Image
      */
     public function height(): int
     {
+        $this->check();
+
         return imagesy($this->data);
     }
 
@@ -261,6 +353,8 @@ class Image
      */
     public function invert(): Image
     {
+        $this->check();
+
         imagefilter($this->data, IMG_FILTER_NEGATE);
 
         return $this;
@@ -275,6 +369,8 @@ class Image
      */
     public function brightness(int $level): Image
     {
+        $this->check();
+
         imagefilter($this->data, IMG_FILTER_BRIGHTNESS, $level);
 
         return $this;
@@ -289,6 +385,8 @@ class Image
      */
     public function contrast(int $level): Image
     {
+        $this->check();
+
         imagefilter($this->data, IMG_FILTER_CONTRAST, $level);
 
         return $this;
@@ -301,6 +399,8 @@ class Image
      */
     public function grayscale(): Image
     {
+        $this->check();
+
         imagefilter($this->data, IMG_FILTER_GRAYSCALE);
 
         return $this;
@@ -315,6 +415,8 @@ class Image
      */
     public function smooth(int $level): Image
     {
+        $this->check();
+
         imagefilter($this->data, IMG_FILTER_SMOOTH, $level);
 
         return $this;
@@ -327,6 +429,8 @@ class Image
      */
     public function emboss(): Image
     {
+        $this->check();
+
         imagefilter($this->data, IMG_FILTER_EMBOSS);
 
         return $this;
@@ -339,6 +443,8 @@ class Image
      */
     public function sepia(): Image
     {
+        $this->check();
+
         imagefilter($this->data, IMG_FILTER_GRAYSCALE);
         imagefilter($this->data, IMG_FILTER_COLORIZE, 90, 60, 45);
 
@@ -354,6 +460,8 @@ class Image
      */
     public function pixelate(int $size): Image
     {
+        $this->check();
+
         imagefilter($this->data, IMG_FILTER_PIXELATE, $size, true);
 
         return $this;
@@ -368,6 +476,8 @@ class Image
      */
     public function blur(bool $selective = false): Image
     {
+        $this->check();
+
         imagefilter($this->data, $selective ? IMG_FILTER_SELECTIVE_BLUR : IMG_FILTER_GAUSSIAN_BLUR);
 
         return $this;
@@ -380,6 +490,8 @@ class Image
      */
     public function sketch(): Image
     {
+        $this->check();
+
         imagefilter($this->data, IMG_FILTER_MEAN_REMOVAL);
 
         return $this;
@@ -392,6 +504,8 @@ class Image
      */
     public function hflip(): Image
     {
+        $this->check();
+
         $tmp = imagecreatetruecolor($width = $this->width(), $height = $this->height());
 
         imagesavealpha($tmp, true);
@@ -411,6 +525,8 @@ class Image
      */
     public function vflip(): Image
     {
+        $this->check();
+
         $tmp = imagecreatetruecolor($width = $this->width(), $height = $this->height());
 
         imagesavealpha($tmp, true);
@@ -435,6 +551,8 @@ class Image
      */
     public function crop(int $x1, int $y1, int $x2, int $y2): Image
     {
+        $this->check();
+
         $tmp = imagecreatetruecolor($width = $x2 - $x1 + 1, $height = $y2 - $y1 + 1);
 
         imagesavealpha($tmp, true);
@@ -461,6 +579,8 @@ class Image
      */
     public function resize(int $width = null, int $height = null, bool $crop = true, bool $enlarge = true): Image
     {
+        $this->check();
+
         if (is_null($width) && is_null($height)) {
             return $this;
         }
@@ -529,6 +649,8 @@ class Image
      */
     public function rotate(int $angle): Image
     {
+        $this->check();
+
         $this->data = imagerotate($this->data, $angle, imagecolorallocatealpha($this->data, 0, 0, 0, 127));
 
         imagesavealpha($this->data, true);
@@ -547,7 +669,9 @@ class Image
      */
     public function overlay(Image $img, $align = null, int $alpha = 100): Image
     {
-        $mAlign = $align;
+        $this->check();
+
+        $mAlign = $align ?? 0;
 
         if (is_null($align)) {
             $mAlign = self::POS_RIGHT | self::POS_BOTTOM;
@@ -688,18 +812,19 @@ class Image
      * @param int         $size
      * @param int         $fg
      * @param int         $bg
+     * @param bool        $test
      *
      * @return Image
      *
      * @throws LogicException If captcha length invalid or no support to truetype
      */
-    public function captcha(?string &$seed, string $font, string $path, int $len = 5, int $size = 24, int $fg = 0xFFFFFF, int $bg = 0x000000): Image
+    public function captcha(?string &$seed, string $font, string $path, int $len = 5, int $size = 24, int $fg = 0xFFFFFF, int $bg = 0x000000, string $test = null): Image
     {
-        if ((!$ssl = extension_loaded('openssl')) && ($len < 4 || $len > 13)) {
+        if (((!$ssl = extension_loaded('openssl')) && ($len < 4 || $len > 13)) || 'openssl' === $test) {
             throw new \LogicException(sprintf('Invalid CAPTCHA length: %s.', $len));
         }
 
-        if (!function_exists('imagettftext')) {
+        if (!function_exists('imagettftext') || 'font' === $test) {
             throw new \LogicException('No TrueType support in GD module.');
         }
 
@@ -744,6 +869,18 @@ class Image
             }
         }
 
-        throw new \LogicException('CAPTCHA font not found.');
+        throw new \LogicException('CAPTCHA font is not found.');
+    }
+
+    /**
+     * Check data.
+     *
+     * @throws LogicException If no image loaded
+     */
+    protected function check()
+    {
+        if (!$this->data) {
+            throw new \LogicException('No image loaded!');
+        }
     }
 }
