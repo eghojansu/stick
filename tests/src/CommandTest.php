@@ -131,7 +131,6 @@ class CommandTest extends TestCase
         $this->expectOutputRegex('/^Project initialized in .* at .*init-test\//');
         $this->command->init();
 
-        $this->assertFileExists($dir.'app/db/.gitkeep');
         $this->assertFileExists($dir.'app/src/Controller/.gitkeep');
         $this->assertFileExists($dir.'app/src/Mapper/.gitkeep');
         $this->assertFileExists($dir.'app/src/Form/.gitkeep');

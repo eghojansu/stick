@@ -140,14 +140,12 @@ class Command
 
         $dir = rtrim($this->fw->fixslashes($dir), '/').'/';
 
-        $this->fw->mkdir($dir.'app/db');
         $this->fw->mkdir($dir.'app/src/Controller');
         $this->fw->mkdir($dir.'app/src/Form');
         $this->fw->mkdir($dir.'app/src/Mapper');
         $this->fw->mkdir($dir.'app/template');
         $this->fw->mkdir($dir.'public/');
 
-        touch($dir.'app/db/.gitkeep');
         touch($dir.'app/src/Controller/.gitkeep');
         touch($dir.'app/src/Form/.gitkeep');
         touch($dir.'app/src/Mapper/.gitkeep');
