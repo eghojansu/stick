@@ -224,6 +224,18 @@ class TemplateFile
     }
 
     /**
+     * Proxy to Fw::service.
+     *
+     * @param string $name
+     *
+     * @return mixed
+     */
+    public function __get($name)
+    {
+        return $this->engine->service($name);
+    }
+
+    /**
      * Proxy to engine method call.
      *
      * @param string $method

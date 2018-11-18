@@ -125,6 +125,7 @@ class TemplateTest extends TestCase
             array('dashboard'),
             array('include', array('title' => 'Included')),
             array('profile', array('username' => '<span>user</span>')),
+            array('service'),
         );
     }
 }
