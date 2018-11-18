@@ -215,7 +215,7 @@ class Command
         );
         file_put_contents($dir.'app/services.php', "<?php\n\n".
             "return array(\n".
-            "    array('Fal\\Stick\\Sql\\Connection', array(\n".
+            "    array('Fal\\\\Stick\\\\Sql\\\\Connection', array(\n".
             "        'args' => array(\n".
             "            'fw' => '%fw%',\n".
             "            'dsn' => '%DB_DSN%',\n".
@@ -223,13 +223,13 @@ class Command
             "            'password' => '%DB_PASSWORD%',\n".
             "        ),\n".
             "    )),\n".
-            "    array('Fal\\Stick\\Template\\Template', array(\n".
+            "    array('Fal\\\\Stick\\\\Template\\\\Template', array(\n".
             "        'args' => array(\n".
             "            'fw' => '%fw%',\n".
             "            'paths' => __DIR__.'/template/',\n".
             "        ),\n".
             "    )),\n".
-            "    array('html', 'Fal\\Stick\\Html\\Html'),\n".
+            "    array('html', 'Fal\\\\Stick\\\\Html\\\\Html'),\n".
             ");\n"
         );
         file_put_contents($dir.'README.md', "README\n".
