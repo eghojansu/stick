@@ -53,6 +53,10 @@ class Command
                 array($this, 'build'),
                 'Build project',
             ),
+            'init' => array(
+                array($this, 'init'),
+                'Initialize project structure',
+            ),
             'help' => array(
                 array($this, 'help'),
                 'Display help',
@@ -123,11 +127,174 @@ class Command
     }
 
     /**
+     * Initialize project structure.
+     */
+    public function init(): void
+    {
+        $start = microtime(true);
+        $dir = $this->fw['GET']['dir'] ?? null;
+
+        if (!$dir || !is_dir($dir)) {
+            throw new \LogicException(sprintf('Destination directory not exists: "%s".', $dir));
+        }
+
+        $dir = rtrim($this->fw->fixslashes($dir), '/').'/';
+
+        $this->fw->mkdir($dir.'app/db');
+        $this->fw->mkdir($dir.'app/src/Controller');
+        $this->fw->mkdir($dir.'app/src/Form');
+        $this->fw->mkdir($dir.'app/src/Mapper');
+        $this->fw->mkdir($dir.'app/template');
+        $this->fw->mkdir($dir.'public/');
+
+        touch($dir.'app/db/.gitkeep');
+        touch($dir.'app/src/Controller/.gitkeep');
+        touch($dir.'app/src/Form/.gitkeep');
+        touch($dir.'app/src/Mapper/.gitkeep');
+        touch($dir.'app/template/.gitkeep');
+
+        file_put_contents($dir.'public/robots.txt', "User-agent: *\nDisallow: /");
+        file_put_contents($dir.'public/index.php', "<?php\n\n".
+            "require __DIR__.'/../vendor/autoload.php';\n\n".
+            "Fal\\Stick\\Fw::createFromGlobals()\n".
+            "    ->registerShutdownHandler()\n".
+            "    ->config(__DIR__.'/../app/env.php')\n".
+            "    ->run()\n".
+            ";\n"
+        );
+        file_put_contents($dir.'app/.htaccess', 'Deny from all');
+        file_put_contents($dir.'app/config.dist.php', "<?php\n\n".
+            "return array(\n".
+            "    'db' => array(\n".
+            "        'dsn' => 'mysql:host=localhost;dbname=db_project',\n".
+            "        'username' => 'root',\n".
+            "        'password' => null,\n".
+            "    ),\n".
+            "    'cache' => 'auto',\n".
+            "    'debug' => false,\n".
+            "    'log' => dirname(__DIR__).'/var/log/',\n".
+            "    'threshold' => 'error',\n".
+            "    'temp' => dirname(__DIR__).'/var/',\n".
+            ");\n"
+        );
+        file_put_contents($dir.'app/env.php', "<?php\n\n".
+            "\$config = is_file(__DIR__.'/config.dist.php') ? require __DIR__.'/config.dist.php' : array();\n\n".
+            "if (is_file(__DIR__.'/config.php')) {\n".
+            "    \$config = array_replace_recursive(\$config, require __DIR__.'/config.php');\n".
+            "}\n\n".
+            "return array(\n".
+            "    'APP_DIR' => __DIR__.'/',\n".
+            "    'DB_DSN' => \$config['db']['dsn'] ?? null,\n".
+            "    'DB_USERNAME' => \$config['db']['username'] ?? null,\n".
+            "    'DB_PASSWORD' => \$config['db']['password'] ?? null,\n".
+            "    'CACHE' => \$config['cache'] ?? null,\n".
+            "    'DEBUG' => \$config['debug'] ?? false,\n".
+            "    'LOG' => \$config['log'] ?? null,\n".
+            "    'THRESHOLD' => \$config['threshold'] ?? 'error',\n".
+            "    'TEMP' => \$config['temp'] ?? dirname(__DIR__).'/var/',\n".
+            "    'controllers' => require __DIR__.'/controllers.php',\n".
+            "    'events' => require __DIR__.'/events.php',\n".
+            "    'routes' => require __DIR__.'/routes.php',\n".
+            "    'rules' => require __DIR__.'/services.php',\n".
+            ");\n"
+        );
+        file_put_contents($dir.'app/controllers.php', "<?php\n\n".
+            "return array(\n".
+            ");\n"
+        );
+        file_put_contents($dir.'app/events.php', "<?php\n\n".
+            "return array(\n".
+            ");\n"
+        );
+        file_put_contents($dir.'app/routes.php', "<?php\n\n".
+            "return array(\n".
+            "    array('GET home /', function() {\n".
+            "        return 'Welcome home, Vanilla lover!';\n".
+            "    }),\n".
+            ");\n"
+        );
+        file_put_contents($dir.'app/services.php', "<?php\n\n".
+            "return array(\n".
+            "    array('Fal\\Stick\\Sql\\Connection', array(\n".
+            "        'args' => array(\n".
+            "            'fw' => '%fw%',\n".
+            "            'dsn' => '%DB_DSN%',\n".
+            "            'username' => '%DB_USERNAME%',\n".
+            "            'password' => '%DB_PASSWORD%',\n".
+            "        ),\n".
+            "    )),\n".
+            "    array('Fal\\Stick\\Template\\Template', array(\n".
+            "        'args' => array(\n".
+            "            'fw' => '%fw%',\n".
+            "            'paths' => __DIR__.'/template/',\n".
+            "        ),\n".
+            "    )),\n".
+            "    array('html', 'Fal\\Stick\\Html\\Html'),\n".
+            ");\n"
+        );
+        file_put_contents($dir.'README.md', "README\n".
+            "======\n\n".
+            'Thank you.'
+        );
+        file_put_contents($dir.'.stick.dist', "<?php\n\n".
+            "return array(\n".
+            "    'commands' => array()\n".
+            ");\n"
+        );
+        file_put_contents($dir.'.php_cs.dist', "<?php\n\n".
+            "\$finder = PhpCsFixer\Finder::create()\n".
+            "    ->in(__DIR__.'/app')\n".
+            "    ->in(__DIR__.'/public')\n".
+            "    ->notPath('template')\n".
+            "    ->name('*.php')\n".
+            ";\n\n".
+            "return PhpCsFixer\Config::create()\n".
+            "    ->setRules(array(\n".
+            "        '@PSR2' => true,\n".
+            "        '@Symfony' => true,\n".
+            "        'array_syntax' => array('syntax' => 'long'),\n".
+            "    ))\n".
+            "    ->setFinder(\$finder)\n".
+            ");\n"
+        );
+        file_put_contents($dir.'.editorconfig', "root = true\n\n".
+            "[*]\n".
+            "indent_style = space\n".
+            "indent_size = 4\n".
+            "end_of_line = lf\n".
+            "charset = utf-8\n".
+            "trim_trailing_whitespace = true\n".
+            "\n".
+            "[*.php]\n".
+            "insert_final_newline = true\n".
+            "\n".
+            "[app/template/**/*.php]\n".
+            "indent_size = 2\n".
+            'insert_final_newline = false'
+        );
+        file_put_contents($dir.'.gitignore', "/node_modules/\n".
+            "/xdev/\n".
+            "/var/\n".
+            "/vendor/\n".
+            "/.php_cs.cache\n".
+            '/app/config.php'
+        );
+
+        $composer = $dir.'composer.json';
+        $json = is_file($composer) ? json_decode(file_get_contents($composer), true) : array();
+        $json['autoload']['psr-4']['App\\'] = 'app/src/';
+
+        file_put_contents($composer, json_encode($json, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+
+        $this->cli->writeln('Project initialized in <comment>%f</comment> at <info>%s</info>', microtime(true) - $start, $dir);
+    }
+
+    /**
      * Build project command.
      *
      * @param array $config
      */
-    public function build(array $config)
+    public function build(array $config): void
     {
         $start = microtime(true);
         $cwd = getcwd();

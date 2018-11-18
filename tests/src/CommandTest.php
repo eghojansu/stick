@@ -106,6 +106,62 @@ class CommandTest extends TestCase
         ));
     }
 
+    public function testInit()
+    {
+        $dir = TEMP.'init-test/';
+
+        if (is_dir($dir)) {
+            $directoryIterator = new \RecursiveDirectoryIterator($dir);
+            $iteratorIterator = new \RecursiveIteratorIterator($directoryIterator);
+            $files = new \RegexIterator($iteratorIterator, '~^'.$dir.'.*~');
+
+            foreach ($files as $file) {
+                if (is_dir($file->getRealPath())) {
+                    continue;
+                }
+
+                unlink($file->getRealPath());
+            }
+        } else {
+            mkdir($dir, 0755, true);
+        }
+
+        $this->fw['GET']['dir'] = $dir;
+
+        $this->expectOutputRegex('/^Project initialized in .* at .*init-test\//');
+        $this->command->init();
+
+        $this->assertFileExists($dir.'app/db/.gitkeep');
+        $this->assertFileExists($dir.'app/src/Controller/.gitkeep');
+        $this->assertFileExists($dir.'app/src/Mapper/.gitkeep');
+        $this->assertFileExists($dir.'app/src/Form/.gitkeep');
+        $this->assertFileExists($dir.'app/template/.gitkeep');
+        $this->assertFileExists($dir.'app/config.dist.php');
+        $this->assertFileExists($dir.'app/controllers.php');
+        $this->assertFileExists($dir.'app/env.php');
+        $this->assertFileExists($dir.'app/events.php');
+        $this->assertFileExists($dir.'app/routes.php');
+        $this->assertFileExists($dir.'app/services.php');
+        $this->assertFileExists($dir.'app/.htaccess');
+        $this->assertFileExists($dir.'public/index.php');
+        $this->assertFileExists($dir.'public/robots.txt');
+        $this->assertFileExists($dir.'composer.json');
+        $this->assertFileExists($dir.'README.md');
+        $this->assertFileExists($dir.'.editorconfig');
+        $this->assertFileExists($dir.'.gitignore');
+        $this->assertFileExists($dir.'.php_cs.dist');
+        $this->assertFileExists($dir.'.stick.dist');
+    }
+
+    /**
+     * @expectedException \LogicException
+     * @expectedExceptionMessage Destination directory not exists: "".
+     */
+    public function testInitException()
+    {
+        $this->command->init();
+    }
+
     /**
      * @dataProvider getCommands
      */
