@@ -1116,6 +1116,21 @@ class FwTest extends TestCase
         $this->fw->trans('invalid_ref');
     }
 
+    public function testFindClass()
+    {
+        $this->fw['CACHE'] = 'folder='.TEMP.'find-class/';
+        $this->fw->cacheReset();
+
+        $this->fw['AUTOLOAD']['FixtureNs\\'] = FIXTURE.'classes2/FixtureNs/';
+        $this->fw['AUTOLOAD_FALLBACK'] = FIXTURE.'classes2/NoNs/';
+
+        $this->assertEquals(FIXTURE.'classes2/FixtureNs/ClassA.php', $this->fw->findClass('FixtureNs\\ClassA'));
+        // second call, to hit cache
+        $this->assertEquals(FIXTURE.'classes2/FixtureNs/ClassA.php', $this->fw->findClass('FixtureNs\\ClassA'));
+        $this->assertEquals(FIXTURE.'classes2/NoNs/ClassOutNs.php', $this->fw->findClass('ClassOutNs'));
+        $this->assertNull($this->fw->findClass('UnknownClass'));
+    }
+
     public function getCliRequestData()
     {
         return array(

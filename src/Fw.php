@@ -160,6 +160,8 @@ final class Fw implements \ArrayAccess
             'ALIAS' => null,
             'ALIASES' => null,
             'ASSET' => null,
+            'AUTOLOAD' => null,
+            'AUTOLOAD_FALLBACK' => null,
             'BASE' => $base,
             'BASEURL' => $domain.$base,
             'BODY' => null,
@@ -582,6 +584,72 @@ final class Fw implements \ArrayAccess
         if (!$handled && $error && in_array($error['type'], $fatal)) {
             $this->error(500, $error['message'], array($error));
         }
+    }
+
+    /**
+     * Register autoloader.
+     *
+     * @return Fw
+     *
+     * @codeCoverageIgnore
+     */
+    public function registerAutoload(): Fw
+    {
+        spl_autoload_register(array($this, 'loadClass'));
+
+        return $this;
+    }
+
+    /**
+     * Unregister autoloader.
+     *
+     * @return Fw
+     *
+     * @codeCoverageIgnore
+     */
+    public function unregisterAutoload(): Fw
+    {
+        spl_autoload_unregister(array($this, 'loadClass'));
+
+        return $this;
+    }
+
+    /**
+     * Load class file.
+     *
+     * @param string $class
+     *
+     * @return mixed
+     *
+     * @codeCoverageIgnore
+     */
+    public function loadClass(string $class)
+    {
+        if ($file = $this->findClass($class)) {
+            self::requireFile($file);
+
+            return true;
+        }
+    }
+
+    /**
+     * Find class file.
+     *
+     * @param string $class
+     *
+     * @return string|null
+     */
+    public function findClass(string $class): ?string
+    {
+        if ($cache = $this->cacheGet($key = $class.'.class')) {
+            return reset($cache);
+        }
+
+        if ($file = $this->findFileWithExtension($class, '.php') ?? $this->findFileWithExtension($class, '.hh')) {
+            $this->cacheSet($key, $file);
+        }
+
+        return $file;
     }
 
     /**
@@ -2325,6 +2393,48 @@ final class Fw implements \ArrayAccess
     }
 
     /**
+     * Find class file with extension.
+     *
+     * @param string $class
+     * @param string $ext
+     *
+     * @return string|null
+     */
+    private function findFileWithExtension(string $class, string $ext): ?string
+    {
+        // PSR-4 lookup
+        $logicalPathPsr4 = strtr($class, '\\', DIRECTORY_SEPARATOR).$ext;
+
+        if ($this->hive['AUTOLOAD']) {
+            $subPath = $class;
+
+            while (false !== $lastPos = strrpos($subPath, '\\')) {
+                $subPath = substr($subPath, 0, $lastPos);
+                $search = $subPath.'\\';
+
+                if (isset($this->hive['AUTOLOAD'][$search])) {
+                    $pathEnd = DIRECTORY_SEPARATOR.substr($logicalPathPsr4, $lastPos + 1);
+
+                    foreach ($this->split($this->hive['AUTOLOAD'][$search]) as $dir) {
+                        if (is_file($file = rtrim($dir, '/\\').$pathEnd)) {
+                            return $file;
+                        }
+                    }
+                }
+            }
+        }
+
+        // PSR-4 fallback dirs
+        foreach ($this->split($this->hive['AUTOLOAD_FALLBACK']) as $dir) {
+            if (file_exists($file = rtrim($dir, '/\\').DIRECTORY_SEPARATOR.$logicalPathPsr4)) {
+                return $file;
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * Returns true if hive member exists.
      *
      * @param mixed $offset
@@ -2400,5 +2510,43 @@ final class Fw implements \ArrayAccess
         } else {
             unset($this->hive[$offset]);
         }
+    }
+}
+
+/**
+ * Http exception.
+ *
+ * @author Eko Kurniawan <ekokurniawanbs@gmail.com>
+ */
+class HttpException extends \Exception
+{
+    /**
+     * @var array
+     */
+    private $headers;
+
+    /**
+     * Class constructor.
+     *
+     * @param string|null $message
+     * @param int         $code
+     * @param array|null  $headers
+     * @param Exception   $prev
+     */
+    public function __construct(string $message = null, int $code = 500, array $headers = null, \Exception $prev = null)
+    {
+        parent::__construct((string) $message, $code, $prev);
+
+        $this->headers = (array) $headers;
+    }
+
+    /**
+     * Returns headers.
+     *
+     * @return array
+     */
+    public function getHeaders(): array
+    {
+        return $this->headers;
     }
 }
