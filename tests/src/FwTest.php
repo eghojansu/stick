@@ -316,7 +316,10 @@ class FwTest extends TestCase
     {
         $this->fw['CACHE'] = $dsn;
 
-        $this->assertEquals(array(), $this->fw->cacheGet('foo'));
+        $this->assertNull($this->fw->cacheGet('foo', $exists, $time, $ttl));
+        $this->assertFalse($exists);
+        $this->assertEquals(0, $time);
+        $this->assertEquals(0, $ttl);
     }
 
     /**
@@ -330,7 +333,7 @@ class FwTest extends TestCase
 
         if ($dsn) {
             $cache = $this->fw->cacheGet('foo');
-            $this->assertEquals($dsn, reset($cache));
+            $this->assertEquals($dsn, $cache);
 
             if ($dsn) {
                 $this->assertTrue($this->fw->cacheExists('foo'));
@@ -381,8 +384,8 @@ class FwTest extends TestCase
         $this->fw['CACHE'] = 'fallback';
 
         $this->assertTrue($this->fw->cacheSet('tfoo', 'bar', 1));
-        $cached = $this->fw->cacheGet('tfoo');
-        $this->assertEquals('bar', reset($cached));
+        $cache = $this->fw->cacheGet('tfoo');
+        $this->assertEquals('bar', $cache);
         $this->assertTrue($this->fw->cacheExists('tfoo'));
         usleep(intval(1e6));
         $this->assertFalse($this->fw->cacheExists('tfoo'));

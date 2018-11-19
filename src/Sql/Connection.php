@@ -228,16 +228,14 @@ final class Connection
         $start = microtime(true);
         $hash = $this->fw->hash($table.var_export($fields, true)).'.schema';
 
-        if ($ttl && $this->fw->cacheExists($hash)) {
-            $data = $this->fw->cacheGet($hash);
-
+        if ($ttl && ($schema = $this->fw->cacheGet($hash, $exists)) && $exists) {
             $this->fw->log(Fw::LEVEL_INFO, sprintf(...array(
                 '(%.1fms) [CACHED] Retrieving schema of %s table',
                 1e3 * (microtime(true) - $start),
                 $table,
             )));
 
-            return $data[0];
+            return $schema;
         }
 
         $schema = array();
@@ -338,16 +336,14 @@ final class Connection
         $start = microtime(true);
         $hash = $this->fw->hash($cmd.var_export($args, true)).'.sql';
 
-        if ($ttl && $this->fw->cacheExists($hash)) {
-            $data = $this->fw->cacheGet($hash);
-
+        if ($ttl && ($data = $this->fw->cacheGet($hash, $exists)) && $exists) {
             $this->fw->log(Fw::LEVEL_INFO, sprintf(...array(
                 '(%.1fms) [CACHED] %s',
                 1e3 * (microtime(true) - $start),
                 $this->buildQuery($cmd, $args),
             )));
 
-            return $data[0];
+            return $data;
         }
 
         $query = $this->prepare($cmd, $args);

@@ -641,8 +641,10 @@ final class Fw implements \ArrayAccess
      */
     public function findClass(string $class): ?string
     {
-        if ($cache = $this->cacheGet($key = $class.'.class')) {
-            return reset($cache);
+        $file = $this->cacheGet($key = $class.'.class', $exists);
+
+        if ($exists) {
+            return $file;
         }
 
         if ($file = $this->findFileWithExtension($class, '.php') ?? $this->findFileWithExtension($class, '.hh')) {
@@ -921,8 +923,6 @@ final class Fw implements \ArrayAccess
      */
     public function cacheExists(string $key): bool
     {
-        $this->cacheLoad();
-
         $ndx = $this->hive['SEED'].'.'.$key;
 
         switch ($this->hive['ENGINE']) {
@@ -931,11 +931,13 @@ final class Fw implements \ArrayAccess
             case 'apcu':
                 return apcu_exists($ndx);
             case 'folder':
-                return (bool) $this->cacheParse($key, $this->read($this->safeCacheKey($ndx)));
-            case 'memcached':
-                return (bool) $this->hive['REF']->get($ndx);
+                list($exists) = $this->cacheParse($key, $this->read($this->safeCacheKey($ndx)));
+
+                return $exists;
             case 'redis':
                 return (bool) $this->hive['REF']->exists($ndx);
+            case 'memcached':
+                return (bool) $this->hive['REF']->get($ndx);
         }
 
         return false;
@@ -945,13 +947,14 @@ final class Fw implements \ArrayAccess
      * Returns cached key.
      *
      * @param string $key
+     * @param bool   &$exists
+     * @param int    &$time
+     * @param int    &$ttl
      *
-     * @return array
+     * @return mixed
      */
-    public function cacheGet(string $key): array
+    public function cacheGet(string $key, bool &$exists = null, int &$time = null, int &$ttl = null)
     {
-        $this->cacheLoad();
-
         $ndx = $this->hive['SEED'].'.'.$key;
         $raw = null;
 
@@ -973,7 +976,9 @@ final class Fw implements \ArrayAccess
                 break;
         }
 
-        return $this->cacheParse($key, (string) $raw);
+        list($exists, $val, $time, $ttl) = $this->cacheParse($key, (string) $raw);
+
+        return $val;
     }
 
     /**
@@ -987,8 +992,6 @@ final class Fw implements \ArrayAccess
      */
     public function cacheSet(string $key, $val, int $ttl = 0): bool
     {
-        $this->cacheLoad();
-
         $ndx = $this->hive['SEED'].'.'.$key;
         $content = $this->cacheCompact($val, (int) microtime(true), $ttl);
 
@@ -1017,8 +1020,6 @@ final class Fw implements \ArrayAccess
      */
     public function cacheClear(string $key): bool
     {
-        $this->cacheLoad();
-
         $ndx = $this->hive['SEED'].'.'.$key;
 
         switch ($this->hive['ENGINE']) {
@@ -1046,8 +1047,6 @@ final class Fw implements \ArrayAccess
      */
     public function cacheReset(string $suffix = ''): Fw
     {
-        $this->cacheLoad();
-
         $prefix = $this->hive['SEED'];
         $regex = '/'.preg_quote($prefix, '/').'\..+'.preg_quote($suffix, '/').'/';
         $call = null;
@@ -1744,17 +1743,11 @@ final class Fw implements \ArrayAccess
 
     /**
      * Load cache by defined CACHE dsn.
+     *
+     * @param string $dsn
      */
-    private function cacheLoad(): void
+    private function cacheLoad(string $dsn): void
     {
-        $dsn = $this->hive['CACHE'];
-        $ref = &$this->hive['REF'];
-        $engine = &$this->hive['ENGINE'];
-
-        if ($engine || !$dsn) {
-            return;
-        }
-
         $parts = array_map('trim', explode('=', $dsn) + array(1 => ''));
         $auto = '/^(apcu|apc)/';
         $grep = preg_grep($auto, array_map('strtolower', get_loaded_extensions()));
@@ -1762,6 +1755,8 @@ final class Fw implements \ArrayAccess
         // Fallback to filesystem cache
         $fallback = 'folder';
         $fallbackDir = $this->hive['TEMP'].'cache/';
+        $ref = &$this->hive['REF'];
+        $engine = &$this->hive['ENGINE'];
 
         if ('redis' === $parts[0] && $parts[1] && extension_loaded('redis')) {
             list($host, $port, $db) = explode(':', $parts[1]) + array(1 => null, 2 => null);
@@ -1807,6 +1802,8 @@ final class Fw implements \ArrayAccess
         if ($fallback === $engine) {
             $this->mkdir($ref);
         }
+
+        unset($ref, $engine);
     }
 
     /**
@@ -1849,13 +1846,13 @@ final class Fw implements \ArrayAccess
             list($val, $time, $ttl) = (array) unserialize($raw);
 
             if (0 === $ttl || $time + $ttl > microtime(true)) {
-                return array($val, $time, $ttl);
+                return array(true, $val, $time, $ttl);
             }
 
             $this->cacheClear($key);
         }
 
-        return array();
+        return array(false, null, 0, 0);
     }
 
     /**
@@ -2242,7 +2239,9 @@ final class Fw implements \ArrayAccess
      */
     private function getRequestCache(string $key, int $ttl, int $kbps): ?array
     {
-        if (!$this->cacheExists($key)) {
+        $content = $this->cacheGet($key, $exists, $lastModified);
+
+        if (!$exists) {
             return null;
         }
 
@@ -2254,11 +2253,16 @@ final class Fw implements \ArrayAccess
             return array(null, array(304));
         }
 
-        list($content, $lastModified) = $this->cacheGet($key);
         list($code, $headers, $response, $mime) = $content;
 
         $newExpDate = $lastModified + $ttl - $time;
-        $response = array($code, $this->hive['RESPONSE'] + (array) $headers, $response, $mime, $kbps);
+        $response = array(
+            $code,
+            (array) $this->hive['RESPONSE'] + (array) $headers,
+            $response,
+            $mime,
+            $kbps,
+        );
 
         return array($newExpDate, $response);
     }
@@ -2484,6 +2488,10 @@ final class Fw implements \ArrayAccess
             case 'CACHE':
                 $this->hive['ENGINE'] = null;
                 $this->hive['REF'] = null;
+
+                if ($value && is_string($value)) {
+                    $this->cacheLoad($value);
+                }
                 break;
             case 'FALLBACK':
             case 'LOCALES':
