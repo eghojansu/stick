@@ -131,7 +131,8 @@ class Command
      */
     public function init(): void
     {
-        $start = microtime(true);
+        $this->cli->mark();
+
         $dir = $this->fw['GET']['dir'] ?? null;
 
         if (!$dir || !is_dir($dir)) {
@@ -284,7 +285,7 @@ class Command
 
         file_put_contents($composer, json_encode($json, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
 
-        $this->cli->writeln('Project initialized in <comment>%f</comment> at <info>%s</info>', microtime(true) - $start, $dir);
+        $this->cli->writeln('Project initialized in <comment>%f</comment> at <info>%s</info>', $this->cli->ellapsed(), $dir);
     }
 
     /**
@@ -294,7 +295,8 @@ class Command
      */
     public function build(array $config): void
     {
-        $start = microtime(true);
+        $this->cli->mark();
+
         $cwd = getcwd();
         $dir = $this->fw['GET']['dir'] ?? $config['dir'] ?? $cwd;
         $destination = $this->fw['GET']['destination'] ?? $config['destination'] ?? null;
@@ -387,7 +389,7 @@ class Command
 
         chdir($cwd);
 
-        $this->cli->writeln("Build complete in <comment>%f</comment> ms.\n  Output: <info>%s</info>", microtime(true) - $start, $file);
+        $this->cli->writeln("Build complete in <comment>%f</comment> ms.\n  Output: <info>%s</info>", $this->cli->ellapsed(), $file);
     }
 
     /**
