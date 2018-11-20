@@ -50,6 +50,6 @@ require STICK_COMPOSER_INSTALL;
 Fal\Stick\Fw::createFromGlobals()
     ->registerShutdownHandler()
     ->emulateCliRequest()
-    ->execute(array('Fal\\Stick\\Command', 'register'))
+    ->execute(array('Fal\\Stick\\Console', 'register'))
     ->run()
 ;
