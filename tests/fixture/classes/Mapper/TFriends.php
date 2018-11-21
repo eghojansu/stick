@@ -8,5 +8,5 @@ use Fal\Stick\Sql\Mapper;
 
 class TFriends extends Mapper
 {
-    protected $_table = 'friends';
+    protected $table = 'friends';
 }

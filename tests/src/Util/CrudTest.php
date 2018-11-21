@@ -233,10 +233,29 @@ class CrudTest extends TestCase
         $this->assertTrue($this->crud->isGranted('view'));
     }
 
-    public function testMagic()
+    public function testOffsetExists()
     {
-        $this->assertTrue(isset($this->crud->state));
-        $this->assertNull($this->crud->state);
+        $this->assertFalse(isset($this->crud['foo']));
+    }
+
+    public function testOffsetGet()
+    {
+        $this->assertNull($this->crud['foo']);
+    }
+
+    public function testOffsetSet()
+    {
+        $this->crud['foo'] = 'bar';
+
+        $this->assertEquals('bar', $this->crud['foo']);
+    }
+
+    public function testOffsetUnset()
+    {
+        $this->crud['foo'] = 'bar';
+        unset($this->crud['foo']);
+
+        $this->assertNull($this->crud['foo']);
     }
 
     public function testCallMagic()

@@ -173,14 +173,7 @@ final class Validator
         foreach ($rules as $field => $fieldRules) {
             foreach ($this->parseExpr($fieldRules) as $rule => $args) {
                 $value = array_key_exists($field, $validated) ? $validated[$field] : ($data[$field] ?? null);
-                $result = $this->findValidator($rule)->validate(...array(
-                    $rule,
-                    $value,
-                    $args,
-                    $field,
-                    $validated,
-                    $data,
-                ));
+                $result = $this->findValidator($rule)->validate($rule, $value, $args, $field, $validated, $data);
 
                 if (false === $result) {
                     // validation fail

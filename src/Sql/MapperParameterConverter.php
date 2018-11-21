@@ -132,11 +132,7 @@ final class MapperParameterConverter
             return $found;
         }
 
-        throw new HttpException($this->fw->alt(...array(
-            'message.record_not_found',
-            array_combine(explode(',', '%'.implode('%,%', $keys).'%'), $vals),
-            sprintf('Record of %s is not found.', $mapper->table()),
-        )), 404);
+        throw new HttpException($this->fw->alt('message.record_not_found', array_combine(explode(',', '%'.implode('%,%', $keys).'%'), $vals), sprintf('Record of %s is not found.', $mapper->table())), 404);
     }
 
     /**

@@ -105,9 +105,21 @@ class FwTest extends TestCase
         $this->assertEquals(array(), $this->fw['SESSION']);
     }
 
+    public function testMark()
+    {
+        $this->fw->mark()->mark('foo');
+
+        $this->assertCount(2, $this->fw['MARKS']);
+    }
+
     public function testEllapsed()
     {
-        $this->assertContains(' seconds', $this->fw->ellapsed());
+        $this->fw->mark('foo');
+        $this->fw->mark();
+
+        $this->assertGreaterThan(0.0, $this->fw->ellapsed(true));
+        $this->assertLessThan(1.0, $this->fw->ellapsed('foo'));
+        $this->assertLessThan(1.0, $this->fw->ellapsed());
     }
 
     public function testOverrideRequestMethod()

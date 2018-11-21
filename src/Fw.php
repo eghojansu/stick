@@ -189,6 +189,7 @@ final class Fw implements \ArrayAccess
             'LANGUAGE' => null,
             'LOCALES' => null,
             'LOG' => null,
+            'MARKS' => null,
             'MIME' => null,
             'OUTPUT' => null,
             'PACKAGE' => self::PACKAGE,
@@ -472,13 +473,52 @@ final class Fw implements \ArrayAccess
     }
 
     /**
-     * Returns ellapsed time since application prepared.
+     * Add microtime mark.
      *
-     * @return string
+     * @param mixed $mark
+     *
+     * @return Fw
      */
-    public function ellapsed(): string
+    public function mark($mark = null): Fw
     {
-        return number_format(microtime(true) - $this->hive['TIME'], 5).' seconds';
+        $time = microtime(true);
+
+        if ($mark) {
+            $this->hive['MARKS'][$mark] = $time;
+        } else {
+            $this->hive['MARKS'][] = $time;
+        }
+
+        return $this;
+    }
+
+    /**
+     * Returns ellapsed time since application prepared or specified mark.
+     *
+     * @param mixed $mark
+     * @param bool  $remove
+     *
+     * @return float
+     */
+    public function ellapsed($mark = null, bool $remove = true): float
+    {
+        if (true === $mark || empty($this->hive['MARKS'])) {
+            $time = $this->hive['TIME'];
+        } else {
+            if (isset($this->hive['MARKS'][$mark])) {
+                $time = $this->hive['MARKS'][$mark];
+                $ndx = $mark;
+            } else {
+                $time = end($this->hive['MARKS']);
+                $ndx = key($this->hive['MARKS']);
+            }
+
+            if ($remove) {
+                unset($this->hive['MARKS'][$mark]);
+            }
+        }
+
+        return microtime(true) - $time;
     }
 
     /**

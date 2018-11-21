@@ -8,8 +8,8 @@ use Fal\Stick\Sql\Mapper;
 
 class TUser extends Mapper
 {
-    protected $_table = 'user';
-    protected $_adhoc = array(
+    protected $table = 'user';
+    protected $adhoc = array(
         'foo' => array('expr' => '(1 + 1)', 'value' => null),
     );
 }

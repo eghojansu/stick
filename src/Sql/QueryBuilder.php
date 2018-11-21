@@ -146,16 +146,9 @@ final class QueryBuilder
                 Connection::DB_MSSQL,
                 Connection::DB_DBLIB,
                 Connection::DB_SQLSRV,
-            )) && array_intersect($keys, $ckeys);
-            $suffix = Connection::DB_PGSQL === $driver;
-            $sql = sprintf(...array(
-                '%sINSERT INTO %s (%s) VALUES (%s)%s',
-                $prefix ? 'SET IDENTITY_INSERT '.$map.' ON;' : '',
-                $map,
-                ltrim($fields, ','),
-                ltrim($values, ','),
-                $suffix ? ' RETURNING '.$db->key(reset($keys)) : '',
-            ));
+            )) && array_intersect($keys, $ckeys) ? 'SET IDENTITY_INSERT '.$map.' ON;' : '';
+            $suffix = Connection::DB_PGSQL === $driver ? ' RETURNING '.$db->key(reset($keys)) : '';
+            $sql = sprintf('%sINSERT INTO %s (%s) VALUES (%s)%s', $prefix, $map, ltrim($fields, ','), ltrim($values, ','), $suffix);
         }
 
         return array($sql, $args, $inc, $schema);

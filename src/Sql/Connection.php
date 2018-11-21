@@ -225,15 +225,12 @@ final class Connection
      */
     public function getTableSchema(string $table, string $fields = null, int $ttl = 0): array
     {
-        $start = microtime(true);
+        $this->fw->mark();
+
         $hash = $this->fw->hash($table.var_export($fields, true)).'.schema';
 
         if ($ttl && ($schema = $this->fw->cacheGet($hash, $exists)) && $exists) {
-            $this->fw->log(Fw::LEVEL_INFO, sprintf(...array(
-                '(%.1fms) [CACHED] Retrieving schema of %s table',
-                1e3 * (microtime(true) - $start),
-                $table,
-            )));
+            $this->fw->log(Fw::LEVEL_INFO, sprintf('(%fms) [CACHED] Retrieving schema of %s table', $this->fw->ellapsed(), $table));
 
             return $schema;
         }
@@ -247,11 +244,7 @@ final class Connection
             list($db, $mTable) = explode('.', $table);
         }
 
-        list($command, $fName, $fType, $fDefault, $fNull, $nullCompare, $fKey, $keyCompare) = $this->getSchemaCommand(...array(
-            $this->key($db),
-            $this->key($mTable),
-            $this->getDriverName(),
-        ));
+        list($command, $fName, $fType, $fDefault, $fNull, $nullCompare, $fKey, $keyCompare) = $this->getSchemaCommand($this->key($db), $this->key($mTable), $this->getDriverName());
 
         $query = $this->getPdo()->query($command);
 
@@ -275,12 +268,7 @@ final class Connection
             $this->fw->cacheSet($hash, $schema, $ttl);
         }
 
-        $this->fw->log(Fw::LEVEL_INFO, sprintf(...array(
-            '(%.1fms) Retrieving schema of %s table (%s)',
-            1e3 * (microtime(true) - $start),
-            $table,
-            $command,
-        )));
+        $this->fw->log(Fw::LEVEL_INFO, sprintf('(%fms) Retrieving schema of %s table (%s)', $this->fw->ellapsed(), $table, $command));
 
         return $schema;
     }
@@ -333,26 +321,19 @@ final class Connection
             throw new \LogicException('Cannot execute an empty query!');
         }
 
-        $start = microtime(true);
+        $this->fw->mark();
+
         $hash = $this->fw->hash($cmd.var_export($args, true)).'.sql';
 
         if ($ttl && ($data = $this->fw->cacheGet($hash, $exists)) && $exists) {
-            $this->fw->log(Fw::LEVEL_INFO, sprintf(...array(
-                '(%.1fms) [CACHED] %s',
-                1e3 * (microtime(true) - $start),
-                $this->buildQuery($cmd, $args),
-            )));
+            $this->fw->log(Fw::LEVEL_INFO, sprintf('(%fms) [CACHED] %s', $this->fw->ellapsed(), $this->buildQuery($cmd, $args)));
 
             return $data;
         }
 
         $query = $this->prepare($cmd, $args);
 
-        $this->fw->log(Fw::LEVEL_INFO, sprintf(...array(
-            '(%.1fms) %s',
-            1e3 * (microtime(true) - $start),
-            $this->buildQuery($cmd, $args),
-        )));
+        $this->fw->log(Fw::LEVEL_INFO, sprintf('(%fms) %s', $this->fw->ellapsed(), $this->buildQuery($cmd, $args)));
 
         if (!$query) {
             $this->rollback();

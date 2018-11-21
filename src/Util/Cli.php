@@ -74,13 +74,6 @@ final class Cli
     );
 
     /**
-     * Microtime marks.
-     *
-     * @var array
-     */
-    private $marks = array();
-
-    /**
      * Class constructor.
      *
      * @param array|null $styles
@@ -175,40 +168,6 @@ final class Cli
     public function colorize(string $message): string
     {
         return $this->build($this->parse($message));
-    }
-
-    /**
-     * Add microtime mark.
-     *
-     * @param mixed $ndx
-     *
-     * @return Cli
-     */
-    public function mark($ndx = null): Cli
-    {
-        if ($ndx) {
-            $this->marks[$ndx] = microtime(true);
-        } else {
-            $this->marks[] = microtime(true);
-        }
-
-        return $this;
-    }
-
-    /**
-     * Count ellapsed time.
-     *
-     * @param mixed $ndx
-     *
-     * @return float
-     */
-    public function ellapsed($ndx = null): float
-    {
-        if (empty($this->marks)) {
-            throw new \LogicException('No marker defined!');
-        }
-
-        return microtime(true) - ($this->marks[$ndx] ?? array_pop($this->marks));
     }
 
     /**

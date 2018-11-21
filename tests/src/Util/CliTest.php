@@ -76,26 +76,6 @@ class CliTest extends TestCase
         $this->assertEquals($expected, $this->cli->colorize('<bold>bold</bold>'));
     }
 
-    public function testMark()
-    {
-        $this->assertSame($this->cli, $this->cli->mark());
-    }
-
-    public function testEllapsed()
-    {
-        $this->assertGreaterThan(0.0, $this->cli->mark()->ellapsed());
-        $this->assertGreaterThan(0.0, $this->cli->mark('foo')->ellapsed('foo'));
-    }
-
-    /**
-     * @expectedException \LogicException
-     * @expectedExceptionMessage No marker defined!
-     */
-    public function testEllapsedException()
-    {
-        $this->cli->ellapsed();
-    }
-
     public function getLines()
     {
         return array(

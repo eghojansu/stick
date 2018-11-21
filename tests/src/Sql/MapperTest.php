@@ -144,7 +144,7 @@ class MapperTest extends TestCase
 
     public function testOffsetGet()
     {
-        $this->assertNull($this->mapper->id);
+        $this->assertNull($this->mapper['id']);
     }
 
     public function testOffsetSet()
@@ -160,32 +160,6 @@ class MapperTest extends TestCase
         unset($this->mapper['id']);
 
         $this->assertNull($this->mapper['id']);
-    }
-
-    public function testMagicIsset()
-    {
-        $this->assertTrue(isset($this->mapper->id));
-        $this->assertFalse(isset($this->mapper->foo));
-    }
-
-    public function testMagicGet()
-    {
-        $this->assertNull($this->mapper->id);
-    }
-
-    public function testMagicSet()
-    {
-        $this->mapper->id = 1;
-
-        $this->assertEquals(1, $this->mapper->id);
-    }
-
-    public function testMagicUnset()
-    {
-        $this->mapper->id = 1;
-        unset($this->mapper->id);
-
-        $this->assertNull($this->mapper->id);
     }
 
     public function testFromArray()
@@ -491,8 +465,8 @@ class MapperTest extends TestCase
 
         $this->assertEquals('tb', $relation->table());
         $this->assertEquals(1, $relation->loaded());
-        $this->assertEquals(2, $relation->id);
-        $this->assertEquals(3, $relation->inc_id);
+        $this->assertEquals(2, $relation['id']);
+        $this->assertEquals(3, $relation['inc_id']);
     }
 
     public function testCall()
@@ -606,8 +580,8 @@ class MapperTest extends TestCase
 
         if ($anon) {
             $this->mapper = new class($fw, $db, $table ?? 'user') extends Mapper {
-                protected $_props = array('one' => array('value' => 1, 'self' => false));
-                protected $_adhoc = array('one_plus_one' => array('value' => null, 'expr' => '(1 + 1)'));
+                protected $props = array('one' => array('value' => 1, 'self' => false));
+                protected $adhoc = array('one_plus_one' => array('value' => null, 'expr' => '(1 + 1)'));
 
                 public function obj()
                 {

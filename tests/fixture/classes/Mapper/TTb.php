@@ -8,8 +8,8 @@ use Fal\Stick\Sql\Mapper;
 
 class TTb extends Mapper
 {
-    protected $_table = 'tb';
-    protected $_adhoc = array(
+    protected $table = 'tb';
+    protected $adhoc = array(
         'inc_id' => array('expr' => '(tb.id + 1)', 'value' => null),
     );
 }

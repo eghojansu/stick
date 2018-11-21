@@ -8,5 +8,5 @@ use Fal\Stick\Sql\Mapper;
 
 class TProfile extends Mapper
 {
-    protected $_table = 'profile';
+    protected $table = 'profile';
 }

@@ -13,7 +13,6 @@ declare(strict_types=1);
 
 namespace Fal\Stick;
 
-use Fal\Stick\Sql\Connection;
 use Fal\Stick\Util\Cli;
 use Fal\Stick\Util\Zip;
 
@@ -35,6 +34,8 @@ class Console
     protected $cli;
 
     /**
+     * Registered commands.
+     *
      * @var array
      */
     public $commands;
@@ -421,7 +422,7 @@ class Console
      */
     public static function initCommand(Fw $fw, Cli $cli, array $options): void
     {
-        $cli->mark();
+        $fw->mark();
 
         if (!$options['working-dir'] || !is_dir($options['working-dir'])) {
             throw new \LogicException(sprintf('Destination directory not exists: "%s".', $options['working-dir']));
@@ -576,12 +577,12 @@ class Console
         }
 
         $composer = $wd.'composer.json';
-        $json = is_file($composer) ? json_decode(file_get_contents($composer), true) : array();
+        $json = is_file($composer) ? json_decode($fw->read($composer), true) : array();
         $json['autoload']['psr-4']['App\\'] = 'app/src/';
 
-        file_put_contents($composer, json_encode($json, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+        $fw->write($composer, json_encode($json, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
 
-        $cli->writeln('Project initialized in <comment>%f</comment> at <info>%s</info>', $cli->ellapsed(), realpath($wd));
+        $cli->writeln('Project initialized in <comment>%f</comment> at <info>%s</info>', $fw->ellapsed(), realpath($wd));
     }
 
     /**
@@ -593,7 +594,7 @@ class Console
      */
     public static function buildCommand(Fw $fw, Cli $cli, array $options): void
     {
-        $cli->mark();
+        $fw->mark();
 
         if ($options['working-dir'] && !is_dir($options['working-dir'])) {
             throw new \LogicException(sprintf('Working directory not exists: "%s".', $options['working-dir']));
@@ -672,7 +673,7 @@ class Console
             chdir($cwd);
         }
 
-        $cli->writeln("Build complete in <comment>%f</comment> ms.\n  Output: <info>%s</info>", $cli->ellapsed(), $file);
+        $cli->writeln("Build complete in <comment>%f</comment> ms.\n  Output: <info>%s</info>", $fw->ellapsed(), $file);
     }
 
     /**
@@ -684,7 +685,7 @@ class Console
      */
     public static function setupCommand(Fw $fw, Cli $cli, array $options): void
     {
-        $cli->mark();
+        $fw->mark();
 
         $file = $fw['TEMP'].$options['file'];
         $installedVersion = ($content = $fw->read($file, true)) ? strstr($content, "\n", true) : '0.0.0';
@@ -707,7 +708,7 @@ class Console
             $installer = $installers[$version]['run'] ?? null;
 
             if ($schemas) {
-                $pdo = $fw->service(Connection::class)->getPdo();
+                $pdo = $fw->service('Fal\\Stick\\Sql\\Connection')->getPdo();
 
                 foreach ($fw->split($schemas) as $schema) {
                     if ($content = $fw->read($schema)) {
@@ -722,6 +723,6 @@ class Console
         }
 
         $fw->write($file, $latestVersion."\ninstallation complete at ".date('Y-m-d G:i:s.u'));
-        $cli->writeln('Setup to version "<info>%s</info>"" complete in <comment>%f</comment> ms.', $latestVersion, $cli->ellapsed());
+        $cli->writeln('Setup to version "<info>%s</info>"" complete in <comment>%f</comment> ms.', $latestVersion, $fw->ellapsed());
     }
 }
