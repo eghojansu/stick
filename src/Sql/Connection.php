@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Fal\Stick\Sql;
 
 use Fal\Stick\Fw;
+use Fal\Stick\CacheItem;
 
 /**
  * PDO Wrapper.
@@ -227,12 +228,13 @@ final class Connection
     {
         $this->fw->mark();
 
+        $cache = $this->fw->cache();
         $hash = $this->fw->hash($table.var_export($fields, true)).'.schema';
 
-        if ($ttl && ($schema = $this->fw->cacheGet($hash, $exists)) && $exists) {
+        if ($ttl && ($item = $cache->get($hash)) && $item->isValid()) {
             $this->fw->log(Fw::LEVEL_INFO, sprintf('(%fms) [CACHED] Retrieving schema of %s table', $this->fw->ellapsed(), $table));
 
-            return $schema;
+            return $item->getValue();
         }
 
         $schema = array();
@@ -265,7 +267,7 @@ final class Connection
 
         if ($ttl && $schema) {
             // Save to cache backend
-            $this->fw->cacheSet($hash, $schema, $ttl);
+            $cache->set($hash, new CacheItem($schema, $ttl));
         }
 
         $this->fw->log(Fw::LEVEL_INFO, sprintf('(%fms) Retrieving schema of %s table (%s)', $this->fw->ellapsed(), $table, $command));
@@ -323,12 +325,13 @@ final class Connection
 
         $this->fw->mark();
 
+        $cache = $this->fw->cache();
         $hash = $this->fw->hash($cmd.var_export($args, true)).'.sql';
 
-        if ($ttl && ($data = $this->fw->cacheGet($hash, $exists)) && $exists) {
+        if ($ttl && ($item = $cache->get($hash)) && $item->isValid()) {
             $this->fw->log(Fw::LEVEL_INFO, sprintf('(%fms) [CACHED] %s', $this->fw->ellapsed(), $this->buildQuery($cmd, $args)));
 
-            return $data;
+            return $item->getValue();
         }
 
         $query = $this->prepare($cmd, $args);
@@ -354,7 +357,7 @@ final class Connection
 
             if ($ttl) {
                 // Save to cache backend
-                $this->fw->cacheSet($hash, $data, $ttl);
+                $cache->set($hash, new CacheItem($data, $ttl));
             }
 
             return $data;

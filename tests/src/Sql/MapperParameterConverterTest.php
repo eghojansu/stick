@@ -34,7 +34,7 @@ class MapperParameterConverterTest extends TestCase
         $conn->getPdo()->exec('insert into user (username) values ("foo"), ("bar"), ("baz")');
         $conn->getPdo()->exec('insert into friends (user_id, friend_id, level) values (1, 2, 3), (2, 3, 4)');
 
-        $this->fw->rule(Connection::class, $conn);
+        $this->fw->setRule(Connection::class, $conn);
 
         $this->converter = new MapperParameterConverter($this->fw, $handler, $params);
     }

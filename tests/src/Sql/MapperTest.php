@@ -597,7 +597,7 @@ class MapperTest extends TestCase
             $this->mapper = new Mapper($fw, $db, $table ?? 'user');
         }
 
-        $fw->rule(Connection::class, $db);
+        $fw->setRule(Connection::class, $db);
 
         $this->fw = $fw;
     }

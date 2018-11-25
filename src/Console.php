@@ -49,11 +49,11 @@ class Console
     public function __construct(Fw $fw, Cli $cli)
     {
         if (!isset($fw['RULES']['Fal\\Stick\\Console'])) {
-            $fw->rule('Fal\\Stick\\Console', $this);
+            $fw->setRule('Fal\\Stick\\Console', $this);
         }
 
         if (!isset($fw['RULES']['Fal\\Stick\\Util\\Cli'])) {
-            $fw->rule('Fal\\Stick\\Util\\Cli', $cli);
+            $fw->setRule('Fal\\Stick\\Util\\Cli', $cli);
         }
 
         $this->fw = $fw;
@@ -701,7 +701,7 @@ class Console
             return;
         }
 
-        $fw->cacheReset();
+        $fw->cache('reset');
 
         foreach ($versions as $version) {
             $schemas = $installers[$version]['schemas'] ?? null;

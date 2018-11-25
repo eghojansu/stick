@@ -139,7 +139,7 @@ class Mapper implements \ArrayAccess
             return $this->fw->instance($table);
         }
 
-        return $this->fw->instance(static::class, compact('table', 'fields', 'ttl'));
+        return $this->fw->instance(static::class, array('args' => compact('table', 'fields', 'ttl')));
     }
 
     /**

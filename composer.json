@@ -22,8 +22,17 @@
         "php": ">=7.1"
     },
     "require-dev": {
-        "ext-PDO": "*",
+        "ext-gd": "*",
+        "ext-mysql": "*",
+        "ext-pdo": "*",
+        "ext-sqlite3": "*",
+        "ext-zip": "*",
         "phpunit/phpunit": "^7.4"
+    },
+    "suggest": {
+        "ext-gd": "Image manipulation",
+        "ext-pdo": "Mapper helper",
+        "ext-zip": "Zip helper"
     },
     "bin": [
         "stick"

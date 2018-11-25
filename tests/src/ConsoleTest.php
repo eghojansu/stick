@@ -178,7 +178,7 @@ class ConsoleTest extends TestCase
 
     public function testSetupCommand()
     {
-        $this->fw->rule('Fal\\Stick\\Sql\\Connection', array(
+        $this->fw->setRule('Fal\\Stick\\Sql\\Connection', array(
             'args' => array(
                 'fw' => '%fw%',
                 'dsn' => 'sqlite::memory:',

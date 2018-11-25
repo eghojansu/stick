@@ -31,7 +31,7 @@ class CrudTest extends TestCase
     {
         $this->fw = new Fw();
         $this->fw
-            ->rule(Connection::class, array(
+            ->setRule(Connection::class, array(
                 'args' => array(
                     'fw' => '%fw%',
                     'dsn' => 'sqlite::memory:',

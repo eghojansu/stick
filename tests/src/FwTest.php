@@ -149,32 +149,32 @@ class FwTest extends TestCase
     /**
      * @dataProvider getRules
      */
-    public function testRule($id, $rule, $expected)
+    public function testSetRule($id, $rule, $expected)
     {
-        $this->fw->rule($id, $rule);
+        $this->fw->setRule($id, $rule);
 
-        $this->assertEquals($expected, $this->fw['RULES'][$id]);
+        $this->assertEquals($expected, $this->fw['SERVICE_RULES'][$id]);
     }
 
     public function testInstance()
     {
         $this->fw['my_name'] = 'my_name';
-        $this->fw->rule('constructor', array(
+        $this->fw->setRule('constructor', array(
             'class' => 'Fal\\Stick\\Test\\Constructor',
             'args' => array('name' => 'foo'),
             'boot' => function ($obj) {
                 $obj->setName($obj->getName().' bar');
             },
         ));
-        $this->fw->rule('constructor2', array(
+        $this->fw->setRule('constructor2', array(
             'class' => 'Fal\\Stick\\Test\\Constructor',
             'args' => array('name' => '%my_name%'),
         ));
-        $this->fw->rule('independent', array(
+        $this->fw->setRule('independent', array(
             'class' => 'Fal\\Stick\\Test\\Independent',
             'args' => array('foo', 'bar', 'baz'),
         ));
-        $this->fw->rule('dependIndependent', array(
+        $this->fw->setRule('dependIndependent', array(
             'class' => 'Fal\\Stick\\Test\\DependsIndependent',
             'args' => array('independent' => '%independent%'),
         ));
@@ -193,10 +193,10 @@ class FwTest extends TestCase
         $depends = $this->fw->instance('Fal\\Stick\\Test\\DependsConstructor');
         $this->assertEquals('foo bar', $depends->constructor->getName());
 
-        $depends2 = $this->fw->instance('Fal\\Stick\\Test\\DependsConstructor', array(new ConstructorBar()));
+        $depends2 = $this->fw->instance('Fal\\Stick\\Test\\DependsConstructor', array('args' => array(new ConstructorBar())));
         $this->assertEquals('bar', $depends2->constructor->getName());
 
-        $depends3 = $this->fw->instance('Fal\\Stick\\Test\\DependsConstructor', array('Fal\\Stick\\Test\\ConstructorBar'));
+        $depends3 = $this->fw->instance('Fal\\Stick\\Test\\DependsConstructor', array('args' => array('Fal\\Stick\\Test\\ConstructorBar')));
         $this->assertEquals('bar', $depends3->constructor->getName());
 
         $independent = $this->fw->instance('independent');
@@ -221,7 +221,7 @@ class FwTest extends TestCase
      */
     public function testInstanceException2()
     {
-        $this->fw->rule('now', array(
+        $this->fw->setRule('now', array(
             'class' => 'DateTime',
             'constructor' => function () {
                 return new \StdClass();
@@ -233,7 +233,7 @@ class FwTest extends TestCase
 
     public function testService()
     {
-        $this->fw->rule('noconstructor', 'Fal\\Stick\\Test\\NoConstructor');
+        $this->fw->setRule('noconstructor', 'Fal\\Stick\\Test\\NoConstructor');
 
         $this->assertSame($this->fw, $this->fw->service('fw'));
         $this->assertSame($this->fw, $this->fw->service('Fal\\Stick\\Fw'));
@@ -299,108 +299,6 @@ class FwTest extends TestCase
 
         $this->assertEquals('no constructor', $this->fw->trigger('foo'));
         $this->assertNull($this->fw->trigger('bar'));
-    }
-
-    /**
-     * @dataProvider getCacheDsn
-     */
-    public function testCacheClear($dsn)
-    {
-        $this->fw['CACHE'] = $dsn;
-
-        $this->assertEquals(!$dsn, $this->fw->cacheClear('foo'));
-    }
-
-    /**
-     * @dataProvider getCacheDsn
-     */
-    public function testCacheExists($dsn)
-    {
-        $this->fw['CACHE'] = $dsn;
-
-        $this->assertFalse($this->fw->cacheExists('foo'));
-    }
-
-    /**
-     * @dataProvider getCacheDsn
-     */
-    public function testCacheGet($dsn)
-    {
-        $this->fw['CACHE'] = $dsn;
-
-        $this->assertNull($this->fw->cacheGet('foo', $exists, $time, $ttl));
-        $this->assertFalse($exists);
-        $this->assertEquals(0, $time);
-        $this->assertEquals(0, $ttl);
-    }
-
-    /**
-     * @dataProvider getCacheDsn
-     */
-    public function testCacheSet($dsn)
-    {
-        $this->fw['CACHE'] = $dsn;
-
-        $this->assertTrue($this->fw->cacheSet('foo', $dsn));
-
-        if ($dsn) {
-            $cache = $this->fw->cacheGet('foo');
-            $this->assertEquals($dsn, $cache);
-
-            if ($dsn) {
-                $this->assertTrue($this->fw->cacheExists('foo'));
-
-                $this->fw->cacheClear('foo');
-                $this->assertFalse($this->fw->cacheExists('foo'));
-            }
-        }
-    }
-
-    /**
-     * @dataProvider getCacheDsn
-     */
-    public function testCacheReset($dsn)
-    {
-        $this->fw['CACHE'] = $dsn;
-        $this->fw->cacheSet('foo', 'bar');
-
-        $this->assertSame($this->fw, $this->fw->cacheReset());
-
-        // because of bug on memcached VERSION 1.4.25 Ubuntu (in my laptop)
-        // we skip check test for memcached
-        if (false === strpos($dsn, 'memcached')) {
-            $this->assertFalse($this->fw->cacheExists('foo'));
-        }
-
-        $this->fw->cacheClear('foo');
-    }
-
-    public function testCacheRedisSelectDb()
-    {
-        $this->fw['CACHE'] = 'redis=127.0.0.1:6379:1';
-
-        $this->assertTrue($this->fw->cacheSet('foo', 'bar'));
-        $this->fw->cacheClear('foo');
-    }
-
-    public function testCacheRedisFallback()
-    {
-        $this->fw['CACHE'] = 'redis=foo';
-
-        $this->assertFalse($this->fw->cacheExists('foo'));
-        $this->assertEquals('folder', $this->fw['ENGINE']);
-    }
-
-    public function testCacheTtl()
-    {
-        $this->fw['CACHE'] = 'fallback';
-
-        $this->assertTrue($this->fw->cacheSet('tfoo', 'bar', 1));
-        $cache = $this->fw->cacheGet('tfoo');
-        $this->assertEquals('bar', $cache);
-        $this->assertTrue($this->fw->cacheExists('tfoo'));
-        usleep(intval(1e6));
-        $this->assertFalse($this->fw->cacheExists('tfoo'));
     }
 
     public function testLogFiles()
@@ -686,7 +584,7 @@ class FwTest extends TestCase
         $this->assertCount(count(explode('|', $verbs)), $routes[$bitwiseMode]);
 
         if ($alias) {
-            $this->assertEquals($path, $this->fw['ALIASES'][$alias]);
+            $this->assertEquals($path, $this->fw['ROUTE_ALIASES'][$alias]);
         }
     }
 
@@ -698,7 +596,7 @@ class FwTest extends TestCase
         ;
 
         $routes = $this->fw['ROUTES']['/foo'];
-        $aliases = $this->fw['ALIASES'];
+        $aliases = $this->fw['ROUTE_ALIASES'];
 
         $this->assertNotEmpty($routes);
         $this->assertTrue(array_key_exists(0, $routes));
@@ -760,24 +658,24 @@ class FwTest extends TestCase
             'GET bar /baz' => 'baz',
         ));
 
-        $this->assertEquals('/bar', $this->fw['ALIASES']['foo']);
-        $this->assertEquals('/baz', $this->fw['ALIASES']['bar']);
-        $this->assertEquals('Foo->bar', $this->fw['HANDLERS'][0][0]);
+        $this->assertEquals('/bar', $this->fw['ROUTE_ALIASES']['foo']);
+        $this->assertEquals('/baz', $this->fw['ROUTE_ALIASES']['bar']);
+        $this->assertEquals('Foo->bar', $this->fw['ROUTE_HANDLERS'][0][0]);
     }
 
     public function testRest()
     {
         $this->fw->rest('/foo', 'Foo', 'foo');
 
-        $this->assertEquals('/foo', $this->fw['ALIASES']['foo']);
-        $this->assertEquals('/foo/@item', $this->fw['ALIASES']['foo_item']);
+        $this->assertEquals('/foo', $this->fw['ROUTE_ALIASES']['foo']);
+        $this->assertEquals('/foo/@item', $this->fw['ROUTE_ALIASES']['foo_item']);
         $this->assertCount(2, $this->fw['ROUTES']['/foo'][0]);
         $this->assertCount(3, $this->fw['ROUTES']['/foo/@item'][0]);
-        $this->assertEquals('Foo->all', $this->fw['HANDLERS'][0][0]);
-        $this->assertEquals('Foo->create', $this->fw['HANDLERS'][1][0]);
-        $this->assertEquals('Foo->get', $this->fw['HANDLERS'][2][0]);
-        $this->assertEquals('Foo->put', $this->fw['HANDLERS'][3][0]);
-        $this->assertEquals('Foo->delete', $this->fw['HANDLERS'][4][0]);
+        $this->assertEquals('Foo->all', $this->fw['ROUTE_HANDLERS'][0][0]);
+        $this->assertEquals('Foo->create', $this->fw['ROUTE_HANDLERS'][1][0]);
+        $this->assertEquals('Foo->get', $this->fw['ROUTE_HANDLERS'][2][0]);
+        $this->assertEquals('Foo->put', $this->fw['ROUTE_HANDLERS'][3][0]);
+        $this->assertEquals('Foo->delete', $this->fw['ROUTE_HANDLERS'][4][0]);
     }
 
     /**
@@ -854,8 +752,9 @@ class FwTest extends TestCase
 
     public function testRunCached()
     {
+        $this->setupCache();
+
         $this->fw['QUIET'] = true;
-        $this->fw['CACHE'] = 'fallback';
         $this->fw['PATH'] = '/foo';
 
         $counter = 0;
@@ -864,7 +763,6 @@ class FwTest extends TestCase
 
             return 'Foo '.$counter;
         }, 1);
-        $this->fw->cacheReset();
 
         $this->fw->run();
         $this->assertEquals('Foo 1', $this->fw['OUTPUT']);
@@ -882,8 +780,6 @@ class FwTest extends TestCase
         $this->assertEquals('', $this->fw['OUTPUT']);
         $this->assertEquals(1, $counter);
         $this->assertEquals('Not Modified', $this->fw['STATUS']);
-
-        $this->fw->cacheReset();
     }
 
     public function testRedirect()
@@ -1133,8 +1029,7 @@ class FwTest extends TestCase
 
     public function testFindClass()
     {
-        $this->fw['CACHE'] = 'folder='.TEMP.'find-class/';
-        $this->fw->cacheReset();
+        $this->setupCache();
 
         $this->fw['AUTOLOAD']['FixtureNs\\'] = FIXTURE.'classes2/FixtureNs/';
         $this->fw['AUTOLOAD_FALLBACK'] = FIXTURE.'classes2/NoNs/';
@@ -1144,6 +1039,52 @@ class FwTest extends TestCase
         $this->assertEquals(FIXTURE.'classes2/FixtureNs/ClassA.php', $this->fw->findClass('FixtureNs\\ClassA'));
         $this->assertEquals(FIXTURE.'classes2/NoNs/ClassOutNs.php', $this->fw->findClass('ClassOutNs'));
         $this->assertNull($this->fw->findClass('UnknownClass'));
+    }
+
+    public function testGetRule()
+    {
+        $this->hive['SERVICE_RULES']['foo'] = array('class' => 'foo');
+        $this->hive['SERVICE_ALIASES']['bar'] = 'foo';
+
+        $id = 'foo';
+        $override = array('class' => 'bar');
+        $expected = array(
+            'args' => null,
+            'boot' => null,
+            'class' => 'bar',
+            'constructor' => null,
+            'service' => false,
+            'use' => null,
+        );
+
+        $this->assertEquals($expected, $this->fw->getRule($id, $override, $realId));
+        $this->assertEquals($id, $realId);
+        $this->assertEquals($expected, $this->fw->getRule('bar', $override));
+    }
+
+    public function testCache()
+    {
+        $this->assertInstanceOf('Fal\\Stick\\CacheInterface', $this->fw->cache());
+        $this->assertFalse($this->fw->cache('exists', 'foo'));
+    }
+
+    /**
+     * @expectedException \LogicException
+     * @expectedExceptionMessage Cache should be instance of Fal\Stick\CacheInterface, DateTime given.
+     */
+    public function testCacheException()
+    {
+        $this->fw['CACHE'] = 'DateTime';
+        $this->fw->cache();
+    }
+
+    /**
+     * @expectedException \LogicException
+     * @expectedExceptionMessage Call to undefined cache method "foo".
+     */
+    public function testCacheException2()
+    {
+        $this->fw->cache('foo');
     }
 
     public function getCliRequestData()
@@ -1180,20 +1121,6 @@ class FwTest extends TestCase
                 'class' => 'Fal\\Stick\\Test\\Constructor',
                 'service' => true,
             )),
-        );
-    }
-
-    public function getCacheDsn()
-    {
-        return array(
-            array(''),
-            array('auto'),
-            array('fallback'),
-            array('apc'),
-            array('apcu'),
-            array('memcached=127.0.0.1:11211'),
-            array('redis=127.0.0.1:6379'),
-            array('folder='.TEMP.'implicit-cache/'),
         );
     }
 
@@ -1404,6 +1331,12 @@ class FwTest extends TestCase
         $val = $ref->getValue($this->fw);
         $val[$name] = $value;
         $ref->setValue($this->fw, $val);
+    }
+
+    private function setupCache()
+    {
+        $this->fw['CACHE'] = 'fallback';
+        $this->fw->cache('reset');
     }
 }
 

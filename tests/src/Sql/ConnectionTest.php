@@ -168,8 +168,8 @@ class ConnectionTest extends TestCase
 
     public function testGetTableSchemaCache()
     {
-        $this->fw['CACHE'] = 'fallback';
-        $this->fw->cacheReset();
+        $this->setupCache();
+        $this->fw->cache('reset');
 
         $init = $this->conn->getTableSchema('user', null, 1);
         $cached = $this->conn->getTableSchema('user', null, 1);
@@ -242,8 +242,7 @@ class ConnectionTest extends TestCase
 
     public function testExecCache()
     {
-        $this->fw['CACHE'] = 'fallback';
-        $this->fw->cacheReset();
+        $this->setupCache();
         $this->filldb();
 
         $init = $this->conn->exec('select * from user', null, 1);
@@ -263,7 +262,7 @@ class ConnectionTest extends TestCase
 
     /**
      * @expectedException \LogicException
-     * @expectedExceptionMessage PDO: near "select": syntax error.
+     * @expectedExceptionMessage PDO: incomplete input.
      */
     public function testExecException2()
     {
@@ -321,5 +320,11 @@ class ConnectionTest extends TestCase
         $val = $ref->getValue($this->conn);
         $val['DRIVER_NAME'] = $driver;
         $ref->setValue($this->conn, $val);
+    }
+
+    private function setupCache()
+    {
+        $this->fw['CACHE'] = 'fallback';
+        $this->fw->cache('reset');
     }
 }

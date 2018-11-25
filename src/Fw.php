@@ -158,7 +158,6 @@ final class Fw implements \ArrayAccess
             'AGENT' => $headers['X-Operamini-Phone-Ua'] ?? $headers['X-Skyfire-Phone'] ?? $headers['User-Agent'] ?? '',
             'AJAX' => 'XMLHttpRequest' === ($headers['X-Requested-With'] ?? null),
             'ALIAS' => null,
-            'ALIASES' => null,
             'ASSET' => null,
             'AUTOLOAD' => null,
             'AUTOLOAD_FALLBACK' => null,
@@ -166,24 +165,21 @@ final class Fw implements \ArrayAccess
             'BASEURL' => $domain.$base,
             'BODY' => null,
             'CACHE' => null,
+            'CACHE_DRY' => true,
             'CASELESS' => false,
             'CLI' => $cli,
             'CODE' => 200,
             'COOKIE' => null,
-            'CTR' => -1,
             'DEBUG' => false,
             'DICT' => null,
             'DNSBL' => null,
-            'ENGINE' => null,
             'ERROR' => null,
             'EVENTS' => null,
             'EXEMPT' => null,
             'FALLBACK' => 'en',
             'FRONT' => $front,
             'GET' => $get,
-            'HANDLERS' => null,
             'HOST' => $host,
-            'ID' => null,
             'IP' => $headers['X-Client-Ip'] ?? strstr(($headers['X-Forwarded-For'] ?? $server['REMOTE_ADDR'] ?? '').',', ',', true),
             'JAR' => $cookieJar,
             'LANGUAGE' => null,
@@ -201,15 +197,18 @@ final class Fw implements \ArrayAccess
             'PROTOCOL' => $server['SERVER_PROTOCOL'] ?? 'HTTP/1.0',
             'QUIET' => false,
             'RAW' => false,
-            'REF' => null,
             'REQUEST' => $headers,
             'RESPONSE' => null,
+            'ROUTE_ALIASES' => null,
+            'ROUTE_CTR' => -1,
+            'ROUTE_HANDLERS' => null,
             'ROUTES' => null,
-            'RULES' => null,
             'SCHEME' => $scheme,
             'SEED' => $this->hash($host.$base),
             'SENT' => false,
             'SERVER' => $server,
+            'SERVICE_ALIASES' => null,
+            'SERVICE_RULES' => null,
             'SERVICES' => null,
             'SESSION' => null,
             'STATUS' => self::HTTP_200,
@@ -445,7 +444,7 @@ final class Fw implements \ArrayAccess
             'redirects' => 'redirect',
             'rests' => 'rest',
             'controllers' => 'controller',
-            'rules' => 'rule',
+            'rules' => 'setRule',
             'events' => 'on',
         );
         $config = (array) self::requireFile($file);
@@ -681,14 +680,15 @@ final class Fw implements \ArrayAccess
      */
     public function findClass(string $class): ?string
     {
-        $file = $this->cacheGet($key = $class.'.class', $exists);
+        $cache = $this->cache();
+        $item = $cache->get($key = $class.'.class');
 
-        if ($exists) {
-            return $file;
+        if ($item && $item->isValid()) {
+            return $item->getValue();
         }
 
         if ($file = $this->findFileWithExtension($class, '.php') ?? $this->findFileWithExtension($class, '.hh')) {
-            $this->cacheSet($key, $file);
+            $cache->set($key, new CacheItem($file));
         }
 
         return $file;
@@ -771,6 +771,38 @@ final class Fw implements \ArrayAccess
     }
 
     /**
+     * Returns service rule.
+     *
+     * @param string      $id
+     * @param array|null  $override
+     * @param string|null &$realId
+     *
+     * @return array
+     */
+    public function getRule(string $id, array $override = null, string &$realId = null): array
+    {
+        $realId = $id;
+        $rule = array();
+        $default = array(
+            'args' => null,
+            'boot' => null,
+            'class' => $id,
+            'constructor' => null,
+            'service' => false,
+            'use' => null,
+        );
+
+        if (isset($this->hive['SERVICE_RULES'][$id])) {
+            $rule = $this->hive['SERVICE_RULES'][$id];
+        } elseif ($this->hive['SERVICE_ALIASES'] && $sid = array_search($id, $this->hive['SERVICE_ALIASES'])) {
+            $rule = $this->hive['SERVICE_RULES'][$sid];
+            $realId = $sid;
+        }
+
+        return array_replace_recursive($default, $rule, (array) $override);
+    }
+
+    /**
      * Sets class construction rule.
      *
      * @param string $id
@@ -778,25 +810,25 @@ final class Fw implements \ArrayAccess
      *
      * @return Fw
      */
-    public function rule(string $id, $rule = null): Fw
+    public function setRule(string $id, $rule = null): Fw
     {
         unset($this->hive['SERVICES'][$id]);
 
         if (is_callable($rule)) {
-            $this->hive['RULES'][$id] = array('constructor' => $rule);
+            $this->hive['SERVICE_RULES'][$id] = array('constructor' => $rule);
         } elseif (is_object($rule)) {
-            $this->hive['RULES'][$id] = array('class' => get_class($rule));
+            $this->hive['SERVICE_RULES'][$id] = array('class' => get_class($rule));
             $this->hive['SERVICES'][$id] = $rule;
         } elseif (is_string($rule)) {
-            $this->hive['RULES'][$id] = array('class' => $rule);
+            $this->hive['SERVICE_RULES'][$id] = array('class' => $rule);
         } else {
-            $this->hive['RULES'][$id] = (array) $rule;
+            $this->hive['SERVICE_RULES'][$id] = (array) $rule;
         }
 
-        $this->hive['RULES'][$id] += array('class' => $id, 'service' => true);
+        $this->hive['SERVICE_RULES'][$id] += array('class' => $id, 'service' => true);
 
-        if ($this->hive['RULES'][$id]['class'] !== $id) {
-            $this->hive['ID'][$id] = $this->hive['RULES'][$id]['class'];
+        if ($this->hive['SERVICE_RULES'][$id]['class'] !== $id) {
+            $this->hive['SERVICE_ALIASES'][$id] = $this->hive['SERVICE_RULES'][$id]['class'];
         }
 
         return $this;
@@ -815,69 +847,52 @@ final class Fw implements \ArrayAccess
             return $this;
         }
 
-        if (empty($this->hive['SERVICES'][$id]) && $this->hive['ID'] && $sid = array_search($id, $this->hive['ID'])) {
-            $id = $sid;
+        $rule = $this->getRule($id, null, $sid);
+
+        if (isset($this->hive['SERVICES'][$sid])) {
+            return $this->hive['SERVICES'][$sid];
         }
 
-        if (isset($this->hive['SERVICES'][$id])) {
-            return $this->hive['SERVICES'][$id];
+        $instance = $this->instance($id, $rule);
+
+        if ($rule['service']) {
+            $this->hive['SERVICES'][$sid] = $instance;
         }
 
-        return $this->instance($id);
+        return $instance;
     }
 
     /**
      * Returns new class instance.
      *
      * @param string     $id
-     * @param array|null $args
+     * @param array|null $rule
      *
      * @return mixed
      */
-    public function instance(string $id, array $args = null)
+    public function instance(string $id, array $rule = null)
     {
-        $sid = $id;
-        $rule = array(
-            'class' => $id,
-            'args' => null,
-            'service' => false,
-            'use' => null,
-            'constructor' => null,
-            'boot' => null,
-        );
-
-        if (isset($this->hive['RULES'][$id])) {
-            $rule = $this->hive['RULES'][$id] + $rule;
-        } elseif ($this->hive['ID'] && $sid = array_search($id, $this->hive['ID'])) {
-            $rule = $this->hive['RULES'][$sid] + $rule;
-        }
-
-        $ref = new \ReflectionClass($rule['use'] ?? $rule['class']);
+        $fix = $this->getRule($id, $rule);
+        $ref = new \ReflectionClass($fix['use'] ?? $fix['class']);
 
         if (!$ref->isInstantiable()) {
             throw new \LogicException(sprintf('Unable to create instance for "%s". Please provide instantiable version of %s.', $id, $ref->name));
         }
 
-        if (is_callable($rule['constructor'])) {
-            $instance = $this->call($rule['constructor']);
+        if (is_callable($fix['constructor'])) {
+            $instance = $this->call($fix['constructor']);
 
             if (!$instance instanceof $ref->name) {
                 throw new \LogicException(sprintf('Constructor of "%s" should return instance of %s.', $id, $ref->name));
             }
         } elseif ($ref->hasMethod('__construct')) {
-            $pArgs = array_replace_recursive((array) $rule['args'], (array) $args);
-            $resolvedArgs = $this->resolveArgs($ref->getMethod('__construct'), $pArgs);
-            $instance = $ref->newInstanceArgs($resolvedArgs);
+            $instance = $ref->newInstanceArgs($this->resolveArgs($ref->getMethod('__construct'), (array) $fix['args']));
         } else {
             $instance = $ref->newInstance();
         }
 
-        if (is_callable($rule['boot'])) {
-            $this->call($rule['boot'], array($instance));
-        }
-
-        if ($rule['service']) {
-            $this->hive['SERVICES'][$sid] = $instance;
+        if (is_callable($fix['boot'])) {
+            $this->call($fix['boot'], array($instance, $this));
         }
 
         return $instance;
@@ -955,179 +970,55 @@ final class Fw implements \ArrayAccess
     }
 
     /**
-     * Returns true if cache exists.
+     * Returns CacheInterface instance or proxy method call to it.
      *
-     * @param string $key
-     *
-     * @return bool
-     */
-    public function cacheExists(string $key): bool
-    {
-        $ndx = $this->hive['SEED'].'.'.$key;
-
-        switch ($this->hive['ENGINE']) {
-            case 'apc':
-                return apc_exists($ndx);
-            case 'apcu':
-                return apcu_exists($ndx);
-            case 'folder':
-                list($exists) = $this->cacheParse($key, $this->read($this->safeCacheKey($ndx)));
-
-                return $exists;
-            case 'redis':
-                return (bool) $this->hive['REF']->exists($ndx);
-            case 'memcached':
-                return (bool) $this->hive['REF']->get($ndx);
-        }
-
-        return false;
-    }
-
-    /**
-     * Returns cached key.
-     *
-     * @param string $key
-     * @param bool   &$exists
-     * @param int    &$time
-     * @param int    &$ttl
+     * @param string|null $call
+     * @param mixed       ...$args
      *
      * @return mixed
      */
-    public function cacheGet(string $key, bool &$exists = null, int &$time = null, int &$ttl = null)
+    public function cache(string $call = null, ...$args)
     {
-        $ndx = $this->hive['SEED'].'.'.$key;
-        $raw = null;
+        $engine = $this->hive['CACHE'];
 
-        switch ($this->hive['ENGINE']) {
-            case 'apc':
-                $raw = apc_fetch($ndx);
-                break;
-            case 'apcu':
-                $raw = apcu_fetch($ndx);
-                break;
-            case 'folder':
-                $raw = $this->read($this->safeCacheKey($ndx));
-                break;
-            case 'memcached':
-                $raw = $this->hive['REF']->get($ndx);
-                break;
-            case 'redis':
-                $raw = $this->hive['REF']->get($ndx);
-                break;
+        if (null === $engine) {
+            $engine = 'Fal\\Stick\\NoCache';
+
+            if ($this->hive['CACHE_DRY']) {
+                $this->setRule($engine);
+            }
+        } elseif ('fallback' === $engine) {
+            $engine = 'Fal\\Stick\\FilesystemCache';
+
+            if ($this->hive['CACHE_DRY']) {
+                $this->setRule($engine, array(
+                    'args' => array(
+                        'directory' => TEMP.'cache/',
+                    ),
+                ));
+            }
         }
 
-        list($exists, $val, $time, $ttl) = $this->cacheParse($key, (string) $raw);
+        $cache = $this->service($engine);
 
-        return $val;
-    }
+        if ($this->hive['CACHE_DRY']) {
+            if (!$cache instanceof CacheInterface) {
+                throw new \LogicException(sprintf('Cache should be instance of Fal\\Stick\\CacheInterface, %s given.', $this->hive['CACHE']));
+            }
 
-    /**
-     * Sets cache value.
-     *
-     * @param string $key
-     * @param mixed  $val
-     * @param int    $ttl
-     *
-     * @return bool
-     */
-    public function cacheSet(string $key, $val, int $ttl = 0): bool
-    {
-        $ndx = $this->hive['SEED'].'.'.$key;
-        $content = $this->cacheCompact($val, (int) microtime(true), $ttl);
-
-        switch ($this->hive['ENGINE']) {
-            case 'apc':
-                return apc_store($ndx, $content, $ttl);
-            case 'apcu':
-                return apcu_store($ndx, $content, $ttl);
-            case 'folder':
-                return false !== $this->write($this->safeCacheKey($ndx), $content);
-            case 'memcached':
-                return $this->hive['REF']->set($ndx, $content, $ttl);
-            case 'redis':
-                return $this->hive['REF']->set($ndx, $content, array_filter(array('ex' => $ttl)));
+            $this->hive['CACHE_DRY'] = false;
+            $cache->seed($this->hive['SEED']);
         }
 
-        return true;
-    }
+        if ($call) {
+            if (!method_exists($cache, $call)) {
+                throw new \LogicException(sprintf('Call to undefined cache method "%s".', $call));
+            }
 
-    /**
-     * Clear cache.
-     *
-     * @param string $key
-     *
-     * @return bool
-     */
-    public function cacheClear(string $key): bool
-    {
-        $ndx = $this->hive['SEED'].'.'.$key;
-
-        switch ($this->hive['ENGINE']) {
-            case 'apc':
-                return apc_delete($ndx);
-            case 'apcu':
-                return apcu_delete($ndx);
-            case 'folder':
-                return $this->delete($this->safeCacheKey($ndx));
-            case 'memcached':
-                return $this->hive['REF']->delete($ndx);
-            case 'redis':
-                return (bool) $this->hive['REF']->del($ndx);
+            return $cache->$call(...$args);
         }
 
-        return true;
-    }
-
-    /**
-     * Reset cache.
-     *
-     * @param string $suffix
-     *
-     * @return Fw
-     */
-    public function cacheReset(string $suffix = ''): Fw
-    {
-        $prefix = $this->hive['SEED'];
-        $regex = '/'.preg_quote($prefix, '/').'\..+'.preg_quote($suffix, '/').'/';
-        $call = null;
-        $items = array();
-
-        switch ($this->hive['ENGINE']) {
-            case 'apc':
-                $info = apc_cache_info('user');
-                if ($info && isset($info['cache_list']) && $info['cache_list']) {
-                    $key = array_key_exists('info', $info['cache_list'][0]) ? 'info' : 'key';
-                    $items = preg_grep($regex, array_column($info['cache_list'], $key));
-                    $call = 'apc_delete';
-                }
-                break;
-            case 'apcu':
-                $info = apcu_cache_info(false);
-                if ($info && isset($info['cache_list']) && $info['cache_list']) {
-                    $key = array_key_exists('info', $info['cache_list'][0]) ? 'info' : 'key';
-                    $items = preg_grep($regex, array_column($info['cache_list'], $key));
-                    $call = 'apcu_delete';
-                }
-                break;
-            case 'folder':
-                $items = glob($this->hive['REF'].$prefix.'*'.$suffix);
-                $call = 'unlink';
-                break;
-            case 'memcached':
-                $items = preg_grep($regex, (array) $this->hive['REF']->getAllKeys());
-                $call = array($this->hive['REF'], 'delete');
-                break;
-            case 'redis':
-                $items = $this->hive['REF']->keys($prefix.'*'.$suffix);
-                $call = array($this->hive['REF'], 'del');
-                break;
-        }
-
-        foreach ($call ? $items : array() as $item) {
-            $call($item);
-        }
-
-        return $this;
+        return $cache;
     }
 
     /**
@@ -1329,8 +1220,8 @@ final class Fw implements \ArrayAccess
     {
         $queryPart = rtrim('?'.(is_array($query) ? http_build_query($query) : $query), '?');
 
-        if (isset($this->hive['ALIASES'][$alias])) {
-            $pattern = $this->hive['ALIASES'][$alias];
+        if (isset($this->hive['ROUTE_ALIASES'][$alias])) {
+            $pattern = $this->hive['ROUTE_ALIASES'][$alias];
 
             if ($args) {
                 $ctr = 0;
@@ -1404,8 +1295,8 @@ final class Fw implements \ArrayAccess
             $url = $this->hive['URL'];
         } elseif (is_array($target)) {
             $path = $this->alias(...$target);
-        } elseif (isset($this->hive['ALIASES'][$target])) {
-            $path = $this->hive['ALIASES'][$target];
+        } elseif (isset($this->hive['ROUTE_ALIASES'][$target])) {
+            $path = $this->hive['ROUTE_ALIASES'][$target];
         } elseif (preg_match('/^(\w+)(?:\(([^(]+)\))?((?:\?).+)?$/', $target, $match)) {
             parse_str(strtr($match[2] ?? '', ',', '&'), $args);
             $path = $this->alias($match[1], $args, $match[3] ?? null);
@@ -1523,14 +1414,14 @@ final class Fw implements \ArrayAccess
         list($verbs, $alias, $path, $mode) = array_slice($match, 1) + array(1 => '', '', 'all');
 
         if (!$path) {
-            if (empty($this->hive['ALIASES'][$alias])) {
+            if (empty($this->hive['ROUTE_ALIASES'][$alias])) {
                 throw new \LogicException(sprintf('Route "%s" does not exists.', $alias));
             }
 
-            $path = $this->hive['ALIASES'][$alias];
+            $path = $this->hive['ROUTE_ALIASES'][$alias];
         }
 
-        $ptr = ++$this->hive['CTR'];
+        $ptr = ++$this->hive['ROUTE_CTR'];
         $code = constant('self::REQ_'.strtoupper($mode));
 
         foreach (array_filter(explode('|', strtoupper($verbs))) as $verb) {
@@ -1538,10 +1429,10 @@ final class Fw implements \ArrayAccess
         }
 
         if ($alias) {
-            $this->hive['ALIASES'][$alias] = $path;
+            $this->hive['ROUTE_ALIASES'][$alias] = $path;
         }
 
-        $this->hive['HANDLERS'][$ptr] = array($handler, $alias, $ttl, $kbps);
+        $this->hive['ROUTE_HANDLERS'][$ptr] = array($handler, $alias, $ttl, $kbps);
 
         return $this;
     }
@@ -1569,8 +1460,8 @@ final class Fw implements \ArrayAccess
         $query = trim(strstr($targetExpr.'?', '?'), '?');
         $path = $target;
 
-        if (isset($this->hive['ALIASES'][$target])) {
-            $path = $this->hive['ALIASES'][$target];
+        if (isset($this->hive['ROUTE_ALIASES'][$target])) {
+            $path = $this->hive['ROUTE_ALIASES'][$target];
         } elseif (preg_match('/^(\w+)\(([^(]+)\)$/', $target, $match)) {
             parse_str(strtr($match[2], ',', '&'), $args);
             $path = $this->alias($match[1], $args);
@@ -1779,120 +1670,6 @@ final class Fw implements \ArrayAccess
         }
 
         return $this->send();
-    }
-
-    /**
-     * Load cache by defined CACHE dsn.
-     *
-     * @param string $dsn
-     */
-    private function cacheLoad(string $dsn): void
-    {
-        $parts = array_map('trim', explode('=', $dsn) + array(1 => ''));
-        $auto = '/^(apcu|apc)/';
-        $grep = preg_grep($auto, array_map('strtolower', get_loaded_extensions()));
-
-        // Fallback to filesystem cache
-        $fallback = 'folder';
-        $fallbackDir = $this->hive['TEMP'].'cache/';
-        $ref = &$this->hive['REF'];
-        $engine = &$this->hive['ENGINE'];
-
-        if ('redis' === $parts[0] && $parts[1] && extension_loaded('redis')) {
-            list($host, $port, $db) = explode(':', $parts[1]) + array(1 => null, 2 => null);
-
-            $engine = 'redis';
-            $ref = new \Redis();
-
-            try {
-                $ref->connect($host, (int) ($port ?? 6379), 2);
-
-                if ($db) {
-                    $ref->select((int) $db);
-                }
-            } catch (\Exception $e) {
-                $engine = $fallback;
-                $ref = $fallbackDir;
-            }
-        } elseif ('memcached' === $parts[0] && $parts[1] && extension_loaded('memcached')) {
-            $servers = explode(';', $parts[1]);
-
-            $engine = 'memcached';
-            $ref = new \Memcached();
-
-            foreach ($servers as $server) {
-                list($host, $port) = explode(':', $server) + array(1 => 11211);
-
-                $ref->addServer($host, (int) $port);
-            }
-        } elseif ('folder' === $parts[0] && $parts[1]) {
-            $engine = 'folder';
-            $ref = $parts[1];
-        } elseif (preg_match($auto, $dsn, $parts)) {
-            $engine = $parts[1];
-            $ref = null;
-        } elseif ('auto' === strtolower($dsn) && $grep) {
-            $engine = current($grep);
-            $ref = null;
-        } else {
-            $engine = $fallback;
-            $ref = $fallbackDir;
-        }
-
-        if ($fallback === $engine) {
-            $this->mkdir($ref);
-        }
-
-        unset($ref, $engine);
-    }
-
-    /**
-     * Returns safe file cache key.
-     *
-     * @param string $ndx
-     *
-     * @return string
-     */
-    private function safeCacheKey(string $ndx): string
-    {
-        return $this->hive['REF'].str_replace(array('\\', '/'), '', $ndx);
-    }
-
-    /**
-     * Returns serialized cache, timestamp and ttl.
-     *
-     * @param mixed $content
-     * @param int   $time
-     * @param int   $ttl
-     *
-     * @return string
-     */
-    private function cacheCompact($content, int $time, int $ttl): string
-    {
-        return serialize(array($content, $time, $ttl));
-    }
-
-    /**
-     * Returns unserialized serialized cache.
-     *
-     * @param string $key
-     * @param string $raw
-     *
-     * @return array
-     */
-    private function cacheParse(string $key, string $raw): array
-    {
-        if ($raw) {
-            list($val, $time, $ttl) = (array) unserialize($raw);
-
-            if (0 === $ttl || $time + $ttl > microtime(true)) {
-                return array(true, $val, $time, $ttl);
-            }
-
-            $this->cacheClear($key);
-        }
-
-        return array(false, null, 0, 0);
     }
 
     /**
@@ -2243,7 +2020,7 @@ final class Fw implements \ArrayAccess
         $route = $routes[$mode] ?? $routes[self::REQ_ALL] ?? null;
         $handlerId = $route[$this->hive['VERB']] ?? -1;
 
-        return $this->hive['HANDLERS'][$handlerId] ?? null;
+        return $this->hive['ROUTE_HANDLERS'][$handlerId] ?? null;
     }
 
     /**
@@ -2279,9 +2056,9 @@ final class Fw implements \ArrayAccess
      */
     private function getRequestCache(string $key, int $ttl, int $kbps): ?array
     {
-        $content = $this->cacheGet($key, $exists, $lastModified);
+        $cache = $this->cache('get', $key);
 
-        if (!$exists) {
+        if (!$cache || $cache->isExpired()) {
             return null;
         }
 
@@ -2293,18 +2070,20 @@ final class Fw implements \ArrayAccess
             return array(null, array(304));
         }
 
-        list($code, $headers, $response, $mime) = $content;
+        list($code, $headers, $response, $mime) = $cache->getValue();
 
-        $newExpDate = $lastModified + $ttl - $time;
-        $response = array(
-            $code,
-            (array) $this->hive['RESPONSE'] + (array) $headers,
-            $response,
-            $mime,
-            $kbps,
+        return array(
+            // new expire date
+            $cache->getTtl() + $ttl - $time,
+            // response
+            array(
+                $code,
+                (array) $this->hive['RESPONSE'] + (array) $headers,
+                $response,
+                $mime,
+                $kbps,
+            ),
         );
-
-        return array($newExpDate, $response);
     }
 
     /**
@@ -2316,12 +2095,14 @@ final class Fw implements \ArrayAccess
     private function setRequestCache(string $key, int $ttl): void
     {
         if ($this->hive['OUTPUT'] && is_string($this->hive['OUTPUT'])) {
-            $this->cacheSet($key, array(
+            $cache = array(
                 $this->hive['CODE'],
                 $this->hive['RESPONSE'],
                 $this->hive['OUTPUT'],
                 $this->hive['MIME'],
-            ), $ttl);
+            );
+
+            $this->cache('set', $key, new CacheItem($cache, $ttl));
         }
     }
 
@@ -2448,21 +2229,19 @@ final class Fw implements \ArrayAccess
     {
         // PSR-4 lookup
         $logicalPathPsr4 = strtr($class, '\\', DIRECTORY_SEPARATOR).$ext;
+        $autoload = $this->hive['AUTOLOAD'] + array('Fal\\Stick\\' => __DIR__.'/');
+        $subPath = $class;
 
-        if ($this->hive['AUTOLOAD']) {
-            $subPath = $class;
+        while (false !== $lastPos = strrpos($subPath, '\\')) {
+            $subPath = substr($subPath, 0, $lastPos);
+            $search = $subPath.'\\';
 
-            while (false !== $lastPos = strrpos($subPath, '\\')) {
-                $subPath = substr($subPath, 0, $lastPos);
-                $search = $subPath.'\\';
+            if (isset($autoload[$search])) {
+                $pathEnd = DIRECTORY_SEPARATOR.substr($logicalPathPsr4, $lastPos + 1);
 
-                if (isset($this->hive['AUTOLOAD'][$search])) {
-                    $pathEnd = DIRECTORY_SEPARATOR.substr($logicalPathPsr4, $lastPos + 1);
-
-                    foreach ($this->split($this->hive['AUTOLOAD'][$search]) as $dir) {
-                        if (is_file($file = rtrim($dir, '/\\').$pathEnd)) {
-                            return $file;
-                        }
+                foreach ($this->split($autoload[$search]) as $dir) {
+                    if (is_file($file = rtrim($dir, '/\\').$pathEnd)) {
+                        return $file;
                     }
                 }
             }
@@ -2524,14 +2303,11 @@ final class Fw implements \ArrayAccess
     {
         $this->hive[$offset] = $value;
 
-        switch ($offset) {
+        switch ((string) $offset) {
             case 'CACHE':
-                $this->hive['ENGINE'] = null;
-                $this->hive['REF'] = null;
-
-                if ($value && is_string($value)) {
-                    $this->cacheLoad($value);
-                }
+                $this->hive['CACHE_DRY'] = true;
+                $this->getRule($value, null, $id);
+                unset($this->hive['SERVICES'][$value], $this->hive['SERVICES'][$id]);
                 break;
             case 'FALLBACK':
             case 'LOCALES':
@@ -2558,43 +2334,5 @@ final class Fw implements \ArrayAccess
         } else {
             unset($this->hive[$offset]);
         }
-    }
-}
-
-/**
- * Http exception.
- *
- * @author Eko Kurniawan <ekokurniawanbs@gmail.com>
- */
-class HttpException extends \Exception
-{
-    /**
-     * @var array
-     */
-    private $headers;
-
-    /**
-     * Class constructor.
-     *
-     * @param string|null $message
-     * @param int         $code
-     * @param array|null  $headers
-     * @param Exception   $prev
-     */
-    public function __construct(string $message = null, int $code = 500, array $headers = null, \Exception $prev = null)
-    {
-        parent::__construct((string) $message, $code, $prev);
-
-        $this->headers = (array) $headers;
-    }
-
-    /**
-     * Returns headers.
-     *
-     * @return array
-     */
-    public function getHeaders(): array
-    {
-        return $this->headers;
     }
 }

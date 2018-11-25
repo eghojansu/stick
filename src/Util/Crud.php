@@ -557,7 +557,7 @@ class Crud implements \ArrayAccess
         } elseif (class_exists($map)) {
             $this->data['mapper'] = $this->fw->service($map);
         } else {
-            $this->data['mapper'] = $this->fw->instance(Mapper::class, array($map));
+            $this->data['mapper'] = $this->fw->instance(Mapper::class, array('args' => array($map)));
         }
     }
 
