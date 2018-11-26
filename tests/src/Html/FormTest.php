@@ -53,14 +53,12 @@ class FormTest extends TestCase
 
     public function testGetData()
     {
-        $this->assertEquals(array(), $this->form->getData());
-        $this->assertEquals(array(), $this->form->getData(true));
+        $this->assertNull($this->form->getData());
     }
 
     public function testSetData()
     {
         $this->assertEquals(array('foo' => 'bar'), $this->form->setData(array('foo' => 'bar'))->getData());
-        $this->assertEquals(array(), $this->form->getData(true));
         $this->assertEquals('bar', $this->form['foo']);
     }
 
@@ -74,9 +72,9 @@ class FormTest extends TestCase
         $this->assertEquals(array('foo'), $this->form->setOptions(array('foo'))->getOptions());
     }
 
-    public function testBuild()
+    public function testPrepare()
     {
-        $this->assertSame($this->form, $this->form->build());
+        $this->assertSame($this->form, $this->form->prepare());
     }
 
     public function testGetField()
@@ -118,6 +116,8 @@ class FormTest extends TestCase
                     'label_attr' => array('for' => 'form_foo'),
                     'constraints' => null,
                     'messages' => array(),
+                    'transformer' => null,
+                    'reverse_transformer' => null,
                 ),
                 'attr' => array(
                     'name' => 'form[foo]',
@@ -240,7 +240,10 @@ class FormTest extends TestCase
         $this->assertEquals($expected, $this->form->buttons());
     }
 
-    public function testRender()
+    /**
+     * @dataProvider getExpectations
+     */
+    public function testRender($expected, $submit = false, $data = array(), $initialize = array())
     {
         $this->form->add('hidden', 'hidden');
         $this->form->add('text', 'text');
@@ -271,49 +274,33 @@ class FormTest extends TestCase
                 );
             },
         ));
-        $expected = <<<TXT
-<form name="form" method="POST">
-<input type="hidden" name="form[_form]" value="form">
-<input type="hidden" name="form[hidden]" id="form_hidden">
-<div><label for="form_text">Text</label> <span><input type="text" name="form[text]" id="form_text" placeholder="Text"></span></div>
-<div><label for="form_password">Password</label> <span><input type="password" name="form[password]" id="form_password" placeholder="Password"></span></div>
-<div><label><input type="checkbox" name="form[checkbox]" id="form_checkbox"> Checkbox</label></div>
-<div><label><input type="radio" name="form[radio]" id="form_radio"> Radio</label></div>
-<div><label for="form_textarea">Textarea</label> <span><textarea name="form[textarea]" id="form_textarea" placeholder="Textarea"></textarea></span></div>
-<div><label for="form_choice">Choice</label> <span><select name="form[choice]" id="form_choice"><option value="1">One</option><option value="2">Two</option></select></span></div>
-<div><label for="form_choice2">Choice2</label> <span><div><label><input name="form[choice2]" id="form_choice2_0" type="radio" value="3"> Three</label><label><input name="form[choice2]" id="form_choice2_1" type="radio" value="4"> Four</label></div></span></div>
-<div><label for="form_choice3">Choice3</label> <span><div><label><input name="form[choice3][]" id="form_choice3_0" type="checkbox" value="5"> Five</label><label><input name="form[choice3][]" id="form_choice3_1" type="checkbox" value="6"> Six</label></div></span></div>
 
-<div></div>
+        if ($initialize) {
+            $this->form->setData($initialize);
+        }
 
-</form>
-TXT;
+        $this->form->prepare();
+
+        if ($submit) {
+            $this->fw['VERB'] = 'POST';
+            $this->fw['POST'] = array(
+                'form' => array('_form' => 'form') + $data,
+            );
+
+            $this->assertTrue($this->form->isSubmitted());
+            $this->assertTrue($this->form->valid());
+            $this->assertEquals($data, $this->form->getData());
+        }
 
         $this->assertEquals($expected, $this->form->render());
     }
 
-    public function testRenderSubmitted()
+    /**
+     * @dataProvider getTransformations
+     */
+    public function testRenderTransformation($expected, $submit = false)
     {
-        $this->form->add('hidden', 'hidden');
-        $this->form->add('text', 'text');
-        $this->form->add('password', 'password');
-        $this->form->add('checkbox', 'checkbox');
-        $this->form->add('radio', 'radio');
-        $this->form->add('textarea', 'textarea');
-        $this->form->add('choice', 'choice', array(
-            'items' => array(
-                'One' => 1,
-                'Two' => 2,
-            ),
-        ));
-        $this->form->add('choice2', 'choice', array(
-            'expanded' => true,
-            'items' => array(
-                'Three' => 3,
-                'Four' => 4,
-            ),
-        ));
-        $this->form->add('choice3', 'choice', array(
+        $this->form->add('foo', 'choice', array(
             'expanded' => true,
             'multiple' => true,
             'items' => function () {
@@ -322,44 +309,24 @@ TXT;
                     'Six' => 6,
                 );
             },
+            'transformer' => function ($val) { return explode(',', $val); },
+            'reverse_transformer' => function ($val) { return implode(',', $val); },
         ));
-        $expected = <<<TXT
-<form name="form" method="POST">
-<input type="hidden" name="form[_form]" value="form">
-<input type="hidden" name="form[hidden]" id="form_hidden" value="hidden">
-<div><label for="form_text">Text</label> <span><input type="text" name="form[text]" id="form_text" placeholder="Text" value="text"></span></div>
-<div><label for="form_password">Password</label> <span><input type="password" name="form[password]" id="form_password" placeholder="Password"></span></div>
-<div><label><input type="checkbox" name="form[checkbox]" id="form_checkbox" checked value="checkbox"> Checkbox</label></div>
-<div><label><input type="radio" name="form[radio]" id="form_radio" checked value="radio"> Radio</label></div>
-<div><label for="form_textarea">Textarea</label> <span><textarea name="form[textarea]" id="form_textarea" placeholder="Textarea">textarea</textarea></span></div>
-<div><label for="form_choice">Choice</label> <span><select name="form[choice]" id="form_choice"><option value="1" selected>One</option><option value="2">Two</option></select></span></div>
-<div><label for="form_choice2">Choice2</label> <span><div><label><input name="form[choice2]" id="form_choice2_0" checked type="radio" value="3"> Three</label><label><input name="form[choice2]" id="form_choice2_1" type="radio" value="4"> Four</label></div></span></div>
-<div><label for="form_choice3">Choice3</label> <span><div><label><input name="form[choice3][]" id="form_choice3_0" checked type="checkbox" value="5"> Five</label><label><input name="form[choice3][]" id="form_choice3_1" type="checkbox" value="6"> Six</label></div></span></div>
 
-<div></div>
+        $this->form->setData(array('foo' => '5,6'));
+        $this->form->prepare();
 
-</form>
-TXT;
+        if ($submit) {
+            $this->fw['VERB'] = 'POST';
+            $this->fw['POST'] = array(
+                'form' => array('_form' => 'form', 'foo' => array(5)),
+            );
 
-        $data = array(
-            'hidden' => 'hidden',
-            'password' => 'password',
-            'text' => 'text',
-            'checkbox' => 'checkbox',
-            'radio' => 'radio',
-            'textarea' => 'textarea',
-            'choice' => 1,
-            'choice2' => 3,
-            'choice3' => 5,
-        );
-        $this->fw['VERB'] = 'POST';
-        $this->fw['POST'] = array(
-            'form' => array('_form' => 'form') + $data,
-        );
+            $this->assertTrue($this->form->isSubmitted());
+            $this->assertTrue($this->form->valid());
+            $this->assertEquals(array('foo' => '5'), $this->form->getData());
+        }
 
-        $this->assertTrue($this->form->isSubmitted());
-        $this->assertTrue($this->form->valid());
-        $this->assertEquals($data, $this->form->getData());
         $this->assertEquals($expected, $this->form->render());
     }
 
@@ -441,6 +408,152 @@ TXT;
                 array(
                     'foo' => 'bar',
                 ),
+            ),
+        );
+    }
+
+    public function getExpectations()
+    {
+        return array(
+            array(
+                '<form name="form" method="POST">
+<input type="hidden" name="form[_form]" value="form">
+<input type="hidden" name="form[hidden]" id="form_hidden">
+<div><label for="form_text">Text</label> <span><input type="text" name="form[text]" id="form_text" placeholder="Text"></span></div>
+<div><label for="form_password">Password</label> <span><input type="password" name="form[password]" id="form_password" placeholder="Password"></span></div>
+<div><label><input type="checkbox" name="form[checkbox]" id="form_checkbox"> Checkbox</label></div>
+<div><label><input type="radio" name="form[radio]" id="form_radio"> Radio</label></div>
+<div><label for="form_textarea">Textarea</label> <span><textarea name="form[textarea]" id="form_textarea" placeholder="Textarea"></textarea></span></div>
+<div><label for="form_choice">Choice</label> <span><select name="form[choice]" id="form_choice"><option value="1">One</option><option value="2">Two</option></select></span></div>
+<div><label for="form_choice2">Choice2</label> <span><div><label><input name="form[choice2]" id="form_choice2_0" value="3" type="radio"> Three</label><label><input name="form[choice2]" id="form_choice2_1" value="4" type="radio"> Four</label></div></span></div>
+<div><label for="form_choice3">Choice3</label> <span><div><label><input name="form[choice3][]" id="form_choice3_0" value="5" type="checkbox"> Five</label><label><input name="form[choice3][]" id="form_choice3_1" value="6" type="checkbox"> Six</label></div></span></div>
+
+<div></div>
+
+</form>',
+            ),
+            array(
+                '<form name="form" method="POST">
+<input type="hidden" name="form[_form]" value="form">
+<input type="hidden" name="form[hidden]" id="form_hidden" value="hidden">
+<div><label for="form_text">Text</label> <span><input type="text" name="form[text]" id="form_text" placeholder="Text" value="text"></span></div>
+<div><label for="form_password">Password</label> <span><input type="password" name="form[password]" id="form_password" placeholder="Password"></span></div>
+<div><label><input type="checkbox" name="form[checkbox]" id="form_checkbox" checked> Checkbox</label></div>
+<div><label><input type="radio" name="form[radio]" id="form_radio" checked> Radio</label></div>
+<div><label for="form_textarea">Textarea</label> <span><textarea name="form[textarea]" id="form_textarea" placeholder="Textarea">textarea</textarea></span></div>
+<div><label for="form_choice">Choice</label> <span><select name="form[choice]" id="form_choice"><option value="1" selected>One</option><option value="2">Two</option></select></span></div>
+<div><label for="form_choice2">Choice2</label> <span><div><label><input name="form[choice2]" id="form_choice2_0" value="3" checked type="radio"> Three</label><label><input name="form[choice2]" id="form_choice2_1" value="4" type="radio"> Four</label></div></span></div>
+<div><label for="form_choice3">Choice3</label> <span><div><label><input name="form[choice3][]" id="form_choice3_0" value="5" checked type="checkbox"> Five</label><label><input name="form[choice3][]" id="form_choice3_1" value="6" type="checkbox"> Six</label></div></span></div>
+
+<div></div>
+
+</form>',
+                true,
+                array(
+                    'hidden' => 'hidden',
+                    'password' => 'password',
+                    'text' => 'text',
+                    'checkbox' => 'on',
+                    'radio' => 'on',
+                    'textarea' => 'textarea',
+                    'choice' => 1,
+                    'choice2' => 3,
+                    'choice3' => 5,
+                ),
+            ),
+            array(
+                '<form name="form" method="POST">
+<input type="hidden" name="form[_form]" value="form">
+<input type="hidden" name="form[hidden]" id="form_hidden" value="hidden">
+<div><label for="form_text">Text</label> <span><input type="text" name="form[text]" id="form_text" placeholder="Text" value="text"></span></div>
+<div><label for="form_password">Password</label> <span><input type="password" name="form[password]" id="form_password" placeholder="Password"></span></div>
+<div><label><input type="checkbox" name="form[checkbox]" id="form_checkbox" value="checkbox"> Checkbox</label></div>
+<div><label><input type="radio" name="form[radio]" id="form_radio" value="radio"> Radio</label></div>
+<div><label for="form_textarea">Textarea</label> <span><textarea name="form[textarea]" id="form_textarea" placeholder="Textarea">textarea</textarea></span></div>
+<div><label for="form_choice">Choice</label> <span><select name="form[choice]" id="form_choice"><option value="1" selected>One</option><option value="2">Two</option></select></span></div>
+<div><label for="form_choice2">Choice2</label> <span><div><label><input name="form[choice2]" id="form_choice2_0" value="3" checked type="radio"> Three</label><label><input name="form[choice2]" id="form_choice2_1" value="4" type="radio"> Four</label></div></span></div>
+<div><label for="form_choice3">Choice3</label> <span><div><label><input name="form[choice3][]" id="form_choice3_0" value="5" checked type="checkbox"> Five</label><label><input name="form[choice3][]" id="form_choice3_1" value="6" type="checkbox"> Six</label></div></span></div>
+
+<div></div>
+
+</form>',
+                false,
+                array(),
+                array(
+                    'hidden' => 'hidden',
+                    'password' => 'password',
+                    'text' => 'text',
+                    'checkbox' => 'checkbox',
+                    'radio' => 'radio',
+                    'textarea' => 'textarea',
+                    'choice' => 1,
+                    'choice2' => 3,
+                    'choice3' => 5,
+                ),
+            ),
+            array(
+                '<form name="form" method="POST">
+<input type="hidden" name="form[_form]" value="form">
+<input type="hidden" name="form[hidden]" id="form_hidden" value="not hidden">
+<div><label for="form_text">Text</label> <span><input type="text" name="form[text]" id="form_text" placeholder="Text" value="text update"></span></div>
+<div><label for="form_password">Password</label> <span><input type="password" name="form[password]" id="form_password" placeholder="Password"></span></div>
+<div><label><input type="checkbox" name="form[checkbox]" id="form_checkbox" checked value="checkbox"> Checkbox</label></div>
+<div><label><input type="radio" name="form[radio]" id="form_radio" checked value="radio"> Radio</label></div>
+<div><label for="form_textarea">Textarea</label> <span><textarea name="form[textarea]" id="form_textarea" placeholder="Textarea">textarea</textarea></span></div>
+<div><label for="form_choice">Choice</label> <span><select name="form[choice]" id="form_choice"><option value="1" selected>One</option><option value="2">Two</option></select></span></div>
+<div><label for="form_choice2">Choice2</label> <span><div><label><input name="form[choice2]" id="form_choice2_0" value="3" checked type="radio"> Three</label><label><input name="form[choice2]" id="form_choice2_1" value="4" type="radio"> Four</label></div></span></div>
+<div><label for="form_choice3">Choice3</label> <span><div><label><input name="form[choice3][]" id="form_choice3_0" value="5" checked type="checkbox"> Five</label><label><input name="form[choice3][]" id="form_choice3_1" value="6" type="checkbox"> Six</label></div></span></div>
+
+<div></div>
+
+</form>',
+                true,
+                array(
+                    'hidden' => 'not hidden',
+                    'password' => 'password',
+                    'text' => 'text update',
+                    'checkbox' => 'checkbox',
+                    'radio' => 'radio',
+                    'textarea' => 'textarea',
+                    'choice' => 1,
+                    'choice2' => 3,
+                    'choice3' => 5,
+                ),
+                array(
+                    'hidden' => 'hidden',
+                    'password' => 'password',
+                    'text' => 'text',
+                    'checkbox' => 'checkbox',
+                    'radio' => 'radio',
+                    'textarea' => 'textarea',
+                    'choice' => 1,
+                    'choice2' => 3,
+                    'choice3' => 5,
+                ),
+            ),
+        );
+    }
+
+    public function getTransformations()
+    {
+        return array(
+            array(
+                '<form name="form" method="POST">
+<input type="hidden" name="form[_form]" value="form">
+<div><label for="form_foo">Foo</label> <span><div><label><input name="form[foo][]" id="form_foo_0" value="5" checked type="checkbox"> Five</label><label><input name="form[foo][]" id="form_foo_1" value="6" checked type="checkbox"> Six</label></div></span></div>
+
+<div></div>
+
+</form>',
+            ),
+            array(
+                '<form name="form" method="POST">
+<input type="hidden" name="form[_form]" value="form">
+<div><label for="form_foo">Foo</label> <span><div><label><input name="form[foo][]" id="form_foo_0" value="5" checked type="checkbox"> Five</label><label><input name="form[foo][]" id="form_foo_1" value="6" type="checkbox"> Six</label></div></span></div>
+
+<div></div>
+
+</form>', true,
             ),
         );
     }

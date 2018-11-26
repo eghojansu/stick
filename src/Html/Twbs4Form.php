@@ -108,14 +108,13 @@ class Twbs4Form extends Twbs3Form
         $attr['type'] = 'radio';
 
         $add = array();
-        $raw = $value;
+        $raw = $this->pick($attr, 'value') ?? $this->rawValue($field);
 
         if (!array_key_exists('checked', $attr)) {
-            $raw = $this->rawValue($field);
             $add['checked'] = false;
 
             if ($this->submitted) {
-                $add['checked'] = $raw ? $raw === $value : 'on' === $value;
+                $add['checked'] = $raw ? $raw == $value : 'on' === $value;
             }
         }
 
@@ -137,14 +136,13 @@ class Twbs4Form extends Twbs3Form
         $attr['type'] = 'checkbox';
 
         $add = array();
-        $raw = $value;
+        $raw = $this->pick($attr, 'value') ?? $this->rawValue($field);
 
         if (!array_key_exists('checked', $attr)) {
-            $raw = $this->rawValue($field);
             $add['checked'] = false;
 
             if ($this->submitted) {
-                $add['checked'] = $raw ? $raw === $value : 'on' === $value;
+                $add['checked'] = $raw ? $raw == $value : 'on' === $value;
             }
         }
 

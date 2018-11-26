@@ -683,7 +683,7 @@ class Crud implements \ArrayAccess
             $options = $this->fw->call($options);
         }
 
-        $this->data['form']->setData($data)->build((array) $options);
+        $this->data['form']->setData($data)->prepare((array) $options);
 
         if ($this->options['create_new'] && 'create' === $this->data['state'] && !$this->data['form']->getField('create_new')) {
             $this->data['form']->add('create_new', 'checkbox', array(

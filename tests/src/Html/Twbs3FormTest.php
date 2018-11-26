@@ -45,6 +45,8 @@ class Twbs3FormTest extends TestCase
                     'label_attr' => array('for' => 'twbs3_form_foo'),
                     'constraints' => null,
                     'messages' => array(),
+                    'transformer' => null,
+                    'reverse_transformer' => null,
                 ),
                 'attr' => array(
                     'class' => 'form-control',
@@ -130,8 +132,8 @@ class Twbs3FormTest extends TestCase
 <div class="form-group"><div class="col-sm-offset-2 col-sm-10"><div class="radio"><label><input type="radio" name="twbs3_form[radio]" id="twbs3_form_radio"> Radio</label></div></div></div>
 <div class="form-group"><label for="twbs3_form_textarea" class="control-label col-sm-2">Textarea</label><div class="col-sm-10"><textarea class="form-control" name="twbs3_form[textarea]" id="twbs3_form_textarea" placeholder="Textarea"></textarea></div></div>
 <div class="form-group"><label for="twbs3_form_choice" class="control-label col-sm-2">Choice</label><div class="col-sm-10"><select class="form-control" name="twbs3_form[choice]" id="twbs3_form_choice"><option value="1">One</option><option value="2">Two</option></select></div></div>
-<div class="form-group"><label for="twbs3_form_choice2" class="control-label col-sm-2">Choice2</label><div class="col-sm-10"><div><div class="radio"><label><input name="twbs3_form[choice2]" id="twbs3_form_choice2_0" type="radio" value="3"> Three</label></div><div class="radio"><label><input name="twbs3_form[choice2]" id="twbs3_form_choice2_1" type="radio" value="4"> Four</label></div></div></div></div>
-<div class="form-group"><label for="twbs3_form_choice3" class="control-label col-sm-2">Choice3</label><div class="col-sm-10"><div><div class="checkbox"><label><input name="twbs3_form[choice3][]" id="twbs3_form_choice3_0" type="checkbox" value="5"> Five</label></div><div class="checkbox"><label><input name="twbs3_form[choice3][]" id="twbs3_form_choice3_1" type="checkbox" value="6"> Six</label></div></div></div></div>
+<div class="form-group"><label for="twbs3_form_choice2" class="control-label col-sm-2">Choice2</label><div class="col-sm-10"><div><div class="radio"><label><input name="twbs3_form[choice2]" id="twbs3_form_choice2_0" value="3" type="radio"> Three</label></div><div class="radio"><label><input name="twbs3_form[choice2]" id="twbs3_form_choice2_1" value="4" type="radio"> Four</label></div></div></div></div>
+<div class="form-group"><label for="twbs3_form_choice3" class="control-label col-sm-2">Choice3</label><div class="col-sm-10"><div><div class="checkbox"><label><input name="twbs3_form[choice3][]" id="twbs3_form_choice3_0" value="5" type="checkbox"> Five</label></div><div class="checkbox"><label><input name="twbs3_form[choice3][]" id="twbs3_form_choice3_1" value="6" type="checkbox"> Six</label></div></div></div></div>
 
 <div class="form-group"><div class="col-sm-offset-2 col-sm-10"></div></div>
 
@@ -178,12 +180,12 @@ TXT;
 <input type="hidden" name="twbs3_form[hidden]" id="twbs3_form_hidden" value="hidden">
 <div class="form-group has-error"><label for="twbs3_form_text" class="control-label col-sm-2">Text</label><div class="col-sm-10"><input class="form-control" type="text" name="twbs3_form[text]" id="twbs3_form_text" placeholder="Text"><span class="help-block">This value should not be blank.</span></div></div>
 <div class="form-group has-success"><label for="twbs3_form_password" class="control-label col-sm-2">Password</label><div class="col-sm-10"><input class="form-control" type="password" name="twbs3_form[password]" id="twbs3_form_password" placeholder="Password"></div></div>
-<div class="form-group"><div class="col-sm-offset-2 col-sm-10"><div class="checkbox"><label><input type="checkbox" name="twbs3_form[checkbox]" id="twbs3_form_checkbox" checked value="checkbox"> Checkbox</label></div></div></div>
-<div class="form-group"><div class="col-sm-offset-2 col-sm-10"><div class="radio"><label><input type="radio" name="twbs3_form[radio]" id="twbs3_form_radio" checked value="radio"> Radio</label></div></div></div>
+<div class="form-group"><div class="col-sm-offset-2 col-sm-10"><div class="checkbox"><label><input type="checkbox" name="twbs3_form[checkbox]" id="twbs3_form_checkbox" checked> Checkbox</label></div></div></div>
+<div class="form-group"><div class="col-sm-offset-2 col-sm-10"><div class="radio"><label><input type="radio" name="twbs3_form[radio]" id="twbs3_form_radio" checked> Radio</label></div></div></div>
 <div class="form-group"><label for="twbs3_form_textarea" class="control-label col-sm-2">Textarea</label><div class="col-sm-10"><textarea class="form-control" name="twbs3_form[textarea]" id="twbs3_form_textarea" placeholder="Textarea">textarea</textarea></div></div>
 <div class="form-group"><label for="twbs3_form_choice" class="control-label col-sm-2">Choice</label><div class="col-sm-10"><select class="form-control" name="twbs3_form[choice]" id="twbs3_form_choice"><option value="1" selected>One</option><option value="2">Two</option></select></div></div>
-<div class="form-group"><label for="twbs3_form_choice2" class="control-label col-sm-2">Choice2</label><div class="col-sm-10"><div><div class="radio"><label><input name="twbs3_form[choice2]" id="twbs3_form_choice2_0" checked type="radio" value="3"> Three</label></div><div class="radio"><label><input name="twbs3_form[choice2]" id="twbs3_form_choice2_1" type="radio" value="4"> Four</label></div></div></div></div>
-<div class="form-group"><label for="twbs3_form_choice3" class="control-label col-sm-2">Choice3</label><div class="col-sm-10"><div><div class="checkbox"><label><input name="twbs3_form[choice3][]" id="twbs3_form_choice3_0" checked type="checkbox" value="5"> Five</label></div><div class="checkbox"><label><input name="twbs3_form[choice3][]" id="twbs3_form_choice3_1" type="checkbox" value="6"> Six</label></div></div></div></div>
+<div class="form-group"><label for="twbs3_form_choice2" class="control-label col-sm-2">Choice2</label><div class="col-sm-10"><div><div class="radio"><label><input name="twbs3_form[choice2]" id="twbs3_form_choice2_0" value="3" checked type="radio"> Three</label></div><div class="radio"><label><input name="twbs3_form[choice2]" id="twbs3_form_choice2_1" value="4" type="radio"> Four</label></div></div></div></div>
+<div class="form-group"><label for="twbs3_form_choice3" class="control-label col-sm-2">Choice3</label><div class="col-sm-10"><div><div class="checkbox"><label><input name="twbs3_form[choice3][]" id="twbs3_form_choice3_0" value="5" checked type="checkbox"> Five</label></div><div class="checkbox"><label><input name="twbs3_form[choice3][]" id="twbs3_form_choice3_1" value="6" type="checkbox"> Six</label></div></div></div></div>
 
 <div class="form-group"><div class="col-sm-offset-2 col-sm-10"></div></div>
 
@@ -194,8 +196,8 @@ TXT;
             'hidden' => 'hidden',
             'password' => 'password',
             // 'text' => 'text',
-            'checkbox' => 'checkbox',
-            'radio' => 'radio',
+            'checkbox' => 'on',
+            'radio' => 'on',
             'textarea' => 'textarea',
             'choice' => 1,
             'choice2' => 3,

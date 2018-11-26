@@ -60,18 +60,39 @@ class Form implements \ArrayAccess
     protected $verb = 'POST';
 
     /**
-     * Form data.
+     * Initial data.
      *
      * @var array
      */
-    protected $data = array();
+    protected $data;
+
+    /**
+     * Data after transformed.
+     *
+     * @var array
+     */
+    protected $formData;
 
     /**
      * Submitted data.
      *
      * @var array
      */
-    protected $submittedData = array();
+    protected $submittedData;
+
+    /**
+     * Submitted data after reverse transformed.
+     *
+     * @var array
+     */
+    protected $normalizedData;
+
+    /**
+     * Validated data.
+     *
+     * @var array
+     */
+    protected $validatedData;
 
     /**
      * @var array
@@ -170,11 +191,11 @@ class Form implements \ArrayAccess
      *
      * @param bool $submitted
      *
-     * @return array
+     * @return array|null
      */
-    public function getData(bool $submitted = false): array
+    public function getData(): ?array
     {
-        return $submitted ? $this->submittedData : $this->data;
+        return $this->validatedData ?? $this->normalizedData ?? $this->data;
     }
 
     /**
@@ -316,7 +337,10 @@ class Form implements \ArrayAccess
 
         $this->fields[$name] = array(
             'type' => $type ?? 'text',
-            'options' => $options,
+            'options' => $options + array(
+                'transformer' => null,
+                'reverse_transformer' => null,
+            ),
             'attr' => $attr,
             'rendered' => false,
         );
@@ -352,14 +376,17 @@ class Form implements \ArrayAccess
     }
 
     /**
-     * Build form.
+     * Prepare form.
      *
      * @param array|null $options
      *
      * @return Form
      */
-    public function build(array $options = null): Form
+    public function prepare(array $options = null): Form
     {
+        $this->build($options);
+        $this->transformData();
+
         return $this;
     }
 
@@ -372,6 +399,7 @@ class Form implements \ArrayAccess
     {
         $this->submittedData = ((array) ($this->fw[$this->verb][$this->name] ?? null)) + array('_form' => null);
         $this->submitted = $this->verb === $this->fw['VERB'] && $this->submittedData['_form'] === $this->name;
+        $this->reverseTransformData();
 
         return $this->submitted;
     }
@@ -390,12 +418,12 @@ class Form implements \ArrayAccess
         }
 
         list($rules, $messages) = $this->findRules();
-        $result = $this->validator->validate($this->submittedData, $rules, $messages);
+        $result = $this->validator->validate($this->normalizedData, $rules, $messages);
 
         $no_validation_keys = array_diff(array_keys($this->fields), array_keys($rules));
-        $no_validation_data = array_intersect_key($this->submittedData, array_flip($no_validation_keys));
+        $no_validation_data = array_intersect_key((array) $this->normalizedData, array_flip($no_validation_keys));
 
-        $this->data = $result['data'] + $no_validation_data + $this->data;
+        $this->validatedData = $result['data'] + $no_validation_data + (array) $this->formData;
         $this->errors = $result['errors'];
 
         return $result['success'];
@@ -635,19 +663,18 @@ class Form implements \ArrayAccess
     protected function inputCheckbox(string $field, $value, array $attr, array $options): string
     {
         $add = array();
-        $raw = $value;
+        $raw = $this->pick($attr, 'value') ?? $this->rawValue($field);
         $attr['type'] = 'checkbox';
 
         if (!array_key_exists('checked', $attr)) {
-            $raw = $this->rawValue($field);
             $add['checked'] = false;
 
             if ($this->submitted) {
-                $add['checked'] = $raw ? $raw === $value : 'on' === $value;
+                $add['checked'] = $raw ? $raw == $value : 'on' === $value;
             }
         }
 
-        $input = $this->inputInput($field, $value, $attr + $add, $options);
+        $input = $this->inputInput($field, $raw, $attr + $add, $options);
 
         return $this->html->tag('label', null, true, $input.' '.$options['label']);
     }
@@ -665,19 +692,18 @@ class Form implements \ArrayAccess
     protected function inputRadio(string $field, $value, array $attr, array $options): string
     {
         $add = array();
-        $raw = $value;
+        $raw = $this->pick($attr, 'value') ?? $this->rawValue($field);
         $attr['type'] = 'radio';
 
         if (!array_key_exists('checked', $attr)) {
-            $raw = $this->rawValue($field);
             $add['checked'] = false;
 
             if ($this->submitted) {
-                $add['checked'] = $raw ? $raw === $value : 'on' === $value;
+                $add['checked'] = $raw ? $raw == $value : 'on' === $value;
             }
         }
 
-        $input = $this->inputInput($field, $value, $attr + $add, $options);
+        $input = $this->inputInput($field, $raw, $attr + $add, $options);
 
         return $this->html->tag('label', null, true, $input.' '.$options['label']);
     }
@@ -787,6 +813,7 @@ class Form implements \ArrayAccess
         $id = $attr['id'];
 
         foreach ($options['items'] as $label => $val) {
+            $attr['value'] = $val;
             $attr['checked'] = in_array($val, $check);
             $attr['name'] = $nameArr;
             $attr['id'] = $options['checkbox_id'] ?? $id.'_'.$ctr++;
@@ -817,6 +844,7 @@ class Form implements \ArrayAccess
         $id = $attr['id'];
 
         foreach ($options['items'] as $label => $val) {
+            $attr['value'] = $val;
             $attr['checked'] = $val === $check;
             $attr['id'] = $options['radio_id'] ?? $id.'_'.$ctr++;
 
@@ -850,6 +878,44 @@ class Form implements \ArrayAccess
     }
 
     /**
+     * To add field logic.
+     *
+     * @param array|null $options
+     */
+    protected function build(array $options = null)
+    {
+        // to override by children
+    }
+
+    /**
+     * Run each field transformer from original data.
+     */
+    protected function transformData(): void
+    {
+        foreach ($this->data ?? array() as $field => $value) {
+            if (is_callable($cb = $this->fields[$field]['options']['transformer'] ?? null)) {
+                $value = $this->fw->call($cb, array($value));
+            }
+
+            $this->formData[$field] = $value;
+        }
+    }
+
+    /**
+     * Run each field reverse transfomer from submitted data.
+     */
+    protected function reverseTransformData(): void
+    {
+        foreach ($this->submittedData ?? array() as $field => $value) {
+            if (is_callable($cb = $this->fields[$field]['options']['reverse_transformer'] ?? null)) {
+                $value = $this->fw->call($cb, array($value));
+            }
+
+            $this->normalizedData[$field] = $value;
+        }
+    }
+
+    /**
      * Returns the field value.
      *
      * @param string $field
@@ -859,7 +925,7 @@ class Form implements \ArrayAccess
     protected function fieldValue(string $field)
     {
         if ($this->submitted) {
-            return $this->submittedData[$field] ?? null;
+            return $this->pick($this->normalizedData, $field, $this->submittedData[$field] ?? null);
         }
 
         return $this->rawValue($field);
@@ -874,7 +940,7 @@ class Form implements \ArrayAccess
      */
     protected function rawValue(string $field)
     {
-        return $this->data[$field] ?? null;
+        return $this->pick($this->formData, $field, $this->data[$field] ?? null);
     }
 
     /**
@@ -916,6 +982,20 @@ class Form implements \ArrayAccess
     }
 
     /**
+     * Pick array member.
+     *
+     * @param array|null $arr
+     * @param mixed      $key
+     * @param mixed      $default
+     *
+     * @return mixed
+     */
+    protected function pick(array $arr = null, $key = null, $default = null)
+    {
+        return $arr && $key && array_key_exists($key, $arr) ? $arr[$key] : $default;
+    }
+
+    /**
      * Convenience method for checking data.
      *
      * @param mixed $offset
@@ -936,7 +1016,7 @@ class Form implements \ArrayAccess
      */
     public function offsetGet($offset)
     {
-        return $this->data[$offset] ?? null;
+        return $this->validatedData[$offset] ?? $this->normalizedData[$offset] ?? $this->data[$offset] ?? null;
     }
 
     /**
