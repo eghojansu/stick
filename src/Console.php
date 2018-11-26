@@ -582,7 +582,7 @@ class Console
 
         $fw->write($composer, json_encode($json, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
 
-        $cli->writeln('Project initialized in <comment>%f</comment> at <info>%s</info>', $fw->ellapsed(), realpath($wd));
+        $cli->writeln('Project initialized in <comment>%fms</comment> at <info>%s</info>', $fw->ellapsed(), realpath($wd));
     }
 
     /**
@@ -673,7 +673,7 @@ class Console
             chdir($cwd);
         }
 
-        $cli->writeln("Build complete in <comment>%f</comment> ms.\n  Output: <info>%s</info>", $fw->ellapsed(), $file);
+        $cli->writeln("Build complete in <comment>%fms</comment>.\n  Output: <info>%s</info>", $fw->ellapsed(), $file);
     }
 
     /**
@@ -723,6 +723,6 @@ class Console
         }
 
         $fw->write($file, $latestVersion."\ninstallation complete at ".date('Y-m-d G:i:s.u'));
-        $cli->writeln('Setup to version "<info>%s</info>"" complete in <comment>%f</comment> ms.', $latestVersion, $fw->ellapsed());
+        $cli->writeln('Setup to version "<info>%s</info>"" complete in <comment>%fms</comment>.', $latestVersion, $fw->ellapsed());
     }
 }
