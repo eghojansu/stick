@@ -452,7 +452,6 @@ class Console
                 "    ->config(__DIR__.'/../app/env.php')\n".
                 "    ->run()\n".
                 ";\n",
-            'app/.htaccess' => 'Deny from all',
             'app/config.dist.php' => "<?php\n\n".
                 "return array(\n".
                 "    'db' => array(\n".
