@@ -376,15 +376,16 @@ class Form
     }
 
     /**
-     * Shortcut to call prepare, isSubmitted and valid.
+     * Shortcut to call setData, prepare, isSubmitted and valid.
      *
      * @param array|null $options
+     * @param array|null $data
      *
      * @return bool
      */
-    public function posted(array $options = null): bool
+    public function posted(array $options = null, array $data = null): bool
     {
-        if ($this->prepare($options)->isSubmitted()) {
+        if ($this->setData($data ?? array())->prepare($options)->isSubmitted()) {
             return $this->valid();
         }
 
