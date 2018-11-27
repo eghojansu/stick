@@ -2333,8 +2333,11 @@ final class Fw implements \ArrayAccess
         switch ((string) $offset) {
             case 'CACHE':
                 $this->hive['CACHE_DRY'] = true;
-                $this->getRule($value, null, $id);
-                unset($this->hive['SERVICES'][$value], $this->hive['SERVICES'][$id]);
+
+                if ($value) {
+                    $this->getRule($value, null, $id);
+                    unset($this->hive['SERVICES'][$value], $this->hive['SERVICES'][$id]);
+                }
                 break;
             case 'FALLBACK':
             case 'LOCALES':
