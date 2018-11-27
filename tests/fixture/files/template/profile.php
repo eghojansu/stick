@@ -4,4 +4,5 @@
 
 <?php $this->start('content') ?>
 Profile of <?= $this->esc($username) ?>.
+  Profile global variable <?= var_export($this->profile, true) ?>.
 <?php $this->stop() ?>

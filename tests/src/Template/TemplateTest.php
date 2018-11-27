@@ -23,7 +23,9 @@ class TemplateTest extends TestCase
 
     public function setUp()
     {
-        $this->template = new Template(new Fw(), FIXTURE.'files/template/');
+        $this->template = new Template(new Fw(), FIXTURE.'files/template/', array(
+            'profile' => true,
+        ));
     }
 
     public function testGetPaths()
@@ -57,7 +59,7 @@ class TemplateTest extends TestCase
 
     public function testGetGlobals()
     {
-        $this->assertEquals(array(), $this->template->getGlobals());
+        $this->assertEquals(array('profile' => true), $this->template->getGlobals());
     }
 
     public function testSetGlobals()

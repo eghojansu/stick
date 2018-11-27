@@ -249,17 +249,21 @@ class TemplateFile
     /**
      * Returns globals data or proxy to Fw::service.
      *
-     * @param string $name
+     * @param string $key
      *
      * @return mixed
      */
-    public function __get($name)
+    public function __get($key)
     {
         if (null === $this->_globals) {
             $this->_globals = $this->_engine->getGlobals();
         }
 
-        return $this->_globals[$name] ?? $this->_engine->service($name);
+        if (array_key_exists($key, $this->_globals)) {
+            return $this->_globals[$key];
+        }
+
+        return $this->_engine->service($key);
     }
 
     /**
