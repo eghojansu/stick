@@ -376,6 +376,22 @@ class Form implements \ArrayAccess
     }
 
     /**
+     * Shortcut to call prepare, isSubmitted and valid.
+     *
+     * @param array|null $options
+     *
+     * @return bool
+     */
+    public function posted(array $options = null): bool
+    {
+        if ($this->prepare($options)->isSubmitted()) {
+            return $this->valid();
+        }
+
+        return false;
+    }
+
+    /**
      * Prepare form.
      *
      * @param array|null $options
@@ -384,7 +400,7 @@ class Form implements \ArrayAccess
      */
     public function prepare(array $options = null): Form
     {
-        $this->build($options);
+        $this->build($options ?? array());
         $this->transformData();
 
         return $this;
@@ -880,9 +896,9 @@ class Form implements \ArrayAccess
     /**
      * To add field logic.
      *
-     * @param array|null $options
+     * @param array $options
      */
-    protected function build(array $options = null)
+    protected function build(array $options)
     {
         // to override by children
     }

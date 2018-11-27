@@ -192,6 +192,27 @@ class FormTest extends TestCase
         $this->form->valid();
     }
 
+    public function testPosted()
+    {
+        $this->assertFalse($this->form->posted());
+    }
+
+    public function testPostedSubmitted()
+    {
+        $this->validator->add(new CommonValidator());
+
+        $this->fw['VERB'] = 'POST';
+        $this->fw['POST'] = array('form' => array('_form' => 'form', 'foo' => 'bar '));
+
+        $this->form->add('foo', 'text', array(
+            'constraints' => 'trim',
+        ));
+
+        $this->assertTrue($this->form->posted());
+        $this->assertEquals(array(), $this->form->getErrors());
+        $this->assertEquals(array('foo' => 'bar'), $this->form->getData());
+    }
+
     public function testOpen()
     {
         $expected = '<form name="form" method="POST" enctype="multipart/form-data">'.PHP_EOL.
