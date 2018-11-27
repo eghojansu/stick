@@ -15,7 +15,6 @@ namespace Fal\Stick\Test\Validation;
 
 use Fal\Stick\Fw;
 use Fal\Stick\Validation\CommonValidator;
-use Fal\Stick\Validation\UrlValidator;
 use Fal\Stick\Validation\Validator;
 use PHPUnit\Framework\TestCase;
 
@@ -25,12 +24,10 @@ class ValidatorTest extends TestCase
 
     public function setUp()
     {
-        $this->validator = new Validator(new Fw());
-    }
-
-    private function registerValidator()
-    {
-        $this->validator->add(new CommonValidator(), new UrlValidator());
+        $this->validator = new Validator(new Fw(), array(
+            'Fal\\Stick\\Validation\\CommonValidator',
+            'Fal\\Stick\\Validation\\UrlValidator',
+        ));
     }
 
     public function testConstruct()
@@ -53,8 +50,6 @@ class ValidatorTest extends TestCase
      */
     public function testValidate($rules, $trueData, $data, $falseData, $expected, $messages = array())
     {
-        $this->registerValidator();
-
         $first = $this->validator->validate($trueData, $rules);
         $this->assertTrue($first['success']);
         $this->assertEquals($data ?: $trueData, $first['data']);
@@ -69,8 +64,6 @@ class ValidatorTest extends TestCase
      */
     public function testValidateMutate($rules, $trueData, $trueExpected, $falseData, $falseExpected = null)
     {
-        $this->registerValidator();
-
         $first = $this->validator->validate($trueData, $rules);
         $this->assertEquals($trueExpected ?: $trueData, $first['data']);
 
@@ -89,8 +82,6 @@ class ValidatorTest extends TestCase
 
     public function testValidateCustomMessage()
     {
-        $this->registerValidator();
-
         $res = $this->validator->validate(array(), array('foo' => 'required'), array('foo.required' => 'Required'));
         $this->assertFalse($res['success']);
         $this->assertEquals('Required', $res['errors']['foo'][0]);

@@ -35,9 +35,10 @@ final class Validator
     /**
      * Class constructor.
      *
-     * @param Fw $fw
+     * @param Fw         $fw
+     * @param array|null $validators
      */
-    public function __construct(Fw $fw)
+    public function __construct(Fw $fw, array $validators = null)
     {
         $dict = __DIR__.'/dict/';
 
@@ -48,6 +49,14 @@ final class Validator
         }
 
         $this->fw = $fw;
+
+        foreach ($validators ?? array() as $validator) {
+            if (is_string($validator)) {
+                $validator = $fw->service($validator);
+            }
+
+            $this->add($validator);
+        }
     }
 
     /**
