@@ -459,7 +459,7 @@ class Console
                 "        'username' => 'root',\n".
                 "        'password' => null,\n".
                 "    ),\n".
-                "    'cache' => 'auto',\n".
+                "    'cache' => 'fallback',\n".
                 "    'debug' => false,\n".
                 "    'log' => dirname(__DIR__).'/var/log/',\n".
                 "    'threshold' => 'error',\n".
