@@ -1858,7 +1858,13 @@ final class Fw implements \ArrayAccess
         foreach ($trace as $key => $frame) {
             $frame += $fix;
 
-            $out .= sprintf("[%s:%d] %s%s%s\n", $frame['file'], $frame['line'], $frame['class'], $frame['type'], $frame['function']);
+            $out .= '['.$frame['file'].':'.$frame['line'].'] '.$frame['class'].$frame['type'].$frame['function'];
+
+            if (0 === $key) {
+                $out .= ' [['.count($trace).']]';
+            }
+
+            $out .= "\n";
         }
 
         return $out;
