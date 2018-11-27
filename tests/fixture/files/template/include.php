@@ -1,2 +1,2 @@
 <?= $title ?>.
-<?= $this->render('included') ?>
+<?= $this->load('included') ?>

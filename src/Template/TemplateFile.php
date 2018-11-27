@@ -23,57 +23,62 @@ class TemplateFile
     /**
      * @var Template
      */
-    protected $engine;
+    protected $_engine;
 
     /**
      * @var string
      */
-    protected $name;
+    protected $_name;
 
     /**
      * @var string
      */
-    protected $file;
+    protected $_file;
 
     /**
      * @var TemplateFile
      */
-    protected $reference;
+    protected $_reference;
 
     /**
      * @var TemplateFile
      */
-    protected $parent;
+    protected $_parent;
 
     /**
      * @var array
      */
-    protected $sections;
+    protected $_sections;
 
     /**
      * @var array
      */
-    protected $starts;
+    protected $_starts;
 
     /**
      * @var int
      */
-    protected $level;
+    protected $_level;
 
     /**
      * @var string
      */
-    protected $content;
+    protected $_content;
 
     /**
      * @var array
      */
-    protected $context;
+    protected $_context;
+
+    /**
+     * @var array
+     */
+    protected $_globals;
 
     /**
      * @var int
      */
-    protected $ptr;
+    protected $_ptr;
 
     /**
      * Class constructor.
@@ -85,39 +90,45 @@ class TemplateFile
      */
     public function __construct(Template $engine, string $name, array $context = null, TemplateFile $reference = null)
     {
-        $this->engine = $engine;
-        $this->name = $name;
-        $this->reference = $reference;
-        $this->file = $engine->find($name);
-        $this->context = (array) $context;
+        $this->_engine = $engine;
+        $this->_name = $name;
+        $this->_reference = $reference;
+        $this->_file = $engine->find($name);
+        $this->_context = (array) $context;
     }
 
     /**
      * Render template.
      *
-     * @param string|null $name
-     * @param array|null  $context
-     * @param bool        $useContext
-     *
      * @return string
      */
-    public function render(string $name = null, array $context = null, bool $useContext = true): string
+    public function render(): string
     {
-        if ($name) {
-            return $this->engine->render($name, (array) $context + ($useContext ? $this->context : array()));
-        }
-
-        $this->sections = array();
-        $this->starts = array();
-        $this->ptr = -1;
+        $this->_sections = array();
+        $this->_starts = array();
+        $this->_ptr = -1;
 
         $this->doRender();
 
-        if ($this->parent) {
-            return $this->parent->render();
+        if ($this->_parent) {
+            return $this->_parent->render();
         }
 
-        return $this->content;
+        return $this->_content;
+    }
+
+    /**
+     * Load another template.
+     *
+     * @param  string|null $name
+     * @param  array|null  $context
+     * @param  bool        $useContext
+     *
+     * @return string
+     */
+    protected function load(string $name = null, array $context = null, bool $useContext = true): string
+    {
+        return $this->_engine->render($name, (array) $context + ($useContext ? $this->_context : array()));
     }
 
     /**
@@ -129,11 +140,23 @@ class TemplateFile
      */
     protected function section(string $name): ?string
     {
-        if ($this->reference && $content = $this->reference->section($name)) {
+        if ($this->_reference && $content = $this->_reference->section($name)) {
             return $content;
         }
 
-        return $this->sections[$name] ?? null;
+        return $this->_sections[$name] ?? null;
+    }
+
+    /**
+     * Returns parent section content.
+     *
+     * @param  string $name
+     *
+     * @return string|null
+     */
+    protected function parent(string $name): ?string
+    {
+        return $this->_parent ? $this->_parent->section($name) : null;
     }
 
     /**
@@ -141,12 +164,12 @@ class TemplateFile
      *
      * @param string $view
      */
-    protected function parent(string $view): void
+    protected function extend(string $view): void
     {
-        $this->parent = new TemplateFile($this->engine, $view, $this->context, $this);
-        $this->parent->render();
+        $this->_parent = new TemplateFile($this->_engine, $view, $this->_context, $this);
+        $this->_parent->render();
 
-        $this->sections = $this->parent->sections;
+        $this->_sections = $this->_parent->_sections;
     }
 
     /**
@@ -157,7 +180,7 @@ class TemplateFile
      */
     protected function start(string $name, bool $raw = false): void
     {
-        $this->starts[++$this->ptr] = array($this->ptr, $name, false, $raw);
+        $this->_starts[++$this->_ptr] = array($this->_ptr, $name, false, $raw);
         ob_start();
     }
 
@@ -173,10 +196,10 @@ class TemplateFile
         $content = ob_get_clean();
         list($ptr, $name, $closed, $raw) = $start;
 
-        $this->sections[$name] = $raw ? $content : trim($content).PHP_EOL;
-        $this->starts[$ptr][2] = true;
+        $this->_sections[$name] = $raw ? $content : trim($content).PHP_EOL;
+        $this->_starts[$ptr][2] = true;
 
-        if (!$this->parent) {
+        if (!$this->_parent) {
             echo $this->section($name);
         }
     }
@@ -188,12 +211,12 @@ class TemplateFile
      */
     protected function findStart(): ?array
     {
-        for ($i = count($this->starts) - 1; $i >= 0; --$i) {
-            if ($this->starts[$i][2]) {
+        for ($i = count($this->_starts) - 1; $i >= 0; --$i) {
+            if ($this->_starts[$i][2]) {
                 continue;
             }
 
-            return $this->starts[$i];
+            return $this->_starts[$i];
         }
 
         return null;
@@ -204,27 +227,27 @@ class TemplateFile
      */
     protected function doRender(): void
     {
-        $this->level = ob_get_level();
+        $this->_level = ob_get_level();
 
         ob_start();
 
         try {
-            extract($this->context + $this->engine->getGlobals());
+            extract($this->_context);
 
-            include $this->file;
+            include $this->_file;
         } catch (\Throwable $e) {
-            while (ob_get_level() > $this->level) {
+            while (ob_get_level() > $this->_level) {
                 ob_end_clean();
             }
 
             throw $e;
         }
 
-        $this->content = ob_get_clean();
+        $this->_content = ob_get_clean();
     }
 
     /**
-     * Proxy to Fw::service.
+     * Returns globals data or proxy to Fw::service.
      *
      * @param string $name
      *
@@ -232,7 +255,11 @@ class TemplateFile
      */
     public function __get($name)
     {
-        return $this->engine->service($name);
+        if (null === $this->_globals) {
+            $this->_globals = $this->_engine->getGlobals();
+        }
+
+        return $this->_globals[$name] ?? $this->_engine->service($name);
     }
 
     /**
@@ -245,6 +272,6 @@ class TemplateFile
      */
     public function __call($method, $args)
     {
-        return $this->engine->$method(...$args);
+        return $this->_engine->$method(...$args);
     }
 }
