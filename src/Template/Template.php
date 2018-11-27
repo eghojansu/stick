@@ -38,6 +38,11 @@ class Template
     protected $globals;
 
     /**
+     * @var array
+     */
+    protected $globalsData;
+
+    /**
      * @var string
      */
     protected $extension;
@@ -131,13 +136,15 @@ class Template
      */
     public function getGlobals(): array
     {
-        if (is_callable($this->globals)) {
-            $this->globals = (array) $this->fw->call($this->globals);
-        } elseif (!is_array($this->globals)) {
-            $this->globals = (array) $this->globals;
+        if (null === $this->globalsData) {
+            if (is_callable($this->globals)) {
+                $this->globalsData = (array) $this->fw->call($this->globals);
+            } else {
+                $this->globalsData = (array) $this->globals;
+            }
         }
 
-        return $this->globals;
+        return $this->globalsData;
     }
 
     /**
@@ -150,6 +157,7 @@ class Template
     public function setGlobals($globals): Template
     {
         $this->globals = $globals;
+        $this->globalsData = null;
 
         return $this;
     }
