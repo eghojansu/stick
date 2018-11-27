@@ -993,7 +993,7 @@ final class Fw implements \ArrayAccess
             if ($this->hive['CACHE_DRY']) {
                 $this->setRule($engine, array(
                     'args' => array(
-                        'directory' => TEMP.'cache/',
+                        'directory' => $this->hive['TEMP'].'cache/',
                     ),
                 ));
             }
