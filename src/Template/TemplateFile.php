@@ -120,9 +120,9 @@ class TemplateFile
     /**
      * Load another template.
      *
-     * @param  string|null $name
-     * @param  array|null  $context
-     * @param  bool        $useContext
+     * @param string|null $name
+     * @param array|null  $context
+     * @param bool        $useContext
      *
      * @return string
      */
@@ -150,7 +150,7 @@ class TemplateFile
     /**
      * Returns parent section content.
      *
-     * @param  string $name
+     * @param string $name
      *
      * @return string|null
      */

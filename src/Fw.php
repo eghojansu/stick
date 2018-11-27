@@ -250,18 +250,6 @@ final class Fw implements \ArrayAccess
     }
 
     /**
-     * Returns string with backlashes convert to slash.
-     *
-     * @param string $str
-     *
-     * @return string
-     */
-    public static function fixslashes(string $str): string
-    {
-        return str_replace('\\', '/', $str);
-    }
-
-    /**
      * Returns the return value of required file.
      *
      * It does ensure loaded file have no access to caller scope.
@@ -279,13 +267,25 @@ final class Fw implements \ArrayAccess
     }
 
     /**
+     * Returns string with backlashes convert to slash.
+     *
+     * @param string $str
+     *
+     * @return string
+     */
+    public function fixslashes(string $str): string
+    {
+        return str_replace('\\', '/', $str);
+    }
+
+    /**
      * Returns PHP-value of val.
      *
      * @param mixed $val
      *
      * @return mixed
      */
-    public static function cast($val)
+    public function cast($val)
     {
         if (is_numeric($val)) {
             return $val + 0;
@@ -309,7 +309,7 @@ final class Fw implements \ArrayAccess
      *
      * @return string
      */
-    public static function hash(string $str): string
+    public function hash(string $str): string
     {
         return str_pad(base_convert(substr(sha1($str), -16), 16, 36), 11, '0', STR_PAD_LEFT);
     }
@@ -323,7 +323,7 @@ final class Fw implements \ArrayAccess
      *
      * @return bool
      */
-    public static function mkdir(string $path, int $mode = 0755, bool $recursive = true): bool
+    public function mkdir(string $path, int $mode = 0755, bool $recursive = true): bool
     {
         return file_exists($path) ? true : mkdir($path, $mode, $recursive);
     }
@@ -336,7 +336,7 @@ final class Fw implements \ArrayAccess
      *
      * @return string
      */
-    public static function read(string $file, bool $lf = false): string
+    public function read(string $file, bool $lf = false): string
     {
         $out = is_file($file) ? file_get_contents($file) : '';
 
@@ -352,7 +352,7 @@ final class Fw implements \ArrayAccess
      *
      * @return int|false
      */
-    public static function write(string $file, string $data, bool $append = false)
+    public function write(string $file, string $data, bool $append = false)
     {
         return file_put_contents($file, $data, LOCK_EX | ((int) $append * FILE_APPEND));
     }
@@ -364,7 +364,7 @@ final class Fw implements \ArrayAccess
      *
      * @return bool
      */
-    public static function delete(string $file): bool
+    public function delete(string $file): bool
     {
         return is_file($file) ? unlink($file) : false;
     }
@@ -376,7 +376,7 @@ final class Fw implements \ArrayAccess
      *
      * @return string
      */
-    public static function camelCase(string $str): string
+    public function camelCase(string $str): string
     {
         return str_replace('_', '', lcfirst(ucwords($str, '_')));
     }
@@ -388,7 +388,7 @@ final class Fw implements \ArrayAccess
      *
      * @return string
      */
-    public static function snakeCase(string $str): string
+    public function snakeCase(string $str): string
     {
         return strtolower(preg_replace('/(?!^)\p{Lu}/u', '_\0', $str));
     }
@@ -400,7 +400,7 @@ final class Fw implements \ArrayAccess
      *
      * @return string
      */
-    public static function className($class): string
+    public function className($class): string
     {
         $ns = '\\'.ltrim(is_object($class) ? get_class($class) : $class, '\\');
 
@@ -415,7 +415,7 @@ final class Fw implements \ArrayAccess
      *
      * @return array
      */
-    public static function split($val, string $delimiter = null): array
+    public function split($val, string $delimiter = null): array
     {
         if (!$val) {
             return array();
@@ -426,6 +426,27 @@ final class Fw implements \ArrayAccess
         $pattern = '/['.preg_quote($delimiter ?? ',;|', '/').']/';
 
         return array_map('trim', preg_split($pattern, $val, 0, PREG_SPLIT_NO_EMPTY));
+    }
+
+    /**
+     * Pick member of array.
+     *
+     * @param mixed      $key
+     * @param array|null $collections
+     * @param mixed      $default
+     * @param bool       $twoTier
+     *
+     * @return mixed
+     */
+    public function pick($key, array $collections = null, $default = null, bool $twoTier = false)
+    {
+        foreach ($twoTier ? (array) $collections : array((array) $collections) as $collection) {
+            if ($collection && is_array($collection) && array_key_exists($key, $collection)) {
+                return $collection[$key];
+            }
+        }
+
+        return $default;
     }
 
     /**

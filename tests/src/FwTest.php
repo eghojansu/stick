@@ -1087,6 +1087,14 @@ class FwTest extends TestCase
         $this->fw->cache('foo');
     }
 
+    /**
+     * @dataProvider getCollections
+     */
+    public function testPick($expected, $key, $collections = null, $default = null, $twoTier = false)
+    {
+        $this->assertEquals($expected, $this->fw->pick($key, $collections, $default, $twoTier));
+    }
+
     public function getCliRequestData()
     {
         return array(
@@ -1265,6 +1273,15 @@ class FwTest extends TestCase
                 '{fruit2}' => 'orange',
                 '{fruit3}' => 'mango',
             )),
+        );
+    }
+
+    public function getCollections()
+    {
+        return array(
+            array('foo', 'bar', array('bar' => 'foo')),
+            array('foo', 'bar', array(array('bar' => 'foo')), null, true),
+            array(null, 'foo', array('bar' => 'foo')),
         );
     }
 

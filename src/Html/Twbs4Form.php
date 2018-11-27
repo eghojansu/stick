@@ -49,8 +49,8 @@ class Twbs4Form extends Twbs3Form
      */
     public function row(string $name, array $overrideAttr = null): string
     {
-        if (isset($this->fields[$name]['attr']['class']) && !preg_match('/is\-(valid|invalid)/i', $this->fields[$name]['attr']['class'])) {
-            $this->fields[$name]['attr']['class'] .= $this->validationClass($name);
+        if (isset($this->_fields[$name]['attr']['class']) && !preg_match('/is\-(valid|invalid)/i', $this->_fields[$name]['attr']['class'])) {
+            $this->_fields[$name]['attr']['class'] .= $this->validationClass($name);
         }
 
         return parent::row($name, $overrideAttr);
@@ -67,30 +67,30 @@ class Twbs4Form extends Twbs3Form
 
         if ('buttons' === $type) {
             return
-                '<div class="form-group row"><div class="ml-auto '.$this->options['right'].'">'.
+                '<div class="form-group row"><div class="ml-auto '.$this->_options['right'].'">'.
                 $input.
                 '</div></div>'.
                 PHP_EOL;
         }
 
         $errorAttr = array('class' => 'invalid-feedback');
-        $errors = isset($this->errors[$name]) ? $this->html->tag('div', $errorAttr, true, implode(', ', $this->errors[$name])) : '';
+        $errors = isset($this->_errors[$name]) ? $this->_html->tag('div', $errorAttr, true, implode(', ', $this->_errors[$name])) : '';
         $wrapperClass = 'form-group row';
 
         if (in_array($type, array('checkbox', 'radio'))) {
             return
-                '<div class="'.$wrapperClass.'"><div class="ml-auto '.$this->options['right'].'">'.
+                '<div class="'.$wrapperClass.'"><div class="ml-auto '.$this->_options['right'].'">'.
                 $input.$errors.
                 '</div></div>'.PHP_EOL;
         }
 
-        $labelAttr = $options['label_attr'] + array('class' => 'col-form-label '.$this->options['left']);
-        $label = $this->html->tag('label', $labelAttr, true, $options['label']);
+        $labelAttr = $options['label_attr'] + array('class' => 'col-form-label '.$this->_options['left']);
+        $label = $this->_html->tag('label', $labelAttr, true, $options['label']);
 
         return
             '<div class="'.$wrapperClass.'">'.
             $label.
-            '<div class="'.$this->options['right'].'">'.
+            '<div class="'.$this->_options['right'].'">'.
             $input.$errors.
             '</div>'.
             '</div>'.PHP_EOL;
@@ -108,20 +108,20 @@ class Twbs4Form extends Twbs3Form
         $attr['type'] = 'radio';
 
         $add = array();
-        $raw = $this->pick($attr, 'value') ?? $this->rawValue($field);
+        $raw = $this->_fw->pick('value', $attr) ?? $this->rawValue($field);
 
         if (!array_key_exists('checked', $attr)) {
             $add['checked'] = false;
 
-            if ($this->submitted) {
+            if ($this->_submitted) {
                 $add['checked'] = $raw ? $raw == $value : 'on' === $value;
             }
         }
 
         $radio = $this->inputInput($field, $raw, $attr + $add, $options);
-        $label = $this->html->tag('label', $labelAttr, true, $options['label']);
+        $label = $this->_html->tag('label', $labelAttr, true, $options['label']);
 
-        return $this->html->tag('div', $wrapperAttr + $wrapperDefault, true, $radio.$label);
+        return $this->_html->tag('div', $wrapperAttr + $wrapperDefault, true, $radio.$label);
     }
 
     /**
@@ -136,20 +136,20 @@ class Twbs4Form extends Twbs3Form
         $attr['type'] = 'checkbox';
 
         $add = array();
-        $raw = $this->pick($attr, 'value') ?? $this->rawValue($field);
+        $raw = $this->_fw->pick('value', $attr) ?? $this->rawValue($field);
 
         if (!array_key_exists('checked', $attr)) {
             $add['checked'] = false;
 
-            if ($this->submitted) {
+            if ($this->_submitted) {
                 $add['checked'] = $raw ? $raw == $value : 'on' === $value;
             }
         }
 
         $checkbox = $this->inputInput($field, $raw, $attr + $add, $options);
-        $label = $this->html->tag('label', $labelAttr, true, $options['label']);
+        $label = $this->_html->tag('label', $labelAttr, true, $options['label']);
 
-        return $this->html->tag('div', $wrapperAttr + $wrapperDefault, true, $checkbox.$label);
+        return $this->_html->tag('div', $wrapperAttr + $wrapperDefault, true, $checkbox.$label);
     }
 
     /**
@@ -161,8 +161,8 @@ class Twbs4Form extends Twbs3Form
      */
     protected function validationClass(string $field): string
     {
-        if ($this->submitted && isset($this->fields[$field]['options']['constraints'])) {
-            return isset($this->errors[$field]) ? ' is-invalid' : ' is-valid';
+        if ($this->_submitted && isset($this->_fields[$field]['options']['constraints'])) {
+            return isset($this->_errors[$field]) ? ' is-invalid' : ' is-valid';
         }
 
         return '';

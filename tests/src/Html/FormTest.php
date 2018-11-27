@@ -59,7 +59,7 @@ class FormTest extends TestCase
     public function testSetData()
     {
         $this->assertEquals(array('foo' => 'bar'), $this->form->setData(array('foo' => 'bar'))->getData());
-        $this->assertEquals('bar', $this->form['foo']);
+        $this->assertEquals('bar', $this->form->foo);
     }
 
     public function testGetOptions()
@@ -351,29 +351,9 @@ class FormTest extends TestCase
         $this->assertEquals($expected, $this->form->render());
     }
 
-    public function testOffsetExists()
+    public function testMagicGet()
     {
-        $this->assertFalse(isset($this->form['foo']));
-    }
-
-    public function testOffsetGet()
-    {
-        $this->assertNull($this->form['foo']);
-    }
-
-    public function testOffsetSet()
-    {
-        $this->form['foo'] = 'bar';
-
-        $this->assertEquals('bar', $this->form['foo']);
-    }
-
-    public function testOffsetUnset()
-    {
-        $this->form['foo'] = 'bar';
-        unset($this->form['foo']);
-
-        $this->assertNull($this->form['foo']);
+        $this->assertNull($this->form->foo);
     }
 
     public function getValidations()

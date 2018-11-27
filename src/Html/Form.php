@@ -21,104 +21,104 @@ use Fal\Stick\Validation\Validator;
  *
  * @author Eko Kurniawan <ekokurniawanbs@gmail.com>
  */
-class Form implements \ArrayAccess
+class Form
 {
     /**
      * @var Fw
      */
-    protected $fw;
+    protected $_fw;
 
     /**
      * @var Validator
      */
-    protected $validator;
+    protected $_validator;
 
     /**
      * @var Html
      */
-    protected $html;
+    protected $_html;
 
     /**
      * Form name.
      *
      * @var string
      */
-    protected $name;
+    protected $_name;
 
     /**
      * Submitted status.
      *
      * @var bool
      */
-    protected $submitted = false;
+    protected $_submitted = false;
 
     /**
      * Form method.
      *
      * @var string
      */
-    protected $verb = 'POST';
+    protected $_verb = 'POST';
 
     /**
      * Initial data.
      *
      * @var array
      */
-    protected $data;
+    protected $_data;
 
     /**
      * Data after transformed.
      *
      * @var array
      */
-    protected $formData;
+    protected $_formData;
 
     /**
      * Submitted data.
      *
      * @var array
      */
-    protected $submittedData;
+    protected $_submittedData;
 
     /**
      * Submitted data after reverse transformed.
      *
      * @var array
      */
-    protected $normalizedData;
+    protected $_normalizedData;
 
     /**
      * Validated data.
      *
      * @var array
      */
-    protected $validatedData;
+    protected $_validatedData;
 
     /**
      * @var array
      */
-    protected $options = array();
+    protected $_options = array();
 
     /**
      * Form fields.
      *
      * @var array
      */
-    protected $fields = array();
+    protected $_fields = array();
 
     /**
      * Form buttons.
      *
      * @var array
      */
-    protected $buttons = array();
+    protected $_buttons = array();
 
     /**
      * Form errors.
      *
      * @var array
      */
-    protected $errors = array();
+    protected $_errors = array();
 
     /**
      * Class constructor.
@@ -129,12 +129,12 @@ class Form implements \ArrayAccess
      */
     public function __construct(Fw $fw, Validator $validator, Html $html)
     {
-        $this->fw = $fw;
-        $this->html = $html;
-        $this->validator = $validator;
+        $this->_fw = $fw;
+        $this->_html = $html;
+        $this->_validator = $validator;
 
-        if (!$this->name) {
-            $this->name = $fw->snakeCase($fw->className($this));
+        if (!$this->_name) {
+            $this->_name = $fw->snakeCase($fw->className($this));
         }
     }
 
@@ -145,7 +145,7 @@ class Form implements \ArrayAccess
      */
     public function getName(): string
     {
-        return $this->name;
+        return $this->_name;
     }
 
     /**
@@ -157,7 +157,7 @@ class Form implements \ArrayAccess
      */
     public function setName(string $name): Form
     {
-        $this->name = $name;
+        $this->_name = $name;
 
         return $this;
     }
@@ -169,7 +169,7 @@ class Form implements \ArrayAccess
      */
     public function getVerb(): string
     {
-        return $this->verb;
+        return $this->_verb;
     }
 
     /**
@@ -181,7 +181,7 @@ class Form implements \ArrayAccess
      */
     public function setVerb(string $verb): Form
     {
-        $this->verb = strtoupper($verb);
+        $this->_verb = strtoupper($verb);
 
         return $this;
     }
@@ -195,7 +195,7 @@ class Form implements \ArrayAccess
      */
     public function getData(): ?array
     {
-        return $this->validatedData ?? $this->normalizedData ?? $this->data;
+        return $this->_validatedData ?? $this->_normalizedData ?? $this->_data;
     }
 
     /**
@@ -207,7 +207,7 @@ class Form implements \ArrayAccess
      */
     public function setData(array $data): Form
     {
-        $this->data = $data;
+        $this->_data = $data;
 
         return $this;
     }
@@ -219,7 +219,7 @@ class Form implements \ArrayAccess
      */
     public function getOptions(): array
     {
-        return $this->options;
+        return $this->_options;
     }
 
     /**
@@ -232,7 +232,7 @@ class Form implements \ArrayAccess
     public function setOptions(array $options): Form
     {
         foreach ($options as $option => $value) {
-            $this->options[$option] = $value;
+            $this->_options[$option] = $value;
         }
 
         return $this;
@@ -247,7 +247,7 @@ class Form implements \ArrayAccess
      */
     public function getField(string $field): ?array
     {
-        return $this->fields[$field] ?? null;
+        return $this->_fields[$field] ?? null;
     }
 
     /**
@@ -257,7 +257,7 @@ class Form implements \ArrayAccess
      */
     public function getFields(): array
     {
-        return $this->fields;
+        return $this->_fields;
     }
 
     /**
@@ -267,7 +267,7 @@ class Form implements \ArrayAccess
      */
     public function getButtons(): array
     {
-        return $this->buttons;
+        return $this->_buttons;
     }
 
     /**
@@ -279,7 +279,7 @@ class Form implements \ArrayAccess
      */
     public function getError(string $field): ?array
     {
-        return $this->errors[$field] ?? null;
+        return $this->_errors[$field] ?? null;
     }
 
     /**
@@ -289,7 +289,7 @@ class Form implements \ArrayAccess
      */
     public function getErrors(): array
     {
-        return $this->errors;
+        return $this->_errors;
     }
 
     /**
@@ -335,7 +335,7 @@ class Form implements \ArrayAccess
             unset($attr['type']);
         }
 
-        $this->fields[$name] = array(
+        $this->_fields[$name] = array(
             'type' => $type ?? 'text',
             'options' => $options + array(
                 'transformer' => null,
@@ -366,7 +366,7 @@ class Form implements \ArrayAccess
             $attr['id'] = $this->fixId($attr['name']);
         }
 
-        $this->buttons[$name] = array(
+        $this->_buttons[$name] = array(
             'type' => $type ?? 'button',
             'attr' => $attr,
             'label' => $label ?? $this->label($name),
@@ -413,11 +413,11 @@ class Form implements \ArrayAccess
      */
     public function isSubmitted(): bool
     {
-        $this->submittedData = ((array) ($this->fw[$this->verb][$this->name] ?? null)) + array('_form' => null);
-        $this->submitted = $this->verb === $this->fw['VERB'] && $this->submittedData['_form'] === $this->name;
+        $this->_submittedData = ((array) ($this->_fw[$this->_verb][$this->_name] ?? null)) + array('_form' => null);
+        $this->_submitted = $this->_verb === $this->_fw['VERB'] && $this->_submittedData['_form'] === $this->_name;
         $this->reverseTransformData();
 
-        return $this->submitted;
+        return $this->_submitted;
     }
 
     /**
@@ -429,18 +429,18 @@ class Form implements \ArrayAccess
      */
     public function valid(): bool
     {
-        if (!$this->submitted) {
+        if (!$this->_submitted) {
             throw new \LogicException('Cannot validate unsubmitted form.');
         }
 
         list($rules, $messages) = $this->findRules();
-        $result = $this->validator->validate($this->normalizedData, $rules, $messages);
+        $result = $this->_validator->validate($this->_normalizedData, $rules, $messages);
 
-        $no_validation_keys = array_diff(array_keys($this->fields), array_keys($rules));
-        $no_validation_data = array_intersect_key((array) $this->normalizedData, array_flip($no_validation_keys));
+        $no_validation_keys = array_diff(array_keys($this->_fields), array_keys($rules));
+        $no_validation_data = array_intersect_key((array) $this->_normalizedData, array_flip($no_validation_keys));
 
-        $this->validatedData = $result['data'] + $no_validation_data + (array) $this->formData;
-        $this->errors = $result['errors'];
+        $this->_validatedData = $result['data'] + $no_validation_data + (array) $this->_formData;
+        $this->_errors = $result['errors'];
 
         return $result['success'];
     }
@@ -459,15 +459,15 @@ class Form implements \ArrayAccess
             'enctype' => $multipart ? 'multipart/form-data' : null,
         );
 
-        $attr['name'] = $this->name;
-        $attr['method'] = $this->verb;
+        $attr['name'] = $this->_name;
+        $attr['method'] = $this->_verb;
 
         return
-            $this->html->tag('form', $attr + $default).PHP_EOL.
-            $this->html->tag('input', array(
+            $this->_html->tag('form', $attr + $default).PHP_EOL.
+            $this->_html->tag('input', array(
                 'type' => 'hidden',
                 'name' => $this->formName('_form'),
-                'value' => $this->name,
+                'value' => $this->_name,
             ));
     }
 
@@ -493,11 +493,11 @@ class Form implements \ArrayAccess
      */
     public function row(string $name, array $overrideAttr = null): string
     {
-        if (!isset($this->fields[$name])) {
+        if (!isset($this->_fields[$name])) {
             throw new \LogicException(sprintf('Field "%s" does not exists.', $name));
         }
 
-        $field = &$this->fields[$name];
+        $field = &$this->_fields[$name];
 
         if ($field['rendered']) {
             return '';
@@ -531,7 +531,7 @@ class Form implements \ArrayAccess
     {
         $fields = '';
 
-        foreach ($this->fields as $name => $definitions) {
+        foreach ($this->_fields as $name => $definitions) {
             $fields .= $this->row($name, $overrideAttr);
         }
 
@@ -547,7 +547,7 @@ class Form implements \ArrayAccess
     {
         $buttons = '';
 
-        foreach ($this->buttons as $name => $button) {
+        foreach ($this->_buttons as $name => $button) {
             $label = $button['label'] ?: $this->label($name);
 
             $buttons .= ' '.$this->inputButton($label, $name, $button['attr'], $button['type']);
@@ -594,13 +594,13 @@ class Form implements \ArrayAccess
             return '<div>'.$input.'</div>'.PHP_EOL;
         }
 
-        $errors = isset($this->errors[$name]) ? $this->html->tag('div', null, true, implode(', ', $this->errors[$name])) : '';
+        $errors = isset($this->_errors[$name]) ? $this->_html->tag('div', null, true, implode(', ', $this->_errors[$name])) : '';
 
         if (in_array($type, array('checkbox', 'radio'))) {
             return '<div>'.$input.$errors.'</div>'.PHP_EOL;
         }
 
-        $label = $this->html->tag('label', $options['label_attr'], true, $options['label']);
+        $label = $this->_html->tag('label', $options['label_attr'], true, $options['label']);
 
         return '<div>'.
             $label.
@@ -629,7 +629,7 @@ class Form implements \ArrayAccess
             $add = array('href' => '#');
         }
 
-        return $this->html->tag($tag, $attr + $add, true, $label);
+        return $this->_html->tag($tag, $attr + $add, true, $label);
     }
 
     /**
@@ -646,7 +646,7 @@ class Form implements \ArrayAccess
     {
         $add = array('value' => $value);
 
-        return $this->html->tag('input', $attr + $add);
+        return $this->_html->tag('input', $attr + $add);
     }
 
     /**
@@ -679,20 +679,20 @@ class Form implements \ArrayAccess
     protected function inputCheckbox(string $field, $value, array $attr, array $options): string
     {
         $add = array();
-        $raw = $this->pick($attr, 'value') ?? $this->rawValue($field);
+        $raw = $this->_fw->pick('value', $attr) ?? $this->rawValue($field);
         $attr['type'] = 'checkbox';
 
         if (!array_key_exists('checked', $attr)) {
             $add['checked'] = false;
 
-            if ($this->submitted) {
+            if ($this->_submitted) {
                 $add['checked'] = $raw ? $raw == $value : 'on' === $value;
             }
         }
 
         $input = $this->inputInput($field, $raw, $attr + $add, $options);
 
-        return $this->html->tag('label', null, true, $input.' '.$options['label']);
+        return $this->_html->tag('label', null, true, $input.' '.$options['label']);
     }
 
     /**
@@ -708,20 +708,20 @@ class Form implements \ArrayAccess
     protected function inputRadio(string $field, $value, array $attr, array $options): string
     {
         $add = array();
-        $raw = $this->pick($attr, 'value') ?? $this->rawValue($field);
+        $raw = $this->_fw->pick('value', $attr) ?? $this->rawValue($field);
         $attr['type'] = 'radio';
 
         if (!array_key_exists('checked', $attr)) {
             $add['checked'] = false;
 
-            if ($this->submitted) {
+            if ($this->_submitted) {
                 $add['checked'] = $raw ? $raw == $value : 'on' === $value;
             }
         }
 
         $input = $this->inputInput($field, $raw, $attr + $add, $options);
 
-        return $this->html->tag('label', null, true, $input.' '.$options['label']);
+        return $this->_html->tag('label', null, true, $input.' '.$options['label']);
     }
 
     /**
@@ -736,7 +736,7 @@ class Form implements \ArrayAccess
      */
     protected function inputTextarea(string $field, $value, array $attr, array $options): string
     {
-        return $this->html->tag('textarea', $attr, true, $value);
+        return $this->_html->tag('textarea', $attr, true, $value);
     }
 
     /**
@@ -765,7 +765,7 @@ class Form implements \ArrayAccess
         $items = &$options['items'];
 
         if ($items && is_callable($items)) {
-            $items = (array) $this->fw->call($items, array($options));
+            $items = (array) $this->_fw->call($items, array($options));
         }
 
         if ($options['expanded']) {
@@ -804,10 +804,10 @@ class Form implements \ArrayAccess
                 'selected' => in_array($val, $check),
             );
 
-            $content .= $this->html->tag('option', $add + $options['item_attr'], true, $label);
+            $content .= $this->_html->tag('option', $add + $options['item_attr'], true, $label);
         }
 
-        return $this->html->tag('select', $attr, true, $content);
+        return $this->_html->tag('select', $attr, true, $content);
     }
 
     /**
@@ -824,7 +824,7 @@ class Form implements \ArrayAccess
     {
         $nameArr = $this->formName($name).'[]';
         $content = '';
-        $check = (array) $this->fw->cast($value);
+        $check = (array) $this->_fw->cast($value);
         $ctr = 0;
         $id = $attr['id'];
 
@@ -839,7 +839,7 @@ class Form implements \ArrayAccess
             ));
         }
 
-        return $this->html->tag('div', $options['wrapper_attr'], true, $content);
+        return $this->_html->tag('div', $options['wrapper_attr'], true, $content);
     }
 
     /**
@@ -855,7 +855,7 @@ class Form implements \ArrayAccess
     protected function radioGroup(string $name, $value, array $attr, array $options): string
     {
         $content = '';
-        $check = $this->fw->cast($value);
+        $check = $this->_fw->cast($value);
         $ctr = 0;
         $id = $attr['id'];
 
@@ -869,7 +869,7 @@ class Form implements \ArrayAccess
             ));
         }
 
-        return $this->html->tag('div', $options['wrapper_attr'], true, $content);
+        return $this->_html->tag('div', $options['wrapper_attr'], true, $content);
     }
 
     /**
@@ -882,7 +882,7 @@ class Form implements \ArrayAccess
         $rules = array();
         $messages = array();
 
-        foreach ($this->fields as $field => $def) {
+        foreach ($this->_fields as $field => $def) {
             foreach ($def['options']['messages'] as $rule => $message) {
                 $messages[$field.'.'.$rule] = $message;
             }
@@ -908,12 +908,12 @@ class Form implements \ArrayAccess
      */
     protected function transformData(): void
     {
-        foreach ($this->data ?? array() as $field => $value) {
-            if (is_callable($cb = $this->fields[$field]['options']['transformer'] ?? null)) {
-                $value = $this->fw->call($cb, array($value));
+        foreach ($this->_data ?? array() as $field => $value) {
+            if (is_callable($cb = $this->_fields[$field]['options']['transformer'] ?? null)) {
+                $value = $this->_fw->call($cb, array($value));
             }
 
-            $this->formData[$field] = $value;
+            $this->_formData[$field] = $value;
         }
     }
 
@@ -922,12 +922,12 @@ class Form implements \ArrayAccess
      */
     protected function reverseTransformData(): void
     {
-        foreach ($this->submittedData ?? array() as $field => $value) {
-            if (is_callable($cb = $this->fields[$field]['options']['reverse_transformer'] ?? null)) {
-                $value = $this->fw->call($cb, array($value));
+        foreach ($this->_submittedData ?? array() as $field => $value) {
+            if (is_callable($cb = $this->_fields[$field]['options']['reverse_transformer'] ?? null)) {
+                $value = $this->_fw->call($cb, array($value));
             }
 
-            $this->normalizedData[$field] = $value;
+            $this->_normalizedData[$field] = $value;
         }
     }
 
@@ -940,8 +940,8 @@ class Form implements \ArrayAccess
      */
     protected function fieldValue(string $field)
     {
-        if ($this->submitted) {
-            return $this->pick($this->normalizedData, $field, $this->submittedData[$field] ?? null);
+        if ($this->_submitted) {
+            return $this->_fw->pick($field, $this->_normalizedData, $this->_submittedData[$field] ?? null);
         }
 
         return $this->rawValue($field);
@@ -956,7 +956,7 @@ class Form implements \ArrayAccess
      */
     protected function rawValue(string $field)
     {
-        return $this->pick($this->formData, $field, $this->data[$field] ?? null);
+        return $this->_fw->pick($field, $this->_formData, $this->_data[$field] ?? null);
     }
 
     /**
@@ -968,7 +968,7 @@ class Form implements \ArrayAccess
      */
     protected function formName(string $field): string
     {
-        return $this->name.'['.$field.']';
+        return $this->_name.'['.$field.']';
     }
 
     /**
@@ -992,67 +992,20 @@ class Form implements \ArrayAccess
      */
     protected function label(string $name): string
     {
-        $default = ucwords(str_replace('_', ' ', $this->fw->snakeCase($name)));
+        $default = ucwords(str_replace('_', ' ', $this->_fw->snakeCase($name)));
 
-        return $this->fw->trans($name, null, $default);
+        return $this->_fw->trans($name, null, $default);
     }
 
     /**
-     * Pick array member.
+     * Returns member of data.
      *
-     * @param array|null $arr
-     * @param mixed      $key
-     * @param mixed      $default
+     * @param mixed $key
      *
      * @return mixed
      */
-    protected function pick(array $arr = null, $key = null, $default = null)
+    public function __get($key)
     {
-        return $arr && $key && array_key_exists($key, $arr) ? $arr[$key] : $default;
-    }
-
-    /**
-     * Convenience method for checking data.
-     *
-     * @param mixed $offset
-     *
-     * @return bool
-     */
-    public function offsetExists($offset)
-    {
-        return isset($this->data[$offset]);
-    }
-
-    /**
-     * Convenience method for retrieving data.
-     *
-     * @param mixed $offset
-     *
-     * @return mixed
-     */
-    public function offsetGet($offset)
-    {
-        return $this->validatedData[$offset] ?? $this->normalizedData[$offset] ?? $this->data[$offset] ?? null;
-    }
-
-    /**
-     * Convenience method for assigning data.
-     *
-     * @param mixed $offset
-     * @param mixed $value
-     */
-    public function offsetSet($offset, $value)
-    {
-        $this->data[$offset] = $value;
-    }
-
-    /**
-     * Convenience method for removing data.
-     *
-     * @param mixed $offset
-     */
-    public function offsetUnset($offset)
-    {
-        unset($this->data[$offset]);
+        return $this->_fw->pick($key, array($this->_validatedData, $this->_normalizedData, $this->_data), null, true);
     }
 }

@@ -27,7 +27,7 @@ class Twbs3Form extends Form
     /**
      * @var array
      */
-    protected $options = array(
+    protected $_options = array(
         'left' => 'col-sm-2',
         'right' => 'col-sm-10',
         'offset' => 'col-sm-offset-2',
@@ -78,7 +78,7 @@ class Twbs3Form extends Form
         $wrapperAttr = $options['wrapper_attr'] ?? array();
         $default = array('class' => 'radio');
 
-        return $this->html->tag('div', $wrapperAttr + $default, true, parent::inputRadio($field, $value, $attr, $options));
+        return $this->_html->tag('div', $wrapperAttr + $default, true, parent::inputRadio($field, $value, $attr, $options));
     }
 
     /**
@@ -89,7 +89,7 @@ class Twbs3Form extends Form
         $wrapperAttr = $options['wrapper_attr'] ?? array();
         $default = array('class' => 'checkbox');
 
-        return $this->html->tag('div', $wrapperAttr + $default, true, parent::inputCheckbox($field, $value, $attr, $options));
+        return $this->_html->tag('div', $wrapperAttr + $default, true, parent::inputCheckbox($field, $value, $attr, $options));
     }
 
     /**
@@ -101,7 +101,7 @@ class Twbs3Form extends Form
             return $input.PHP_EOL;
         }
 
-        $rightOffset = $this->options['offset'].' '.$this->options['right'];
+        $rightOffset = $this->_options['offset'].' '.$this->_options['right'];
 
         if ('buttons' === $type) {
             return
@@ -112,13 +112,13 @@ class Twbs3Form extends Form
         }
 
         $errorAttr = array('class' => 'help-block');
-        $errors = isset($this->errors[$name]) ? $this->html->tag('span', $errorAttr, true, implode(', ', $this->errors[$name])) : '';
+        $errors = isset($this->_errors[$name]) ? $this->_html->tag('span', $errorAttr, true, implode(', ', $this->_errors[$name])) : '';
         $wrapperClass = 'form-group';
 
-        if ($this->submitted && isset($this->fields[$name]['options']['constraints'])) {
-            if (($this->options['mark'] & self::MARK_SUCCESS) && !$errors) {
+        if ($this->_submitted && isset($this->_fields[$name]['options']['constraints'])) {
+            if (($this->_options['mark'] & self::MARK_SUCCESS) && !$errors) {
                 $wrapperClass .= ' has-success';
-            } elseif (($this->options['mark'] & self::MARK_ERROR) && $errors) {
+            } elseif (($this->_options['mark'] & self::MARK_ERROR) && $errors) {
                 $wrapperClass .= ' has-error';
             }
         }
@@ -130,13 +130,13 @@ class Twbs3Form extends Form
                 '</div></div>'.PHP_EOL;
         }
 
-        $labelAttr = $options['label_attr'] + array('class' => 'control-label '.$this->options['left']);
-        $label = $this->html->tag('label', $labelAttr, true, $options['label']);
+        $labelAttr = $options['label_attr'] + array('class' => 'control-label '.$this->_options['left']);
+        $label = $this->_html->tag('label', $labelAttr, true, $options['label']);
 
         return
             '<div class="'.$wrapperClass.'">'.
             $label.
-            '<div class="'.$this->options['right'].'">'.
+            '<div class="'.$this->_options['right'].'">'.
             $input.$errors.
             '</div>'.
             '</div>'.PHP_EOL;
