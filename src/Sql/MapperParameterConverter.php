@@ -83,6 +83,20 @@ final class MapperParameterConverter
     }
 
     /**
+     * Create instance.
+     *
+     * @param Fw    $fw
+     * @param mixed $handler
+     * @param array $params
+     *
+     * @return MapperParameterConverter
+     */
+    public static function create(Fw $fw, $handler, array $params): MapperParameterConverter
+    {
+        return new self($fw, $handler, $params);
+    }
+
+    /**
      * Resolve parameters.
      *
      * @return array

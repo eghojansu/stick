@@ -39,6 +39,11 @@ class MapperParameterConverterTest extends TestCase
         $this->converter = new MapperParameterConverter($this->fw, $handler, $params);
     }
 
+    public function testCreate()
+    {
+        $this->assertInstanceOf('Fal\\Stick\\Sql\\MapperParameterConverter', MapperParameterConverter::create(new Fw(), function () {}, array()));
+    }
+
     /**
      * @dataProvider getArgs
      */
