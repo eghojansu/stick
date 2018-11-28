@@ -623,10 +623,13 @@ class Crud
     {
         $keyword = $this->_data['keyword'];
         $filters = $this->_options['filters'];
+        $search = &$filters[];
 
-        foreach ($keyword ? $this->_fw->split($this->_options['searchable']) : array() as $field) {
-            $filters[$field] = '~' === substr($field, -1) ? '%'.$keyword.'%' : $keyword;
+        foreach ($keyword ? $this->_fw->split($this->_options['searchable'], ',') : array() as $field) {
+            $search[$field] = '~' === substr($field, -1) ? '%'.$keyword.'%' : $keyword;
         }
+
+        unset($search);
 
         return $filters;
     }

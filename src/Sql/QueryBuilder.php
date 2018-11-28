@@ -418,7 +418,7 @@ final class QueryBuilder
                     // raw
                     $str .= ' '.$value;
                 } elseif ($filter !== $value && $cfilter = $this->filter((array) $value, $result + $mLookup)) {
-                    $str .= ' AND ('.array_shift($cfilter).')';
+                    $str .= ($str ? ' AND' : '').' ('.array_shift($cfilter).')';
                     $result = array_merge($result, $cfilter);
                 }
 
