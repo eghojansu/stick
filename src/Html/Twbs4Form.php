@@ -108,17 +108,15 @@ class Twbs4Form extends Twbs3Form
         $attr['type'] = 'radio';
 
         $add = array();
-        $raw = $this->_fw->pick('value', $attr) ?? $this->rawValue($field);
+        $value = $this->_fw->pick('value', $attr);
 
         if (!array_key_exists('checked', $attr)) {
-            $add['checked'] = false;
+            $submitted = $this->fieldValue($field);
 
-            if ($this->_submitted) {
-                $add['checked'] = $raw ? $raw == $value : 'on' === $value;
-            }
+            $add['checked'] = null === $value ? 'on' === $submitted : $submitted == $value;
         }
 
-        $radio = $this->inputInput($field, $raw, $attr + $add, $options);
+        $radio = $this->inputInput($field, $value, $attr + $add, $options);
         $label = $this->_html->tag('label', $labelAttr, true, $options['label']);
 
         return $this->_html->tag('div', $wrapperAttr + $wrapperDefault, true, $radio.$label);
@@ -136,17 +134,15 @@ class Twbs4Form extends Twbs3Form
         $attr['type'] = 'checkbox';
 
         $add = array();
-        $raw = $this->_fw->pick('value', $attr) ?? $this->rawValue($field);
+        $value = $this->_fw->pick('value', $attr);
 
         if (!array_key_exists('checked', $attr)) {
-            $add['checked'] = false;
+            $submitted = $this->fieldValue($field);
 
-            if ($this->_submitted) {
-                $add['checked'] = $raw ? $raw == $value : 'on' === $value;
-            }
+            $add['checked'] = null === $value ? 'on' === $submitted : $submitted == $value;
         }
 
-        $checkbox = $this->inputInput($field, $raw, $attr + $add, $options);
+        $checkbox = $this->inputInput($field, $value, $attr + $add, $options);
         $label = $this->_html->tag('label', $labelAttr, true, $options['label']);
 
         return $this->_html->tag('div', $wrapperAttr + $wrapperDefault, true, $checkbox.$label);

@@ -680,18 +680,16 @@ class Form
     protected function inputCheckbox(string $field, $value, array $attr, array $options): string
     {
         $add = array();
-        $raw = $this->_fw->pick('value', $attr) ?? $this->rawValue($field);
         $attr['type'] = 'checkbox';
+        $value = $this->_fw->pick('value', $attr);
 
         if (!array_key_exists('checked', $attr)) {
-            $add['checked'] = false;
+            $submitted = $this->fieldValue($field);
 
-            if ($this->_submitted) {
-                $add['checked'] = $raw ? $raw == $value : 'on' === $value;
-            }
+            $add['checked'] = null === $value ? 'on' === $submitted : $submitted == $value;
         }
 
-        $input = $this->inputInput($field, $raw, $attr + $add, $options);
+        $input = $this->inputInput($field, $value, $attr + $add, $options);
 
         return $this->_html->tag('label', null, true, $input.' '.$options['label']);
     }
@@ -709,18 +707,16 @@ class Form
     protected function inputRadio(string $field, $value, array $attr, array $options): string
     {
         $add = array();
-        $raw = $this->_fw->pick('value', $attr) ?? $this->rawValue($field);
         $attr['type'] = 'radio';
+        $value = $this->_fw->pick('value', $attr);
 
         if (!array_key_exists('checked', $attr)) {
-            $add['checked'] = false;
+            $submitted = $this->fieldValue($field);
 
-            if ($this->_submitted) {
-                $add['checked'] = $raw ? $raw == $value : 'on' === $value;
-            }
+            $add['checked'] = null === $value ? 'on' === $submitted : $submitted == $value;
         }
 
-        $input = $this->inputInput($field, $raw, $attr + $add, $options);
+        $input = $this->inputInput($field, $value, $attr + $add, $options);
 
         return $this->_html->tag('label', null, true, $input.' '.$options['label']);
     }

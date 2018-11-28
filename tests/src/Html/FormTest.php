@@ -468,8 +468,8 @@ class FormTest extends TestCase
 <input type="hidden" name="form[hidden]" id="form_hidden" value="hidden">
 <div><label for="form_text">Text</label> <span><input type="text" name="form[text]" id="form_text" placeholder="Text" value="text"></span></div>
 <div><label for="form_password">Password</label> <span><input type="password" name="form[password]" id="form_password" placeholder="Password"></span></div>
-<div><label><input type="checkbox" name="form[checkbox]" id="form_checkbox" value="checkbox"> Checkbox</label></div>
-<div><label><input type="radio" name="form[radio]" id="form_radio" value="radio"> Radio</label></div>
+<div><label><input type="checkbox" name="form[checkbox]" id="form_checkbox"> Checkbox</label></div>
+<div><label><input type="radio" name="form[radio]" id="form_radio"> Radio</label></div>
 <div><label for="form_textarea">Textarea</label> <span><textarea name="form[textarea]" id="form_textarea" placeholder="Textarea">textarea</textarea></span></div>
 <div><label for="form_choice">Choice</label> <span><select name="form[choice]" id="form_choice"><option value="1" selected>One</option><option value="2">Two</option></select></span></div>
 <div><label for="form_choice2">Choice2</label> <span><div><label><input name="form[choice2]" id="form_choice2_0" value="3" checked type="radio"> Three</label><label><input name="form[choice2]" id="form_choice2_1" value="4" type="radio"> Four</label></div></span></div>
@@ -498,8 +498,8 @@ class FormTest extends TestCase
 <input type="hidden" name="form[hidden]" id="form_hidden" value="not hidden">
 <div><label for="form_text">Text</label> <span><input type="text" name="form[text]" id="form_text" placeholder="Text" value="text update"></span></div>
 <div><label for="form_password">Password</label> <span><input type="password" name="form[password]" id="form_password" placeholder="Password"></span></div>
-<div><label><input type="checkbox" name="form[checkbox]" id="form_checkbox" checked value="checkbox"> Checkbox</label></div>
-<div><label><input type="radio" name="form[radio]" id="form_radio" checked value="radio"> Radio</label></div>
+<div><label><input type="checkbox" name="form[checkbox]" id="form_checkbox" checked> Checkbox</label></div>
+<div><label><input type="radio" name="form[radio]" id="form_radio" checked> Radio</label></div>
 <div><label for="form_textarea">Textarea</label> <span><textarea name="form[textarea]" id="form_textarea" placeholder="Textarea">textarea</textarea></span></div>
 <div><label for="form_choice">Choice</label> <span><select name="form[choice]" id="form_choice"><option value="1" selected>One</option><option value="2">Two</option></select></span></div>
 <div><label for="form_choice2">Choice2</label> <span><div><label><input name="form[choice2]" id="form_choice2_0" value="3" checked type="radio"> Three</label><label><input name="form[choice2]" id="form_choice2_1" value="4" type="radio"> Four</label></div></span></div>
@@ -513,8 +513,8 @@ class FormTest extends TestCase
                     'hidden' => 'not hidden',
                     'password' => 'password',
                     'text' => 'text update',
-                    'checkbox' => 'checkbox',
-                    'radio' => 'radio',
+                    'checkbox' => 'on',
+                    'radio' => 'on',
                     'textarea' => 'textarea',
                     'choice' => 1,
                     'choice2' => 3,
