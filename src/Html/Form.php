@@ -435,12 +435,12 @@ class Form
         }
 
         list($rules, $messages) = $this->findRules();
-        $result = $this->_validator->validate($this->_normalizedData, $rules, $messages);
+        $result = $this->_validator->validate($this->_normalizedData ?? array(), $rules, $messages);
 
         $no_validation_keys = array_diff(array_keys($this->_fields), array_keys($rules));
-        $no_validation_data = array_intersect_key((array) $this->_normalizedData, array_flip($no_validation_keys));
+        $no_validation_data = array_intersect_key($this->_normalizedData ?? array(), array_flip($no_validation_keys));
 
-        $this->_validatedData = $result['data'] + $no_validation_data + (array) $this->_formData;
+        $this->_validatedData = $result['data'] + $no_validation_data + ($this->_formData ?? array());
         $this->_errors = $result['errors'];
 
         return $result['success'];
@@ -905,12 +905,14 @@ class Form
      */
     protected function transformData(): void
     {
-        foreach ($this->_data ?? array() as $field => $value) {
-            if (is_callable($cb = $this->_fields[$field]['options']['transformer'] ?? null)) {
-                $value = $this->_fw->call($cb, array($value));
+        foreach ($this->_fields as $name => $field) {
+            $value = $this->_data[$name] ?? null;
+
+            if (is_callable($field['options']['transformer'])) {
+                $value = $this->_fw->call($field['options']['transformer'], array($value));
             }
 
-            $this->_formData[$field] = $value;
+            $this->_formData[$name] = $value;
         }
     }
 
@@ -919,12 +921,14 @@ class Form
      */
     protected function reverseTransformData(): void
     {
-        foreach ($this->_submittedData ?? array() as $field => $value) {
-            if (is_callable($cb = $this->_fields[$field]['options']['reverse_transformer'] ?? null)) {
-                $value = $this->_fw->call($cb, array($value));
+        foreach ($this->_fields as $name => $field) {
+            $value = $this->_submittedData[$name] ?? null;
+
+            if (is_callable($field['options']['reverse_transformer'])) {
+                $value = $this->_fw->call($field['options']['reverse_transformer'], array($value));
             }
 
-            $this->_normalizedData[$field] = $value;
+            $this->_normalizedData[$name] = $value;
         }
     }
 

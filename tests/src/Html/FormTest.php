@@ -367,6 +367,9 @@ class FormTest extends TestCase
                 array(
                     array('foo'),
                 ),
+                null,
+                null,
+                array('foo' => null),
             ),
             array(
                 false,
