@@ -54,10 +54,24 @@ class AuthTest extends TestCase
     public function testGetOptions()
     {
         $this->assertEquals(array(
-            'redirect' => '/',
-            'login' => '/login',
-            'logout' => null,
-            'excludes' => null,
+            'excludes' => array(),
+            'logout' => array(),
+            'rules' => array(),
+            'roleHierarchy' => array(),
+            'lifetime' => 1541932314,
+        ), $this->auth->getOptions());
+    }
+
+    public function testSetOptions()
+    {
+        $this->auth->setOptions(array(
+            'excludes' => '/foo',
+            'lifetime' => null,
+        ));
+
+        $this->assertEquals(array(
+            'excludes' => array('/foo'),
+            'logout' => array(),
             'rules' => array(),
             'roleHierarchy' => array(),
             'lifetime' => 1541932314,
@@ -120,6 +134,16 @@ class AuthTest extends TestCase
         $this->assertSame($user, $this->auth->setUser($user)->getUser());
     }
 
+    public function testGetUserRoles()
+    {
+        $this->assertEquals(array('IS_AUTHENTICATED_ANONYMOUSLY'), $this->auth->getUserRoles());
+        $this->auth->logout();
+
+        $expected = array('IS_AUTHENTICATED_ANONYMOUSLY', 'foo');
+        $this->auth->setUser($this->createUser('foo'));
+        $this->assertEquals($expected, $this->auth->getUserRoles());
+    }
+
     public function testLogin()
     {
         $user = $this->createUser();
@@ -138,6 +162,7 @@ class AuthTest extends TestCase
         $user = $this->createUser();
         $user = $this->auth->login($user)->getUser();
         $this->assertEquals($user->getId(), $this->fw['SESSION']['user_login_id']);
+
         $this->auth->logout();
         $this->assertFalse(isset($this->fw['SESSION']['user_login_id']));
     }
@@ -177,14 +202,38 @@ class AuthTest extends TestCase
             ),
         ));
         $this->auth->setUser($user);
-        $mRoles = $roles ? explode('|', $roles) : array();
 
-        $this->assertEquals($expected, $this->auth->isGranted(...$mRoles));
+        $this->assertEquals($expected, $this->auth->isGranted($roles));
     }
 
     public function testIsGrantedAnon()
     {
         $this->assertTrue($this->auth->isGranted('IS_AUTHENTICATED_ANONYMOUSLY'));
+    }
+
+    public function testIsGrantedEvent()
+    {
+        $this->fw->on('auth.vote', function () {
+            return false;
+        });
+
+        $this->assertFalse($this->auth->isGranted('IS_AUTHENTICATED_ANONYMOUSLY'));
+    }
+
+    /**
+     * @expectedException \Fal\Stick\HttpException
+     * @expectedExceptionMessage Access denied.
+     */
+    public function testDenyAccessUnlessGranted()
+    {
+        $this->auth->denyAccessUnlessGranted('foo');
+    }
+
+    public function testDenyAccessUnlessGrantedTrue()
+    {
+        $this->auth->denyAccessUnlessGranted('IS_AUTHENTICATED_ANONYMOUSLY');
+
+        $this->assertTrue(true);
     }
 
     /**
@@ -204,11 +253,14 @@ class AuthTest extends TestCase
 
         $this->auth(array(
             'rules' => array(
-                '/admin-area' => 'ROLE_ADMIN',
-                '/login' => 'ROLE_ANONYMOUS',
+                '/admin-area' => array(
+                    'roles' => 'ROLE_ADMIN',
+                    'home' => '/admin-area',
+                ),
             ),
-            'logout' => '/logout',
-            'redirect' => '/admin-area',
+            'logout' => array(
+                '/logout' => '/login',
+            ),
             'excludes' => '/exclude',
         ));
         $this->auth->setUser($user);
@@ -258,7 +310,7 @@ class AuthTest extends TestCase
             // Not login yet, access login page
             array('/login', null, null, false),
             // Has been login, access logout
-            array('/logout', $admin, 'Admin Area', true),
+            array('/logout', $admin, 'Login', true),
             // Access excluded path
             array('/exclude', null, null, false),
         );

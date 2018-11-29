@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Fal\Stick\Security;
 
 use Fal\Stick\Fw;
+use Fal\Stick\HttpException;
 
 /**
  * Authentication helper.
@@ -32,6 +33,7 @@ class Auth
     const EVENT_LOGIN = 'auth.login';
     const EVENT_LOGOUT = 'auth.logout';
     const EVENT_LOAD_USER = 'auth.load_user';
+    const EVENT_VOTE = 'auth.vote';
 
     /**
      * @var Fw
@@ -51,7 +53,13 @@ class Auth
     /**
      * @var array
      */
-    protected $options;
+    protected $options = array(
+        'excludes' => array(),
+        'logout' => array(),
+        'rules' => array(),
+        'roleHierarchy' => array(),
+        'lifetime' => 1541932314, /* 1 week */
+    );
 
     /**
      * @var UserInterface
@@ -62,6 +70,11 @@ class Auth
      * @var bool
      */
     protected $userLoaded;
+
+    /**
+     * @var array
+     */
+    protected $userRoles;
 
     /**
      * @var array
@@ -81,15 +94,87 @@ class Auth
         $this->fw = $fw;
         $this->provider = $provider;
         $this->encoder = $encoder;
-        $this->options = ((array) $options) + array(
-            'redirect' => '/',
-            'login' => '/login',
-            'logout' => null,
-            'excludes' => null,
-            'rules' => array(),
-            'roleHierarchy' => array(),
-            'lifetime' => 1541932314, /* 1 week */
-        );
+        $this->setOptions($options ?? array());
+    }
+
+    /**
+     * Do guard.
+     *
+     * Return true if request has been redirected.
+     *
+     * @return bool
+     */
+    public function guard(): bool
+    {
+        $path = $this->fw['PATH'];
+
+        if (in_array($path, $this->options['excludes'])) {
+            return false;
+        }
+
+        if (isset($this->options['logout'][$path])) {
+            $this->logout();
+            $this->fw->reroute($this->options['logout'][$path]);
+
+            return true;
+        }
+
+        foreach ($this->options['rules'] as $check => $rule) {
+            $login = $rule['login'] ?? '/login';
+            $home = $rule['home'] ?? '/';
+            $roles = $rule['roles'] ?? null;
+
+            if ($login === $path) {
+                if ($this->isLogged()) {
+                    $this->fw->reroute($home);
+
+                    return true;
+                }
+
+                return false;
+            }
+
+            if (preg_match('#'.$check.'#', $path) && !$this->isGranted($roles)) {
+                $this->fw->reroute($login);
+
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Throw exception if not granted.
+     *
+     * @param mixed $roles
+     * @param mixed $data
+     */
+    public function denyAccessUnlessGranted($roles, $data = null): void
+    {
+        if (!$this->isGranted($roles, $data)) {
+            throw new HttpException('Access denied.', 403);
+        }
+    }
+
+    /**
+     * Returns true if user has roles.
+     *
+     * @param mixed $roles
+     * @param mixed $data
+     *
+     * @return bool
+     */
+    public function isGranted($roles, $data = null): bool
+    {
+        $attributes = $this->getUserRoles();
+        $granted = (bool) array_intersect($this->fw->split($roles), $attributes);
+
+        if ($granted && false === $this->fw->trigger(self::EVENT_VOTE, array($data, $attributes))) {
+            return false;
+        }
+
+        return $granted;
     }
 
     /**
@@ -153,8 +238,10 @@ class Auth
         $this->fw->trigger(self::EVENT_LOGOUT, array($user));
 
         $this->userLoaded = false;
+        $this->userRoles = null;
         $this->user = null;
-        unset($this->fw['SESSION'][self::SESSION_KEY], $this->fw['COOKIE'][self::SESSION_KEY], $this->extraRoles);
+        $this->extraRoles = null;
+        unset($this->fw['SESSION'][self::SESSION_KEY], $this->fw['COOKIE'][self::SESSION_KEY]);
 
         return $this;
     }
@@ -172,13 +259,16 @@ class Auth
 
         if (($user = $this->fw->trigger(self::EVENT_LOAD_USER)) && $user instanceof UserInterface) {
             $this->user = $user;
+            $this->userRoles = null;
         }
 
         if ($userId = $this->getCookieUserId()) {
             $this->user = $this->provider->findById($userId);
+            $this->userRoles = null;
             $this->extraRoles[] = 'IS_AUTHENTICATED_REMEMBERED';
         } elseif ($userId = $this->getSessionUserId()) {
             $this->user = $this->provider->findById($userId);
+            $this->userRoles = null;
             $this->extraRoles[] = 'IS_AUTHENTICATED_FULLY';
         }
 
@@ -199,6 +289,29 @@ class Auth
         $this->user = $user;
 
         return $this;
+    }
+
+    /**
+     * Returns user roles.
+     *
+     * @return array
+     */
+    public function getUserRoles(): array
+    {
+        if (null === $this->userRoles) {
+            $this->userRoles = $this->extraRoles;
+            $this->userRoles[] = 'IS_AUTHENTICATED_ANONYMOUSLY';
+
+            if ($user = $this->getUser()) {
+                foreach ($user->getRoles() as $role) {
+                    if ($role) {
+                        array_push($this->userRoles, ...$this->getRoleHierarchy($role));
+                    }
+                }
+            }
+        }
+
+        return $this->userRoles;
     }
 
     /**
@@ -244,74 +357,25 @@ class Auth
     }
 
     /**
-     * Do guard.
+     * Sets options.
      *
-     * Return true if request has been redirected.
+     * @param array $options
      *
-     * @return bool
+     * @return Auth
      */
-    public function guard(): bool
+    public function setOptions(array $options): Auth
     {
-        $path = $this->fw['PATH'];
-
-        if (in_array($path, (array) $this->options['excludes'])) {
-            return false;
-        }
-
-        if ($this->options['logout'] === $path) {
-            $this->logout();
-            $this->fw->reroute($this->options['redirect']);
-
-            return true;
-        }
-
-        if ($this->options['login'] === $path) {
-            if ($this->isLogged()) {
-                $this->fw->reroute($this->options['redirect']);
-
-                return true;
+        foreach ($options as $option => $value) {
+            if (in_array($option, array('excludes', 'logout', 'roleHierarchy', 'rules')) && !is_array($value)) {
+                $value = (array) $value;
+            } elseif ('lifetime' === $option && !is_int($value)) {
+                $value = $this->options[$option];
             }
 
-            return false;
+            $this->options[$option] = $value;
         }
 
-        foreach ($this->options['rules'] as $check => $roles) {
-            if (preg_match('#'.$check.'#', $path) && !$this->isGranted(...((array) $roles))) {
-                $this->fw->reroute($this->options['login']);
-
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /**
-     * Returns true if user has checked roles.
-     *
-     * @param string ...$checkRoles
-     *
-     * @return bool
-     */
-    public function isGranted(string ...$checkRoles): bool
-    {
-        $user = $this->getUser();
-        $userRoles = $user ? $user->getRoles() : array();
-        $mCheckRoles = $checkRoles;
-
-        if (array_intersect($mCheckRoles, $userRoles)) {
-            return true;
-        }
-
-        $roles = array();
-
-        foreach ($userRoles as $role) {
-            $roles = array_merge($roles, $this->getRoleHierarchy($role));
-        }
-
-        $roles = array_merge($roles, (array) $this->extraRoles, array('IS_AUTHENTICATED_ANONYMOUSLY'));
-
-        return (bool) array_intersect($mCheckRoles, $roles);
+        return $this;
     }
 
     /**
@@ -346,7 +410,7 @@ class Auth
         $roles = array($role);
 
         if (array_key_exists($role, $this->options['roleHierarchy'])) {
-            $children = (array) $this->options['roleHierarchy'][$role];
+            $children = $this->fw->split($this->options['roleHierarchy'][$role]);
 
             foreach ($children as $child) {
                 $roles = array_merge($roles, $this->getRoleHierarchy($child));
