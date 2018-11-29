@@ -1002,7 +1002,7 @@ final class Fw implements \ArrayAccess
     {
         $engine = $this->hive['CACHE'];
 
-        if (null === $engine) {
+        if (!$engine) {
             $engine = 'Fal\\Stick\\NoCache';
 
             if ($this->hive['CACHE_DRY']) {
