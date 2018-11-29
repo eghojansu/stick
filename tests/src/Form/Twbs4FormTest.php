@@ -11,11 +11,11 @@
 
 declare(strict_types=1);
 
-namespace Fal\Stick\Test\Html;
+namespace Fal\Stick\Test\Form;
 
 use Fal\Stick\Fw;
-use Fal\Stick\Html\Html;
-use Fal\Stick\Html\Twbs4Form;
+use Fal\Stick\Util\Html;
+use Fal\Stick\Form\Twbs4Form;
 use Fal\Stick\Validation\CommonValidator;
 use Fal\Stick\Validation\Validator;
 use PHPUnit\Framework\TestCase;

@@ -436,7 +436,7 @@ class CrudTest extends TestCase
             ->render()
         ;
 
-        $this->assertInstanceOf('Fal\\Stick\\Html\\Form', $this->crud->get('form'));
+        $this->assertInstanceOf('Fal\\Stick\\Form\\Form', $this->crud->get('form'));
         $this->resetCrud();
 
         $this->crud->form($this->fw->instance('Fixture\\Form\\FUserForm'))->render();

@@ -14,7 +14,7 @@ declare(strict_types=1);
 namespace Fal\Stick\Util;
 
 use Fal\Stick\Fw;
-use Fal\Stick\Html\Form;
+use Fal\Stick\Form\Form;
 use Fal\Stick\HttpException;
 use Fal\Stick\Security\Auth;
 use Fal\Stick\Sql\Mapper;

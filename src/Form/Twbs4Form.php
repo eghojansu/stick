@@ -11,7 +11,7 @@
 
 declare(strict_types=1);
 
-namespace Fal\Stick\Html;
+namespace Fal\Stick\Form;
 
 /**
  * Twitter bootstrap 4 form.

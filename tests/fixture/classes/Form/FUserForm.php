@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Fixture\Form;
 
-use Fal\Stick\Html\Form;
+use Fal\Stick\Form\Form;
 
 class FUserForm extends Form
 {

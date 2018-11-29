@@ -11,10 +11,10 @@
 
 declare(strict_types=1);
 
-namespace Fal\Stick\Test\Html;
+namespace Fal\Stick\Test\Util;
 
 use Fal\Stick\Fw;
-use Fal\Stick\Html\Html;
+use Fal\Stick\Util\Html;
 use PHPUnit\Framework\TestCase;
 
 class HtmlTest extends TestCase

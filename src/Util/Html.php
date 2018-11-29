@@ -11,7 +11,7 @@
 
 declare(strict_types=1);
 
-namespace Fal\Stick\Html;
+namespace Fal\Stick\Util;
 
 use Fal\Stick\Fw;
 

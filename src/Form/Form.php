@@ -11,9 +11,10 @@
 
 declare(strict_types=1);
 
-namespace Fal\Stick\Html;
+namespace Fal\Stick\Form;
 
 use Fal\Stick\Fw;
+use Fal\Stick\Util\Html;
 use Fal\Stick\Validation\Validator;
 
 /**
