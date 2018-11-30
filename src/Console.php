@@ -551,7 +551,8 @@ class Console
                 "[app/template/**/*.php]\n".
                 "indent_size = 2\n".
                 'insert_final_newline = false',
-            '.gitignore' => "/node_modules/\n".
+            '.gitignore' => "/coverage-*\n".
+                "/node_modules/\n".
                 "/xdev/\n".
                 "/var/\n".
                 "/vendor/\n".
