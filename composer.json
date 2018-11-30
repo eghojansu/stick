@@ -30,9 +30,10 @@
         "phpunit/phpunit": "^7.4"
     },
     "suggest": {
-        "ext-gd": "Image manipulation",
-        "ext-pdo": "Mapper helper",
-        "ext-zip": "Zip helper"
+        "ext-gd": "To use image manipulation helper",
+        "ext-pdo": "To use sql mapper",
+        "ext-zip": "To use zip helper",
+        "phpunit/phpunit": "To use functional-test response helper"
     },
     "bin": [
         "stick"
