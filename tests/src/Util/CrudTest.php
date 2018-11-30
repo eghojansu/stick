@@ -45,7 +45,7 @@ class CrudTest extends TestCase
                 ),
             ))
         ;
-        $this->crud = new Crud($this->fw, new Template($this->fw, FIXTURE.'files/template/'));
+        $this->crud = new Crud($this->fw, new Template($this->fw, FIXTURE.'template/'));
     }
 
     public function testExists()
@@ -316,7 +316,7 @@ class CrudTest extends TestCase
             ->mapper('user')
         ;
 
-        $this->assertEquals(file_get_contents(FIXTURE.'files/template/crud/listing_search.html'), $this->crud->render());
+        $this->assertEquals(file_get_contents(FIXTURE.'template/crud/listing_search.html'), $this->crud->render());
     }
 
     /**
@@ -403,7 +403,7 @@ class CrudTest extends TestCase
             ->mapper('user')
         ;
 
-        $this->assertEquals(file_get_contents(FIXTURE.'files/template/crud/view_id_username.html'), $this->crud->render());
+        $this->assertEquals(file_get_contents(FIXTURE.'template/crud/view_id_username.html'), $this->crud->render());
     }
 
     public function testLoadMapper()
@@ -478,11 +478,11 @@ class CrudTest extends TestCase
     public function getCruds()
     {
         return array(
-            array('index', file_get_contents(FIXTURE.'files/template/crud/listing.html')),
-            array('view/1', file_get_contents(FIXTURE.'files/template/crud/view.html')),
-            array('create', file_get_contents(FIXTURE.'files/template/crud/create.html')),
-            array('update/1', file_get_contents(FIXTURE.'files/template/crud/update.html')),
-            array('delete/1', file_get_contents(FIXTURE.'files/template/crud/delete.html')),
+            array('index', file_get_contents(FIXTURE.'template/crud/listing.html')),
+            array('view/1', file_get_contents(FIXTURE.'template/crud/view.html')),
+            array('create', file_get_contents(FIXTURE.'template/crud/create.html')),
+            array('update/1', file_get_contents(FIXTURE.'template/crud/update.html')),
+            array('delete/1', file_get_contents(FIXTURE.'template/crud/delete.html')),
         );
     }
 

@@ -23,29 +23,29 @@ class TemplateTest extends TestCase
 
     public function setUp()
     {
-        $this->template = new Template(new Fw(), FIXTURE.'files/template/', array(
+        $this->template = new Template(new Fw(), FIXTURE.'template/', array(
             'profile' => true,
         ));
     }
 
     public function testGetPaths()
     {
-        $this->assertEquals(array(FIXTURE.'files/template/'), $this->template->getPaths());
+        $this->assertEquals(array(FIXTURE.'template/'), $this->template->getPaths());
     }
 
     public function testAddPath()
     {
-        $this->assertEquals(array(FIXTURE.'files/template/', 'foo'), $this->template->addPath('foo')->getPaths());
+        $this->assertEquals(array(FIXTURE.'template/', 'foo'), $this->template->addPath('foo')->getPaths());
     }
 
     public function testPrependPath()
     {
-        $this->assertEquals(array('foo', FIXTURE.'files/template/'), $this->template->prependPath('foo')->getPaths());
+        $this->assertEquals(array('foo', FIXTURE.'template/'), $this->template->prependPath('foo')->getPaths());
     }
 
     public function testFind()
     {
-        $this->assertEquals(FIXTURE.'files/template/layout.php', $this->template->find('layout'));
+        $this->assertEquals(FIXTURE.'template/layout.php', $this->template->find('layout'));
     }
 
     /**
@@ -105,7 +105,7 @@ class TemplateTest extends TestCase
     public function testRender($name, $context = null)
     {
         $actual = $this->template->render($name, $context);
-        $expected = file_get_contents(FIXTURE.'files/template/'.$name.'.html');
+        $expected = file_get_contents(FIXTURE.'template/'.$name.'.html');
 
         $this->assertEquals($expected, $actual);
     }

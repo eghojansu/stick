@@ -30,9 +30,9 @@ class ImageTest extends TestCase
 
     public function testPixelCompare()
     {
-        $img = file_get_contents(FIXTURE.'files/images/original.png');
-        $imgFlip = file_get_contents(FIXTURE.'files/images/hflip.png');
-        $imgResize = file_get_contents(FIXTURE.'files/images/resize-50-40.png');
+        $img = file_get_contents(FIXTURE.'images/original.png');
+        $imgFlip = file_get_contents(FIXTURE.'images/hflip.png');
+        $imgResize = file_get_contents(FIXTURE.'images/resize-50-40.png');
 
         $this->assertEquals(0.0, Image::pixelCompare($img, $img));
         $this->assertEquals(100.0, Image::pixelCompare($img, $imgResize));
@@ -70,12 +70,12 @@ class ImageTest extends TestCase
 
     public function testLoad()
     {
-        $this->assertNotNull($this->image->load(file_get_contents(FIXTURE.'files/images/original.png'))->getData());
+        $this->assertNotNull($this->image->load(file_get_contents(FIXTURE.'images/original.png'))->getData());
     }
 
     public function testLoadFile()
     {
-        $this->assertNotNull($this->image->loadFile(FIXTURE.'files/images/original.png')->getData());
+        $this->assertNotNull($this->image->loadFile(FIXTURE.'images/original.png')->getData());
     }
 
     /**
@@ -84,12 +84,12 @@ class ImageTest extends TestCase
      */
     public function testLoadFileException()
     {
-        $this->image->loadFile(FIXTURE.'files/images/none.png');
+        $this->image->loadFile(FIXTURE.'images/none.png');
     }
 
     public function testDestroy()
     {
-        $this->image->loadFile(FIXTURE.'files/images/original.png');
+        $this->image->loadFile(FIXTURE.'images/original.png');
         $this->image = null;
 
         $this->assertNull($this->image);
@@ -114,16 +114,16 @@ class ImageTest extends TestCase
 
     public function testBase64()
     {
-        $this->image->loadFile(FIXTURE.'files/images/original.png');
+        $this->image->loadFile(FIXTURE.'images/original.png');
 
         $this->assertStringStartsWith('data:image/', $this->image->base64());
     }
 
     public function testDump()
     {
-        $this->image->loadFile(FIXTURE.'files/images/original.png');
+        $this->image->loadFile(FIXTURE.'images/original.png');
         $imgA = $this->image->dump();
-        $imgB = file_get_contents(FIXTURE.'files/images/original.png');
+        $imgB = file_get_contents(FIXTURE.'images/original.png');
 
         $this->assertEquals(0.0, Image::pixelCompare($imgA, $imgB));
     }
@@ -143,7 +143,7 @@ class ImageTest extends TestCase
      */
     public function testDumpException2()
     {
-        $this->image->loadFile(FIXTURE.'files/images/original.png');
+        $this->image->loadFile(FIXTURE.'images/original.png');
 
         $this->image->dump('foo');
     }
@@ -152,7 +152,7 @@ class ImageTest extends TestCase
     {
         $this->fw['QUIET'] = true;
 
-        $this->image->loadFile(FIXTURE.'files/images/original.png');
+        $this->image->loadFile(FIXTURE.'images/original.png');
         $this->image->render();
 
         $expected = array(
@@ -167,7 +167,7 @@ class ImageTest extends TestCase
 
     public function testSave()
     {
-        $this->image->loadFile($original = FIXTURE.'files/images/original.png');
+        $this->image->loadFile($original = FIXTURE.'images/original.png');
         $saved = $this->image->save($file = TEMP.'image-test.png');
 
         $this->assertTrue($saved);
@@ -180,132 +180,132 @@ class ImageTest extends TestCase
      */
     public function testSaveException()
     {
-        $this->image->load(file_get_contents(FIXTURE.'files/images/original.png'));
+        $this->image->load(file_get_contents(FIXTURE.'images/original.png'));
         $this->image->save();
     }
 
     public function testWidth()
     {
-        $this->image->loadFile(FIXTURE.'files/images/original.png');
+        $this->image->loadFile(FIXTURE.'images/original.png');
 
         $this->assertEquals(80, $this->image->width());
     }
 
     public function testHeight()
     {
-        $this->image->loadFile(FIXTURE.'files/images/original.png');
+        $this->image->loadFile(FIXTURE.'images/original.png');
 
         $this->assertEquals(62, $this->image->height());
     }
 
     public function testInvert()
     {
-        $imgA = file_get_contents(FIXTURE.'files/images/invert.png');
-        $imgB = $this->image->loadFile(FIXTURE.'files/images/original.png')->invert()->dump();
+        $imgA = file_get_contents(FIXTURE.'images/invert.png');
+        $imgB = $this->image->loadFile(FIXTURE.'images/original.png')->invert()->dump();
 
         $this->assertEquals(0.0, Image::pixelCompare($imgA, $imgB));
     }
 
     public function testBrightness()
     {
-        $imgA = file_get_contents(FIXTURE.'files/images/brightness-100.png');
-        $imgB = $this->image->loadFile(FIXTURE.'files/images/original.png')->brightness(100)->dump();
+        $imgA = file_get_contents(FIXTURE.'images/brightness-100.png');
+        $imgB = $this->image->loadFile(FIXTURE.'images/original.png')->brightness(100)->dump();
 
         $this->assertEquals(0.0, Image::pixelCompare($imgA, $imgB));
     }
 
     public function testContrast()
     {
-        $imgA = file_get_contents(FIXTURE.'files/images/contrast-100.png');
-        $imgB = $this->image->loadFile(FIXTURE.'files/images/original.png')->contrast(100)->dump();
+        $imgA = file_get_contents(FIXTURE.'images/contrast-100.png');
+        $imgB = $this->image->loadFile(FIXTURE.'images/original.png')->contrast(100)->dump();
 
         $this->assertEquals(0.0, Image::pixelCompare($imgA, $imgB));
     }
 
     public function testGrayscale()
     {
-        $imgA = file_get_contents(FIXTURE.'files/images/grayscale.png');
-        $imgB = $this->image->loadFile(FIXTURE.'files/images/original.png')->grayscale()->dump();
+        $imgA = file_get_contents(FIXTURE.'images/grayscale.png');
+        $imgB = $this->image->loadFile(FIXTURE.'images/original.png')->grayscale()->dump();
 
         $this->assertEquals(0.0, Image::pixelCompare($imgA, $imgB));
     }
 
     public function testSmooth()
     {
-        $imgA = file_get_contents(FIXTURE.'files/images/smooth-50.png');
-        $imgB = $this->image->loadFile(FIXTURE.'files/images/original.png')->smooth(50)->dump();
+        $imgA = file_get_contents(FIXTURE.'images/smooth-50.png');
+        $imgB = $this->image->loadFile(FIXTURE.'images/original.png')->smooth(50)->dump();
 
         $this->assertEquals(0.0, Image::pixelCompare($imgA, $imgB));
     }
 
     public function testEmboss()
     {
-        $imgA = file_get_contents(FIXTURE.'files/images/emboss.png');
-        $imgB = $this->image->loadFile(FIXTURE.'files/images/original.png')->emboss()->dump();
+        $imgA = file_get_contents(FIXTURE.'images/emboss.png');
+        $imgB = $this->image->loadFile(FIXTURE.'images/original.png')->emboss()->dump();
 
         $this->assertEquals(0.0, Image::pixelCompare($imgA, $imgB));
     }
 
     public function testSepia()
     {
-        $imgA = file_get_contents(FIXTURE.'files/images/sepia.png');
-        $imgB = $this->image->loadFile(FIXTURE.'files/images/original.png')->sepia()->dump();
+        $imgA = file_get_contents(FIXTURE.'images/sepia.png');
+        $imgB = $this->image->loadFile(FIXTURE.'images/original.png')->sepia()->dump();
 
         $this->assertEquals(0.0, Image::pixelCompare($imgA, $imgB));
     }
 
     public function testPixelate()
     {
-        $imgA = file_get_contents(FIXTURE.'files/images/pixelate-10.png');
-        $imgB = $this->image->loadFile(FIXTURE.'files/images/original.png')->pixelate(10)->dump();
+        $imgA = file_get_contents(FIXTURE.'images/pixelate-10.png');
+        $imgB = $this->image->loadFile(FIXTURE.'images/original.png')->pixelate(10)->dump();
 
         $this->assertEquals(0.0, Image::pixelCompare($imgA, $imgB));
     }
 
     public function testBlur()
     {
-        $imgA = file_get_contents(FIXTURE.'files/images/blur.png');
-        $imgB = $this->image->loadFile(FIXTURE.'files/images/original.png')->blur()->dump();
+        $imgA = file_get_contents(FIXTURE.'images/blur.png');
+        $imgB = $this->image->loadFile(FIXTURE.'images/original.png')->blur()->dump();
 
         $this->assertEquals(0.0, Image::pixelCompare($imgA, $imgB));
     }
 
     public function testBlurSelective()
     {
-        $imgA = file_get_contents(FIXTURE.'files/images/blur-selective.png');
-        $imgB = $this->image->loadFile(FIXTURE.'files/images/original.png')->blur(true)->dump();
+        $imgA = file_get_contents(FIXTURE.'images/blur-selective.png');
+        $imgB = $this->image->loadFile(FIXTURE.'images/original.png')->blur(true)->dump();
 
         $this->assertEquals(0.0, Image::pixelCompare($imgA, $imgB));
     }
 
     public function testSketch()
     {
-        $imgA = file_get_contents(FIXTURE.'files/images/sketch.png');
-        $imgB = $this->image->loadFile(FIXTURE.'files/images/original.png')->sketch()->dump();
+        $imgA = file_get_contents(FIXTURE.'images/sketch.png');
+        $imgB = $this->image->loadFile(FIXTURE.'images/original.png')->sketch()->dump();
 
         $this->assertEquals(0.0, Image::pixelCompare($imgA, $imgB));
     }
 
     public function testHflip()
     {
-        $imgA = file_get_contents(FIXTURE.'files/images/hflip.png');
-        $imgB = $this->image->loadFile(FIXTURE.'files/images/original.png')->hflip()->dump();
+        $imgA = file_get_contents(FIXTURE.'images/hflip.png');
+        $imgB = $this->image->loadFile(FIXTURE.'images/original.png')->hflip()->dump();
 
         $this->assertEquals(0.0, Image::pixelCompare($imgA, $imgB));
     }
 
     public function testVflip()
     {
-        $imgA = file_get_contents(FIXTURE.'files/images/vflip.png');
-        $imgB = $this->image->loadFile(FIXTURE.'files/images/original.png')->vflip()->dump();
+        $imgA = file_get_contents(FIXTURE.'images/vflip.png');
+        $imgB = $this->image->loadFile(FIXTURE.'images/original.png')->vflip()->dump();
 
         $this->assertEquals(0.0, Image::pixelCompare($imgA, $imgB));
     }
 
     public function testCrop()
     {
-        $imgA = file_get_contents(FIXTURE.'files/images/crop-0-0-80-40.png');
-        $imgB = $this->image->loadFile(FIXTURE.'files/images/original.png')->crop(0, 0, 80, 40)->dump();
+        $imgA = file_get_contents(FIXTURE.'images/crop-0-0-80-40.png');
+        $imgB = $this->image->loadFile(FIXTURE.'images/original.png')->crop(0, 0, 80, 40)->dump();
 
         $this->assertEquals(0.0, Image::pixelCompare($imgA, $imgB));
     }
@@ -315,23 +315,23 @@ class ImageTest extends TestCase
      */
     public function testResize($file, $width = null, $height = null, $crop = true, $enlarge = true)
     {
-        $imgA = file_get_contents(FIXTURE.'files/images/'.$file.'.png');
-        $imgB = $this->image->loadFile(FIXTURE.'files/images/original.png')->resize($width, $height, $crop, $enlarge)->dump();
+        $imgA = file_get_contents(FIXTURE.'images/'.$file.'.png');
+        $imgB = $this->image->loadFile(FIXTURE.'images/original.png')->resize($width, $height, $crop, $enlarge)->dump();
 
         $this->assertEquals(0.0, Image::pixelCompare($imgA, $imgB));
     }
 
     public function testRotate()
     {
-        $imgA = file_get_contents(FIXTURE.'files/images/rotate-30.png');
-        $imgB = $this->image->loadFile(FIXTURE.'files/images/original.png')->rotate(30)->dump();
+        $imgA = file_get_contents(FIXTURE.'images/rotate-30.png');
+        $imgB = $this->image->loadFile(FIXTURE.'images/original.png')->rotate(30)->dump();
 
         $this->assertEquals(0.0, Image::pixelCompare($imgA, $imgB));
     }
 
     public function testIdenticon()
     {
-        $imgA = file_get_contents(FIXTURE.'files/images/identicon-foo.png');
+        $imgA = file_get_contents(FIXTURE.'images/identicon-foo.png');
         $imgB = $this->image->identicon('foo')->dump();
 
         $this->assertEquals(0.0, Image::pixelCompare($imgA, $imgB));
@@ -339,7 +339,7 @@ class ImageTest extends TestCase
 
     public function testIdenticonBar()
     {
-        $imgA = file_get_contents(FIXTURE.'files/images/identicon-bar.png');
+        $imgA = file_get_contents(FIXTURE.'images/identicon-bar.png');
         $imgB = $this->image->identicon('bar')->dump();
 
         $this->assertEquals(0.0, Image::pixelCompare($imgA, $imgB));
@@ -350,7 +350,7 @@ class ImageTest extends TestCase
      */
     public function testOverlay($file, $align = null, $alpha = 100)
     {
-        $imgA = file_get_contents(FIXTURE.'files/images/'.$file.'.png');
+        $imgA = file_get_contents(FIXTURE.'images/'.$file.'.png');
         $imgB = $this->image->identicon('bar')->overlay($this->image->identicon('foo'), $align, $alpha)->dump();
 
         $this->assertEquals(0.0, Image::pixelCompare($imgA, $imgB));
@@ -358,7 +358,7 @@ class ImageTest extends TestCase
 
     public function testCaptcha()
     {
-        $this->image->captcha($seed, 'Lato-Black.ttf', FIXTURE.'files/fonts/');
+        $this->image->captcha($seed, 'Lato-Black.ttf', FIXTURE.'fonts/');
 
         $this->assertEquals(5, strlen($seed));
     }
@@ -369,7 +369,7 @@ class ImageTest extends TestCase
      */
     public function testCaptchaException()
     {
-        $this->image->captcha($seed, 'Lato-Black.ttf', FIXTURE.'files/fonts/', 5, 24, 0, 0, 'openssl');
+        $this->image->captcha($seed, 'Lato-Black.ttf', FIXTURE.'fonts/', 5, 24, 0, 0, 'openssl');
     }
 
     /**
@@ -378,7 +378,7 @@ class ImageTest extends TestCase
      */
     public function testCaptchaException2()
     {
-        $this->image->captcha($seed, 'Lato-Black.ttf', FIXTURE.'files/fonts/', 5, 24, 0, 0, 'font');
+        $this->image->captcha($seed, 'Lato-Black.ttf', FIXTURE.'fonts/', 5, 24, 0, 0, 'font');
     }
 
     /**
@@ -387,7 +387,7 @@ class ImageTest extends TestCase
      */
     public function testCaptchaException3()
     {
-        $this->image->captcha($seed, 'Lato-Black-unknown.ttf', FIXTURE.'files/fonts/');
+        $this->image->captcha($seed, 'Lato-Black-unknown.ttf', FIXTURE.'fonts/');
     }
 
     public function getColors()

@@ -833,9 +833,9 @@ class FwTest extends TestCase
 
     public function testConfig()
     {
-        $this->fw->config(FIXTURE.'files/config/independent.php');
-        $this->fw->config(FIXTURE.'files/config/empty.php');
-        $this->fw->config(FIXTURE.'files/config/all.php');
+        $this->fw->config(FIXTURE.'config/independent.php');
+        $this->fw->config(FIXTURE.'config/empty.php');
+        $this->fw->config(FIXTURE.'config/all.php');
 
         $this->assertTrue($this->fw['independent']);
         // from empty
@@ -886,7 +886,7 @@ class FwTest extends TestCase
 
     public function testRequireFile()
     {
-        $this->assertEquals(array('independent' => true), Fw::requireFile(FIXTURE.'/files/config/independent.php'));
+        $this->assertEquals(array('independent' => true), Fw::requireFile(FIXTURE.'/config/independent.php'));
     }
 
     /**

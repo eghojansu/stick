@@ -244,8 +244,8 @@ class JwtTest extends TestCase
 
     public function getSource()
     {
-        $private = openssl_get_privatekey('file:///'.FIXTURE.'files/private.key');
-        $public = openssl_get_publickey('file:///'.FIXTURE.'files/public.pem');
+        $private = openssl_get_privatekey('file:///'.FIXTURE.'ssh/private.key');
+        $public = openssl_get_publickey('file:///'.FIXTURE.'ssh/public.pem');
 
         return array(
             array(
