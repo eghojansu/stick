@@ -701,18 +701,8 @@ final class Fw implements \ArrayAccess
      */
     public function findClass(string $class): ?string
     {
-        $cache = $this->cache();
-        $item = $cache->get($key = $class.'.class');
-
-        if ($item && $item->isValid()) {
-            return $item->getValue();
-        }
-
-        if ($file = $this->findFileWithExtension($class, '.php') ?? $this->findFileWithExtension($class, '.hh')) {
-            $cache->set($key, new CacheItem($file));
-        }
-
-        return $file;
+        // Search for Hack files too if we are running on HHVM
+        return $this->findFileWithExtension($class, '.php') ?? (defined('HHVM_VERSION') ? $this->findFileWithExtension($class, '.hh') : null);
     }
 
     /**
@@ -2256,7 +2246,7 @@ final class Fw implements \ArrayAccess
     {
         // PSR-4 lookup
         $logicalPathPsr4 = strtr($class, '\\', DIRECTORY_SEPARATOR).$ext;
-        $autoload = $this->hive['AUTOLOAD'] + array('Fal\\Stick\\' => __DIR__.'/');
+        $autoload = (array) $this->hive['AUTOLOAD'] + array('Fal\\Stick\\' => __DIR__.'/');
         $subPath = $class;
 
         while (false !== $lastPos = strrpos($subPath, '\\')) {

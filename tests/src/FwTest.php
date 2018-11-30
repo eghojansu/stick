@@ -1029,13 +1029,9 @@ class FwTest extends TestCase
 
     public function testFindClass()
     {
-        $this->setupCache();
-
         $this->fw['AUTOLOAD']['FixtureNs\\'] = FIXTURE.'classes2/FixtureNs/';
         $this->fw['AUTOLOAD_FALLBACK'] = FIXTURE.'classes2/NoNs/';
 
-        $this->assertEquals(FIXTURE.'classes2/FixtureNs/ClassA.php', $this->fw->findClass('FixtureNs\\ClassA'));
-        // second call, to hit cache
         $this->assertEquals(FIXTURE.'classes2/FixtureNs/ClassA.php', $this->fw->findClass('FixtureNs\\ClassA'));
         $this->assertEquals(FIXTURE.'classes2/NoNs/ClassOutNs.php', $this->fw->findClass('ClassOutNs'));
         $this->assertNull($this->fw->findClass('UnknownClass'));
