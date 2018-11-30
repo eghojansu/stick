@@ -837,7 +837,7 @@ final class Fw implements \ArrayAccess
             $this->hive['SERVICE_RULES'][$id] = (array) $rule;
         }
 
-        $this->hive['SERVICE_RULES'][$id] += array('class' => $id, 'service' => true);
+        $this->hive['SERVICE_RULES'][$id] += array('class' => $id, 'service' => $rule !== false);
 
         if ($this->hive['SERVICE_RULES'][$id]['class'] !== $id) {
             $this->hive['SERVICE_ALIASES'][$id] = $this->hive['SERVICE_RULES'][$id]['class'];

@@ -1146,6 +1146,11 @@ class FwTest extends TestCase
                 'service' => false,
                 'class' => 'Fal\\Stick\\Test\\Constructor',
             )),
+            array('Fal\\Stick\\Test\\Constructor', false, array(
+                'class' => 'Fal\\Stick\\Test\\Constructor',
+                'service' => false,
+                false,
+            )),
             array('Fal\\Stick\\Test\\Constructor', null, array(
                 'class' => 'Fal\\Stick\\Test\\Constructor',
                 'service' => true,
