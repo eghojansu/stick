@@ -33,6 +33,7 @@ class KernelTest extends TestCase
     public function testGetFw()
     {
         $this->assertInstanceOf('Fal\\Stick\\Fw', $this->kernel->getFw());
+        $this->assertSame($this->kernel, $this->kernel->getFw()->service('kernel'));
     }
 
     public function testGetEnvironment()

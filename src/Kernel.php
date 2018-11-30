@@ -38,6 +38,7 @@ abstract class Kernel
     public function __construct(string $environment = 'prod')
     {
         $this->fw = Fw::createFromGlobals();
+        $this->fw->setRule('kernel', $this);
         $this->setEnvironment($environment);
         $this->boot();
     }
