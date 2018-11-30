@@ -447,11 +447,20 @@ class Console
             'public/robots.txt' => "User-agent: *\nDisallow: /",
             'public/index.php' => "<?php\n\n".
                 "require __DIR__.'/../vendor/autoload.php';\n\n".
-                "Fal\\Stick\\Fw::createFromGlobals()\n".
-                "    ->registerShutdownHandler()\n".
-                "    ->config(__DIR__.'/../app/env.php')\n".
-                "    ->run()\n".
-                ";\n",
+                'AppKernel::create()->run();'.
+                "\n",
+            'app/Kernel.php' => "<?php\n\n".
+                "use Fal\\Stick\\Fw;\n".
+                "use Fal\\Stick\\Kernel;\n".
+                "\n".
+                "class AppKernel extends Kernel\n".
+                "{\n".
+                "    protected function boot()\n".
+                "    {\n".
+                "        \$this->fw->registerShutdownHandler();\n".
+                "        \$this->fw->config(__DIR__.'/env.php');\n".
+                "    }\n".
+                "}\n",
             'app/config.dist.php' => "<?php\n\n".
                 "return array(\n".
                 "    'db' => array(\n".
@@ -480,15 +489,12 @@ class Console
                 "    'LOG' => \$config['log'] ?? null,\n".
                 "    'THRESHOLD' => \$config['threshold'] ?? 'error',\n".
                 "    'TEMP' => \$config['temp'] ?? dirname(__DIR__).'/var/',\n".
-                "    'controllers' => require __DIR__.'/controllers.php',\n".
-                "    'events' => require __DIR__.'/events.php',\n".
                 "    'routes' => require __DIR__.'/routes.php',\n".
+                "    'controllers' => require __DIR__.'/controllers.php',\n".
+                "    'subscribers' => require __DIR__.'/subscribers.php',\n".
                 "    'rules' => require __DIR__.'/services.php',\n".
                 ");\n",
             'app/controllers.php' => "<?php\n\n".
-                "return array(\n".
-                ");\n",
-            'app/events.php' => "<?php\n\n".
                 "return array(\n".
                 ");\n",
             'app/routes.php' => "<?php\n\n".
@@ -513,7 +519,10 @@ class Console
                 "            'paths' => __DIR__.'/template/',\n".
                 "        ),\n".
                 "    )),\n".
-                "    array('html', 'Fal\\\\Stick\\\\Html\\\\Html'),\n".
+                "    array('html', 'Fal\\\\Stick\\\\Util\\\\Html'),\n".
+                ");\n",
+            'app/subscribers.php' => "<?php\n\n".
+                "return array(\n".
                 ");\n",
             'README.md' => "README\n".
                 "======\n\n".
@@ -579,6 +588,7 @@ class Console
         $composer = $wd.'composer.json';
         $json = is_file($composer) ? json_decode($fw->read($composer), true) : array();
         $json['autoload']['psr-4']['App\\'] = 'app/src/';
+        $json['autoload']['files'] = array_merge($json['autoload']['files'] ?? array(), array('app/Kernel.php'));
 
         $fw->write($composer, json_encode($json, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
 

@@ -80,9 +80,10 @@ class ConsoleTest extends TestCase
         $this->assertFileExists($dir.'app/config.dist.php');
         $this->assertFileExists($dir.'app/controllers.php');
         $this->assertFileExists($dir.'app/env.php');
-        $this->assertFileExists($dir.'app/events.php');
         $this->assertFileExists($dir.'app/routes.php');
         $this->assertFileExists($dir.'app/services.php');
+        $this->assertFileExists($dir.'app/subscribers.php');
+        $this->assertFileExists($dir.'app/Kernel.php');
         $this->assertFileExists($dir.'public/index.php');
         $this->assertFileExists($dir.'public/robots.txt');
         $this->assertFileExists($dir.'composer.json');
