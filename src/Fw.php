@@ -467,6 +467,7 @@ final class Fw implements \ArrayAccess
             'controllers' => 'controller',
             'rules' => 'setRule',
             'events' => 'on',
+            'subscribers' => 'subscribe',
         );
         $config = (array) self::requireFile($file);
 
@@ -907,6 +908,28 @@ final class Fw implements \ArrayAccess
         }
 
         return $instance;
+    }
+
+    /**
+     * Add events subscriber.
+     *
+     * @param string|object $subscriber
+     *
+     * @return Fw
+     */
+    public function subscribe($subscriber): Fw
+    {
+        if (!is_subclass_of($subscriber, 'Fal\\Stick\\EventSubscriberInterface')) {
+            throw new \LogicException(sprintf('Subscriber "%s" should implements Fal\\Stick\\EventSubscriberInterface.', $subscriber));
+        }
+
+        $events = array($subscriber, 'getEvents');
+
+        foreach ($events() as $event => $handler) {
+            $this->on($event, $handler);
+        }
+
+        return $this;
     }
 
     /**

@@ -33,4 +33,7 @@ return array(
     'events' => array(
         array('no_constructor', 'Fal\\Stick\\Test\\NoConstructor->getName'),
     ),
+    'subscribers' => array(
+        'Fal\\Stick\\Test\\NoConstructorSubscriber',
+    ),
 );

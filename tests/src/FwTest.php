@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Fal\Stick\Test;
 
+use Fal\Stick\EventSubscriberInterface;
 use Fal\Stick\Fw;
 use Fal\Stick\HttpException;
 use PHPUnit\Framework\TestCase;
@@ -270,6 +271,22 @@ class FwTest extends TestCase
         });
 
         $this->assertEquals('bar', $this->fw['foo']);
+    }
+
+    public function testSubscribe()
+    {
+        $this->fw->subscribe('Fal\\Stick\\Test\\NoConstructorSubscriber');
+
+        $this->assertEquals(array('Fal\\Stick\\Test\\NoConstructor->getName', false), $this->fw['EVENTS']['no_constructor']);
+    }
+
+    /**
+     * @expectedException \LogicException
+     * @expectedExceptionMessage Subscriber "foo" should implements Fal\Stick\EventSubscriberInterface.
+     */
+    public function testSubscribeException()
+    {
+        $this->fw->subscribe('foo');
     }
 
     public function testOn()
@@ -1467,5 +1484,13 @@ class BookController
     public function delete($item)
     {
         return 'delete '.$item;
+    }
+}
+
+class NoConstructorSubscriber implements EventSubscriberInterface
+{
+    public static function getEvents(): array
+    {
+        return array('no_constructor' => 'Fal\\Stick\\Test\\NoConstructor->getName');
     }
 }
