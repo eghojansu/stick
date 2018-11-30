@@ -697,6 +697,14 @@ class FwTest extends TestCase
         }
     }
 
+    public function testRunNoRoute()
+    {
+        $this->fw['QUIET'] = true;
+        $this->fw->run();
+
+        $this->assertContains('No route defined.', $this->fw['OUTPUT']);
+    }
+
     public function testRunInterception()
     {
         $this->fw['QUIET'] = true;

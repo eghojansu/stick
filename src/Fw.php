@@ -1897,6 +1897,10 @@ final class Fw implements \ArrayAccess
             return $this->sendResponse($response);
         }
 
+        if (!$this->hive['ROUTES']) {
+            throw new HttpException('No route defined.');
+        }
+
         if (!$route = $this->findRoute()) {
             throw new HttpException(null, 404);
         }
