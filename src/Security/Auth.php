@@ -299,16 +299,18 @@ class Auth
     public function getUserRoles(): array
     {
         if (null === $this->userRoles) {
-            $this->userRoles = $this->extraRoles;
-            $this->userRoles[] = 'IS_AUTHENTICATED_ANONYMOUSLY';
+            $userRoles = $this->extraRoles;
+            $userRoles[] = 'IS_AUTHENTICATED_ANONYMOUSLY';
 
             if ($user = $this->getUser()) {
                 foreach ($user->getRoles() as $role) {
                     if ($role) {
-                        array_push($this->userRoles, ...$this->getRoleHierarchy($role));
+                        array_push($userRoles, ...$this->getRoleHierarchy($role));
                     }
                 }
             }
+
+            $this->userRoles = $userRoles;
         }
 
         return $this->userRoles;
