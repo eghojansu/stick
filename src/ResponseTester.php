@@ -414,7 +414,7 @@ class ResponseTester
      *
      * @return ResponseTester
      */
-    public function hasElement(string $xpath): ResponseTester
+    public function elementExists(string $xpath): ResponseTester
     {
         $element = $this->findXpathFirst($xpath);
         $true = null !== $element;
@@ -429,7 +429,7 @@ class ResponseTester
      *
      * @return ResponseTester
      */
-    public function hasNotElement(string $xpath): ResponseTester
+    public function elementNotExists(string $xpath): ResponseTester
     {
         $element = $this->findXpathFirst($xpath);
         $true = null === $element;

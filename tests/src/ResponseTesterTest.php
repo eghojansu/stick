@@ -199,14 +199,14 @@ class ResponseTesterTest extends TestCase
         $this->assertFalse($this->tester->visit('/foo')->notRegexp('/^foo$/')->latest());
     }
 
-    public function testHasElement()
+    public function testElementExists()
     {
-        $this->assertTrue($this->tester->visit('/home')->hasElement('*//h1')->latest());
+        $this->assertTrue($this->tester->visit('/home')->elementExists('*//h1')->latest());
     }
 
-    public function testHasNotElement()
+    public function testElementNotExists()
     {
-        $this->assertFalse($this->tester->visit('/home')->hasNotElement('*//h1')->latest());
+        $this->assertFalse($this->tester->visit('/home')->elementNotExists('*//h1')->latest());
     }
 
     public function testElementEquals()
@@ -245,6 +245,6 @@ class ResponseTesterTest extends TestCase
      */
     public function testFindXpathWhenNoResponse()
     {
-        $this->tester->hasElement('foo');
+        $this->tester->elementExists('foo');
     }
 }
