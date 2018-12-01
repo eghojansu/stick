@@ -459,7 +459,7 @@ class Console
                 "    {\n".
                 "        \$config = array_replace_recursive(Fw::requireFile(__DIR__.'/config.dist.php'), (array) Fw::requireFile(__DIR__.'/config.php'));\n\n".
                 "        \$this->fw->registerShutdownHandler();\n".
-                "        \$this->fw->config(array(\n".
+                "        \$this->fw->mset(array(\n".
                 "            'APP_DIR' => __DIR__.'/',\n".
                 "            'DB_DSN' => \$config['db']['dsn'] ?? null,\n".
                 "            'DB_USERNAME' => \$config['db']['username'] ?? null,\n".
@@ -473,7 +473,7 @@ class Console
                 "            'CONTROLLERS' => require __DIR__.'/controllers.php',\n".
                 "            'SUBSCRIBERS' => require __DIR__.'/subscribers.php',\n".
                 "            'RULES' => require __DIR__.'/services.php',\n".
-                "        ));\n",
+                "        ));\n".
                 "    }\n".
                 "}\n",
             'app/config.dist.php' => "<?php\n\n".

@@ -584,6 +584,28 @@ final class Fw implements \ArrayAccess
      */
     public function set(string $key, $val): Fw
     {
+        $maps = array(
+            'CONFIGS' => 'config',
+            'ROUTES' => 'route',
+            'REDIRECTS' => 'redirect',
+            'RESTS' => 'rest',
+            'CONTROLLERS' => 'controller',
+            'RULES' => 'setRule',
+            'EVENTS' => 'on',
+            'SUBSCRIBERS' => 'subscribe',
+        );
+        $call = $maps[$key] ?? null;
+
+        if ($call) {
+            // intercept
+            foreach ((array) $val as $args) {
+                $args = (array) $args;
+                $this->$call(...$args);
+            }
+
+            return $this;
+        }
+
         $ref = &$this->ref($key);
         $ref = $val;
 
@@ -702,45 +724,15 @@ final class Fw implements \ArrayAccess
     }
 
     /**
-     * Load configuration from PHP-file.
+     * Load configuration from PHP file.
      *
-     * @param string|array $source
+     * @param string $source
      *
      * @return Fw
      */
-    public function config($source): Fw
+    public function config(string $source): Fw
     {
-        // Config map
-        $maps = array(
-            'CONFIGS' => 'config',
-            'ROUTES' => 'route',
-            'REDIRECTS' => 'redirect',
-            'RESTS' => 'rest',
-            'CONTROLLERS' => 'controller',
-            'RULES' => 'setRule',
-            'EVENTS' => 'on',
-            'SUBSCRIBERS' => 'subscribe',
-        );
-        $config = $source;
-
-        if (is_string($source)) {
-            $config = self::requireFile($source);
-        }
-
-        foreach ((array) $config as $key => $val) {
-            $call = $maps[$key] ?? null;
-
-            if ($call) {
-                foreach ((array) $val as $args) {
-                    $args = (array) $args;
-                    $this->$call(...$args);
-                }
-            } else {
-                $this->set((string) $key, $val);
-            }
-        }
-
-        return $this;
+        return $this->mset((array) self::requireFile($source));
     }
 
     /**
