@@ -218,10 +218,10 @@ class Auth
         $this->fw->trigger(self::EVENT_LOGIN, array($user));
 
         $this->user = $user;
-        $this->fw['SESSION'][self::SESSION_KEY] = $user->getId();
+        $this->fw->set('SESSION.'.self::SESSION_KEY, $user->getId());
 
         if ($remember) {
-            $this->fw['COOKIE'][self::SESSION_KEY] = array($user->getId(), $this->options['lifetime']);
+            $this->fw->set('COOKIE.'.self::SESSION_KEY, array($user->getId(), $this->options['lifetime']));
         }
 
         return $this;
@@ -241,7 +241,7 @@ class Auth
         $this->userRoles = null;
         $this->user = null;
         $this->extraRoles = null;
-        unset($this->fw['SESSION'][self::SESSION_KEY], $this->fw['COOKIE'][self::SESSION_KEY]);
+        $this->fw->mclear('SESSION.'.self::SESSION_KEY.',COOKIE.'.self::SESSION_KEY);
 
         return $this;
     }
@@ -323,7 +323,7 @@ class Auth
      */
     public function getCookieUserId()
     {
-        $id = $this->fw['COOKIE'][self::SESSION_KEY] ?? null;
+        $id = $this->fw->get('COOKIE.'.self::SESSION_KEY);
 
         return is_array($id) ? array_shift($id) : $id;
     }
@@ -335,7 +335,7 @@ class Auth
      */
     public function getSessionUserId()
     {
-        return $this->fw['SESSION'][self::SESSION_KEY] ?? null;
+        return $this->fw->get('SESSION.'.self::SESSION_KEY);
     }
 
     /**

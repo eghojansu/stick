@@ -91,9 +91,9 @@ class Crud
         'created_message' => 'Data has been created.',
         'updated_message' => 'Data has been updated.',
         'deleted_message' => 'Data has been deleted.',
-        'created_message_key' => 'alerts_success',
-        'updated_message_key' => 'alerts_info',
-        'deleted_message_key' => 'alerts_warning',
+        'created_message_key' => 'SESSION.alerts.success',
+        'updated_message_key' => 'SESSION.alerts.info',
+        'deleted_message_key' => 'SESSION.alerts.warning',
         'varname' => 'crud',
         'on_init' => null,
         'on_prepare_data' => null,
@@ -110,7 +110,7 @@ class Crud
         'roles' => null,
         'create_new' => false,
         'create_new_label' => null,
-        'create_new_session_key' => 'crud_create_new',
+        'create_new_session_key' => 'SESSION.crud_create_new',
     );
 
     /**
@@ -535,7 +535,7 @@ class Crud
         }
 
         $this->_fw[$var] = $message;
-        $this->_fw['SESSION'][$createNewKey] = $createNew;
+        $this->_fw[$createNewKey] = $createNew;
         $this->_fw->reroute($target);
 
         return false;

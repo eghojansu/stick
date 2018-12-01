@@ -48,6 +48,11 @@ class CrudTest extends TestCase
         $this->crud = new Crud($this->fw, new Template($this->fw, FIXTURE.'template/'));
     }
 
+    public function tearDown()
+    {
+        $this->crud->clear('SESSION');
+    }
+
     public function testExists()
     {
         $this->assertFalse($this->crud->exists('foo'));
@@ -489,9 +494,9 @@ class CrudTest extends TestCase
     public function getCrudsPost()
     {
         return array(
-            array('/create', 'Data has been created.', 'alerts_success'),
-            array('/update/1', 'Data has been updated.', 'alerts_info'),
-            array('/delete/1', 'Data has been deleted.', 'alerts_warning'),
+            array('/create', 'Data has been created.', 'SESSION.alerts.success'),
+            array('/update/1', 'Data has been updated.', 'SESSION.alerts.info'),
+            array('/delete/1', 'Data has been deleted.', 'SESSION.alerts.warning'),
         );
     }
 
