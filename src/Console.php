@@ -457,8 +457,23 @@ class Console
                 "{\n".
                 "    protected function boot()\n".
                 "    {\n".
+                "        \$config = array_replace_recursive(Fw::requireFile(__DIR__.'/config.dist.php'), (array) Fw::requireFile(__DIR__.'/config.php'));\n\n".
                 "        \$this->fw->registerShutdownHandler();\n".
-                "        \$this->fw->config(__DIR__.'/env.php');\n".
+                "        \$this->fw->config(array(\n".
+                "            'APP_DIR' => __DIR__.'/',\n".
+                "            'DB_DSN' => \$config['db']['dsn'] ?? null,\n".
+                "            'DB_USERNAME' => \$config['db']['username'] ?? null,\n".
+                "            'DB_PASSWORD' => \$config['db']['password'] ?? null,\n".
+                "            'CACHE' => \$config['cache'] ?? null,\n".
+                "            'DEBUG' => \$config['debug'] ?? false,\n".
+                "            'LOG' => \$config['log'] ?? null,\n".
+                "            'THRESHOLD' => \$config['threshold'] ?? 'error',\n".
+                "            'TEMP' => \$config['temp'] ?? dirname(__DIR__).'/var/',\n".
+                "            'ROUTES' => require __DIR__.'/routes.php',\n".
+                "            'CONTROLLERS' => require __DIR__.'/controllers.php',\n".
+                "            'SUBSCRIBERS' => require __DIR__.'/subscribers.php',\n".
+                "            'RULES' => require __DIR__.'/services.php',\n".
+                "        ));\n",
                 "    }\n".
                 "}\n",
             'app/config.dist.php' => "<?php\n\n".
@@ -473,26 +488,6 @@ class Console
                 "    'log' => dirname(__DIR__).'/var/log/',\n".
                 "    'threshold' => 'error',\n".
                 "    'temp' => dirname(__DIR__).'/var/',\n".
-                ");\n",
-            'app/env.php' => "<?php\n\n".
-                "\$config = is_file(__DIR__.'/config.dist.php') ? require __DIR__.'/config.dist.php' : array();\n\n".
-                "if (is_file(__DIR__.'/config.php')) {\n".
-                "    \$config = array_replace_recursive(\$config, require __DIR__.'/config.php');\n".
-                "}\n\n".
-                "return array(\n".
-                "    'APP_DIR' => __DIR__.'/',\n".
-                "    'DB_DSN' => \$config['db']['dsn'] ?? null,\n".
-                "    'DB_USERNAME' => \$config['db']['username'] ?? null,\n".
-                "    'DB_PASSWORD' => \$config['db']['password'] ?? null,\n".
-                "    'CACHE' => \$config['cache'] ?? null,\n".
-                "    'DEBUG' => \$config['debug'] ?? false,\n".
-                "    'LOG' => \$config['log'] ?? null,\n".
-                "    'THRESHOLD' => \$config['threshold'] ?? 'error',\n".
-                "    'TEMP' => \$config['temp'] ?? dirname(__DIR__).'/var/',\n".
-                "    'routes' => require __DIR__.'/routes.php',\n".
-                "    'controllers' => require __DIR__.'/controllers.php',\n".
-                "    'subscribers' => require __DIR__.'/subscribers.php',\n".
-                "    'rules' => require __DIR__.'/services.php',\n".
                 ");\n",
             'app/controllers.php' => "<?php\n\n".
                 "return array(\n".

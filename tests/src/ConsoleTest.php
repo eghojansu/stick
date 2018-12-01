@@ -79,7 +79,6 @@ class ConsoleTest extends TestCase
         $this->assertFileExists($dir.'app/template/.gitkeep');
         $this->assertFileExists($dir.'app/config.dist.php');
         $this->assertFileExists($dir.'app/controllers.php');
-        $this->assertFileExists($dir.'app/env.php');
         $this->assertFileExists($dir.'app/routes.php');
         $this->assertFileExists($dir.'app/services.php');
         $this->assertFileExists($dir.'app/subscribers.php');
