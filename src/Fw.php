@@ -724,6 +724,34 @@ final class Fw implements \ArrayAccess
     }
 
     /**
+     * Copy hive member.
+     *
+     * @param  string $source
+     * @param  string $destination
+     *
+     * @return Fw
+     */
+    public function copy(string $source, string $destination): Fw
+    {
+        return $this->set($destination, $this->get($source));
+    }
+
+    /**
+     * Returns hive member value and clear it.
+     *
+     * @param  string $source
+     *
+     * @return mixed
+     */
+    public function cut(string $source)
+    {
+        $ref = $this->get($source);
+        $this->clear($source);
+
+        return $ref;
+    }
+
+    /**
      * Load configuration from PHP file.
      *
      * @param string $source

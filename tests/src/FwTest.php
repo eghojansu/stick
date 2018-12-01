@@ -1248,6 +1248,16 @@ class FwTest extends TestCase
         $this->assertEquals($expected, $this->fw->pick($key, $collections, $default, $twoTier));
     }
 
+    public function testCopy()
+    {
+        $this->assertTrue($this->fw->copy('CLI', 'foo')->get('foo'));
+    }
+
+    public function testCut()
+    {
+        $this->assertEquals('bar', $this->fw->set('foo', 'bar')->cut('foo'));
+    }
+
     public function getCliRequestData()
     {
         return array(
