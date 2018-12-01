@@ -469,10 +469,9 @@ class Console
                 "            'LOG' => \$config['log'] ?? null,\n".
                 "            'THRESHOLD' => \$config['threshold'] ?? 'error',\n".
                 "            'TEMP' => \$config['temp'] ?? dirname(__DIR__).'/var/',\n".
+                "            'RULES' => require __DIR__.'/services.php',\n".
                 "            'ROUTES' => require __DIR__.'/routes.php',\n".
                 "            'CONTROLLERS' => require __DIR__.'/controllers.php',\n".
-                "            'SUBSCRIBERS' => require __DIR__.'/subscribers.php',\n".
-                "            'RULES' => require __DIR__.'/services.php',\n".
                 "        ));\n".
                 "    }\n".
                 "}\n",
@@ -515,9 +514,6 @@ class Console
                 "        ),\n".
                 "    )),\n".
                 "    array('html', 'Fal\\\\Stick\\\\Util\\\\Html'),\n".
-                ");\n",
-            'app/subscribers.php' => "<?php\n\n".
-                "return array(\n".
                 ");\n",
             'README.md' => "README\n".
                 "======\n\n".
