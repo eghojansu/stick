@@ -126,9 +126,14 @@ final class Fw implements \ArrayAccess
         $entry = $this->fixslashes($server['SCRIPT_NAME'] ?? $_SERVER['SCRIPT_NAME']);
         $uri = $server['REQUEST_URI'] ?? '/';
         $host = $server['SERVER_NAME'] ?? gethostname();
-        $base = $cli ? '' : dirname($entry);
-        $front = $cli ? '' : '/'.basename($entry);
+        $base = dirname($entry);
+        $front = '/'.basename($entry);
         $headers = null;
+
+        if ($cli) {
+            $base = '';
+            $front = '';
+        }
 
         foreach ((array) $server as $key => $val) {
             if (in_array($key, array('CONTENT_LENGTH', 'CONTENT_TYPE'))) {
@@ -450,7 +455,7 @@ final class Fw implements \ArrayAccess
     }
 
     /**
-     * Returns variable reference.
+     * Returns variable reference, allow dot notation access.
      *
      * @param  string     $key
      * @param  bool       $add
@@ -506,7 +511,7 @@ final class Fw implements \ArrayAccess
     }
 
     /**
-     * Remove variable.
+     * Remove variable, allow dot notation access.
      *
      * @param  string     $key
      * @param  array|null &$var
@@ -541,6 +546,13 @@ final class Fw implements \ArrayAccess
         return $this;
     }
 
+    /**
+     * Returns true if hive member exists.
+     *
+     * @param  string $key
+     *
+     * @return bool
+     */
     public function exists(string $key): bool
     {
         $this->ref($key, false, $hive, $found);
@@ -548,6 +560,13 @@ final class Fw implements \ArrayAccess
         return $found;
     }
 
+    /**
+     * Returns hive member value.
+     *
+     * @param  string $key
+     *
+     * @return mixed
+     */
     public function &get(string $key)
     {
         $ref = &$this->ref($key);
@@ -555,6 +574,14 @@ final class Fw implements \ArrayAccess
         return $ref;
     }
 
+    /**
+     * Sets hive member value.
+     *
+     * @param string $key
+     * @param mixed  $val
+     *
+     * @return Fw
+     */
     public function set(string $key, $val): Fw
     {
         $ref = &$this->ref($key);
@@ -579,6 +606,13 @@ final class Fw implements \ArrayAccess
         return $this;
     }
 
+    /**
+     * Remove hive member.
+     *
+     * @param  string $key
+     *
+     * @return Fw
+     */
     public function clear(string $key): Fw
     {
         $init = $this->init;
@@ -591,6 +625,14 @@ final class Fw implements \ArrayAccess
         return $this->unref($key);
     }
 
+    /**
+     * Sets hive member massively.
+     *
+     * @param  array       $values
+     * @param  string|null $prefix
+     *
+     * @return Fw
+     */
     public function mset(array $values, string $prefix = null): Fw
     {
         foreach ($values as $key => $val) {
@@ -600,6 +642,14 @@ final class Fw implements \ArrayAccess
         return $this;
     }
 
+    /**
+     * Remove hive member massively.
+     *
+     * @param  array|string $keys
+     * @param  string|null  $prefix
+     *
+     * @return Fw
+     */
     public function mclear($keys, string $prefix = null): Fw
     {
         foreach ($this->split($keys) as $key) {
@@ -609,6 +659,14 @@ final class Fw implements \ArrayAccess
         return $this;
     }
 
+    /**
+     * Prepend hive member value.
+     *
+     * @param  string $key
+     * @param  mixed  $val
+     *
+     * @return Fw
+     */
     public function prepend(string $key, $val): Fw
     {
         $ref = $this->get($key);
@@ -622,6 +680,14 @@ final class Fw implements \ArrayAccess
         return $this->set($key, $ref);
     }
 
+    /**
+     * Append hive member value.
+     *
+     * @param  string $key
+     * @param  mixed  $val
+     *
+     * @return Fw
+     */
     public function append(string $key, $val): Fw
     {
         $ref = $this->get($key);
@@ -1211,7 +1277,7 @@ final class Fw implements \ArrayAccess
             if ($this->hive['CACHE_DRY']) {
                 $this->setRule($engine, array(
                     'args' => array(
-                        'directory' => $this->hive['TEMP'].'cache/',
+                        'directory' => '%TEMP%cache/',
                     ),
                 ));
             }
@@ -1571,7 +1637,8 @@ final class Fw implements \ArrayAccess
             ->route('POST '.$alias.' '.$path.' '.$mode, $class.'->create', $ttl, $kbps)
             ->route('GET '.$item_alias.' '.$item_path.' '.$mode, $class.'->get', $ttl, $kbps)
             ->route('PUT '.$item_alias.' '.$item_path.' '.$mode, $class.'->put', $ttl, $kbps)
-            ->route('DELETE '.$item_alias.' '.$item_path.' '.$mode, $class.'->delete', $ttl, $kbps);
+            ->route('DELETE '.$item_alias.' '.$item_path.' '.$mode, $class.'->delete', $ttl, $kbps)
+        ;
     }
 
     /**
@@ -1685,7 +1752,7 @@ final class Fw implements \ArrayAccess
             $path = $this->alias($match[1], $args);
         }
 
-        unset($this['SENT'], $this['RESPONSE'], $this['OUTPUT'], $this['BODY']);
+        $this->mclear('SENT,RESPONSE,OUTPUT,BODY');
 
         $this->hive['VERB'] = $verb;
         $this->hive['PATH'] = $path;
@@ -1899,16 +1966,7 @@ final class Fw implements \ArrayAccess
      */
     private function langRef(string $key): ?string
     {
-        $parts = explode('.', $key);
-        $ref = $this->hive['DICT'];
-
-        foreach ($parts as $part) {
-            if (!$ref || !array_key_exists($part, $ref)) {
-                return null;
-            }
-
-            $ref = $ref[$part];
-        }
+        $ref = $this->ref('DICT.'.$key, false);
 
         if (null !== $ref && !is_string($ref)) {
             throw new \UnexpectedValueException('Message reference is not a string.');
@@ -2022,9 +2080,11 @@ final class Fw implements \ArrayAccess
         }
 
         if (preg_match('/^(.+)?%([.\w]+)%(.+)?$/', $val, $match)) {
-            if (array_key_exists($match[2], $this->hive)) {
+            $ref = $this->ref($match[2], false, $hive, $found);
+
+            if ($found) {
                 // it does exists in hive
-                return ($match[1] ?? null).$this->hive[$match[2]].($match[3] ?? null);
+                return ($match[1] ?? null).$ref.($match[3] ?? null);
             }
 
             // it is a service alias
