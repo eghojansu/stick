@@ -23,12 +23,12 @@ abstract class Kernel
     /**
      * @var Fw
      */
-    private $fw;
+    protected $fw;
 
     /**
      * @var string
      */
-    private $environment;
+    protected $environment;
 
     /**
      * Class constructor.
