@@ -450,6 +450,192 @@ final class Fw implements \ArrayAccess
     }
 
     /**
+     * Returns variable reference.
+     *
+     * @param  string     $key
+     * @param  bool       $add
+     * @param  array|null &$var
+     * @param  bool|null  &$found
+     *
+     * @return mixed
+     */
+    public function &ref(string $key, bool $add = true, array &$var = null, bool &$found = null)
+    {
+        $hive = null === $var;
+        $parts = explode('.', $key);
+        $null = null;
+
+        if ('SESSION' === $parts[0] && $hive && !headers_sent() && PHP_SESSION_ACTIVE !== session_status()) {
+            session_start();
+
+            $this->hive['SESSION'] = &$GLOBALS['_SESSION'];
+        }
+
+        if ($hive) {
+            if ($add) {
+                $var = &$this->hive;
+            } else {
+                $var = $this->hive;
+            }
+        }
+
+        foreach ($parts as $part) {
+            if (null === $var || is_scalar($var)) {
+                $var = array();
+                $found = false;
+            }
+
+            if (is_array($var) && (array_key_exists($part, $var) || $add)) {
+                $var = &$var[$part];
+                $found = true;
+            } elseif (is_object($var) && (property_exists($var, $part) || $add)) {
+                if (!preg_match('/^[a-z_](\w+)?$/i', $part)) {
+                    throw new \LogicException(sprintf('Invalid property: "%s".', $part));
+                }
+
+                $var = &$var->$part;
+                $found = true;
+            } else {
+                $var = $null;
+                $found = false;
+                break;
+            }
+        }
+
+        return $var;
+    }
+
+    /**
+     * Remove variable.
+     *
+     * @param  string     $key
+     * @param  array|null &$var
+     *
+     * @return Fw
+     */
+    public function unref(string $key, array &$var = null): Fw
+    {
+        $hive = null == $var;
+        $last = strrchr('.'.$key, '.');
+        $remove = ltrim($last, '.');
+
+        if ($hive) {
+            $var = &$this->hive;
+        }
+
+        if ($ref = strstr($key, $last, true)) {
+            $var = &$this->ref($ref, true, $var);
+        }
+
+        if (is_object($var)) {
+            unset($var->$remove);
+        } elseif (is_array($var)) {
+            unset($var[$remove]);
+        }
+
+        if ('SESSION' === $key && $hive && PHP_SESSION_ACTIVE === session_status()) {
+            session_unset();
+            session_destroy();
+        }
+
+        return $this;
+    }
+
+    public function exists(string $key): bool
+    {
+        $this->ref($key, false, $hive, $found);
+
+        return $found;
+    }
+
+    public function &get(string $key)
+    {
+        $ref = &$this->ref($key);
+
+        return $ref;
+    }
+
+    public function set(string $key, $val): Fw
+    {
+        $ref = &$this->ref($key);
+        $ref = $val;
+
+        switch ($key) {
+            case 'CACHE':
+                $this->hive['CACHE_DRY'] = true;
+
+                if ($val) {
+                    $this->getRule($val, null, $id);
+                    unset($this->hive['SERVICES'][$val], $this->hive['SERVICES'][$id]);
+                }
+                break;
+            case 'FALLBACK':
+            case 'LOCALES':
+            case 'LANGUAGE':
+                $this->hive['DICT'] = $this->langLoad();
+                break;
+        }
+
+        return $this;
+    }
+
+    public function clear(string $key): Fw
+    {
+        $init = $this->init;
+        $ref = $this->ref($key, false, $init, $found);
+
+        if ($found) {
+            return $this->set($key, $ref);
+        }
+
+        return $this->unref($key);
+    }
+
+    public function mset(array $values, string $prefix = null): Fw
+    {
+        foreach ($values as $key => $val) {
+            $this->set($prefix.$key, $val);
+        }
+
+        return $this;
+    }
+
+    public function mclear($keys, string $prefix = null): Fw
+    {
+        foreach ($this->split($keys) as $key) {
+            $this->clear($prefix.$key);
+        }
+
+        return $this;
+    }
+
+    public function prepend(string $key, $val): Fw
+    {
+        $ref = $this->get($key);
+
+        if (is_array($ref)) {
+            array_unshift($ref, $val);
+        } else {
+            $ref = $val.$ref;
+        }
+
+        return $this->set($key, $ref);
+    }
+
+    public function append(string $key, $val): Fw
+    {
+        $ref = $this->get($key);
+
+        if (is_array($ref)) {
+            array_push($ref, $val);
+        } else {
+            $ref .= $val;
+        }
+
+        return $this->set($key, $ref);
+    }
+
+    /**
      * Load configuration from PHP-file.
      *
      * @param string|array $source
@@ -2314,7 +2500,7 @@ final class Fw implements \ArrayAccess
      */
     public function offsetExists($offset)
     {
-        return array_key_exists($offset, $this->hive);
+        return $this->exists((string) $offset);
     }
 
     /**
@@ -2326,19 +2512,9 @@ final class Fw implements \ArrayAccess
      */
     public function &offsetGet($offset)
     {
-        if (!array_key_exists($offset, $this->hive)) {
-            $this->hive[$offset] = null;
-        }
+        $ref = &$this->get((string) $offset);
 
-        if ('SESSION' === $offset) {
-            if (!headers_sent() && PHP_SESSION_ACTIVE !== session_status()) {
-                session_start();
-            }
-
-            $this->hive[$offset] = &$GLOBALS['_SESSION'];
-        }
-
-        return $this->hive[$offset];
+        return $ref;
     }
 
     /**
@@ -2349,23 +2525,7 @@ final class Fw implements \ArrayAccess
      */
     public function offsetSet($offset, $value)
     {
-        $this->hive[$offset] = $value;
-
-        switch ((string) $offset) {
-            case 'CACHE':
-                $this->hive['CACHE_DRY'] = true;
-
-                if ($value) {
-                    $this->getRule($value, null, $id);
-                    unset($this->hive['SERVICES'][$value], $this->hive['SERVICES'][$id]);
-                }
-                break;
-            case 'FALLBACK':
-            case 'LOCALES':
-            case 'LANGUAGE':
-                $this->hive['DICT'] = $this->langLoad();
-                break;
-        }
+        $this->set((string) $offset, $value);
     }
 
     /**
@@ -2375,15 +2535,6 @@ final class Fw implements \ArrayAccess
      */
     public function offsetUnset($offset)
     {
-        if ('SESSION' === $offset && PHP_SESSION_ACTIVE === session_status()) {
-            session_unset();
-            session_destroy();
-        }
-
-        if (array_key_exists($offset, $this->init)) {
-            $this->hive[$offset] = $this->init[$offset];
-        } else {
-            unset($this->hive[$offset]);
-        }
+        $this->clear((string) $offset);
     }
 }

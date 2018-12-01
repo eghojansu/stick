@@ -43,14 +43,14 @@ class FwTest extends TestCase
     {
         $fw = Fw::create();
 
-        $this->assertNull($fw['server']);
+        $this->assertNull($fw->get('SERVER'));
     }
 
     public function testCreateFromGlobals()
     {
         $fw = Fw::createFromGlobals();
 
-        $this->assertEquals($_SERVER, $fw['SERVER']);
+        $this->assertEquals($_SERVER, $fw->get('SERVER'));
     }
 
     public function testCreateServerParsing()
@@ -60,50 +60,182 @@ class FwTest extends TestCase
             'HTTP_X_REQUESTED_WITH' => 'XMLHttpRequest',
         ));
 
-        $this->assertEquals(3, $fw['REQUEST']['Content-Length']);
-        $this->assertEquals('XMLHttpRequest', $fw['REQUEST']['X-Requested-With']);
-        $this->assertTrue($fw['AJAX']);
+        $this->assertEquals(3, $fw->get('REQUEST.Content-Length'));
+        $this->assertEquals('XMLHttpRequest', $fw->get('REQUEST.X-Requested-With'));
+        $this->assertTrue($fw->get('AJAX'));
+    }
+
+    public function testRef()
+    {
+        $null = null;
+
+        $this->assertNull($this->fw->ref('foo', false, $null, $found));
+        $this->assertFalse($found);
+
+        $init = $this->fw->ref('CLI');
+        $cli = &$this->fw->ref('CLI');
+        $cli = false;
+
+        $this->assertTrue($init);
+        $this->assertFalse($this->fw->ref('CLI', false, $null, $found));
+        $this->assertTrue($found);
+
+        $foo = &$this->fw->ref('foo');
+        $foo = array('bar' => array('baz' => array('qux' => 'quux')));
+
+        $this->assertEquals($foo, $this->fw->ref('foo'));
+        $this->assertEquals(array('baz' => array('qux' => 'quux')), $this->fw->ref('foo.bar'));
+        $this->assertEquals(array('qux' => 'quux'), $this->fw->ref('foo.bar.baz'));
+        $this->assertEquals('quux', $this->fw->ref('foo.bar.baz.qux'));
+        $this->assertNull($this->fw->ref('foo.bar.baz.qux.quux'));
+
+        $bar = &$this->fw->ref('bar');
+        $bar = new \StdClass();
+        $bar->baz = 'qux';
+
+        $this->assertEquals($bar, $this->fw->ref('bar'));
+        $this->assertEquals('qux', $this->fw->ref('bar.baz'));
+
+        $myVar = array('my_foo' => array('bar' => 'baz'));
+        $myFooInit = $this->fw->ref('my_foo.bar', false, $myVar);
+        $myFoo = &$this->fw->ref('my_foo.bar', true, $myVar);
+        $myFoo = 'qux';
+
+        $this->assertEquals('baz', $myFooInit);
+        $this->assertEquals('qux', $this->fw->ref('my_foo.bar', true, $myVar));
+
+        // ensure session is empty
+        $this->assertFalse(isset($_SESSION));
+
+        $sFoo = &$this->fw->ref('SESSION.foo');
+        $sFoo = 'bar';
+
+        $this->assertEquals('bar', $this->fw->ref('SESSION.foo'));
+        $this->assertEquals('bar', $_SESSION['foo']);
+    }
+
+    /**
+     * @expectedException LogicException
+     * @expectedExceptionMessage Invalid property: "invalid property"
+     */
+    public function testRefException()
+    {
+        $this->fw->set('foo', new \StdClass())->get('foo.invalid property');
+    }
+
+    public function testUnref()
+    {
+        $this->fw->unref('CLI');
+        $this->assertNull($this->fw->ref('CLI'));
+
+        $foo = &$this->fw->ref('foo');
+        $foo = array('bar' => array('baz' => array('qux' => 'quux')));
+
+        $this->fw->unref('foo.bar.baz.qux');
+        $this->assertNull($this->fw->ref('foo.bar.baz.qux'));
+        $this->assertEquals(array('qux' => null), $this->fw->ref('foo.bar.baz'));
+        $this->assertEquals(array('baz' => array('qux' => null)), $this->fw->ref('foo.bar'));
+
+        $this->fw->unref('foo');
+        $this->assertNull($this->fw->ref('foo'));
+
+        $bar = &$this->fw->ref('bar');
+        $bar = new \StdClass();
+        $bar->baz = 'qux';
+
+        $this->fw->unref('bar.baz');
+        $this->assertNull($this->fw->ref('bar.baz'));
+        $this->assertFalse(isset($bar->baz));
+
+        $myVar = array('my_foo' => array('bar' => 'baz'));
+
+        $this->fw->unref('my_foo.bar', $myVar);
+        $this->assertEquals(array('my_foo' => array()), $myVar);
+
+        $sFoo = &$this->fw->ref('SESSION.foo');
+        $sFoo = 'bar';
+
+        $this->fw->unref('SESSION');
+        $this->assertEmpty($_SESSION);
+    }
+
+    public function testExists()
+    {
+        $this->assertTrue($this->fw->exists('CLI'));
+        $this->assertFalse($this->fw->exists('foo'));
+    }
+
+    public function testGet()
+    {
+        $this->assertTrue($this->fw->get('CLI'));
+        $this->assertNull($this->fw->get('foo'));
+    }
+
+    /**
+     * @dataProvider getSetValues
+     */
+    public function testSet($key, $val, $expected = null, $get = null)
+    {
+        $this->assertEquals($expected ?? $val, $this->fw->set($key, $val)->get($get ?? $key));
+    }
+
+    public function testClear()
+    {
+        $this->assertNull($this->fw->set('foo', 'bar')->clear('foo')->get('foo'));
+        $this->assertTrue($this->fw->set('CLI', false)->clear('CLI')->get('CLI'));
+    }
+
+    public function testMset()
+    {
+        $this->fw->mset(array('bar' => 'baz'), 'foo.');
+        $this->assertEquals('baz', $this->fw->get('foo.bar'));
+    }
+
+    public function testMclear()
+    {
+        $this->fw->set('foo', array('bar' => 'baz', 'qux' => 'quux'));
+
+        $this->fw->mclear('bar', 'foo.');
+        $this->fw->mclear(array('qux'), 'foo.');
+
+        $this->assertEquals(array(), $this->fw->get('foo'));
+    }
+
+    public function testPrepend()
+    {
+        $this->assertEquals('barbaz', $this->fw->prepend('foo', 'baz')->prepend('foo', 'bar')->get('foo'));
+        $this->assertEquals(array('bar', 'baz'), $this->fw->set('foo', array('baz'))->prepend('foo', 'bar')->get('foo'));
+    }
+
+    public function testAppend()
+    {
+        $this->assertEquals('barbaz', $this->fw->append('foo', 'bar')->append('foo', 'baz')->get('foo'));
+        $this->assertEquals(array('bar', 'baz'), $this->fw->set('foo', array('bar'))->append('foo', 'baz')->get('foo'));
     }
 
     public function testOffsetExists()
     {
-        $this->assertTrue(isset($this->fw['PATH']));
-        $this->assertFalse(isset($this->fw['foo']));
-        $this->assertFalse(isset($this->fw['foo']['bar']));
+        $this->assertTrue(isset($this->fw['CLI']));
     }
 
     public function testOffsetGet()
     {
-        $this->assertEquals('/', $this->fw['PATH']);
-        $this->assertNull($this->fw['foo']);
-        $this->assertEquals(array(), $this->fw['SESSION']);
+        $this->assertTrue($this->fw['CLI']);
     }
 
     public function testOffsetSet()
     {
         $this->fw['foo'] = 'bar';
-        $this->fw['CACHE'] = 'auto';
-        $this->fw['SESSION']['foo'] = 'bar';
 
         $this->assertEquals('bar', $this->fw['foo']);
-        $this->assertEquals('auto', $this->fw['CACHE']);
-        $this->assertEquals('bar', $this->fw['SESSION']['foo']);
     }
 
     public function testOffsetUnset()
     {
         $this->fw['foo'] = 'bar';
         unset($this->fw['foo']);
-        unset($this->fw['CLI']);
-        unset($this->fw['SESSION']);
 
         $this->assertNull($this->fw['foo']);
-        $this->assertTrue($this->fw['CLI']);
-        $this->assertEquals(array(), $this->fw['SESSION']);
-
-        $this->fw['SESSION']['foo'] = 'bar';
-        unset($this->fw['SESSION']['foo']);
-        $this->assertEquals(array(), $this->fw['SESSION']);
     }
 
     public function testMark()
@@ -1315,6 +1447,19 @@ class FwTest extends TestCase
             array('foo', 'bar', array('bar' => 'foo')),
             array('foo', 'bar', array(array('bar' => 'foo')), null, true),
             array(null, 'foo', array('bar' => 'foo')),
+        );
+    }
+
+    public function getSetValues()
+    {
+        return array(
+            array('foo', 'bar'),
+            array('foo.bar', 'bar'),
+            array('foo.bar', 'baz', array('bar' => 'baz'), 'foo'),
+            array('CACHE', 'auto'),
+            array('LANGUAGE', 'en'),
+            array('foo', array('bar' => 'baz')),
+            array('foo', array('bar' => 'baz'), 'baz', 'foo.bar'),
         );
     }
 
