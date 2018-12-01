@@ -646,14 +646,14 @@ final class Fw implements \ArrayAccess
     {
         // Config map
         $maps = array(
-            'configs' => 'config',
-            'routes' => 'route',
-            'redirects' => 'redirect',
-            'rests' => 'rest',
-            'controllers' => 'controller',
-            'rules' => 'setRule',
-            'events' => 'on',
-            'subscribers' => 'subscribe',
+            'CONFIGS' => 'config',
+            'ROUTES' => 'route',
+            'REDIRECTS' => 'redirect',
+            'RESTS' => 'rest',
+            'CONTROLLERS' => 'controller',
+            'RULES' => 'setRule',
+            'EVENTS' => 'on',
+            'SUBSCRIBERS' => 'subscribe',
         );
         $config = $source;
 
@@ -662,7 +662,7 @@ final class Fw implements \ArrayAccess
         }
 
         foreach ((array) $config as $key => $val) {
-            $call = $maps[strtolower((string) $key)] ?? null;
+            $call = $maps[$key] ?? null;
 
             if ($call) {
                 foreach ((array) $val as $args) {
@@ -670,13 +670,7 @@ final class Fw implements \ArrayAccess
                     $this->$call(...$args);
                 }
             } else {
-                if (is_array($val)) {
-                    foreach ($val as $key2 => $val2) {
-                        $this[$key][$key2] = $val2;
-                    }
-                } else {
-                    $this[$key] = $val;
-                }
+                $this->set((string) $key, $val);
             }
         }
 

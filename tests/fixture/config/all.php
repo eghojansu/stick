@@ -9,31 +9,31 @@ return array(
     'bool_false' => false,
     'null_null' => null,
     'arr' => array('foo', 'bar', 'baz' => 'qux'),
-    'configs' => __DIR__.'/embedded.php',
-    'routes' => array(
+    'CONFIGS' => __DIR__.'/embedded.php',
+    'ROUTES' => array(
         array('GET|POST /home', 'Fal\\Stick\\Test\\SimpleController->home', 0, 0),
     ),
-    'redirects' => array(
+    'REDIRECTS' => array(
         array('GET /redirect-to-home', '/home'),
     ),
-    'rests' => array(
+    'RESTS' => array(
         array('/books', 'Fal\\Stick\\Test\\BookController'),
     ),
-    'controllers' => array(
+    'CONTROLLERS' => array(
         array('Fal\\Stick\\Test\\SimpleController', array(
             'GET /controller' => 'home',
         )),
     ),
-    'rules' => array(
+    'RULES' => array(
         array('constructor', array(
             'class' => 'Fal\\Stick\\Test\\Constructor',
             'args' => array('name' => 'from config'),
         )),
     ),
-    'events' => array(
+    'EVENTS' => array(
         array('no_constructor', 'Fal\\Stick\\Test\\NoConstructor->getName'),
     ),
-    'subscribers' => array(
+    'SUBSCRIBERS' => array(
         'Fal\\Stick\\Test\\NoConstructorSubscriber',
     ),
 );
