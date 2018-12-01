@@ -909,6 +909,13 @@ class FwTest extends TestCase
         $this->assertEquals('no constructor', $this->fw->trigger('no_constructor'));
     }
 
+    public function testConfigArray()
+    {
+        $this->fw->config(array('foo' => 'bar'));
+
+        $this->assertEquals('bar', $this->fw['foo']);
+    }
+
     public function testRequireFile()
     {
         $this->assertEquals(array('independent' => true), Fw::requireFile(FIXTURE.'/config/independent.php'));

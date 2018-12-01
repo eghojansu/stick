@@ -452,11 +452,11 @@ final class Fw implements \ArrayAccess
     /**
      * Load configuration from PHP-file.
      *
-     * @param string $file
+     * @param string|array $source
      *
      * @return Fw
      */
-    public function config(string $file): Fw
+    public function config($source): Fw
     {
         // Config map
         $maps = array(
@@ -469,9 +469,13 @@ final class Fw implements \ArrayAccess
             'events' => 'on',
             'subscribers' => 'subscribe',
         );
-        $config = (array) self::requireFile($file);
+        $config = $source;
 
-        foreach ($config as $key => $val) {
+        if (is_string($source)) {
+            $config = self::requireFile($source);
+        }
+
+        foreach ((array) $config as $key => $val) {
             $call = $maps[strtolower((string) $key)] ?? null;
 
             if ($call) {
@@ -837,7 +841,7 @@ final class Fw implements \ArrayAccess
             $this->hive['SERVICE_RULES'][$id] = (array) $rule;
         }
 
-        $this->hive['SERVICE_RULES'][$id] += array('class' => $id, 'service' => $rule !== false);
+        $this->hive['SERVICE_RULES'][$id] += array('class' => $id, 'service' => false !== $rule);
 
         if ($this->hive['SERVICE_RULES'][$id]['class'] !== $id) {
             $this->hive['SERVICE_ALIASES'][$id] = $this->hive['SERVICE_RULES'][$id]['class'];
