@@ -65,6 +65,16 @@ class Test
     }
 
     /**
+     * Returns fw instance.
+     *
+     * @return Fw
+     */
+    public function getFw(): Fw
+    {
+        return $this->fw;
+    }
+
+    /**
      * Returns latest test result.
      *
      * @return bool
