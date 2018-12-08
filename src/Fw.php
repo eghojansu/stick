@@ -2527,7 +2527,7 @@ final class Fw implements \ArrayAccess
 
         foreach ($current as $name => $value) {
             if (!isset($init[$name]) || $init[$name] !== $value) {
-                $cookie = is_array($value) ? $value : array($value);
+                $cookie = is_array($value) ? $value : array((string) $value);
                 array_unshift($cookie, $name);
 
                 $cookies[$name] = $cookie + $jar;
