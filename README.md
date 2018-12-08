@@ -15,7 +15,6 @@ Example usage.
 require __DIR__.'vendor/autoload.php';
 
 Fal\Stick\Fw::createFromGlobals()
-    ->registerShutdownHandler()
     ->route('GET home /', function() {
         return 'Welcome home, Vanilla lover!';
     })
