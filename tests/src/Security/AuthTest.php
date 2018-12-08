@@ -27,13 +27,13 @@ class AuthTest extends TestCase
 
     public function setUp()
     {
-        $this->fw = new Fw();
+        $this->fw = new Fw('phpunit-test');
         $this->auth();
     }
 
     public function tearDown()
     {
-        unset($this->fw['SESSION']);
+        $this->fw->clear('SESSION');
     }
 
     private function auth(array $options = null)
@@ -81,22 +81,22 @@ class AuthTest extends TestCase
     public function testGetSessionUserId()
     {
         $this->assertNull($this->auth->getSessionUserId());
-        $this->fw['SESSION']['user_login_id'] = 1;
+        $this->fw->set('SESSION.user_login_id', 1);
         $this->assertEquals(1, $this->auth->getSessionUserId());
     }
 
     public function testGetCookieUserId()
     {
         $this->assertNull($this->auth->getCookieUserId());
-        $this->fw['COOKIE']['user_login_id'] = 1;
+        $this->fw->set('COOKIE.user_login_id', 1);
         $this->assertEquals(1, $this->auth->getCookieUserId());
-        $this->fw['COOKIE']['user_login_id'] = array(2, 2);
+        $this->fw->set('COOKIE.user_login_id', array(2, 2));
         $this->assertEquals(2, $this->auth->getCookieUserId());
     }
 
     public function testGetUser()
     {
-        $this->fw->one('auth.load_user', function () {
+        $this->fw->one('auth_load_user', function () {
             return $this->createUser();
         });
 
@@ -110,7 +110,7 @@ class AuthTest extends TestCase
 
         // reset user
         $this->auth->logout();
-        $this->fw['SESSION']['user_login_id'] = 'foo';
+        $this->fw->set('SESSION.user_login_id', 'foo');
         $user = $this->auth->getUser();
         $this->assertEquals('foo', $user->getId());
         $this->assertEquals('foo', $user->getUsername());
@@ -119,7 +119,7 @@ class AuthTest extends TestCase
 
         // reset again
         $this->auth->logout();
-        $this->fw['COOKIE']['user_login_id'] = 'foo';
+        $this->fw->set('COOKIE.user_login_id', 'foo');
         $user = $this->auth->getUser();
         $this->assertEquals('foo', $user->getId());
         $this->assertEquals('foo', $user->getUsername());
@@ -147,24 +147,24 @@ class AuthTest extends TestCase
     public function testLogin()
     {
         $user = $this->createUser();
-        $this->fw->one('auth.login', function ($user) {
+        $this->fw->one('auth_login', function ($user) {
             $user->setCredentialsExpired(true);
         });
 
         $user = $this->auth->login($user, true)->getUser();
         $this->assertTrue($user->isCredentialsExpired());
-        $this->assertEquals($user->getId(), $this->fw['SESSION']['user_login_id']);
-        $this->assertEquals(array($user->getId(), 1541932314), $this->fw['COOKIE']['user_login_id']);
+        $this->assertEquals($user->getId(), $this->fw->get('SESSION.user_login_id'));
+        $this->assertEquals(array($user->getId(), 1541932314), $this->fw->get('COOKIE.user_login_id'));
     }
 
     public function testLogout()
     {
         $user = $this->createUser();
         $user = $this->auth->login($user)->getUser();
-        $this->assertEquals($user->getId(), $this->fw['SESSION']['user_login_id']);
+        $this->assertEquals($user->getId(), $this->fw->get('SESSION.user_login_id'));
 
         $this->auth->logout();
-        $this->assertFalse(isset($this->fw['SESSION']['user_login_id']));
+        $this->assertFalse($this->fw->exists('SESSION.user_login_id'));
     }
 
     public function testGetProvider()
@@ -178,7 +178,7 @@ class AuthTest extends TestCase
     }
 
     /**
-     * @dataProvider getAttempts
+     * @dataProvider attemptProvider
      */
     public function testAttempt($expected, $username, $password, $expectedMessage = null)
     {
@@ -191,7 +191,7 @@ class AuthTest extends TestCase
     }
 
     /**
-     * @dataProvider getAccess
+     * @dataProvider isGrantedProvider
      */
     public function testIsGranted($expected, $user, $roles)
     {
@@ -213,19 +213,18 @@ class AuthTest extends TestCase
 
     public function testIsGrantedEvent()
     {
-        $this->fw->on('auth.vote', function () {
+        $this->fw->on('auth_vote', function () {
             return false;
         });
 
         $this->assertFalse($this->auth->isGranted('IS_AUTHENTICATED_ANONYMOUSLY'));
     }
 
-    /**
-     * @expectedException \Fal\Stick\HttpException
-     * @expectedExceptionMessage Access denied.
-     */
     public function testDenyAccessUnlessGranted()
     {
+        $this->expectException('Fal\\Stick\\HttpException');
+        $this->expectExceptionMessage('Access denied.');
+
         $this->auth->denyAccessUnlessGranted('foo');
     }
 
@@ -237,12 +236,12 @@ class AuthTest extends TestCase
     }
 
     /**
-     * @dataProvider getGuards
+     * @dataProvider guardProvider
      */
     public function testGuard($path, $user, $expected, $expectedBool)
     {
-        $this->fw['QUIET'] = true;
-        $this->fw['PATH'] = $path;
+        $this->fw->set('QUIET', true);
+        $this->fw->set('PATH', $path);
 
         $this->fw->route('GET /admin-area', function () {
             return 'Admin Area';
@@ -266,10 +265,10 @@ class AuthTest extends TestCase
         $this->auth->setUser($user);
 
         $this->assertEquals($expectedBool, $this->auth->guard());
-        $this->assertEquals($expected, $this->fw['OUTPUT']);
+        $this->assertEquals($expected, $this->fw->get('OUTPUT'));
     }
 
-    public function getAttempts()
+    public function attemptProvider()
     {
         return array(
             array(true, 'foo', 'bar'),
@@ -278,7 +277,7 @@ class AuthTest extends TestCase
         );
     }
 
-    public function getAccess()
+    public function isGrantedProvider()
     {
         return array(
             array(false, $this->createUser(), 'ROLE_USER'),
@@ -296,7 +295,7 @@ class AuthTest extends TestCase
         );
     }
 
-    public function getGuards()
+    public function guardProvider()
     {
         $admin = $this->createUser('ROLE_ADMIN');
 

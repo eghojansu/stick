@@ -1,7 +1,7 @@
 <?php
 
 use Fal\Stick\Fw;
-use Fal\Stick\Util\Cli;
+use Fal\Stick\Cli;
 
 return array(
     'env_file' => __DIR__.'/commands_env.php',

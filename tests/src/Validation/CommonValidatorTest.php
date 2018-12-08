@@ -26,7 +26,7 @@ class CommonValidatorTest extends TestCase
     }
 
     /**
-     * @dataProvider getRules
+     * @dataProvider hasProvider
      */
     public function testHas($rule, $expected = true)
     {
@@ -34,14 +34,14 @@ class CommonValidatorTest extends TestCase
     }
 
     /**
-     * @dataProvider getValidations
+     * @dataProvider validateProvider
      */
     public function testValidate($rule, $expected, $value, array $args = null, array $validated = null, array $raw = null)
     {
         $this->assertEquals($expected, $this->validator->validate($rule, $value, $args, null, $validated, $raw));
     }
 
-    public function getRules()
+    public function hasProvider()
     {
         return array(
             array('trim'),
@@ -77,7 +77,7 @@ class CommonValidatorTest extends TestCase
         );
     }
 
-    public function getValidations()
+    public function validateProvider()
     {
         return array(
             array('trim', 'foo', ' foo '),

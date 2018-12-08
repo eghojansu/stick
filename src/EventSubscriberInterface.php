@@ -11,6 +11,8 @@
  * Created at Dec 01, 2018 00:33
  */
 
+declare(strict_types=1);
+
 namespace Fal\Stick;
 
 /**

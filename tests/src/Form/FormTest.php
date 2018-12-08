@@ -15,7 +15,7 @@ namespace Fal\Stick\Test\Form;
 
 use Fal\Stick\Fw;
 use Fal\Stick\Form\Form;
-use Fal\Stick\Util\Html;
+use Fal\Stick\Html;
 use Fal\Stick\Validation\CommonValidator;
 use Fal\Stick\Validation\Validator;
 use PHPUnit\Framework\TestCase;
@@ -28,7 +28,7 @@ class FormTest extends TestCase
 
     public function setUp()
     {
-        $this->form = new Form($this->fw = new Fw(), $this->validator = new Validator($this->fw), new Html($this->fw));
+        $this->form = new Form($this->fw = new Fw('phpunit-test'), $this->validator = new Validator($this->fw), new Html($this->fw));
     }
 
     public function testGetName()
@@ -156,21 +156,21 @@ class FormTest extends TestCase
     {
         $this->assertFalse($this->form->isSubmitted());
 
-        $this->fw['VERB'] = 'POST';
-        $this->fw['POST'] = array('form' => array('_form' => 'form'));
+        $this->fw->set('VERB', 'POST');
+        $this->fw->set('POST', array('form' => array('_form' => 'form')));
 
         $this->assertTrue($this->form->isSubmitted());
     }
 
     /**
-     * @dataProvider getValidations
+     * @dataProvider validProvider
      */
     public function testValid($expected, $fields = null, $update = null, $errors = null, $data = null)
     {
         $this->validator->add(new CommonValidator());
 
-        $this->fw['VERB'] = 'POST';
-        $this->fw['POST'] = array('form' => ((array) $update) + array('_form' => 'form'));
+        $this->fw->set('VERB', 'POST');
+        $this->fw->set('POST', array('form' => ((array) $update) + array('_form' => 'form')));
 
         foreach ((array) $fields as $field) {
             $this->form->add(...$field);
@@ -183,12 +183,11 @@ class FormTest extends TestCase
         $this->assertEquals((array) $data, $this->form->getData());
     }
 
-    /**
-     * @expectedException \LogicException
-     * @expectedExceptionMessage Cannot validate unsubmitted form.
-     */
     public function testValidException()
     {
+        $this->expectException('LogicException');
+        $this->expectExceptionMessage('Cannot validate unsubmitted form.');
+
         $this->form->valid();
     }
 
@@ -201,8 +200,8 @@ class FormTest extends TestCase
     {
         $this->validator->add(new CommonValidator());
 
-        $this->fw['VERB'] = 'POST';
-        $this->fw['POST'] = array('form' => array('_form' => 'form', 'foo' => 'bar '));
+        $this->fw->set('VERB', 'POST');
+        $this->fw->set('POST', array('form' => array('_form' => 'form', 'foo' => 'bar ')));
 
         $this->form->add('foo', 'text', array(
             'constraints' => 'trim',
@@ -235,12 +234,11 @@ class FormTest extends TestCase
         $this->assertEquals('', $this->form->row('foo'));
     }
 
-    /**
-     * @expectedException \LogicException
-     * @expectedExceptionMessage Field "foo" does not exists.
-     */
     public function testRowException()
     {
+        $this->expectException('LogicException');
+        $this->expectExceptionMessage('Field "foo" does not exists.');
+
         $this->form->row('foo');
     }
 
@@ -262,7 +260,7 @@ class FormTest extends TestCase
     }
 
     /**
-     * @dataProvider getExpectations
+     * @dataProvider renderProvider
      */
     public function testRender($expected, $submit = false, $data = array(), $initialize = array())
     {
@@ -303,10 +301,8 @@ class FormTest extends TestCase
         $this->form->prepare();
 
         if ($submit) {
-            $this->fw['VERB'] = 'POST';
-            $this->fw['POST'] = array(
-                'form' => array('_form' => 'form') + $data,
-            );
+            $this->fw->set('VERB', 'POST');
+            $this->fw->set('POST.form', array('_form' => 'form') + $data);
 
             $this->assertTrue($this->form->isSubmitted());
             $this->assertTrue($this->form->valid());
@@ -317,7 +313,7 @@ class FormTest extends TestCase
     }
 
     /**
-     * @dataProvider getTransformations
+     * @dataProvider renderTransformationProvider
      */
     public function testRenderTransformation($expected, $submit = false)
     {
@@ -338,10 +334,8 @@ class FormTest extends TestCase
         $this->form->prepare();
 
         if ($submit) {
-            $this->fw['VERB'] = 'POST';
-            $this->fw['POST'] = array(
-                'form' => array('_form' => 'form', 'foo' => array(5)),
-            );
+            $this->fw->set('VERB', 'POST');
+            $this->fw->set('POST.form', array('_form' => 'form', 'foo' => array(5)));
 
             $this->assertTrue($this->form->isSubmitted());
             $this->assertTrue($this->form->valid());
@@ -356,7 +350,7 @@ class FormTest extends TestCase
         $this->assertNull($this->form->foo);
     }
 
-    public function getValidations()
+    public function validProvider()
     {
         return array(
             array(
@@ -416,7 +410,7 @@ class FormTest extends TestCase
         );
     }
 
-    public function getExpectations()
+    public function renderProvider()
     {
         return array(
             array(
@@ -538,7 +532,7 @@ class FormTest extends TestCase
         );
     }
 
-    public function getTransformations()
+    public function renderTransformationProvider()
     {
         return array(
             array(

@@ -31,13 +31,13 @@ class HttpException extends \Exception
      * @param string|null $message
      * @param int         $code
      * @param array|null  $headers
-     * @param Exception   $prev
+     * @param Throwable   $previos
      */
-    public function __construct(string $message = null, int $code = 500, array $headers = null, \Exception $prev = null)
+    public function __construct(string $message = null, int $code = 500, array $headers = null, \Throwable $previos = null)
     {
-        parent::__construct((string) $message, $code, $prev);
+        parent::__construct($message ?? '', $code, $previos);
 
-        $this->headers = (array) $headers;
+        $this->headers = $headers ?? array();
     }
 
     /**

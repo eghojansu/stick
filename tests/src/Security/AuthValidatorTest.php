@@ -28,7 +28,7 @@ class AuthValidatorTest extends TestCase
 
     public function setUp()
     {
-        $this->auth = new Auth(new Fw(), new InMemoryUserProvider(), new PlainPasswordEncoder());
+        $this->auth = new Auth(new Fw('phpunit-test'), new InMemoryUserProvider(), new PlainPasswordEncoder());
         $this->validator = new AuthValidator($this->auth);
     }
 
@@ -39,7 +39,7 @@ class AuthValidatorTest extends TestCase
     }
 
     /**
-     * @dataProvider getValidations
+     * @dataProvider validatePasswordProvider
      */
     public function testValidatePassword($user, $password, $expected = true)
     {
@@ -48,7 +48,7 @@ class AuthValidatorTest extends TestCase
         $this->assertEquals($expected, $this->validator->validate('password', $password));
     }
 
-    public function getValidations()
+    public function validatePasswordProvider()
     {
         return array(
             array(null, 'bar'),

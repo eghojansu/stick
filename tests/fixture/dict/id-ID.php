@@ -1,5 +1,5 @@
 <?php
 
 return array(
-    'a_flag' => 'Bendera siji',
+    'a_flag' => 'Sebuah bendera nasional',
 );

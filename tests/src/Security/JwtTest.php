@@ -64,12 +64,11 @@ class JwtTest extends TestCase
         $this->assertEquals('baz', $this->jwt->getDecodeKey());
     }
 
-    /**
-     * @expectedException \LogicException
-     * @expectedExceptionMessage Key may not be empty.
-     */
     public function testSetKeyException()
     {
+        $this->expectException('LogicException');
+        $this->expectExceptionMessage('Key may not be empty.');
+
         $this->jwt->setKey(null);
     }
 
@@ -83,7 +82,9 @@ class JwtTest extends TestCase
         $this->assertEquals(30, $this->jwt->setLeeway(30)->getLeeway());
     }
 
-    /** @dataProvider getSource */
+    /**
+     * @dataProvider encodeDecodeProvider
+     */
     public function testEncode($raw, $expected, $key1, $key2, $algorithm)
     {
         $res = $this->jwt
@@ -94,7 +95,9 @@ class JwtTest extends TestCase
         $this->assertEquals($expected, $res);
     }
 
-    /** @dataProvider getSource */
+    /**
+     * @dataProvider encodeDecodeProvider
+     */
     public function testDecode($expected, $encoded, $key1, $key2, $algorithm)
     {
         $res = $this->jwt
@@ -116,136 +119,34 @@ class JwtTest extends TestCase
         $this->assertEquals(array('foo' => 'bar'), $decoded);
     }
 
-    /**
-     * @expectedException \LogicException
-     * @expectedExceptionMessage Algorithm is not supported.
-     */
     public function testEncodeException()
     {
+        $this->expectException('LogicException');
+        $this->expectExceptionMessage('Algorithm is not supported.');
+
         $this->jwt->setAlgorithm('foo');
         $this->jwt->encode(array('foo' => 'bar'));
     }
 
     /**
-     * @expectedException \UnexpectedValueException
-     * @expectedExceptionMessage Wrong number of segments.
+     * @dataProvider decodeExceptionProvider
      */
-    public function testDecodeException()
+    public function testDecodeException($expected, $token, $exception = 'UnexpectedValueException', $calls = null)
     {
-        $this->jwt->decode('foo.bar');
-    }
+        $this->expectException($exception);
+        $this->expectExceptionMessage($expected);
 
-    /**
-     * @expectedException \UnexpectedValueException
-     * @expectedExceptionMessage Invalid header encoding.
-     */
-    public function testDecodeException2()
-    {
-        $token = base64_encode(json_encode(null)).'.'.
-               base64_encode(json_encode(array())).'.'.'foo';
+        foreach ($calls ?? array() as $call => $arguments) {
+            $this->jwt->$call(...$arguments);
+        }
 
         $this->jwt->decode($token);
     }
 
-    /**
-     * @expectedException \UnexpectedValueException
-     * @expectedExceptionMessage Invalid claims encoding.
-     */
-    public function testDecodeException3()
+    public function encodeDecodeProvider()
     {
-        $token = base64_encode(json_encode(array())).'.'.
-               base64_encode(json_encode(null)).'.'.'foo';
-
-        $this->jwt->decode($token);
-    }
-
-    /**
-     * @expectedException \LogicException
-     * @expectedExceptionMessage Empty algorithm.
-     */
-    public function testDecodeException4()
-    {
-        $token = base64_encode(json_encode(array())).'.'.
-               base64_encode(json_encode(array())).'.'.'foo';
-
-        $this->jwt->decode($token);
-    }
-
-    /**
-     * @expectedException \LogicException
-     * @expectedExceptionMessage Algorithm is not allowed.
-     */
-    public function testDecodeException5()
-    {
-        $token = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJmb28iOiJiYXIifQ.MekmeDm4rnoablDhbHYq06RqWmaRcjNsdGfHAkXqOk4';
-
-        $this->jwt->setSupportedAlgorithms(array('RS256'));
-        $this->jwt->decode($token);
-    }
-
-    /**
-     * @expectedException \UnexpectedValueException
-     * @expectedExceptionMessage Signature verification failed
-     */
-    public function testDecodeException6()
-    {
-        $token = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJmb28iOiJiYXIifQ.MekmeDm4rnoablDhbHYq06RqWmaRcjNsdGfHAkXqOk4';
-
-        $this->jwt->setKey('foo', 'bar');
-        $this->jwt->decode($token);
-    }
-
-    /**
-     * @expectedException \RuntimeException
-     * @expectedExceptionRegex /Cannot handle token prior to/
-     */
-    public function testDecodeException7()
-    {
-        // token nbf is 2050-10-10
-        $token = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJuYmYiOjI1NDg5NDc2MDAsImZvbyI6ImJhciJ9.-EJxuzLsbSBnN3AxRhBSwiRIYRlNdEajaq_Da6MAmg8';
-
-        $this->jwt->decode($token);
-    }
-
-    /**
-     * @expectedException \RuntimeException
-     * @expectedExceptionRegex /Cannot handle token prior to/
-     */
-    public function testDecodeException8()
-    {
-        // token iat is 2050-10-10
-        $token = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpYXQiOjI1NDg5NDc2MDAsImZvbyI6ImJhciJ9.pGaZoaU1CKffyH87M3cqhcQXyPeeJoV7G7SbC_Af8-8';
-
-        $this->jwt->decode($token);
-    }
-
-    /**
-     * @expectedException \RuntimeException
-     * @expectedExceptionMessage Expired token.
-     */
-    public function testDecodeException9()
-    {
-        // token exp is 2010-10-10
-        $token = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJleHAiOjEyODY2NDM2MDAsImZvbyI6ImJhciJ9.tDm7nkF37O7vWz7sMqvKMZScJyORM09gZaJo9SMrd8M';
-
-        $this->jwt->decode($token);
-    }
-
-    /**
-     * @expectedException \LogicException
-     * @expectedExceptionMessage Algorithm is not supported.
-     */
-    public function testDecodeException10()
-    {
-        // token header[alg] is foo
-        $token = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJmb28ifQ.eyJmb28iOiJiYXIifQ.YNt7nopdnvWMOjVaI6qyLK6zPvdobh_T8YuDlg9aHhY';
-        $this->jwt->decode($token);
-    }
-
-    public function getSource()
-    {
-        $private = openssl_get_privatekey('file:///'.FIXTURE.'ssh/private.key');
-        $public = openssl_get_publickey('file:///'.FIXTURE.'ssh/public.pem');
+        $private = openssl_get_privatekey('file:///'.TEST_FIXTURE.'ssh/private.key');
+        $public = openssl_get_publickey('file:///'.TEST_FIXTURE.'ssh/public.pem');
 
         return array(
             array(
@@ -289,6 +190,69 @@ class JwtTest extends TestCase
                 $private,
                 $public,
                 'RS512',
+            ),
+        );
+    }
+
+    public function decodeExceptionProvider()
+    {
+        return array(
+            array(
+                'Wrong number of segments.',
+                'foo.bar',
+            ),
+            array(
+                'Invalid header encoding.',
+                base64_encode(json_encode(null)).'.'.base64_encode(json_encode(array())).'.'.'foo',
+            ),
+            array(
+                'Invalid claims encoding.',
+                base64_encode(json_encode(array())).'.'.base64_encode(json_encode(null)).'.'.'foo',
+            ),
+            array(
+                'Empty algorithm.',
+                base64_encode(json_encode(array())).'.'.base64_encode(json_encode(array())).'.'.'foo',
+                'LogicException',
+            ),
+            array(
+                'Algorithm is not allowed.',
+                'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJmb28iOiJiYXIifQ.MekmeDm4rnoablDhbHYq06RqWmaRcjNsdGfHAkXqOk4',
+                'LogicException',
+                array(
+                    'setSupportedAlgorithms' => array(array('RS256')),
+                ),
+            ),
+            array(
+                'Signature verification failed',
+                'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJmb28iOiJiYXIifQ.MekmeDm4rnoablDhbHYq06RqWmaRcjNsdGfHAkXqOk4',
+                'UnexpectedValueException',
+                array(
+                    'setKey' => array('foo', 'bar'),
+                ),
+            ),
+            array(
+                'Token can not be used right now.',
+                // token nbf is 2050-10-10
+                'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJuYmYiOjI1NDg5NDc2MDAsImZvbyI6ImJhciJ9.-EJxuzLsbSBnN3AxRhBSwiRIYRlNdEajaq_Da6MAmg8',
+                'RuntimeException',
+            ),
+            array(
+                'Token can not be used right now.',
+                // token iat is 2050-10-10
+                'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpYXQiOjI1NDg5NDc2MDAsImZvbyI6ImJhciJ9.pGaZoaU1CKffyH87M3cqhcQXyPeeJoV7G7SbC_Af8-8',
+                'RuntimeException',
+            ),
+            array(
+                'Token expired.',
+                // token iat is 2050-10-10
+                'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJleHAiOjEyODY2NDM2MDAsImZvbyI6ImJhciJ9.tDm7nkF37O7vWz7sMqvKMZScJyORM09gZaJo9SMrd8M',
+                'RuntimeException',
+            ),
+            array(
+                'Algorithm is not supported.',
+                // token header[alg] is foo
+                'eyJ0eXAiOiJKV1QiLCJhbGciOiJmb28ifQ.eyJmb28iOiJiYXIifQ.YNt7nopdnvWMOjVaI6qyLK6zPvdobh_T8YuDlg9aHhY',
+                'LogicException',
             ),
         );
     }

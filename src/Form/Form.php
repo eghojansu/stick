@@ -14,7 +14,7 @@ declare(strict_types=1);
 namespace Fal\Stick\Form;
 
 use Fal\Stick\Fw;
-use Fal\Stick\Util\Html;
+use Fal\Stick\Html;
 use Fal\Stick\Validation\Validator;
 
 /**
@@ -415,8 +415,8 @@ class Form
      */
     public function isSubmitted(): bool
     {
-        $this->_submittedData = ((array) ($this->_fw[$this->_verb][$this->_name] ?? null)) + array('_form' => null);
-        $this->_submitted = $this->_verb === $this->_fw['VERB'] && $this->_submittedData['_form'] === $this->_name;
+        $this->_submittedData = (array) $this->_fw->get($this->_verb.'.'.$this->_name) + array('_form' => null);
+        $this->_submitted = $this->_verb === $this->_fw->get('VERB') && $this->_submittedData['_form'] === $this->_name;
         $this->reverseTransformData();
 
         return $this->_submitted;

@@ -13,9 +13,6 @@ declare(strict_types=1);
 
 namespace Fal\Stick;
 
-use Fal\Stick\Util\Cli;
-use Fal\Stick\Util\Zip;
-
 /**
  * Extensible console command wrapper.
  *
@@ -48,12 +45,12 @@ class Console
      */
     public function __construct(Fw $fw, Cli $cli)
     {
-        if (!isset($fw['RULES']['Fal\\Stick\\Console'])) {
-            $fw->setRule('Fal\\Stick\\Console', $this);
+        if (!$fw->exists('RULES.Fal\\Stick\\Console')) {
+            $fw->rule('Fal\\Stick\\Console', $this);
         }
 
-        if (!isset($fw['RULES']['Fal\\Stick\\Util\\Cli'])) {
-            $fw->setRule('Fal\\Stick\\Util\\Cli', $cli);
+        if (!$fw->exists('RULES.Fal\\Stick\\Cli')) {
+            $fw->rule('Fal\\Stick\\Cli', $cli);
         }
 
         $this->fw = $fw;
@@ -98,7 +95,7 @@ class Console
                 array('file', null, 'VERSION', 'File to save installed version'),
                 array('versions', null, null, 'List of versions install instructions'),
             ),
-            'help' => '<comment>Note:</comment> Better to save install instruction in configuration file.',
+            'help' => '<comment>Note:</comment> Better to save install instruction in configuration file (<info>.stick.dist</info>)',
         ));
     }
 
@@ -112,7 +109,7 @@ class Console
         $fw->controller('Fal\\Stick\\Console', array(
             'GET / cli' => 'run',
             'GET /@command cli' => 'run',
-            'GET /@command/* cli' => 'run',
+            'GET /@command/@arguments* cli' => 'run',
         ));
     }
 
@@ -120,12 +117,12 @@ class Console
      * Handle command.
      *
      * @param string|null $command
-     * @param mixed       ...$args
+     * @param array       $arguments
      */
-    public function run($command = null, ...$args): void
+    public function run($command = null, $arguments = null): void
     {
         try {
-            $options = $this->fw['GET'] ?? array();
+            $options = $this->fw->get('GET') ?? array();
             $config = $this->findConfiguration($options['config'] ?? null);
             $default = (string) ($config['default_command'] ?? 'help');
             $envFile = (string) ($config['env_file'] ?? null);
@@ -138,7 +135,7 @@ class Console
                 $this->addCommand($name, $definition);
             }
 
-            $this->doRun($command ?? $default, (array) ($config[$command] ?? null), $options, $args);
+            $this->doRun($command ?? $default, (array) ($config[$command] ?? null), $options, $arguments ?? array());
         } catch (\Throwable $e) {
             $this->handleException($e);
         }
@@ -312,7 +309,7 @@ class Console
 
         foreach ($files as $i => $file) {
             if ($file && is_file($file)) {
-                return (array) Fw::requireFile($file);
+                return (array) requireFile($file);
             }
 
             if ($i <= 1 && null != $file) {
@@ -338,7 +335,7 @@ class Console
         $command = $args['command'] ?? $def['name'];
 
         if ($self = $command === $def['name']) {
-            $console->cli->writeln('<info>%s</info> version <comment>%s</comment>', $fw['PACKAGE'], $fw['VERSION']);
+            $console->cli->writeln('<info>%s</info> version <comment>%s</comment>', $fw->get('PACKAGE'), $fw->get('VERSION'));
 
             if (false !== $options['version']) {
                 return;
@@ -447,34 +444,31 @@ class Console
             'public/robots.txt' => "User-agent: *\nDisallow: /",
             'public/index.php' => "<?php\n\n".
                 "require __DIR__.'/../vendor/autoload.php';\n\n".
-                'AppKernel::create()->run();'.
+                "(require __DIR__.'/../app/bootstrap.php')->run();".
                 "\n",
-            'app/Kernel.php' => "<?php\n\n".
-                "use Fal\\Stick\\Fw;\n".
-                "use Fal\\Stick\\Kernel;\n".
-                "\n".
-                "class AppKernel extends Kernel\n".
-                "{\n".
-                "    protected function boot()\n".
-                "    {\n".
-                "        \$config = array_replace_recursive(Fw::requireFile(__DIR__.'/config.dist.php'), (array) Fw::requireFile(__DIR__.'/config.php'));\n\n".
-                "        \$this->fw->registerShutdownHandler();\n".
-                "        \$this->fw->mset(array(\n".
-                "            'APP_DIR' => __DIR__.'/',\n".
-                "            'DB_DSN' => \$config['db']['dsn'] ?? null,\n".
-                "            'DB_USERNAME' => \$config['db']['username'] ?? null,\n".
-                "            'DB_PASSWORD' => \$config['db']['password'] ?? null,\n".
-                "            'CACHE' => \$config['cache'] ?? null,\n".
-                "            'DEBUG' => \$config['debug'] ?? false,\n".
-                "            'LOG' => \$config['log'] ?? null,\n".
-                "            'THRESHOLD' => \$config['threshold'] ?? 'error',\n".
-                "            'TEMP' => \$config['temp'] ?? dirname(__DIR__).'/var/',\n".
-                "            'RULES' => require __DIR__.'/services.php',\n".
-                "            'ROUTES' => require __DIR__.'/routes.php',\n".
-                "            'CONTROLLERS' => require __DIR__.'/controllers.php',\n".
-                "        ));\n".
-                "    }\n".
-                "}\n",
+            'app/env.php' => "<?php\n\n".
+                "\$config = require __DIR__.'/config.dist.php';\n\n".
+                "if (file_exists(\$file = __DIR__.'/config.php')) {".
+                "    \$config = array_replace_recursive(\$config, (array) require \$file);\n".
+                "}\n\n".
+                "return array(\n".
+                "    'APP_DIR' => __DIR__.'/',\n".
+                "    'DB_DSN' => \$config['db']['dsn'] ?? null,\n".
+                "    'DB_USERNAME' => \$config['db']['username'] ?? null,\n".
+                "    'DB_PASSWORD' => \$config['db']['password'] ?? null,\n".
+                "    'CACHE' => \$config['cache'] ?? null,\n".
+                "    'DEBUG' => \$config['debug'] ?? false,\n".
+                "    'LOG' => \$config['log'] ?? null,\n".
+                "    'THRESHOLD' => \$config['threshold'] ?? 'error',\n".
+                "    'TEMP' => \$config['temp'] ?? dirname(__DIR__).'/var/',\n".
+                "    'RULES' => require __DIR__.'/services.php',\n".
+                "    'ROUTES' => require __DIR__.'/routes.php',\n".
+                "    'CONTROLLERS' => require __DIR__.'/controllers.php',\n".
+                ");\n",
+            'app/bootstrap.php' => "<?php\n\n".
+                "return Fal\\Stick\\Fw::createFromGlobals()\n".
+                "    ->config(__DIR__.'/env.php')\n".
+                ";\n",
             'app/config.dist.php' => "<?php\n\n".
                 "return array(\n".
                 "    'db' => array(\n".
@@ -500,7 +494,7 @@ class Console
             'app/services.php' => "<?php\n\n".
                 "return array(\n".
                 "    array('Fal\\\\Stick\\\\Sql\\\\Connection', array(\n".
-                "        'args' => array(\n".
+                "        'arguments' => array(\n".
                 "            'fw' => '%fw%',\n".
                 "            'dsn' => '%DB_DSN%',\n".
                 "            'username' => '%DB_USERNAME%',\n".
@@ -508,7 +502,7 @@ class Console
                 "        ),\n".
                 "    )),\n".
                 "    array('Fal\\\\Stick\\\\Template\\\\Template', array(\n".
-                "        'args' => array(\n".
+                "        'arguments' => array(\n".
                 "            'fw' => '%fw%',\n".
                 "            'paths' => __DIR__.'/template/',\n".
                 "        ),\n".
@@ -517,7 +511,7 @@ class Console
                 ");\n",
             'README.md' => "README\n".
                 "======\n\n".
-                'Thank you.',
+                'Thank you for choosing this framework.',
             '.stick.dist' => "<?php\n\n".
                 "return array(\n".
                 "    'commands' => array()\n".
@@ -688,7 +682,7 @@ class Console
     {
         $fw->mark();
 
-        $file = $fw['TEMP'].$options['file'];
+        $file = $fw->get('TEMP').$options['file'];
         $installedVersion = ($content = $fw->read($file, true)) ? strstr($content, "\n", true) : '0.0.0';
 
         $installers = (array) $options['versions'];
@@ -702,7 +696,7 @@ class Console
             return;
         }
 
-        $fw->cache('reset');
+        $fw->cacheReset();
 
         foreach ($versions as $version) {
             $schemas = $installers[$version]['schemas'] ?? null;

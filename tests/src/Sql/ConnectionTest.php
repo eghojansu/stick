@@ -24,13 +24,13 @@ class ConnectionTest extends TestCase
 
     public function setUp()
     {
-        $this->fw = new Fw();
+        $this->fw = new Fw('phpunit-test');
         $this->build();
     }
 
     public function testPdoType()
     {
-        $fp = fopen(FIXTURE.'files/long.txt', 'rb');
+        $fp = fopen(TEST_FIXTURE.'files/long.txt', 'rb');
 
         $this->assertEquals(\PDO::PARAM_LOB, $this->conn->pdoType($fp));
         $this->assertEquals(\PDO::PARAM_NULL, $this->conn->pdoType(null));
@@ -43,7 +43,7 @@ class ConnectionTest extends TestCase
 
     public function testPhpValue()
     {
-        $fp = fopen(FIXTURE.'files/long.txt', 'rb');
+        $fp = fopen(TEST_FIXTURE.'files/long.txt', 'rb');
 
         $this->assertEquals((binary) $fp, $this->conn->phpValue($fp, \PDO::PARAM_LOB));
         $this->assertEquals(null, $this->conn->phpValue('foo', \PDO::PARAM_NULL));
@@ -80,12 +80,11 @@ class ConnectionTest extends TestCase
         $this->assertInstanceOf('PDO', $this->conn->getPdo());
     }
 
-    /**
-     * @expectedException \LogicException
-     * @expectedExceptionMessage Database connection failed!
-     */
     public function testGetPdoException()
     {
+        $this->expectException('LogicException');
+        $this->expectExceptionMessage('Database connection failed!');
+
         $this->build(null, null, null, array('invalid query;'));
         $this->conn->getPdo();
     }
@@ -169,7 +168,6 @@ class ConnectionTest extends TestCase
     public function testGetTableSchemaCache()
     {
         $this->setupCache();
-        $this->fw->cache('reset');
 
         $init = $this->conn->getTableSchema('user', null, 1);
         $cached = $this->conn->getTableSchema('user', null, 1);
@@ -177,12 +175,11 @@ class ConnectionTest extends TestCase
         $this->assertEquals($init, $cached);
     }
 
-    /**
-     * @expectedException \LogicException
-     * @expectedExceptionMessage Driver unknown is not supported
-     */
     public function testGetTableSchemaException()
     {
+        $this->expectException('LogicException');
+        $this->expectExceptionMessage('Driver unknown is not supported.');
+
         $this->changeDriver('unknown');
         $this->conn->getTableSchema('user');
     }
@@ -252,30 +249,14 @@ class ConnectionTest extends TestCase
     }
 
     /**
-     * @expectedException \LogicException
-     * @expectedExceptionMessage Cannot execute an empty query!
+     * @dataProvider execExceptionProvider
      */
-    public function testExecException()
+    public function testExecException($sql, $message, $exception = 'LogicException')
     {
-        $this->conn->exec(' ');
-    }
+        $this->expectException($exception);
+        $this->expectExceptionMessage($message);
 
-    /**
-     * @expectedException \LogicException
-     * @expectedExceptionMessage PDO: incomplete input.
-     */
-    public function testExecException2()
-    {
-        $this->conn->exec('select');
-    }
-
-    /**
-     * @expectedException \LogicException
-     * @expectedExceptionMessage PDOStatement: NOT NULL constraint failed: user.username.
-     */
-    public function testExecException3()
-    {
-        $this->conn->exec('INSERT INTO user (username) VALUES (NULL)');
+        $this->conn->exec($sql);
     }
 
     public function testExecAll()
@@ -292,13 +273,22 @@ class ConnectionTest extends TestCase
         $this->assertCount(1, $result[2]);
     }
 
+    public function execExceptionProvider()
+    {
+        return array(
+            array(' ', 'Cannot execute an empty query!'),
+            array('SELECT', 'PDO: incomplete input.'),
+            array('INSERT INTO user (username) VALUES (NULL)', 'PDOStatement: NOT NULL constraint failed: user.username.'),
+        );
+    }
+
     private function build($dsn = null, $username = null, $password = null, $commands = null)
     {
         $this->conn = new Connection($this->fw, ...array(
             $dsn ?? 'sqlite::memory:',
             $username,
             $password,
-            $commands ?? array(file_get_contents(FIXTURE.'files/schema.sql')),
+            $commands ?? array(file_get_contents(TEST_FIXTURE.'files/schema.sql')),
         ));
     }
 
@@ -309,8 +299,8 @@ class ConnectionTest extends TestCase
 
     private function enableLog()
     {
-        $this->fw['LOG'] = TEMP.'log-conn/';
-        $this->fw['THRESHOLD'] = 'debug';
+        $this->fw->set('LOG', TEST_TEMP.'log-conn/');
+        $this->fw->set('THRESHOLD', 'debug');
     }
 
     private function changeDriver($driver)
@@ -324,7 +314,7 @@ class ConnectionTest extends TestCase
 
     private function setupCache()
     {
-        $this->fw['CACHE'] = 'fallback';
-        $this->fw->cache('reset');
+        $this->fw->set('CACHE', 'true');
+        $this->fw->cacheReset();
     }
 }

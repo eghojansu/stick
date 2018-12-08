@@ -30,10 +30,10 @@ class Auth
     const ERROR_CREDENTIAL_EXPIRED = 'Your credentials is expired.';
 
     // Supported events
-    const EVENT_LOGIN = 'auth.login';
-    const EVENT_LOGOUT = 'auth.logout';
-    const EVENT_LOAD_USER = 'auth.load_user';
-    const EVENT_VOTE = 'auth.vote';
+    const EVENT_LOGIN = 'auth_login';
+    const EVENT_LOGOUT = 'auth_logout';
+    const EVENT_LOAD_USER = 'auth_load_user';
+    const EVENT_VOTE = 'auth_vote';
 
     /**
      * @var Fw
@@ -106,7 +106,7 @@ class Auth
      */
     public function guard(): bool
     {
-        $path = $this->fw['PATH'];
+        $path = urldecode($this->fw->get('PATH'));
 
         if (in_array($path, $this->options['excludes'])) {
             return false;
@@ -170,7 +170,7 @@ class Auth
         $attributes = $this->getUserRoles();
         $granted = (bool) array_intersect($this->fw->split($roles), $attributes);
 
-        if ($granted && false === $this->fw->trigger(self::EVENT_VOTE, array($data, $attributes))) {
+        if ($granted && false === $this->fw->dispatch(self::EVENT_VOTE, array($data, $attributes))) {
             return false;
         }
 
@@ -206,7 +206,7 @@ class Auth
     }
 
     /**
-     * Set current user and trigger login event.
+     * Set current user and dispatch login event.
      *
      * @param UserInterface $user
      * @param bool|null     $remember
@@ -215,7 +215,7 @@ class Auth
      */
     public function login(UserInterface $user, bool $remember = null): Auth
     {
-        $this->fw->trigger(self::EVENT_LOGIN, array($user));
+        $this->fw->dispatch(self::EVENT_LOGIN, array($user));
 
         $this->user = $user;
         $this->fw->set('SESSION.'.self::SESSION_KEY, $user->getId());
@@ -235,13 +235,13 @@ class Auth
     public function logout(): Auth
     {
         $user = $this->getUser();
-        $this->fw->trigger(self::EVENT_LOGOUT, array($user));
+        $this->fw->dispatch(self::EVENT_LOGOUT, array($user));
 
         $this->userLoaded = false;
         $this->userRoles = null;
         $this->user = null;
         $this->extraRoles = null;
-        $this->fw->mclear('SESSION.'.self::SESSION_KEY.',COOKIE.'.self::SESSION_KEY);
+        $this->fw->allClear('SESSION.'.self::SESSION_KEY.',COOKIE.'.self::SESSION_KEY);
 
         return $this;
     }
@@ -257,7 +257,7 @@ class Auth
             return $this->user;
         }
 
-        if (($user = $this->fw->trigger(self::EVENT_LOAD_USER)) && $user instanceof UserInterface) {
+        if (($user = $this->fw->dispatch(self::EVENT_LOAD_USER)) && $user instanceof UserInterface) {
             $this->user = $user;
             $this->userRoles = null;
         }

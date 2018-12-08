@@ -26,7 +26,7 @@ class BcryptPasswordEncoderTest extends TestCase
     }
 
     /**
-     * @dataProvider getHashes
+     * @dataProvider hashProvider
      */
     public function testHash($plain)
     {
@@ -43,7 +43,7 @@ class BcryptPasswordEncoderTest extends TestCase
         $this->assertFalse($this->encoder->verify('bar', $hash));
     }
 
-    public function getHashes()
+    public function hashProvider()
     {
         return array(
             array('foo'),

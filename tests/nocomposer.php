@@ -1,17 +1,15 @@
 <?php
 
+use Fal\Stick\Cli;
 use Fal\Stick\Fw;
-use Fal\Stick\Util\Cli;
 
-require dirname(__DIR__).'/src/Fw.php';
-
-Fw::createFromGlobals()
-    ->registerShutdownHandler()
-    ->registerAutoload()
+(require dirname(__DIR__).'/src/bootstrap.php')
     ->emulateCliRequest()
     ->route('GET /', function(Fw $fw, Cli $cli) {
-        $cli->writeln('<error>  You should see this error message in red box  </error>');
-        $cli->writeln('  if you are in CLI mode which is</error> "<info>%s</info>".', var_export($fw['CLI'], true));
+        $cli->writeln('<question>  We are good?  </question>');
+        $cli->writeln();
+        $cli->writeln('  Package: <info>%s</info>', Fw::PACKAGE);
+        $cli->writeln('  Version: <comment>%s</comment>', Fw::VERSION);
     })
     ->run()
 ;

@@ -273,19 +273,19 @@ class Jwt
         // Check if the nbf if it is defined. This is the time that the
         // token can actually be used. If it's not yet that time, abort.
         if (isset($fix['nbf']) && $fix['nbf'] > (time() + $this->leeway)) {
-            throw new \RuntimeException(sprintf('Cannot handle token prior to %s.', date(\DateTime::ISO8601, $fix['nbf'])));
+            throw new \RuntimeException('Token can not be used right now.');
         }
 
         // Check that this token has been created before 'now'. This prevents
         // using tokens that have been created for later use (and haven't
         // correctly used the nbf claim).
         if (isset($fix['iat']) && $fix['iat'] > (time() + $this->leeway)) {
-            throw new \RuntimeException(sprintf('Cannot handle token prior to %s.', date(\DateTime::ISO8601, $fix['iat'])));
+            throw new \RuntimeException('Token can not be used right now.');
         }
 
         // Check if this token has expired.
         if (isset($fix['exp']) && (time() - $this->leeway) >= $fix['exp']) {
-            throw new \RuntimeException('Expired token.');
+            throw new \RuntimeException('Token expired.');
         }
 
         return $payload;

@@ -15,7 +15,7 @@ namespace Fal\Stick\Test;
 
 use Fal\Stick\Console;
 use Fal\Stick\Fw;
-use Fal\Stick\Util\Cli;
+use Fal\Stick\Cli;
 use PHPUnit\Framework\TestCase;
 
 class ConsoleTest extends TestCase
@@ -26,21 +26,21 @@ class ConsoleTest extends TestCase
 
     public function setUp()
     {
-        $this->console = new Console($this->fw = new Fw(), $this->cli = new Cli());
+        $this->console = new Console($this->fw = new Fw('phpunit-test'), $this->cli = new Cli());
     }
 
     public function testRegister()
     {
         Console::register($this->fw);
 
-        $expected = array('/', '/@command', '/@command/*');
-        $actual = array_keys($this->fw['ROUTES']);
+        $expected = array('/', '/@command', '/@command/@arguments*');
+        $actual = array_keys($this->fw->get('ROUTES'));
 
         $this->assertEquals($expected, $actual);
     }
 
     /**
-     * @dataProvider getHelps
+     * @dataProvider helpProvider
      */
     public function testHelpCommand($expected, $command = 'help', $version = false)
     {
@@ -51,7 +51,7 @@ class ConsoleTest extends TestCase
 
     public function testInitCommand()
     {
-        $dir = TEMP.'init-test/';
+        $dir = TEST_TEMP.'init-test/';
 
         if (is_dir($dir)) {
             $directoryIterator = new \RecursiveDirectoryIterator($dir);
@@ -81,7 +81,8 @@ class ConsoleTest extends TestCase
         $this->assertFileExists($dir.'app/controllers.php');
         $this->assertFileExists($dir.'app/routes.php');
         $this->assertFileExists($dir.'app/services.php');
-        $this->assertFileExists($dir.'app/Kernel.php');
+        $this->assertFileExists($dir.'app/env.php');
+        $this->assertFileExists($dir.'app/bootstrap.php');
         $this->assertFileExists($dir.'public/index.php');
         $this->assertFileExists($dir.'public/robots.txt');
         $this->assertFileExists($dir.'composer.json');
@@ -90,22 +91,26 @@ class ConsoleTest extends TestCase
         $this->assertFileExists($dir.'.gitignore');
         $this->assertFileExists($dir.'.php_cs.dist');
         $this->assertFileExists($dir.'.stick.dist');
+
+        $fw = require $dir.'app/bootstrap.php';
+        $fw->run();
+
+        $this->assertEquals('Welcome home, Vanilla lover!', $fw->get('OUTPUT'));
     }
 
-    /**
-     * @expectedException \LogicException
-     * @expectedExceptionMessage Destination directory not exists: "".
-     */
     public function testInitException()
     {
+        $this->expectException('LogicException');
+        $this->expectExceptionMessage('Destination directory not exists: "".');
+
         Console::initCommand($this->fw, $this->cli, array('working-dir' => ''));
     }
 
     public function testBuildCommand()
     {
         $options = array(
-            'working-dir' => FIXTURE.'compress/',
-            'destination' => TEMP,
+            'working-dir' => TEST_FIXTURE.'compress/',
+            'destination' => TEST_TEMP,
             'version' => 'dev',
             'add' => null,
             'excludes' => null,
@@ -113,7 +118,7 @@ class ConsoleTest extends TestCase
             'merge_excludes' => 'a.php',
             'checkout' => false,
         );
-        $file = TEMP.'compress-dev.zip';
+        $file = TEST_TEMP.'compress-dev.zip';
 
         $this->expectOutputRegex('/'.preg_quote($file, '/').'/s');
 
@@ -121,51 +126,17 @@ class ConsoleTest extends TestCase
     }
 
     /**
-     * @expectedException \LogicException
-     * @expectedExceptionMessage Working directory not exists: "foo".
+     * @dataProvider buildExceptionProvider
      */
-    public function testBuildException()
+    public function testBuildException($expected, $options, $exception = 'LogicException')
     {
-        Console::buildCommand($this->fw, $this->cli, array(
-            'working-dir' => 'foo',
-            'destination' => TEMP,
-            'version' => 'dev',
-            'add' => null,
-            'excludes' => null,
-            'merge' => '**/*.php',
-            'merge_excludes' => 'a.php',
-            'checkout' => false,
-        ));
-    }
+        $this->expectException($exception);
+        $this->expectExceptionMessage($expected);
 
-    /**
-     * @expectedException \LogicException
-     * @expectedExceptionMessage Destination directory not exists: "foo".
-     */
-    public function testBuildException2()
-    {
-        Console::buildCommand($this->fw, $this->cli, array(
-            'working-dir' => FIXTURE.'compress/',
-            'destination' => 'foo',
+        Console::buildCommand($this->fw, $this->cli, $options + array(
+            'working-dir' => TEST_FIXTURE.'compress/',
+            'destination' => TEST_TEMP,
             'version' => 'dev',
-            'add' => null,
-            'excludes' => null,
-            'merge' => '**/*.php',
-            'merge_excludes' => 'a.php',
-            'checkout' => false,
-        ));
-    }
-
-    /**
-     * @expectedException \LogicException
-     * @expectedExceptionMessage Please provide release version.
-     */
-    public function testBuildException3()
-    {
-        Console::buildCommand($this->fw, $this->cli, array(
-            'working-dir' => FIXTURE.'compress/',
-            'destination' => TEMP,
-            'version' => '',
             'add' => null,
             'excludes' => null,
             'merge' => '**/*.php',
@@ -176,13 +147,13 @@ class ConsoleTest extends TestCase
 
     public function testSetupCommand()
     {
-        $this->fw->setRule('Fal\\Stick\\Sql\\Connection', array(
-            'args' => array(
+        $this->fw->rule('Fal\\Stick\\Sql\\Connection', array(
+            'arguments' => array(
                 'fw' => '%fw%',
                 'dsn' => 'sqlite::memory:',
             ),
         ));
-        $this->fw['TEMP'] = TEMP;
+        $this->fw->set('TEMP', TEST_TEMP);
         $options = array(
             'file' => 'TEST-VERSION',
             'versions' => array(
@@ -190,12 +161,12 @@ class ConsoleTest extends TestCase
                 'v0.1.0' => null,
                 'v0.1.0-beta' => null,
                 'v0.1.0-alpha' => array(
-                    'schemas' => FIXTURE.'files/schema.sql',
+                    'schemas' => TEST_FIXTURE.'files/schema.sql',
                     'run' => function () {},
                 ),
             ),
         );
-        $file = TEMP.'TEST-VERSION';
+        $file = TEST_TEMP.'TEST-VERSION';
 
         if (is_file($file)) {
             unlink($file);
@@ -235,53 +206,29 @@ class ConsoleTest extends TestCase
     }
 
     /**
-     * @expectedException \LogicException
-     * @expectedExceptionMessage Command "foo" is not callable.
+     * @dataProvider addCommandExceptionProvider
      */
-    public function testAddCommandException()
+    public function testAddCommandException($expected, $command, $exception = 'LogicException')
     {
-        $this->console->addCommand('foo', array(
-            'run' => 'foo',
-        ));
+        $this->expectException($exception);
+        $this->expectExceptionMessage($expected);
+
+        $this->console->addCommand('foo', $command);
     }
 
     /**
-     * @expectedException \LogicException
-     * @expectedExceptionMessage Command "foo", definition of argument-0 should be array with 3 elements.
-     */
-    public function testAddCommandException2()
-    {
-        $this->console->addCommand('foo', array(
-            'run' => function () {},
-            'args' => array(null),
-        ));
-    }
-
-    /**
-     * @expectedException \LogicException
-     * @expectedExceptionMessage Command "foo", definition of option-0 should be array with 4 elements.
-     */
-    public function testAddCommandException3()
-    {
-        $this->console->addCommand('foo', array(
-            'run' => function () {},
-            'options' => array(null),
-        ));
-    }
-
-    /**
-     * @dataProvider getCommands
+     * @dataProvider runProvider
      */
     public function testRun($expected, $command = null, $options = array(), $args = array())
     {
-        $this->fw['GET'] = $options;
+        $this->fw->set('GET', $options);
 
         $this->expectOutputRegex($expected);
 
-        $this->console->run($command, ...$args);
+        $this->console->run($command, $args);
     }
 
-    public function getHelps()
+    public function helpProvider()
     {
         return array(
             array('/command \[options\] \[arguments\]/'),
@@ -291,7 +238,7 @@ class ConsoleTest extends TestCase
         );
     }
 
-    public function getCommands()
+    public function runProvider()
     {
         return array(
             array('/Usage:/'),
@@ -300,9 +247,59 @@ class ConsoleTest extends TestCase
             array('/build \[options\]/', 'help', array(), array('build')),
             array('/Command "foo" is not defined/', 'foo'),
             array('/Configuration file is not found: "foo"/', null, array('config' => 'foo')),
-            array('/Custom command executed with env: foo!/', 'custom', array('config' => FIXTURE.'files/commands.php')),
-            array('/Custom command2 executed with arg-foo=bar and option-config=NULL!/', 'custom2', array('config' => FIXTURE.'files/commands.php')),
-            array('/custom2 \[options\] \[arguments\]/', 'custom2', array('config' => FIXTURE.'files/commands.php', 'help' => '')),
+            array('/Custom command executed with env: foo!/', 'custom', array('config' => TEST_FIXTURE.'files/commands.php')),
+            array('/Custom command2 executed with arg-foo=bar and option-config=NULL!/', 'custom2', array('config' => TEST_FIXTURE.'files/commands.php')),
+            array('/custom2 \[options\] \[arguments\]/', 'custom2', array('config' => TEST_FIXTURE.'files/commands.php', 'help' => '')),
+        );
+    }
+
+    public function buildExceptionProvider()
+    {
+        return array(
+            array(
+                'Working directory not exists: "foo".',
+                array(
+                    'working-dir' => 'foo',
+                ),
+            ),
+            array(
+                'Destination directory not exists: "foo".',
+                array(
+                    'destination' => 'foo',
+                ),
+            ),
+            array(
+                'Please provide release version.',
+                array(
+                    'version' => '',
+                ),
+            ),
+        );
+    }
+
+    public function addCommandExceptionProvider()
+    {
+        return array(
+            array(
+                'Command "foo" is not callable.',
+                array(
+                    'run' => 'foo',
+                ),
+            ),
+            array(
+                'Command "foo", definition of argument-0 should be array with 3 elements.',
+                array(
+                    'run' => function () {},
+                    'args' => array(null),
+                ),
+            ),
+            array(
+                'Command "foo", definition of option-0 should be array with 4 elements.',
+                array(
+                    'run' => function () {},
+                    'options' => array(null),
+                ),
+            ),
         );
     }
 }

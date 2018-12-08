@@ -10,7 +10,8 @@
     "autoload": {
         "psr-4": {
             "Fal\\Stick\\": "src/"
-        }
+        },
+        "files": ["src/functions.php"]
     },
     "autoload-dev": {
         "psr-4": {
@@ -22,18 +23,16 @@
         "php": ">=7.1"
     },
     "require-dev": {
+        "ext-apcu": "*",
         "ext-gd": "*",
+        "ext-memcache": "*",
+        "ext-memcached": "*",
         "ext-mysql": "*",
         "ext-pdo": "*",
+        "ext-redis": "*",
         "ext-sqlite3": "*",
         "ext-zip": "*",
         "phpunit/phpunit": "^7.4"
-    },
-    "suggest": {
-        "ext-gd": "To use image manipulation helper",
-        "ext-pdo": "To use sql mapper",
-        "ext-zip": "To use zip helper",
-        "phpunit/phpunit": "To use functional-test response helper"
     },
     "bin": [
         "stick"

@@ -16,6 +16,7 @@ namespace Fal\Stick\Test\Sql;
 use Fal\Stick\Fw;
 use Fal\Stick\Sql\Connection;
 use Fal\Stick\Sql\QueryBuilder;
+use Fixture\Mapper\TUser;
 use PHPUnit\Framework\TestCase;
 
 class QueryBuilderTest extends TestCase
@@ -25,12 +26,12 @@ class QueryBuilderTest extends TestCase
 
     public function setUp()
     {
-        $fw = new Fw();
+        $fw = new Fw('phpunit-test');
         $db = new Connection($fw, 'sqlite::memory:', null, null, array(
-            file_get_contents(FIXTURE.'files/schema.sql'),
+            file_get_contents(TEST_FIXTURE.'files/schema.sql'),
             'insert into user (username) values ("foo"), ("bar"), ("baz")',
         ));
-        $this->mapper = new \Fixture\Mapper\TUser($fw, $db);
+        $this->mapper = new TUser($fw, $db);
         $this->qb = new QueryBuilder($this->mapper);
     }
 
@@ -61,7 +62,7 @@ class QueryBuilderTest extends TestCase
     }
 
     /**
-     * @dataProvider getFilters
+     * @dataProvider filterProvider
      */
     public function testFilter($expected, $filter)
     {
@@ -73,12 +74,11 @@ class QueryBuilderTest extends TestCase
         $this->assertEquals(array(), $this->qb->filter(null));
     }
 
-    /**
-     * @expectedException \LogicException
-     * @expectedExceptionMessage BETWEEN operator needs an array operand, string given.
-     */
-    public function testFilterException1()
+    public function testFilterException()
     {
+        $this->expectException('LogicException');
+        $this->expectExceptionMessage('BETWEEN operator needs an array operand, string given.');
+
         $this->qb->filter(array('foo ><' => 'str'));
     }
 
@@ -126,7 +126,7 @@ class QueryBuilderTest extends TestCase
     }
 
     /**
-     * @dataProvider getUpdates
+     * @dataProvider updateProvider
      */
     public function testUpdate($id, $updates, $expectedSql, $expectedArgs)
     {
@@ -143,7 +143,7 @@ class QueryBuilderTest extends TestCase
     }
 
     /**
-     * @dataProvider getInsertions
+     * @dataProvider insertProvider
      */
     public function testInsert($values, $expectedSql, $expectedArgs)
     {
@@ -155,7 +155,7 @@ class QueryBuilderTest extends TestCase
         $this->assertEquals($expectedArgs, $args);
     }
 
-    public function getFilters()
+    public function filterProvider()
     {
         $filter = array();
 
@@ -243,7 +243,7 @@ class QueryBuilderTest extends TestCase
         return $filter;
     }
 
-    public function getUpdates()
+    public function updateProvider()
     {
         return array(
             array(
@@ -272,7 +272,7 @@ class QueryBuilderTest extends TestCase
         );
     }
 
-    public function getInsertions()
+    public function insertProvider()
     {
         return array(
             array(

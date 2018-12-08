@@ -23,37 +23,36 @@ class TemplateTest extends TestCase
 
     public function setUp()
     {
-        $this->template = new Template(new Fw(), FIXTURE.'template/', array(
+        $this->template = new Template(new Fw('phpunit-test'), TEST_FIXTURE.'template/', array(
             'profile' => true,
         ));
     }
 
     public function testGetPaths()
     {
-        $this->assertEquals(array(FIXTURE.'template/'), $this->template->getPaths());
+        $this->assertEquals(array(TEST_FIXTURE.'template/'), $this->template->getPaths());
     }
 
     public function testAddPath()
     {
-        $this->assertEquals(array(FIXTURE.'template/', 'foo'), $this->template->addPath('foo')->getPaths());
+        $this->assertEquals(array(TEST_FIXTURE.'template/', 'foo'), $this->template->addPath('foo')->getPaths());
     }
 
     public function testPrependPath()
     {
-        $this->assertEquals(array('foo', FIXTURE.'template/'), $this->template->prependPath('foo')->getPaths());
+        $this->assertEquals(array('foo', TEST_FIXTURE.'template/'), $this->template->prependPath('foo')->getPaths());
     }
 
     public function testFind()
     {
-        $this->assertEquals(FIXTURE.'template/layout.php', $this->template->find('layout'));
+        $this->assertEquals(TEST_FIXTURE.'template/layout.php', $this->template->find('layout'));
     }
 
-    /**
-     * @expectedException \LogicException
-     * @expectedExceptionMessage Template "foo" does not exists.
-     */
     public function testFindException()
     {
+        $this->expectException('LogicException');
+        $this->expectExceptionMessage('Template "foo" does not exists.');
+
         $this->template->find('foo');
     }
 
@@ -90,36 +89,34 @@ class TemplateTest extends TestCase
         $this->assertEquals('/foo', $this->template->path('foo'));
     }
 
-    /**
-     * @expectedException \LogicException
-     * @expectedExceptionMessage Call to undefined function "foo".
-     */
     public function testCallException()
     {
+        $this->expectException('LogicException');
+        $this->expectExceptionMessage('Call to undefined function "foo".');
+
         $this->template->foo();
     }
 
     /**
-     * @dataProvider getTemplates
+     * @dataProvider renderProvider
      */
     public function testRender($name, $context = null)
     {
         $actual = $this->template->render($name, $context);
-        $expected = file_get_contents(FIXTURE.'template/'.$name.'.html');
+        $expected = file_get_contents(TEST_FIXTURE.'template/'.$name.'.html');
 
         $this->assertEquals($expected, $actual);
     }
 
-    /**
-     * @expectedException \LogicException
-     * @expectedExceptionMessage Stop without starting point is not possible.
-     */
     public function testRenderException()
     {
+        $this->expectException('LogicException');
+        $this->expectExceptionMessage('Stop without starting point is not possible.');
+
         $this->template->render('nostart');
     }
 
-    public function getTemplates()
+    public function renderProvider()
     {
         return array(
             array('layout'),

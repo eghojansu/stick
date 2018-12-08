@@ -26,13 +26,13 @@ class Mapper implements \ArrayAccess
     const PAGINATION = 10;
 
     // Supported events
-    const EVENT_LOAD = 'mapper.load';
-    const EVENT_INSERT = 'mapper.insert';
-    const EVENT_AFTER_INSERT = 'mapper.after_insert';
-    const EVENT_UPDATE = 'mapper.update';
-    const EVENT_AFTER_UPDATE = 'mapper.after_update';
-    const EVENT_DELETE = 'mapper.delete';
-    const EVENT_AFTER_DELETE = 'mapper.after_delete';
+    const EVENT_LOAD = 'mapper_load';
+    const EVENT_INSERT = 'mapper_insert';
+    const EVENT_AFTER_INSERT = 'mapper_after_insert';
+    const EVENT_UPDATE = 'mapper_update';
+    const EVENT_AFTER_UPDATE = 'mapper_after_update';
+    const EVENT_DELETE = 'mapper_delete';
+    const EVENT_AFTER_DELETE = 'mapper_after_delete';
 
     /**
      * Fw instance.
@@ -136,10 +136,10 @@ class Mapper implements \ArrayAccess
     public function create(string $table, array $fields = null, int $ttl = 60): Mapper
     {
         if (is_subclass_of($table, self::class)) {
-            return $this->fw->instance($table);
+            return $this->fw->createInstance($table);
         }
 
-        return $this->fw->instance(static::class, array('args' => compact('table', 'fields', 'ttl')));
+        return $this->fw->createInstance(static::class, array('arguments' => compact('table', 'fields', 'ttl')));
     }
 
     /**
@@ -644,7 +644,7 @@ class Mapper implements \ArrayAccess
      */
     public function insert(): Mapper
     {
-        if ($this->fw->trigger(static::EVENT_INSERT, array($this))) {
+        if ($this->fw->dispatch(static::EVENT_INSERT, array($this))) {
             return $this;
         }
 
@@ -669,7 +669,7 @@ class Mapper implements \ArrayAccess
             $this->skip(0);
         }
 
-        $this->fw->trigger(static::EVENT_AFTER_INSERT, array($this));
+        $this->fw->dispatch(static::EVENT_AFTER_INSERT, array($this));
 
         return $this;
     }
@@ -681,7 +681,7 @@ class Mapper implements \ArrayAccess
      */
     public function update(): Mapper
     {
-        if ($this->fw->trigger(static::EVENT_UPDATE, array($this))) {
+        if ($this->fw->dispatch(static::EVENT_UPDATE, array($this))) {
             return $this;
         }
 
@@ -693,7 +693,7 @@ class Mapper implements \ArrayAccess
 
         // reset changed flag after calling afterupdate
         $this->schema = $changes;
-        $this->fw->trigger(static::EVENT_AFTER_UPDATE, array($this));
+        $this->fw->dispatch(static::EVENT_AFTER_UPDATE, array($this));
 
         return $this;
     }
@@ -726,7 +726,7 @@ class Mapper implements \ArrayAccess
             return 0;
         }
 
-        if ($this->fw->trigger(static::EVENT_DELETE, array($this))) {
+        if ($this->fw->dispatch(static::EVENT_DELETE, array($this))) {
             return 0;
         }
 
@@ -737,7 +737,7 @@ class Mapper implements \ArrayAccess
         $rear = array_slice($this->rows, $this->ptr, null, true);
         $this->rows = $front + $rear;
 
-        $this->fw->trigger(static::EVENT_AFTER_DELETE, array($this));
+        $this->fw->dispatch(static::EVENT_AFTER_DELETE, array($this));
         $this->first();
 
         return $out;
@@ -871,7 +871,7 @@ class Mapper implements \ArrayAccess
 
         $mapper->rows = array(clone $mapper);
 
-        $this->fw->trigger(static::EVENT_LOAD, array($mapper));
+        $this->fw->dispatch(static::EVENT_LOAD, array($mapper));
 
         return $mapper;
     }

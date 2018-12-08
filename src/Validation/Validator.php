@@ -40,15 +40,7 @@ final class Validator
      */
     public function __construct(Fw $fw, array $validators = null)
     {
-        $dict = __DIR__.'/dict/';
-
-        if (is_array($fw['LOCALES'])) {
-            array_unshift($fw['LOCALES'], $dict);
-        } else {
-            $fw['LOCALES'] = $dict.';'.$fw['LOCALES'];
-        }
-
-        $this->fw = $fw;
+        $this->fw = $fw->prepend('LOCALES', __DIR__.'/dict/;');
 
         foreach ($validators ?? array() as $validator) {
             if (is_string($validator)) {
@@ -252,6 +244,6 @@ final class Validator
             $data['{'.$k.'}'] = is_array($v) ? implode(',', $v) : (string) $v;
         }
 
-        return $this->fw->alt($key, $data, $fallback, $alt);
+        return $this->fw->trans($key, $data, $fallback, $alt);
     }
 }

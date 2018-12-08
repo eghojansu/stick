@@ -1,11 +1,14 @@
 <?php
 
 return array(
-    'i' => array(
-        'like' => array(
-            'you' => 'Saya suka kamu',
-            'her' => 'Saya suka dia',
-            'a_girl' => 'Saya suka {a_girl}',
+    'there' => array(
+        'is' => array(
+            'one' => array(
+                'apple' => 'Ada sebuah apel',
+                'orange' => 'Ada sebuah jeruk',
+                'mango' => 'Ada sebuah mangga',
+                'fruit' => 'Ada sebuah {fruit}',
+            ),
         ),
     ),
     'a_flag' => 'Sebuah bendera',

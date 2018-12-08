@@ -24,15 +24,15 @@ class MapperValidatorTest extends TestCase
 
     public function setUp()
     {
-        $fw = new Fw();
-        $conn = new Connection($fw, 'sqlite::memory:', null, null, array(file_get_contents(FIXTURE.'files/schema.sql')));
+        $fw = new Fw('phpunit-test');
+        $conn = new Connection($fw, 'sqlite::memory:', null, null, array(file_get_contents(TEST_FIXTURE.'files/schema.sql')));
         $conn->getPdo()->exec('insert into user (username, password) values ("foo", "foo"), ("bar", "bar"), ("baz", "baz")');
 
         $this->validator = new MapperValidator($fw, $conn);
     }
 
     /**
-     * @dataProvider getExistance
+     * @dataProvider validateExistsProvider
      */
     public function testValidateExists($value, $expected = true)
     {
@@ -42,7 +42,7 @@ class MapperValidatorTest extends TestCase
     }
 
     /**
-     * @dataProvider getUniqueness
+     * @dataProvider validateUniqueProvider
      */
     public function testValidateUnique($value, $expected = false, $fid = null, $id = null)
     {
@@ -51,7 +51,7 @@ class MapperValidatorTest extends TestCase
         $this->assertEquals($expected, $this->validator->validate('unique', $value, $args));
     }
 
-    public function getExistance()
+    public function validateExistsProvider()
     {
         return array(
             array('foo'),
@@ -61,7 +61,7 @@ class MapperValidatorTest extends TestCase
         );
     }
 
-    public function getUniqueness()
+    public function validateUniqueProvider()
     {
         return array(
             array('foo'),

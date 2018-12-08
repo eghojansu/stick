@@ -26,7 +26,7 @@ class UrlValidatorTest extends TestCase
     }
 
     /**
-     * @dataProvider getRules
+     * @dataProvider hasProvider
      */
     public function testHas($rule, $expected = true)
     {
@@ -34,14 +34,14 @@ class UrlValidatorTest extends TestCase
     }
 
     /**
-     * @dataProvider getValidations
+     * @dataProvider validateProvider
      */
     public function testValidate($rule, $expected, $value, array $args = null, array $validated = null, array $raw = null)
     {
         $this->assertEquals($expected, $this->validator->validate($rule, $value, $args, null, $validated, $raw));
     }
 
-    public function getRules()
+    public function hasProvider()
     {
         return array(
             array('email'),
@@ -54,7 +54,7 @@ class UrlValidatorTest extends TestCase
         );
     }
 
-    public function getValidations()
+    public function validateProvider()
     {
         return array(
             array('email', true, 'foo@bar.com'),

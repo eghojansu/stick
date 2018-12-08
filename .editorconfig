@@ -13,6 +13,6 @@ insert_final_newline = true
 [*.{yml,html}]
 indent_size = 2
 
-[tests/fixture/files/template/**/*.php]
+[tests/fixture/template/**/*.php]
 indent_size = 2
 insert_final_newline = false

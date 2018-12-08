@@ -24,7 +24,7 @@ class ValidatorTest extends TestCase
 
     public function setUp()
     {
-        $this->validator = new Validator(new Fw(), array(
+        $this->validator = new Validator(new Fw('phpunit-test'), array(
             'Fal\\Stick\\Validation\\CommonValidator',
             'Fal\\Stick\\Validation\\UrlValidator',
         ));
@@ -32,12 +32,10 @@ class ValidatorTest extends TestCase
 
     public function testConstruct()
     {
-        $fw = new Fw();
-        $fw['LOCALES'] = array();
-
+        $fw = new Fw('phpunit-test');
         $validator = new Validator($fw);
 
-        $this->assertContains('/Validation/dict', $fw['LOCALES'][0]);
+        $this->assertStringEndsWith('/Validation/dict/;', $fw->get('LOCALES'));
     }
 
     public function testAdd()
@@ -46,7 +44,7 @@ class ValidatorTest extends TestCase
     }
 
     /**
-     * @dataProvider getValidations
+     * @dataProvider validateProvider
      */
     public function testValidate($rules, $trueData, $data, $falseData, $expected, $messages = array())
     {
@@ -60,7 +58,7 @@ class ValidatorTest extends TestCase
     }
 
     /**
-     * @dataProvider getMutations
+     * @dataProvider validateMutateProvider
      */
     public function testValidateMutate($rules, $trueData, $trueExpected, $falseData, $falseExpected = null)
     {
@@ -71,12 +69,11 @@ class ValidatorTest extends TestCase
         $this->assertEquals($falseExpected ?: $falseData, $second['data']);
     }
 
-    /**
-     * @expectedException \DomainException
-     * @expectedExceptionMessage Rule "foo" does not exists.
-     */
     public function testValidateException()
     {
+        $this->expectException('DomainException');
+        $this->expectExceptionMessage('Rule "foo" does not exists.');
+
         $this->validator->validate(array('foo' => 'foo'), array('foo' => 'foo'));
     }
 
@@ -88,14 +85,14 @@ class ValidatorTest extends TestCase
     }
 
     /**
-     * @dataProvider getExpressions
+     * @dataProvider parseExprProvider
      */
     public function testParseExpr($expr, $expected)
     {
         $this->assertEquals($expected, $this->validator->parseExpr($expr));
     }
 
-    public function getValidations()
+    public function validateProvider()
     {
         return array(
             array(
@@ -332,7 +329,7 @@ class ValidatorTest extends TestCase
         );
     }
 
-    public function getMutations()
+    public function validateMutateProvider()
     {
         return array(
             array(
@@ -351,7 +348,7 @@ class ValidatorTest extends TestCase
         );
     }
 
-    public function getExpressions()
+    public function parseExprProvider()
     {
         return array(
             array(

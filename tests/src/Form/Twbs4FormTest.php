@@ -14,7 +14,7 @@ declare(strict_types=1);
 namespace Fal\Stick\Test\Form;
 
 use Fal\Stick\Fw;
-use Fal\Stick\Util\Html;
+use Fal\Stick\Html;
 use Fal\Stick\Form\Twbs4Form;
 use Fal\Stick\Validation\CommonValidator;
 use Fal\Stick\Validation\Validator;
@@ -28,7 +28,7 @@ class Twbs4FormTest extends TestCase
 
     public function setUp()
     {
-        $this->form = new Twbs4Form($this->fw = new Fw(), $this->validator = new Validator($this->fw), new Html($this->fw));
+        $this->form = new Twbs4Form($this->fw = new Fw('phpunit-test'), $this->validator = new Validator($this->fw), new Html($this->fw));
     }
 
     public function testAdd()
@@ -191,10 +191,9 @@ TXT;
             'choice2' => 3,
             'choice3' => 5,
         );
-        $this->fw['VERB'] = 'POST';
-        $this->fw['POST'] = array(
-            'twbs4_form' => array('_form' => 'twbs4_form') + $data,
-        );
+        $this->fw->set('VERB', 'POST');
+        $this->fw->set('POST.twbs4_form', array('_form' => 'twbs4_form') + $data);
+
         $this->validator->add(new CommonValidator());
         $this->form->setOptions(array('mark' => 1 | 2));
 

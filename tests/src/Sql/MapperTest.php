@@ -88,12 +88,11 @@ class MapperTest extends TestCase
         $this->assertEquals('foo', $this->mapper->get('obj')->name);
     }
 
-    /**
-     * @expectedException \LogicException
-     * @expectedExceptionMessage Undefined field "foo".
-     */
     public function testGetException()
     {
+        $this->expectException('LogicException');
+        $this->expectExceptionMessage('Undefined field "foo".');
+
         $this->mapper->get('foo');
     }
 
@@ -222,17 +221,16 @@ class MapperTest extends TestCase
         $this->assertEquals(1, $found->get('id'));
     }
 
-    /**
-     * @expectedException \LogicException
-     * @expectedExceptionMessage Insufficient primary keys value. Expected exactly 1 parameters, 0 given.
-     */
     public function testFindException()
     {
+        $this->expectException('LogicException');
+        $this->expectExceptionMessage('Insufficient primary keys value. Expected exactly 1 parameters, 0 given.');
+
         $this->mapper->find();
     }
 
     /**
-     * @dataProvider getPagination
+     * @dataProvider paginateProvider
      */
     public function testPaginate($expected, $page, $filter = null, $options = null)
     {
@@ -321,7 +319,7 @@ class MapperTest extends TestCase
     }
 
     /**
-     * @dataProvider getDeletions
+     * @dataProvider deleteProvider
      */
     public function testDelete($id, $filter, $hayati, $expected)
     {
@@ -334,7 +332,7 @@ class MapperTest extends TestCase
 
     public function testDeleteInterception()
     {
-        $this->fw->on('mapper.delete', function () {
+        $this->fw->on('mapper_delete', function () {
             return true;
         });
 
@@ -342,7 +340,7 @@ class MapperTest extends TestCase
     }
 
     /**
-     * @dataProvider getInsertions
+     * @dataProvider insertProvider
      */
     public function testInsert($data, $valid, $expected, $key = 'id', $table = 'user')
     {
@@ -356,7 +354,7 @@ class MapperTest extends TestCase
 
     public function testInsertInterception()
     {
-        $this->fw->on('mapper.insert', function () {
+        $this->fw->on('mapper_insert', function () {
             return true;
         });
         $this->mapper->fromArray(array('username' => 'foo'))->insert();
@@ -366,7 +364,7 @@ class MapperTest extends TestCase
     }
 
     /**
-     * @dataProvider getUpdates
+     * @dataProvider updateProvider
      */
     public function testUpdate($id, $data, $expected, $key)
     {
@@ -381,7 +379,7 @@ class MapperTest extends TestCase
 
     public function testUpdateInterception()
     {
-        $this->fw->on('mapper.update', function () {
+        $this->fw->on('mapper_update', function () {
             return true;
         });
         $this->mapper->load(array('id' => 1));
@@ -479,16 +477,15 @@ class MapperTest extends TestCase
         $this->assertEquals('bar', $users[0]->getUsername());
     }
 
-    /**
-     * @expectedException \BadMethodCallException
-     * @expectedExceptionMessage Call to undefined method Fal\Stick\Sql\Mapper::undef.
-     */
     public function testCallException()
     {
+        $this->expectException('BadMethodCallException');
+        $this->expectExceptionMessage('Call to undefined method Fal\Stick\Sql\Mapper::undef.');
+
         $this->mapper->undef();
     }
 
-    public function getPagination()
+    public function paginateProvider()
     {
         return array(
             array(array(
@@ -542,7 +539,7 @@ class MapperTest extends TestCase
         );
     }
 
-    public function getDeletions()
+    public function deleteProvider()
     {
         return array(
             array(null, null, false, 0),
@@ -553,7 +550,7 @@ class MapperTest extends TestCase
         );
     }
 
-    public function getInsertions()
+    public function insertProvider()
     {
         return array(
             array(array(), false, 0),
@@ -562,7 +559,7 @@ class MapperTest extends TestCase
         );
     }
 
-    public function getUpdates()
+    public function updateProvider()
     {
         return array(
             array(null, array(), null, 'username'),
@@ -572,9 +569,9 @@ class MapperTest extends TestCase
 
     private function build(string $table = null, string $mapper = null, bool $anon = false)
     {
-        $fw = new Fw();
+        $fw = new Fw('phpunit-test');
         $db = new Connection($fw, 'sqlite::memory:', null, null, array(
-            file_get_contents(FIXTURE.'files/schema.sql'),
+            file_get_contents(TEST_FIXTURE.'files/schema.sql'),
             'insert into user (username) values ("foo"), ("bar"), ("baz")',
         ));
 
@@ -597,7 +594,7 @@ class MapperTest extends TestCase
             $this->mapper = new Mapper($fw, $db, $table ?? 'user');
         }
 
-        $fw->setRule(Connection::class, $db);
+        $fw->rule(Connection::class, $db);
 
         $this->fw = $fw;
     }
