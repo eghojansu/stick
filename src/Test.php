@@ -236,7 +236,7 @@ class Test
      *
      * @return Test
      */
-    public function isSuccess(): Test
+    public function isSuccessful(): Test
     {
         return $this->isCode(200, 'Request is not successful.');
     }
@@ -246,7 +246,7 @@ class Test
      *
      * @return Test
      */
-    public function isNotSuccess(): Test
+    public function isNotSuccessful(): Test
     {
         return $this->isNotCode(200, 'Request is successful.');
     }

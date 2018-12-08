@@ -135,14 +135,14 @@ class TestTest extends TestCase
         $this->assertTrue($this->test->isNotCode(500)->latest());
     }
 
-    public function testIsSuccess()
+    public function testIsSuccessful()
     {
-        $this->assertTrue($this->test->isSuccess()->latest());
+        $this->assertTrue($this->test->isSuccessful()->latest());
     }
 
-    public function testIsNotSuccess()
+    public function testIsNotSuccessful()
     {
-        $this->assertFalse($this->test->isNotSuccess()->latest());
+        $this->assertFalse($this->test->isNotSuccessful()->latest());
     }
 
     public function testIsFound()
