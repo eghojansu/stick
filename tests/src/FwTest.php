@@ -92,6 +92,14 @@ class FwTest extends TestCase
         $this->assertEquals($expected, $this->fw->pick($keys, $collections, $default, $twoTier));
     }
 
+    /**
+     * @dataProvider urlEncodeProvider
+     */
+    public function testUrlEncode($expected, $var, $glue = '/')
+    {
+        $this->assertEquals($expected, $this->fw->urlEncode($var, $glue));
+    }
+
     public function testMkdir()
     {
         $dir = TEST_TEMP.'test-mkdir';
@@ -1291,6 +1299,17 @@ class FwTest extends TestCase
             array(null, 'foo'),
             array(null, 'qux', array('foo' => 'bar', 'baz' => 'qux')),
             array('bar', 'foo', array(array('foo' => 'bar', 'baz' => 'qux')), null, true),
+        );
+    }
+
+    public function urlEncodeProvider()
+    {
+        return array(
+            array('foo', 'foo'),
+            array('foo/bar', array('foo', 'bar')),
+            array('foo/bar', array(array('foo', 'bar'))),
+            array('1', 1),
+            array('foo/bar+baz/1', array('foo', 'bar baz', 1)),
         );
     }
 

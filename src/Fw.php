@@ -415,6 +415,31 @@ final class Fw implements \ArrayAccess
     }
 
     /**
+     * Url encode, take care of string, array and scalar values.
+     *
+     * @param  mixed  $var
+     * @param  string $glue
+     *
+     * @return string
+     */
+    public function urlEncode($var, string $glue = '/'): string
+    {
+        $result = '';
+
+        foreach (is_array($var) ? $var : array($var) as $item) {
+            if (is_string($item)) {
+                $result .= $glue.urlencode($item);
+            } elseif (is_array($item)) {
+                $result .= $glue.$this->urlEncode($item);
+            } else {
+                $result .= $glue.$item;
+            }
+        }
+
+        return ltrim($result, $glue);
+    }
+
+    /**
      * Native mkdir wrapper with directory check.
      *
      * @param string $path
@@ -1364,8 +1389,6 @@ final class Fw implements \ArrayAccess
                 parse_str($parameters, $mParameters);
             }
 
-            $mParameters = array_map('urlencode', $mParameters);
-
             return preg_replace_callback(self::ROUTE_PARAMETER_REGEX, function ($match) use ($alias, &$mParameters) {
                 $name = $match[1];
                 $all = $match[2] ?? null;
@@ -1373,7 +1396,7 @@ final class Fw implements \ArrayAccess
                 $replace = $mParameters[$name] ?? null;
 
                 if ($all) {
-                    $replace = implode('/', $mParameters);
+                    $replace = $replace ?? $mParameters;
                     $mParameters = array();
                 }
 
@@ -1381,13 +1404,13 @@ final class Fw implements \ArrayAccess
                     throw new \LogicException(sprintf('Route "%s", parameter "%s" should be provided.', $alias, $name));
                 }
 
-                if ($pattern && !preg_match('~^'.$pattern.'$~', $replace)) {
+                if ($pattern && is_string($replace) && !preg_match('~^'.$pattern.'$~', $replace)) {
                     throw new \LogicException(sprintf('Route "%s", parameter "%s" is not valid, given: "%s".', $alias, $name, $replace));
                 }
 
                 unset($mParameters[$name]);
 
-                return $replace;
+                return $this->urlEncode($replace);
             }, $pattern);
         }
 

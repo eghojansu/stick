@@ -164,7 +164,7 @@ class Html
 
         $dConfig = array(
             'route' => $this->fw->get('ALIAS'),
-            'route_data' => $this->fw->get('PARAMS'),
+            'route_data' => $this->fw->get('PARAMETERS'),
             'route_query' => $this->fw->get('GET') ?? array(),
             'page_query' => 'page',
             'adjacent' => 2,
