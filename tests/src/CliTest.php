@@ -56,9 +56,10 @@ class CliTest extends TestCase
     /**
      * @dataProvider colorizeProvider
      */
-    public function testColorize($message, $expected)
+    public function testColorize($message, $expected, $expectedClear)
     {
-        $this->assertEquals($expected, $this->cli->colorize($message));
+        $this->assertEquals($expected, $this->cli->colorize($message, $clearText));
+        $this->assertEquals($expectedClear, $clearText);
     }
 
     public function testApplyStyleNull()
@@ -87,12 +88,14 @@ class CliTest extends TestCase
     public function colorizeProvider()
     {
         return array(
-            array('info', 'info'),
-            array('<error>error</error>', "\033[37;41merror\033[39;49m"),
-            array('<info>info</info>', "\033[32minfo\033[39m"),
-            array('<comment>comment</comment>', "\033[33mcomment\033[39m"),
-            array('<question>question</question>', "\033[30;46mquestion\033[39;49m"),
-            array('<error>error</error>: Foo', "\033[37;41merror\033[39;49m: Foo"),
+            array('info', 'info', 'info'),
+            array('<error>error</error>', "\033[37;41merror\033[39;49m", 'error'),
+            array('<info>info</info>', "\033[32minfo\033[39m", 'info'),
+            array('<comment>comment</comment>', "\033[33mcomment\033[39m", 'comment'),
+            array('<question>question</question>', "\033[30;46mquestion\033[39;49m", 'question'),
+            array('<error>error</error>: Foo', "\033[37;41merror\033[39;49m: Foo", 'error: Foo'),
+            array('<error>error</>: Foo <info>info</info> Bar ', "\033[37;41merror\033[39;49m: Foo \033[32minfo\033[39m Bar ", 'error: Foo info Bar '),
+            array('<error>error</error> <custom>custom</>', "\033[37;41merror\033[39;49m <custom>custom</>", 'error <custom>custom</>'),
         );
     }
 }

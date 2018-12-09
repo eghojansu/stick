@@ -159,97 +159,55 @@ final class Cli
     /**
      * Colorize a message.
      *
-     * @param string $message
+     * @param string      $message
+     * @param string|null &$clearText
      *
      * @return string
      */
-    public function colorize(string $message): string
+    public function colorize(string $message, string &$clearText = null): string
     {
-        return $this->build($this->parse($message));
-    }
+        $offset = 0;
+        $output = '';
+        $length = strlen($message);
+        preg_match_all('~<((\w+) | /(\w+)?)>~ix', $message, $matches, PREG_OFFSET_CAPTURE);
 
-    /**
-     * Build message tree.
-     *
-     * @param string $message
-     *
-     * @return array
-     */
-    private function parse(string $message): array
-    {
-        $ptr = 0;
-        $width = 5;
-        $tmp = '';
-        $tree = array();
-        $len = strlen($message);
-        $tags = implode('|', array_keys($this->styles));
+        foreach ($matches[0] as $key => $match) {
+            list($tag, $position) = $match;
 
-        for (; $ptr < $len;) {
-            $pattern = "/^(.{0,$width})?<(\/)?($tags)\b>/is";
+            if ('/' === $tag[1]) {
+                continue;
+            }
 
-            if (preg_match($pattern, substr($message, $ptr), $match)) {
-                if ($tmp || $match[1]) {
-                    $tree[] = $tmp.$match[1];
-                }
+            list($closeTag, $closePosition) = $matches[0][$key + 1] ?? array('</>', $length);
 
-                if ($match[2]) {
-                    $stack = array();
-                    for ($i = count($tree) - 1; $i >= 0; --$i) {
-                        $item = $tree[$i];
-                        if (is_array($item) && array_key_exists($match[3], $item) && !isset($item[$match[3]][0])) {
-                            $tree[$i][$match[3]] += array_reverse($stack);
-                            $tree = array_slice($tree, 0, $i + 1);
-                            break;
-                        } else {
-                            $stack[] = $item;
-                        }
-                    }
-                } else {
-                    $node = &$tree[][$match[3]];
-                    $node = array();
-                }
+            $tmp = substr($message, $offset, $position - $offset);
+            $output .= $tmp;
+            $clearText .= $tmp;
+            $offset = $position + strlen($tag);
+            $part = substr($message, $offset, $closePosition - $offset);
+            $offset += strlen($closeTag) + strlen($part);
+            $style = $matches[1][$key][0];
 
-                $tmp = '';
-                $ptr += strlen($match[0]);
-                $width = 5;
+            if (isset($this->styles[$style])) {
+                $output .= $this->applyStyle($style, $part);
+                $clearText .= $part;
             } else {
-                $tmp .= substr($message, $ptr, $width);
-                $ptr += $width;
-                $width += (int) ($width < 50);
+                $tmp = $tag.$part.$closeTag;
+                $output .= $tmp;
+                $clearText .= $tmp;
             }
         }
 
-        if ($tmp) {
-            $tree[] = $tmp;
+        if ($matches[0]) {
+            $tmp = substr($message, $position + strlen($tag));
+            $output .= $tmp;
+            $clearText .= $tmp;
+        } else {
+            $output = $message;
+            $clearText = $message;
         }
 
-        unset($node, $tmp);
-
-        return $tree;
-    }
-
-    /**
-     * Build message based on tree.
-     *
-     * @param array $tree
-     *
-     * @return string
-     */
-    private function build(array $tree): string
-    {
-        $out = '';
-
-        foreach ($tree as $key => $node) {
-            if (is_string($node)) {
-                $out .= $node;
-            } elseif (isset($this->styles[$key])) {
-                $out .= $this->applyStyle($key, $this->build($node));
-            } else {
-                $out .= $this->build($node);
-            }
-        }
-
-        return $out;
+        return $output;
     }
 
     /**
@@ -262,36 +220,27 @@ final class Cli
      */
     private function applyStyle(string $style, string $message): string
     {
-        list($fg, $bg, $options) = $this->styles[$style];
-        $f = self::$availableForegroundColors[$fg] ?? null;
-        $b = self::$availableBackgroundColors[$bg] ?? null;
+        list($foreground, $background, $options) = $this->styles[$style];
+        $foregroundColor = self::$availableForegroundColors[$foreground] ?? null;
+        $backgroundColor = self::$availableBackgroundColors[$background] ?? null;
 
-        $setCodes = '';
-        $unsetCodes = '';
-
-        if (null !== $f) {
-            $setCodes .= ';'.$f['set'];
-            $unsetCodes .= ';'.$f['unset'];
-        }
-
-        if (null !== $b) {
-            $setCodes .= ';'.$b['set'];
-            $unsetCodes .= ';'.$b['unset'];
-        }
+        $setCodes = array($foregroundColor['set'] ?? null, $backgroundColor['set'] ?? null);
+        $unsetCodes = array($foregroundColor['unset'] ?? null, $backgroundColor['unset'] ?? null);
 
         foreach ((array) $options as $option) {
-            $o = self::$availableOptions[$option] ?? null;
+            $color = self::$availableOptions[$option] ?? null;
 
-            if (null !== $o) {
-                $setCodes .= ';'.$o['set'];
-                $unsetCodes .= ';'.$o['unset'];
-            }
+            $setCodes[] = $color['set'] ?? null;
+            $unsetCodes[] = $color['unset'] ?? null;
         }
 
-        if (!$setCodes) {
-            return $message;
+        $set = implode(';', array_filter($setCodes));
+        $unset = implode(';', array_filter($unsetCodes));
+
+        if ($set) {
+            return sprintf("\033[%sm%s\033[%sm", $set, $message, $unset);
         }
 
-        return sprintf("\033[%sm%s\033[%sm", ltrim($setCodes, ';'), $message, ltrim($unsetCodes, ';'));
+        return $message;
     }
 }
