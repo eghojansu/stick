@@ -465,7 +465,7 @@ class TestTest extends TestCase
 
     public function testCheck()
     {
-        $this->assertTrue($this->test->check(function() { $this->test->expect(true, 'equals'); })->success());
+        $this->assertTrue($this->test->check(function () { $this->test->expect(true, 'equals'); })->success());
     }
 
     public function testIsCode()

@@ -122,7 +122,7 @@ class Test
     /**
      * Move to specific pointer.
      *
-     * @param  int    $pointer
+     * @param int $pointer
      *
      * @return Test
      */
@@ -154,7 +154,7 @@ class Test
      */
     public function last(): Test
     {
-        return $this->moveTo(count($this->history)-1);
+        return $this->moveTo(count($this->history) - 1);
     }
 
     /**
@@ -265,7 +265,7 @@ class Test
         ));
 
         if ($response['content']) {
-            $response['document'] = new HTML5DOMDocument;
+            $response['document'] = new HTML5DOMDocument();
             $response['document']->loadHtml($response['content']);
             $response['xpath'] = new \DomXPath($response['document']);
         }
@@ -356,7 +356,7 @@ class Test
     /**
      * Click link with specified label.
      *
-     * @param  string $label
+     * @param string $label
      *
      * @return Test
      */
@@ -374,7 +374,7 @@ class Test
     /**
      * Call callable and return test instance.
      *
-     * @param  callable $callback
+     * @param callable $callback
      *
      * @return Test
      */
@@ -494,7 +494,7 @@ class Test
     /**
      * Expect current request at specified route.
      *
-     * @param  string $route
+     * @param string $route
      *
      * @return Test
      */
@@ -506,7 +506,7 @@ class Test
     /**
      * Expect current request not at specified route.
      *
-     * @param  string $route
+     * @param string $route
      *
      * @return Test
      */
@@ -518,7 +518,7 @@ class Test
     /**
      * Expect current request at specified path.
      *
-     * @param  string $path
+     * @param string $path
      *
      * @return Test
      */
@@ -530,7 +530,7 @@ class Test
     /**
      * Expect current request not at specified path.
      *
-     * @param  string $path
+     * @param string $path
      *
      * @return Test
      */
@@ -542,7 +542,7 @@ class Test
     /**
      * Expect current request parameters equals.
      *
-     * @param  array  $parameters
+     * @param array $parameters
      *
      * @return Test
      */
@@ -554,7 +554,7 @@ class Test
     /**
      * Expect current request parameters not equals.
      *
-     * @param  array  $parameters
+     * @param array $parameters
      *
      * @return Test
      */
@@ -566,7 +566,7 @@ class Test
     /**
      * Alias to parametersEquals.
      *
-     * @param  array  $parameters
+     * @param array $parameters
      *
      * @return Test
      */
@@ -802,7 +802,7 @@ class Test
     /**
      * Expect link with specific label exists.
      *
-     * @param  string $label
+     * @param string $label
      *
      * @return Test
      */
@@ -816,7 +816,7 @@ class Test
     /**
      * Expect link with specific label not exists.
      *
-     * @param  string $label
+     * @param string $label
      *
      * @return Test
      */
@@ -830,7 +830,7 @@ class Test
     /**
      * Expect hive value is true.
      *
-     * @param  string $key
+     * @param string $key
      *
      * @return Test
      */
@@ -842,7 +842,7 @@ class Test
     /**
      * Expect hive value is not true.
      *
-     * @param  string $key
+     * @param string $key
      *
      * @return Test
      */
@@ -854,7 +854,7 @@ class Test
     /**
      * Expect hive value is false.
      *
-     * @param  string $key
+     * @param string $key
      *
      * @return Test
      */
@@ -866,7 +866,7 @@ class Test
     /**
      * Expect hive value is not false.
      *
-     * @param  string $key
+     * @param string $key
      *
      * @return Test
      */
@@ -878,7 +878,7 @@ class Test
     /**
      * Expect hive value is null.
      *
-     * @param  string $key
+     * @param string $key
      *
      * @return Test
      */
@@ -890,7 +890,7 @@ class Test
     /**
      * Expect hive value is not null.
      *
-     * @param  string $key
+     * @param string $key
      *
      * @return Test
      */
@@ -902,7 +902,7 @@ class Test
     /**
      * Expect hive value empty.
      *
-     * @param  string $key
+     * @param string $key
      *
      * @return Test
      */
@@ -914,7 +914,7 @@ class Test
     /**
      * Expect hive value is not empty.
      *
-     * @param  string $key
+     * @param string $key
      *
      * @return Test
      */
@@ -926,8 +926,8 @@ class Test
     /**
      * Expect hive value is equal.
      *
-     * @param  string $key
-     * @param  mixed  $expected
+     * @param string $key
+     * @param mixed  $expected
      *
      * @return Test
      */
@@ -939,8 +939,8 @@ class Test
     /**
      * Expect hive value is not equal.
      *
-     * @param  string $key
-     * @param  mixed  $expected
+     * @param string $key
+     * @param mixed  $expected
      *
      * @return Test
      */
@@ -952,8 +952,8 @@ class Test
     /**
      * Expect hive value contains.
      *
-     * @param  string $key
-     * @param  mixed  $expected
+     * @param string $key
+     * @param mixed  $expected
      *
      * @return Test
      */
@@ -965,8 +965,8 @@ class Test
     /**
      * Expect hive value not contains.
      *
-     * @param  string $key
-     * @param  mixed  $expected
+     * @param string $key
+     * @param mixed  $expected
      *
      * @return Test
      */
@@ -978,8 +978,8 @@ class Test
     /**
      * Expect hive value match pattern.
      *
-     * @param  string $key
-     * @param  string $pattern
+     * @param string $key
+     * @param string $pattern
      *
      * @return Test
      */
@@ -991,8 +991,8 @@ class Test
     /**
      * Expect hive value not match pattern.
      *
-     * @param  string $key
-     * @param  string $pattern
+     * @param string $key
+     * @param string $pattern
      *
      * @return Test
      */
@@ -1028,8 +1028,8 @@ class Test
     /**
      * Expect value is true.
      *
-     * @param  mixed       $expected
-     * @param  string|null $message
+     * @param mixed       $expected
+     * @param string|null $message
      *
      * @return Test
      */
@@ -1041,8 +1041,8 @@ class Test
     /**
      * Expect value is not true.
      *
-     * @param  mixed       $expected
-     * @param  string|null $message
+     * @param mixed       $expected
+     * @param string|null $message
      *
      * @return Test
      */
@@ -1054,8 +1054,8 @@ class Test
     /**
      * Expect value is false.
      *
-     * @param  mixed       $expected
-     * @param  string|null $message
+     * @param mixed       $expected
+     * @param string|null $message
      *
      * @return Test
      */
@@ -1067,8 +1067,8 @@ class Test
     /**
      * Expect value is not false.
      *
-     * @param  mixed       $expected
-     * @param  string|null $message
+     * @param mixed       $expected
+     * @param string|null $message
      *
      * @return Test
      */
@@ -1080,8 +1080,8 @@ class Test
     /**
      * Expect value is null.
      *
-     * @param  mixed       $expected
-     * @param  string|null $message
+     * @param mixed       $expected
+     * @param string|null $message
      *
      * @return Test
      */
@@ -1093,8 +1093,8 @@ class Test
     /**
      * Expect value is not null.
      *
-     * @param  mixed       $expected
-     * @param  string|null $message
+     * @param mixed       $expected
+     * @param string|null $message
      *
      * @return Test
      */
@@ -1106,8 +1106,8 @@ class Test
     /**
      * Expect value empty.
      *
-     * @param  mixed       $expected
-     * @param  string|null $message
+     * @param mixed       $expected
+     * @param string|null $message
      *
      * @return Test
      */
@@ -1119,8 +1119,8 @@ class Test
     /**
      * Expect value not empty.
      *
-     * @param  mixed       $expected
-     * @param  string|null $message
+     * @param mixed       $expected
+     * @param string|null $message
      *
      * @return Test
      */
@@ -1132,9 +1132,9 @@ class Test
     /**
      * Expect value is equals.
      *
-     * @param  mixed       $expected
-     * @param  mixed       $actual
-     * @param  string|null $message
+     * @param mixed       $expected
+     * @param mixed       $actual
+     * @param string|null $message
      *
      * @return Test
      */
@@ -1146,9 +1146,9 @@ class Test
     /**
      * Expect value is not equals.
      *
-     * @param  mixed       $expected
-     * @param  mixed       $actual
-     * @param  string|null $message
+     * @param mixed       $expected
+     * @param mixed       $actual
+     * @param string|null $message
      *
      * @return Test
      */
@@ -1160,9 +1160,9 @@ class Test
     /**
      * Expect value is identical.
      *
-     * @param  mixed       $expected
-     * @param  mixed       $actual
-     * @param  string|null $message
+     * @param mixed       $expected
+     * @param mixed       $actual
+     * @param string|null $message
      *
      * @return Test
      */
@@ -1174,9 +1174,9 @@ class Test
     /**
      * Expect value is not identical.
      *
-     * @param  mixed       $expected
-     * @param  mixed       $actual
-     * @param  string|null $message
+     * @param mixed       $expected
+     * @param mixed       $actual
+     * @param string|null $message
      *
      * @return Test
      */
@@ -1188,9 +1188,9 @@ class Test
     /**
      * Expect value contains.
      *
-     * @param  mixed       $expected
-     * @param  mixed       $actual
-     * @param  string|null $message
+     * @param mixed       $expected
+     * @param mixed       $actual
+     * @param string|null $message
      *
      * @return Test
      */
@@ -1208,9 +1208,9 @@ class Test
     /**
      * Expect value not contains.
      *
-     * @param  mixed       $expected
-     * @param  mixed       $actual
-     * @param  string|null $message
+     * @param mixed       $expected
+     * @param mixed       $actual
+     * @param string|null $message
      *
      * @return Test
      */
@@ -1228,9 +1228,9 @@ class Test
     /**
      * Expect value match pattern.
      *
-     * @param  mixed       $expected
-     * @param  mixed       $actual
-     * @param  string|null $message
+     * @param mixed       $expected
+     * @param mixed       $actual
+     * @param string|null $message
      *
      * @return Test
      */
@@ -1244,9 +1244,9 @@ class Test
     /**
      * Expect value not match pattern.
      *
-     * @param  mixed       $expected
-     * @param  mixed       $actual
-     * @param  string|null $message
+     * @param mixed       $expected
+     * @param mixed       $actual
+     * @param string|null $message
      *
      * @return Test
      */

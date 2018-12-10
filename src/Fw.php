@@ -417,8 +417,8 @@ final class Fw implements \ArrayAccess
     /**
      * Url encode, take care of string, array and scalar values.
      *
-     * @param  mixed  $var
-     * @param  string $glue
+     * @param mixed  $var
+     * @param string $glue
      *
      * @return string
      */
