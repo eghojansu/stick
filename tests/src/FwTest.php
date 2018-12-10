@@ -219,9 +219,9 @@ class FwTest extends TestCase
     /**
      * @dataProvider allGetProvider
      */
-    public function testAllGet($expected, $keys)
+    public function testAllGet($expected, $keys, $lowerize = false, $maps = null)
     {
-        $this->assertEquals($expected, $this->fw->allGet($keys));
+        $this->assertEquals($expected, $this->fw->allGet($keys, $lowerize, $maps));
     }
 
     /**
@@ -1401,6 +1401,8 @@ class FwTest extends TestCase
             array(array('CLI' => true, 'PATH' => '/'), 'CLI,PATH'),
             array(array('CLI' => true, 'PATH' => '/'), array('CLI', 'PATH')),
             array(array('CLI' => true, 'foo' => null), array('CLI', 'foo')),
+            array(array('cli' => true, 'foo' => null), array('CLI', 'foo'), true),
+            array(array('is_cli' => true, 'foo' => null), array('CLI', 'foo'), true, array('CLI' => 'is_cli')),
         );
     }
 

@@ -703,15 +703,18 @@ final class Fw implements \ArrayAccess
      * Pick variables from hive.
      *
      * @param string|array $keys
+     * @param bool         $lowerize
+     * @param array|null   $maps
      *
      * @return array
      */
-    public function allGet($keys): array
+    public function allGet($keys, bool $lowerize = false, array $maps = null): array
     {
         $pick = array();
 
         foreach ($this->split($keys) as $key) {
-            $pick[$key] = $this->get($key);
+            $newKey = $maps[$key] ?? ($lowerize && is_string($key) ? strtolower($key) : $key);
+            $pick[$newKey] = $this->get($key);
         }
 
         return $pick;
