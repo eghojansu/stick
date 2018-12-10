@@ -27,12 +27,24 @@
         "ext-gd": "*",
         "ext-memcache": "*",
         "ext-memcached": "*",
-        "ext-mysql": "*",
         "ext-pdo": "*",
         "ext-redis": "*",
-        "ext-sqlite3": "*",
         "ext-zip": "*",
-        "phpunit/phpunit": "^7.4"
+        "phpunit/phpunit": "^7.4",
+        "symfony/css-selector": "^4.2",
+        "ivopetkov/html5-dom-document-php": "^1.1"
+    },
+    "suggest": {
+        "ext-apcu": "APCU cache engine",
+        "ext-gd": "To use image helper",
+        "ext-memcache": "Memcache cache engie",
+        "ext-memcached": "Memcached cache engie",
+        "ext-pdo": "To use SQL Mapper",
+        "ext-redis": "Redis cache engie",
+        "ext-zip": "To use zip helper, also needed by console build command",
+        "phpunit/phpunit": "To use functional test helper",
+        "symfony/css-selector": "Enrich functional test",
+        "ivopetkov/html5-dom-document-php": "Enrich functional test"
     },
     "bin": [
         "stick"
