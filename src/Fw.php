@@ -81,24 +81,24 @@ final class Fw implements \ArrayAccess
     const HTTP_504 = 'Gateway Timeout';
     const HTTP_505 = 'HTTP Version Not Supported';
 
-    const LEVEL_EMERGENCY = 'emergency';
-    const LEVEL_ALERT = 'alert';
-    const LEVEL_CRITICAL = 'critical';
-    const LEVEL_ERROR = 'error';
-    const LEVEL_WARNING = 'warning';
-    const LEVEL_NOTICE = 'notice';
-    const LEVEL_INFO = 'info';
-    const LEVEL_DEBUG = 'debug';
+    const LOG_EMERGENCY = 'emergency';
+    const LOG_ALERT = 'alert';
+    const LOG_CRITICAL = 'critical';
+    const LOG_ERROR = 'error';
+    const LOG_WARNING = 'warning';
+    const LOG_NOTICE = 'notice';
+    const LOG_INFO = 'info';
+    const LOG_DEBUG = 'debug';
 
     const LOG_LEVELS = array(
-        self::LEVEL_EMERGENCY => 0,
-        self::LEVEL_ALERT => 1,
-        self::LEVEL_CRITICAL => 2,
-        self::LEVEL_ERROR => 3,
-        self::LEVEL_WARNING => 4,
-        self::LEVEL_NOTICE => 5,
-        self::LEVEL_INFO => 6,
-        self::LEVEL_DEBUG => 7,
+        self::LOG_EMERGENCY => 0,
+        self::LOG_ALERT => 1,
+        self::LOG_CRITICAL => 2,
+        self::LOG_ERROR => 3,
+        self::LOG_WARNING => 4,
+        self::LOG_NOTICE => 5,
+        self::LOG_INFO => 6,
+        self::LOG_DEBUG => 7,
     );
 
     /**
@@ -232,7 +232,7 @@ final class Fw implements \ArrayAccess
             'SESSION' => null,
             'STATUS' => self::HTTP_200,
             'TEMP' => './var/',
-            'THRESHOLD' => self::LEVEL_ERROR,
+            'THRESHOLD' => self::LOG_ERROR,
             'TIME' => $time,
             'URI' => $uri,
             'URL' => $domain.$uri,
@@ -1686,24 +1686,24 @@ final class Fw implements \ArrayAccess
     public function logCode(int $code, string $message): Fw
     {
         $map = array(
-            E_ERROR => self::LEVEL_EMERGENCY,
-            E_PARSE => self::LEVEL_EMERGENCY,
-            E_CORE_ERROR => self::LEVEL_EMERGENCY,
-            E_COMPILE_ERROR => self::LEVEL_EMERGENCY,
-            E_WARNING => self::LEVEL_ALERT,
-            E_CORE_WARNING => self::LEVEL_ALERT,
-            E_STRICT => self::LEVEL_CRITICAL,
-            E_USER_ERROR => self::LEVEL_ERROR,
-            E_USER_WARNING => self::LEVEL_WARNING,
-            E_NOTICE => self::LEVEL_NOTICE,
-            E_COMPILE_WARNING => self::LEVEL_NOTICE,
-            E_USER_NOTICE => self::LEVEL_NOTICE,
-            E_RECOVERABLE_ERROR => self::LEVEL_INFO,
-            E_DEPRECATED => self::LEVEL_INFO,
-            E_USER_DEPRECATED => self::LEVEL_INFO,
+            E_ERROR => self::LOG_EMERGENCY,
+            E_PARSE => self::LOG_EMERGENCY,
+            E_CORE_ERROR => self::LOG_EMERGENCY,
+            E_COMPILE_ERROR => self::LOG_EMERGENCY,
+            E_WARNING => self::LOG_ALERT,
+            E_CORE_WARNING => self::LOG_ALERT,
+            E_STRICT => self::LOG_CRITICAL,
+            E_USER_ERROR => self::LOG_ERROR,
+            E_USER_WARNING => self::LOG_WARNING,
+            E_NOTICE => self::LOG_NOTICE,
+            E_COMPILE_WARNING => self::LOG_NOTICE,
+            E_USER_NOTICE => self::LOG_NOTICE,
+            E_RECOVERABLE_ERROR => self::LOG_INFO,
+            E_DEPRECATED => self::LOG_INFO,
+            E_USER_DEPRECATED => self::LOG_INFO,
         );
 
-        return $this->log($map[$code] ?? self::LEVEL_DEBUG, $message);
+        return $this->log($map[$code] ?? self::LOG_DEBUG, $message);
     }
 
     /**
