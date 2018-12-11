@@ -334,7 +334,7 @@ final class Fw implements \ArrayAccess
             return $var + 0;
         }
 
-        if (is_scalar($var)) {
+        if (is_string($var)) {
             $var = trim($var);
 
             if (preg_match('/^\w+$/i', $var) && defined($var)) {
