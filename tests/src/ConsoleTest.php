@@ -111,12 +111,16 @@ class ConsoleTest extends TestCase
         $options = array(
             'working-dir' => TEST_FIXTURE.'compress/',
             'destination' => TEST_TEMP,
+            'temp' => TEST_TEMP,
+            'vendor-dir' => null,
             'version' => 'dev',
             'add' => null,
             'excludes' => null,
             'merge' => '**/*.php',
             'merge_excludes' => 'a.php',
             'checkout' => false,
+            'composer' => null,
+            'caseless' => true,
         );
         $file = TEST_TEMP.'compress-dev.zip';
 
@@ -136,12 +140,16 @@ class ConsoleTest extends TestCase
         Console::buildCommand($this->fw, $this->cli, $options + array(
             'working-dir' => TEST_FIXTURE.'compress/',
             'destination' => TEST_TEMP,
+            'temp' => TEST_TEMP,
+            'vendor-dir' => null,
             'version' => 'dev',
             'add' => null,
             'excludes' => null,
             'merge' => '**/*.php',
             'merge_excludes' => 'a.php',
             'checkout' => false,
+            'composer' => null,
+            'caseless' => true,
         ));
     }
 
@@ -266,6 +274,12 @@ class ConsoleTest extends TestCase
                 'Destination directory not exists: "foo".',
                 array(
                     'destination' => 'foo',
+                ),
+            ),
+            array(
+                'Temp directory not exists: "foo".',
+                array(
+                    'temp' => 'foo',
                 ),
             ),
             array(

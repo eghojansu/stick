@@ -58,12 +58,12 @@ class Console
 
         $this->addCommand('help', array(
             'run' => 'Fal\\Stick\\Console::helpCommand',
-            'desc' => 'Display this help message',
+            'desc' => 'Display command help message',
             'options' => array(
                 array('version', 'v', false, 'Display this application version'),
             ),
             'args' => array(
-                array('command', null, 'The command name <comment>[default: "help"]</comment>'),
+                array('command', null, 'The command name <comment>[default: "help"]</>'),
             ),
         ));
         $this->addCommand('init', array(
@@ -77,16 +77,19 @@ class Console
             'run' => 'Fal\\Stick\\Console::buildCommand',
             'desc' => 'Build project and compress as zip',
             'options' => array(
-                array('working-dir', 'd', null, 'Working directory <comment>default=$CWD</comment>'),
+                array('working-dir', 'd', null, 'Working directory <comment>default=$CWD</>'),
                 array('destination', 'i', null, 'Destination directory'),
+                array('vendor-dir', null, null, 'If provided, composer vendor will be copied and optimized'),
+                array('temp', null, $fw->get('TEMP'), 'Temporary directory'),
                 array('version', 'v', 'dev', 'Build as version'),
                 array('checkout', 'o', false, 'Checkout given git version'),
-                array('add', null, 'app/**;public/**;vendor/**;.editorconfig;.gitignore;composer.json;composer.lock;LICENSE;README.md', 'Add patterns'),
-                array('excludes', null, '.git;vendor/**/tests/**', 'Exclude patterns'),
-                array('merge', null, null, 'Merge with defaults add patterns'),
-                array('merge_excludes', null, null, 'Merge with defaults exclude patterns'),
+                array('add', null, '/{app,public}/**/*;/{.editorconfig,.gitignore,composer.json,composer.lock,LICENSE,README.md}', 'Add patterns'),
+                array('excludes', null, '.{git,github}/**/*', 'Exclude patterns'),
+                array('vendor-excludes', null, '/vendor/**/{tests,doc,docs,documentation,changelog*}', 'Exclude composer vendor patterns'),
+                array('composer', null, null, 'Composer executable path'),
+                array('caseless', null, true, 'Should patterns case-insensitive?'),
             ),
-            'help' => 'Options <comment>add</comment>, <comment>excludes</comment>, <comment>merge</comment>, and <comment>merge_excludes</comment> can be separated by comma, semi-colon or pipeline.',
+            'help' => 'Options <comment>add</>, <comment>excludes</>, and <comment>vendor_excludes</> separated by semi-colon.',
         ));
         $this->addCommand('setup', array(
             'run' => 'Fal\\Stick\\Console::setupCommand',
@@ -95,7 +98,7 @@ class Console
                 array('file', null, 'VERSION', 'File to save installed version'),
                 array('versions', null, null, 'List of versions install instructions'),
             ),
-            'help' => '<comment>Note:</comment> Better to save install instruction in configuration file (<info>.stick.dist</info>)',
+            'help' => '<comment>Note:</> Better to save install instruction in configuration file (<info>.stick.dist</>)',
         ));
     }
 
@@ -222,8 +225,8 @@ class Console
             throw new \LogicException(sprintf('Command "%s" is not defined.', $name));
         }
 
-        if (isset($options['help'])) {
-            unset($options['help']);
+        if (isset($options['help']) || isset($options['h'])) {
+            unset($options['help'], $options['h']);
             array_unshift($args, $name);
 
             $name = 'help';
@@ -254,7 +257,7 @@ class Console
         $result = array();
 
         foreach ($definitions as list($name, $alias, $default)) {
-            $result[$name] = $options[$name] ?? $options[$alias] ?? $config[$name] ?? $default;
+            $result[$name] = $this->fw->cast($options[$name] ?? $options[$alias] ?? $config[$name] ?? $default);
         }
 
         return $result;
@@ -274,7 +277,7 @@ class Console
         $result = array();
 
         foreach ($definitions as list($name, $default)) {
-            $result[$name] = $args[$ptr++] ?? $default;
+            $result[$name] = $this->fw->cast($args[$ptr++] ?? $default);
         }
 
         return $result;
@@ -287,7 +290,7 @@ class Console
      */
     protected function handleException(\Throwable $e): void
     {
-        $this->cli->writeln("<error>  %s  </error>\n  <comment>%s</comment>", get_class($e), $e->getMessage());
+        $this->cli->writeln("<error>  %s  </>\n  <comment>%s</>", get_class($e), $e->getMessage());
     }
 
     /**
@@ -335,7 +338,7 @@ class Console
         $command = $args['command'] ?? $def['name'];
 
         if ($self = $command === $def['name']) {
-            $console->cli->writeln('<info>%s</info> version <comment>%s</comment>', $fw->get('PACKAGE'), $fw->get('VERSION'));
+            $console->cli->writeln('<info>%s</> version <comment>%s</>', $fw->get('PACKAGE'), $fw->get('VERSION'));
 
             if (false !== $options['version']) {
                 return;
@@ -348,26 +351,26 @@ class Console
         $maxArg = array_reduce($console->commands[$command]['args'], $reducer, 0);
         $maxOption = array_reduce($console->commands[$command]['options'], $reducer, 9);
 
-        $cli->writeln('<comment>Usage:</comment>');
+        $cli->writeln('<comment>Usage:</>');
         $cli->writeln('  %s %s %s', $self ? 'command' : $command, $maxOption ? '[options]' : null, $maxArg ? '[arguments]' : null);
 
         if ($maxArg) {
             $cli->writeln();
-            $cli->writeln('<comment>Arguments:</comment>');
+            $cli->writeln('<comment>Arguments:</>');
 
             foreach ($console->commands[$command]['args'] as list($name, $default, $desc)) {
                 $suffix = '';
 
                 if (null !== $default && is_scalar($default)) {
-                    $suffix = ' <comment>default='.(is_string($default) ? $default : var_export($default, true)).'</comment>';
+                    $suffix = ' <comment>default='.(is_string($default) ? $default : var_export($default, true)).'</>';
                 }
 
-                $cli->writeln("  <info>%-{$maxArg}s</info> %s%s", $name, $desc, $suffix);
+                $cli->writeln("  <info>%-{$maxArg}s</> %s%s", $name, $desc, $suffix);
             }
         }
 
         $cli->writeln();
-        $cli->writeln('<comment>Options:</comment>');
+        $cli->writeln('<comment>Options:</>');
 
         foreach ($console->commands[$command]['options'] as list($name, $alias, $default, $desc)) {
             if ('config' === $name) {
@@ -381,14 +384,15 @@ class Console
             $suffix = '';
 
             if (null !== $default && is_scalar($default)) {
-                $suffix = ' <comment>default='.(is_string($default) ? $default : var_export($default, true)).'</comment>';
+                $suffix = ' <comment>default='.(is_string($default) ? $default : var_export($default, true)).'</>';
             }
 
-            $cli->writeln("  <info>%-3s %-{$maxOption}s</info> %s%s", $alias, '--'.$name, $desc, $suffix);
+            $cli->writeln("  <info>%-3s %-{$maxOption}s</> %s%s", $alias, '--'.$name, $desc, $suffix);
         }
 
         // globals options
-        $cli->writeln("%6s<info>%-{$maxOption}s</info> Configuration file to load", '', '--config');
+        $cli->writeln("  <info>%-3s %-{$maxOption}s</> Display this help message", '-h,', '--help');
+        $cli->writeln("%6s<info>%-{$maxOption}s</> Configuration file to load", '', '--config');
 
         if ($console->commands[$command]['help']) {
             $cli->writeln();
@@ -402,10 +406,10 @@ class Console
             $maxCommand = max(array_map('strlen', array_keys($console->commands)));
 
             $cli->writeln();
-            $cli->writeln('<comment>Commands:</comment>');
+            $cli->writeln('<comment>Commands:</>');
 
             foreach ($console->commands as $def) {
-                $cli->writeln("  <info>%-{$maxCommand}s</info>  %s", $def['name'], $def['desc']);
+                $cli->writeln("  <info>%-{$maxCommand}s</>  %s", $def['name'], $def['desc']);
             }
         }
     }
@@ -573,11 +577,10 @@ class Console
         $composer = $wd.'composer.json';
         $json = is_file($composer) ? json_decode($fw->read($composer), true) : array();
         $json['autoload']['psr-4']['App\\'] = 'app/src/';
-        $json['autoload']['files'] = array_merge($json['autoload']['files'] ?? array(), array('app/Kernel.php'));
 
         $fw->write($composer, json_encode($json, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
 
-        $cli->writeln('Project initialized in <comment>%fms</comment> at <info>%s</info>', $fw->ellapsed(), realpath($wd));
+        $cli->writeln('Project initialized in <comment>%f s</> at <info>%s</>', $fw->ellapsed(), realpath($wd));
     }
 
     /**
@@ -597,6 +600,10 @@ class Console
 
         if (!$options['destination'] || !is_dir($options['destination'])) {
             throw new \LogicException(sprintf('Destination directory not exists: "%s".', $options['destination']));
+        }
+
+        if (!$options['temp'] || !is_dir($options['temp'])) {
+            throw new \LogicException(sprintf('Temp directory not exists: "%s".', $options['temp']));
         }
 
         if (empty($options['version'])) {
@@ -636,27 +643,71 @@ class Console
         }
         // @codeCoverageIgnoreEnd
 
-        $destination = rtrim($fw->fixslashes(realpath($options['destination'])), '/').'/';
-        $dir = rtrim($fw->fixslashes($options['working-dir']), '/').'/';
-        $projectDir = basename($dir);
-        $file = sprintf('%s%s-%s.zip', $destination, $projectDir, $options['version']);
-        $patterns = $fw->split($options['add']);
-        $excludes = $fw->split($options['excludes']);
+        $destination = $fw->fixslashes(realpath($options['destination'])).'/';
+        $workingDir = $fw->fixslashes(realpath($options['working-dir'] ?: $cwd)).'/';
+        $projectDir = basename($workingDir);
+        $compressed = sprintf('%s%s-%s.zip', $destination, $projectDir, $options['version']);
+        $patterns = $fw->split($options['add'], ';');
+        $excludes = $fw->split($options['excludes'], ';');
 
-        if ($options['merge']) {
-            array_push($patterns, ...$fw->split($options['merge']));
+        $fw->delete($compressed);
+
+        $zip = new Zip($compressed, Zip::CREATE, $projectDir, $options['caseless']);
+        $zip->add($workingDir, $patterns, $excludes);
+
+        // @codeCoverageIgnoreStart
+        $vendorDir = $options['vendor-dir'];
+        if (is_string($vendorDir) && is_dir($vendorDir) && is_file($workingDir.'composer.json') && is_file($workingDir.'composer.lock')) {
+            if (!$options['composer']) {
+                throw new \LogicException('No composer executable!');
+            }
+
+            $vendorDir = realpath($vendorDir).'/';
+            $targetDir = realpath($options['temp']).'/build-vendor/';
+            $flags = \FilesystemIterator::SKIP_DOTS;
+            $cut = strlen($vendorDir);
+
+            if (is_dir($targetDir)) {
+                $iterator = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($targetDir, $flags), \RecursiveIteratorIterator::CHILD_FIRST);
+
+                foreach ($iterator as $file) {
+                    $filepath = $file->getPathname();
+
+                    if (is_file($filepath)) {
+                        unlink($filepath);
+                    } elseif (is_dir($filepath)) {
+                        rmdir($filepath);
+                    } else {
+                        throw new \LogicException(sprintf('Unable to guess "%s" file type.', $filepath));
+                    }
+                }
+            }
+
+            $iterator = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($vendorDir, $flags), \RecursiveIteratorIterator::SELF_FIRST);
+
+            foreach ($iterator as $file) {
+                $filepath = $file->getPathname();
+                $target = $targetDir.'vendor/'.substr($filepath, $cut);
+
+                if (is_file($filepath)) {
+                    copy($filepath, $target);
+                } elseif (is_dir($filepath)) {
+                    $fw->mkdir($target);
+                } else {
+                    throw new \LogicException(sprintf('Unable to guess "%s" file type.', $filepath));
+                }
+            }
+
+            copy($workingDir.'composer.json', $targetDir.'composer.json');
+            copy($workingDir.'composer.lock', $targetDir.'composer.lock');
+
+            $status = `$options[composer] install --quiet --no-interaction --no-progress --no-dev --no-suggest --optimize-autoloader --working-dir=$targetDir`;
+
+            $zip->add($targetDir, array('/vendor/**/*'), $fw->split($options['vendor-excludes'], ';'));
         }
+        // @codeCoverageIgnoreEnd
 
-        if ($options['merge_excludes']) {
-            array_push($excludes, ...$fw->split($options['merge_excludes']));
-        }
-
-        $fw->delete($file);
-
-        Zip::create($file, 'create', $projectDir)
-            ->add($dir, $patterns, $excludes)
-            ->close()
-        ;
+        $zip->close();
 
         // @codeCoverageIgnoreStart
         if ($options['checkout'] && isset($currentBranch)) {
@@ -668,7 +719,7 @@ class Console
             chdir($cwd);
         }
 
-        $cli->writeln("Build complete in <comment>%fms</comment>.\n  Output: <info>%s</info>", $fw->ellapsed(), $file);
+        $cli->writeln("Build complete in <comment>%f s</>.\n  Output: <info>%s</>", $fw->ellapsed(), $compressed);
     }
 
     /**
@@ -691,7 +742,7 @@ class Console
         $latestVersion = end($versions) ?: $installedVersion;
 
         if ($installedVersion === $latestVersion) {
-            $cli->writeln('  Already in latest version (<comment>%s</comment>).', $latestVersion);
+            $cli->writeln('  Already in latest version (<comment>%s</>).', $latestVersion);
 
             return;
         }
@@ -718,6 +769,6 @@ class Console
         }
 
         $fw->write($file, $latestVersion."\ninstallation complete at ".date('Y-m-d G:i:s.u'));
-        $cli->writeln('Setup to version "<info>%s</info>"" complete in <comment>%fms</comment>.', $latestVersion, $fw->ellapsed());
+        $cli->writeln('Setup to version "<info>%s</>"" complete in <comment>%f s</>.', $latestVersion, $fw->ellapsed());
     }
 }
