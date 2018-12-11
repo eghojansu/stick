@@ -26,30 +26,23 @@ final class Zip extends \ZipArchive
     private $prefix;
 
     /**
+     * @var bool
+     */
+    private $caseless;
+
+    /**
      * Class constructor.
      *
      * @param string      $filepath
      * @param string      $flags
      * @param string|null $prefix
+     * @param bool        $caseless
      */
-    public function __construct(string $filepath, int $flags = 0, string $prefix = null)
+    public function __construct(string $filepath, int $flags = 0, string $prefix = null, bool $caseless = true)
     {
         $this->prefix = $prefix;
+        $this->caseless = $caseless;
         $this->open($filepath, $flags);
-    }
-
-    /**
-     * Create instance.
-     *
-     * @param string      $filepath
-     * @param int         $flags
-     * @param string|null $prefix
-     *
-     * @return Zip
-     */
-    public static function create(string $filepath, int $flags = 0, string $prefix = null): Zip
-    {
-        return new self($filepath, $flags, $prefix);
     }
 
     /**
@@ -77,6 +70,30 @@ final class Zip extends \ZipArchive
     }
 
     /**
+     * Returns match case.
+     *
+     * @return bool
+     */
+    public function isCaseless(): bool
+    {
+        return $this->caseless;
+    }
+
+    /**
+     * Sets match case.
+     *
+     * @param bool $caseless
+     *
+     * @return Zip
+     */
+    public function setCaseless(bool $caseless): Zip
+    {
+        $this->caseless = $caseless;
+
+        return $this;
+    }
+
+    /**
      * Add directory with patterns and excludes in glob format.
      *
      * @param string     $dir
@@ -98,7 +115,8 @@ final class Zip extends \ZipArchive
             $filepath = $file->getRealPath();
             $localname = substr($filepath, $cut);
 
-            if (($patterns && !$this->isMatch($localname, $patterns)) || ($excludes && $this->isMatch($localname, $excludes))) {
+            if (($patterns && !$this->isMatch($localname, $patterns)) ||
+                ($excludes && $this->isMatch($localname, $excludes))) {
                 continue;
             }
 
@@ -183,6 +201,6 @@ final class Zip extends \ZipArchive
             }
         }
 
-        return '/^'.$wild.'$/';
+        return '/^'.$wild.'$/'.($this->caseless ? 'i' : '');
     }
 }

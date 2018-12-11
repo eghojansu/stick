@@ -32,11 +32,6 @@ class ZipTest extends TestCase
         }
     }
 
-    public function testCreate()
-    {
-        $this->assertNotSame($this->zip, Zip::create(TEST_TEMP.'zip-test.zip', Zip::CREATE));
-    }
-
     public function testGetPrefix()
     {
         $this->assertEquals('foo', $this->zip->getPrefix());
@@ -45,6 +40,16 @@ class ZipTest extends TestCase
     public function testSetPrefix()
     {
         $this->assertEquals('bar', $this->zip->setPrefix('bar')->getPrefix());
+    }
+
+    public function testIsCaseless()
+    {
+        $this->assertTrue($this->zip->isCaseless());
+    }
+
+    public function testSetCaseless()
+    {
+        $this->assertFalse($this->zip->setCaseless(false)->isCaseless());
     }
 
     /**
