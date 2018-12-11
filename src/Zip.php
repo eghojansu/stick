@@ -108,10 +108,9 @@ final class Zip extends \ZipArchive
         $cut = strlen($realpath);
         $prefix = rtrim($this->prefix.'/', '/');
         $flags = \FilesystemIterator::SKIP_DOTS | \FilesystemIterator::UNIX_PATHS | \FilesystemIterator::CURRENT_AS_FILEINFO;
-        $directoryIterator = new \RecursiveDirectoryIterator($realpath, $flags);
-        $files = new \RecursiveIteratorIterator($directoryIterator);
+        $iterator = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($realpath, $flags));
 
-        foreach ($files as $file) {
+        foreach ($iterator as $file) {
             $filepath = $file->getRealPath();
             $localname = substr($filepath, $cut);
 
