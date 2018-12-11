@@ -22,7 +22,7 @@ class ZipTest extends TestCase
 
     public function setUp()
     {
-        $this->zip = new Zip(TEST_TEMP.'zip-test.zip', 'create');
+        $this->zip = new Zip(TEST_TEMP.'zip-test.zip', Zip::CREATE | Zip::OVERWRITE, 'foo');
     }
 
     public function tearDown()
@@ -34,70 +34,42 @@ class ZipTest extends TestCase
 
     public function testCreate()
     {
-        $this->assertNotSame($this->zip, Zip::create(TEST_TEMP.'zip-test.zip', 'create'));
-    }
-
-    public function testCount()
-    {
-        $this->assertEquals(0, $this->zip->count());
-    }
-
-    public function testCallArchiveMethod()
-    {
-        $this->assertEquals('No error', $this->zip->getStatusString());
-    }
-
-    public function testCallArchiveMethodException()
-    {
-        $this->expectException('LogicException');
-        $this->expectExceptionMessage('Call to undefined method ZipArchive::foo.');
-
-        $this->zip->foo();
+        $this->assertNotSame($this->zip, Zip::create(TEST_TEMP.'zip-test.zip', Zip::CREATE));
     }
 
     public function testGetPrefix()
     {
-        $this->assertNull($this->zip->getPrefix());
+        $this->assertEquals('foo', $this->zip->getPrefix());
     }
 
     public function testSetPrefix()
     {
-        $this->assertEquals('foo', $this->zip->setPrefix('foo')->getPrefix());
+        $this->assertEquals('bar', $this->zip->setPrefix('bar')->getPrefix());
     }
 
-    public function testGetArchive()
+    /**
+     * @dataProvider addProvider
+     */
+    public function testAdd($expected, $patterns = null, $excludes = null)
     {
-        $this->assertInstanceOf('ZipArchive', $this->zip->getArchive());
+        $this->assertEquals($expected, $this->zip->add(TEST_FIXTURE.'compress', $patterns, $excludes)->count());
     }
 
-    public function testAdd()
+    public function addProvider()
     {
-        $this->assertEquals(3, $this->zip->add(TEST_FIXTURE.'compress')->count());
-    }
-
-    public function testAddPatterns()
-    {
-        $patterns = array(
-            '**/*.php',
-            '*.php',
+        return array(
+            array(
+                5,
+                array(
+                    '/foo/**/*.php',
+                    '/{a,b,c}.php',
+                    '/a?.php',
+                    '/a,.php',
+                ),
+                array(
+                    '/b.php',
+                ),
+            ),
         );
-        $excludes = array(
-            'b.php',
-        );
-
-        $this->assertEquals(2, $this->zip->add(TEST_FIXTURE.'compress', $patterns, $excludes)->count());
-    }
-
-    public function testOpen()
-    {
-        $this->assertSame($this->zip, $this->zip->open(TEST_TEMP.'zip-test.zip', 'create'));
-    }
-
-    public function testOpenException()
-    {
-        $this->expectException('LogicException');
-        $this->expectExceptionMessage('No such file.');
-
-        $this->zip->open(TEST_TEMP.'zip-test.zip', 'overwrite');
     }
 }

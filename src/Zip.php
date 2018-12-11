@@ -18,16 +18,9 @@ namespace Fal\Stick;
  *
  * @author Eko Kurniawan <ekokurniawanbs@gmail.com>
  */
-final class Zip
+final class Zip extends \ZipArchive
 {
     /**
-     * @var ZipArchive
-     */
-    private $archive;
-
-    /**
-     * Path prefix.
-     *
      * @var string
      */
     private $prefix;
@@ -35,28 +28,28 @@ final class Zip
     /**
      * Class constructor.
      *
-     * @param string      $file
-     * @param string|null $flags
+     * @param string      $filepath
+     * @param string      $flags
      * @param string|null $prefix
      */
-    public function __construct(string $file, string $flags = null, string $prefix = null)
+    public function __construct(string $filepath, int $flags = 0, string $prefix = null)
     {
         $this->prefix = $prefix;
-        $this->open($file, $flags);
+        $this->open($filepath, $flags);
     }
 
     /**
      * Create instance.
      *
-     * @param string      $file
-     * @param string|null $flags
+     * @param string      $filepath
+     * @param int         $flags
      * @param string|null $prefix
      *
      * @return Zip
      */
-    public static function create(string $file, string $flags = null, string $prefix = null): Zip
+    public static function create(string $filepath, int $flags = 0, string $prefix = null): Zip
     {
-        return new self($file, $flags, $prefix);
+        return new self($filepath, $flags, $prefix);
     }
 
     /**
@@ -84,16 +77,6 @@ final class Zip
     }
 
     /**
-     * Returns ZipArchive.
-     *
-     * @return ZipArchive
-     */
-    public function getArchive(): \ZipArchive
-    {
-        return $this->archive;
-    }
-
-    /**
      * Add directory with patterns and excludes in glob format.
      *
      * @param string     $dir
@@ -104,62 +87,25 @@ final class Zip
      */
     public function add(string $dir, array $patterns = null, array $excludes = null): Zip
     {
-        $mDir = rtrim(str_replace('\\', '/', $dir), '/').'/';
-        $directoryIterator = new \RecursiveDirectoryIterator($mDir);
-        $iteratorIterator = new \RecursiveIteratorIterator($directoryIterator);
-        $files = new \RegexIterator($iteratorIterator, '~^'.$mDir.'.*~');
-        $dotFiles = array('.', '..');
-        $remove = '#^'.$mDir.'#';
-        $prefix = ltrim($this->prefix.'/', '/');
+        $realpath = realpath($dir);
+        $cut = strlen($realpath);
+        $prefix = rtrim($this->prefix.'/', '/');
+        $flags = \FilesystemIterator::SKIP_DOTS | \FilesystemIterator::UNIX_PATHS | \FilesystemIterator::CURRENT_AS_FILEINFO;
+        $directoryIterator = new \RecursiveDirectoryIterator($realpath, $flags);
+        $files = new \RecursiveIteratorIterator($directoryIterator);
 
         foreach ($files as $file) {
-            $path = $file->getRealPath();
-            $localname = preg_replace($remove, '', $path);
+            $filepath = $file->getRealPath();
+            $localname = substr($filepath, $cut);
 
-            if (in_array($file->getFilename(), $dotFiles) ||
-                ($patterns && !$this->isMatch($localname, $patterns)) ||
-                ($excludes && $this->isMatch($localname, $excludes))) {
+            if (($patterns && !$this->isMatch($localname, $patterns)) || ($excludes && $this->isMatch($localname, $excludes))) {
                 continue;
             }
 
-            $this->archive->addFile($path, $prefix.$localname);
+            $this->addFile($filepath, $prefix.$localname);
         }
 
         return $this;
-    }
-
-    /**
-     * Open file.
-     *
-     * @param string      $file
-     * @param string|null $flags
-     *
-     * @return Zip
-     */
-    public function open(string $file, string $flags = null): Zip
-    {
-        if ($this->archive) {
-            $this->archive->close();
-        }
-
-        $this->archive = new \ZipArchive();
-        $open = $this->archive->open($file, self::flags($flags));
-
-        if ($error = self::error($open)) {
-            throw new \LogicException($error);
-        }
-
-        return $this;
-    }
-
-    /**
-     * Returns number of file.
-     *
-     * @return int
-     */
-    public function count(): int
-    {
-        return $this->archive->numFiles;
     }
 
     /**
@@ -182,7 +128,9 @@ final class Zip
     }
 
     /**
-     * Convert glob to regexp.
+     * Convert glob expression to regexp.
+     *
+     * Code from github.com/fitzgen/glob-to-regexp.
      *
      * @param string $glob
      *
@@ -190,104 +138,51 @@ final class Zip
      */
     private function regexify(string $glob): string
     {
-        $pattern = '/(\*\*)|(\*)|(\.)/';
-        $prefix = $glob && '/' === $glob[0] ? '^' : '';
+        $inGroup = false;
+        $wild = '';
 
-        return '~'.$prefix.preg_replace_callback($pattern, function ($m) {
-            if ($m[1]) {
-                return '(.*)';
+        for ($i = 0, $len = strlen($glob); $i < $len; ++$i) {
+            $char = $glob[$i];
+
+            if (false !== strpos('/$^+.()=!|', $char)) {
+                $wild .= '\\'.$char;
+            } elseif ('?' === $char) {
+                $wild .= '.';
+            } elseif ('{' === $char) {
+                $wild .= '(';
+                $inGroup = true;
+            } elseif ('}' === $char) {
+                $wild .= ')';
+                $inGroup = false;
+            } elseif (',' === $char) {
+                if ($inGroup) {
+                    $wild .= '|';
+                } else {
+                    $wild .= '\\,';
+                }
+            } elseif ('*' === $char) {
+                $prevChar = $glob[$i - 1] ?? '';
+                $starCount = 1;
+
+                while (($glob[$i + 1] ?? '') === '*') {
+                    ++$starCount;
+                    ++$i;
+                }
+
+                $nextChar = $glob[$i + 1] ?? '';
+                $isGlobstar = $starCount > 1 && '/' === $prevChar && '/' === $nextChar;
+
+                if ($isGlobstar) {
+                    $wild .= '((?:[^\/]*(?:\/|$))*)';
+                    ++$i;
+                } else {
+                    $wild .= '([^\/]*)';
+                }
+            } else {
+                $wild .= $char;
             }
-
-            if ($m[2]) {
-                return '([^\\/]+)';
-            }
-
-            return '(\.)';
-        }, trim($glob, '/')).'~';
-    }
-
-    /**
-     * Convert string flags to ZipArchive flags.
-     *
-     * @param string|null $flags
-     *
-     * @return int
-     */
-    private static function flags(string $flags = null): int
-    {
-        $out = 0;
-
-        foreach (explode('|', strtoupper((string) $flags)) as $flag) {
-            if (in_array($flag, array('OVERWRITE', 'CREATE', 'EXCL', 'CHECKONS'))) {
-                $out |= constant('ZipArchive::'.$flag);
-            }
         }
 
-        return $out;
-    }
-
-    /**
-     * Returns error message, null if no error.
-     *
-     * @param mixed $code
-     *
-     * @return string|null
-     *
-     * @codeCoverageIgnore
-     */
-    private static function error($code): ?string
-    {
-        if (true === $code) {
-            return null;
-        }
-
-        switch ($code) {
-            case \ZipArchive::ER_EXISTS:
-                return 'File already exists.';
-
-            case \ZipArchive::ER_INCONS:
-                return 'Zip archive inconsistent.';
-
-            case \ZipArchive::ER_INVAL:
-                return 'Invalid argument.';
-
-            case \ZipArchive::ER_MEMORY:
-                return 'Malloc failure.';
-
-            case \ZipArchive::ER_NOENT:
-                return 'No such file.';
-
-            case \ZipArchive::ER_NOZIP:
-                return 'Not a zip archive.';
-
-            case \ZipArchive::ER_OPEN:
-                return 'Can\'t open file.';
-
-            case \ZipArchive::ER_READ:
-                return 'Read error.';
-
-            case \ZipArchive::ER_SEEK:
-                return 'Seek error.';
-
-            default:
-                return null;
-        }
-    }
-
-    /**
-     * Proxy to ZipArchive method.
-     *
-     * @param string $method
-     * @param args   $args
-     *
-     * @return mixed
-     */
-    public function __call($method, $args)
-    {
-        if (!method_exists($this->archive, $method)) {
-            throw new \LogicException(sprintf('Call to undefined method ZipArchive::%s.', $method));
-        }
-
-        return $this->archive->$method(...$args);
+        return '/^'.$wild.'$/';
     }
 }
