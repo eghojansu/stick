@@ -3003,3 +3003,28 @@ final class Core implements \ArrayAccess
         $this->clear((string) $key);
     }
 }
+
+
+/**
+ * Include wrapper, ensure included file has no access to caller private scope.
+ *
+ * @param string $file
+ *
+ * @return mixed
+ */
+function includeFile(string $file)
+{
+    return include $file;
+}
+
+/**
+ * Require wrapper, ensure included file has no access to caller private scope.
+ *
+ * @param string $file
+ *
+ * @return mixed
+ */
+function requireFile(string $file)
+{
+    return require $file;
+}

@@ -1472,6 +1472,16 @@ class CoreTest extends TestCase
         $this->assertEquals($expected, $this->fw->cast($val));
     }
 
+    public function testIncludeFile()
+    {
+        $this->assertEquals('foo', \Fal\Stick\includeFile(TEST_FIXTURE.'files/foo.php'));
+    }
+
+    public function testRequireFile()
+    {
+        $this->assertEquals('foo', \Fal\Stick\requireFile(TEST_FIXTURE.'files/foo.php'));
+    }
+
     public function cacheProvider()
     {
         return array(
