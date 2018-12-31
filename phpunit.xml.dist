@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <phpunit bootstrap="tests/bootstrap.php" colors="true" verbose="true" stderr="true">
-  <testsuite name="Unit">
-    <directory>tests/src</directory>
+  <testsuite name="Stick Framework Test Unit">
+    <directory>tests</directory>
+    <exclude>fixture</exclude>
   </testsuite>
 
   <filter>
