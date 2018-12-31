@@ -569,7 +569,7 @@ class MapperTest extends TestCase
 
     private function build(string $table = null, string $mapper = null, bool $anon = false)
     {
-        $fw = new Core('phpunit-test');
+        $fw = new Core();
         $db = new Connection($fw, 'sqlite::memory:', null, null, array(
             file_get_contents(TEST_FIXTURE.'files/schema.sql'),
             'insert into user (username) values ("foo"), ("bar"), ("baz")',

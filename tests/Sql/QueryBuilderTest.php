@@ -26,7 +26,7 @@ class QueryBuilderTest extends TestCase
 
     public function setUp()
     {
-        $fw = new Core('phpunit-test');
+        $fw = new Core();
         $db = new Connection($fw, 'sqlite::memory:', null, null, array(
             file_get_contents(TEST_FIXTURE.'files/schema.sql'),
             'insert into user (username) values ("foo"), ("bar"), ("baz")',

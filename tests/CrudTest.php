@@ -29,7 +29,7 @@ class CrudTest extends TestCase
 
     public function setUp()
     {
-        $this->fw = new Core('phpunit-test');
+        $this->fw = new Core();
         $this->fw
             ->rule(Connection::class, array(
                 'arguments' => array(

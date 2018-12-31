@@ -26,7 +26,7 @@ class ConsoleTest extends TestCase
 
     public function setUp()
     {
-        $this->console = new Console($this->fw = new Core('phpunit-test'), $this->cli = new Cli());
+        $this->console = new Console($this->fw = new Core(), $this->cli = new Cli());
     }
 
     public function testRegister()

@@ -114,13 +114,12 @@ final class Core implements \ArrayAccess
     /**
      * Class constructor.
      *
-     * @param string     $environment
      * @param array|null $get
      * @param array|null $post
      * @param array|null $cookie
      * @param array|null $server
      */
-    public function __construct(string $environment = 'prod', array $get = null, array $post = null, array $cookie = null, array $server = null)
+    public function __construct(array $get = null, array $post = null, array $cookie = null, array $server = null)
     {
         $time = microtime(true);
         $cli = 'cli' === PHP_SAPI;
@@ -167,7 +166,7 @@ final class Core implements \ArrayAccess
             'ttl' => 0,
         );
 
-        $this->hive = array(
+        $this->hive = $this->init = array(
             'AGENT' => $headers['X-Operamini-Phone-Ua'] ?? $headers['X-Skyfire-Phone'] ?? $headers['User-Agent'] ?? '',
             'AJAX' => 'XMLHttpRequest' === ($headers['X-Requested-With'] ?? null),
             'ALIAS' => null,
@@ -190,7 +189,6 @@ final class Core implements \ArrayAccess
             'DEBUG' => false,
             'DICT' => null,
             'DNSBL' => null,
-            'ENVIRONMENT' => $environment,
             'ERROR' => null,
             'EVENTS' => null,
             'EXEMPT' => null,
@@ -240,15 +238,11 @@ final class Core implements \ArrayAccess
             'VERSION' => self::VERSION,
             'XFRAME' => 'SAMEORIGIN',
         );
-        $this->init = array('GET' => null, 'POST' => null) + $this->hive;
-
-        register_shutdown_function(array($this, 'unload'), getcwd());
     }
 
     /**
      * Create class instance.
      *
-     * @param string     $environment
      * @param array|null $get
      * @param array|null $post
      * @param array|null $cookie
@@ -256,21 +250,19 @@ final class Core implements \ArrayAccess
      *
      * @return Core
      */
-    public static function create(string $environment = 'prod', array $get = null, array $post = null, array $cookie = null, array $server = null): Core
+    public static function create(array $get = null, array $post = null, array $cookie = null, array $server = null): Core
     {
-        return new self($environment, $get, $post, $cookie, $server);
+        return new self($get, $post, $cookie, $server);
     }
 
     /**
      * Create class instance with globals environment.
      *
-     * @param string $environment
-     *
      * @return Core
      */
-    public static function createFromGlobals(string $environment = 'prod'): Core
+    public static function createFromGlobals(): Core
     {
-        return new self($environment, $_GET, $_POST, $_COOKIE, $_SERVER);
+        return new self($_GET, $_POST, $_COOKIE, $_SERVER);
     }
 
     /**
@@ -2020,6 +2012,20 @@ final class Core implements \ArrayAccess
     }
 
     /**
+     * Register shutdown handler.
+     *
+     * @return Core
+     *
+     * @codeCoverageIgnore
+     */
+    public function registerShutdownHandler(): Core
+    {
+        register_shutdown_function(array($this, 'unload'), getcwd());
+
+        return $this;
+    }
+
+    /**
      * Shutdown procedure.
      *
      * @param string $workingDirectory
@@ -2028,10 +2034,6 @@ final class Core implements \ArrayAccess
      */
     public function unload(string $workingDirectory)
     {
-        if ('phpunit-test' === $this->hive['ENVIRONMENT']) {
-            return;
-        }
-
         chdir($workingDirectory);
 
         $error = error_get_last();

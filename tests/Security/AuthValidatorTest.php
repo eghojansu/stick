@@ -28,7 +28,7 @@ class AuthValidatorTest extends TestCase
 
     public function setUp()
     {
-        $this->auth = new Auth(new Core('phpunit-test'), new InMemoryUserProvider(), new PlainPasswordEncoder());
+        $this->auth = new Auth(new Core(), new InMemoryUserProvider(), new PlainPasswordEncoder());
         $this->validator = new AuthValidator($this->auth);
     }
 

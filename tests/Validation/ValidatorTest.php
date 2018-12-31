@@ -24,7 +24,7 @@ class ValidatorTest extends TestCase
 
     public function setUp()
     {
-        $this->validator = new Validator(new Core('phpunit-test'), array(
+        $this->validator = new Validator(new Core(), array(
             'Fal\\Stick\\Validation\\CommonValidator',
             'Fal\\Stick\\Validation\\UrlValidator',
         ));
@@ -32,7 +32,7 @@ class ValidatorTest extends TestCase
 
     public function testConstruct()
     {
-        $fw = new Core('phpunit-test');
+        $fw = new Core();
         $validator = new Validator($fw);
 
         $this->assertStringEndsWith('/Validation/dict/;', $fw->get('LOCALES'));

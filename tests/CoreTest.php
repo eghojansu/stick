@@ -25,7 +25,7 @@ class CoreTest extends TestCase
 
     public function setUp()
     {
-        $this->fw = new Core('phpunit-test');
+        $this->fw = new Core();
     }
 
     /**
@@ -1191,7 +1191,7 @@ class CoreTest extends TestCase
             'CONTENT_TYPE' => 'text/html',
             'HTTP_X_REQUESTED_WITH' => 'XMLHttpRequest',
         );
-        $fw = new Core('phpunit-test', null, null, null, $server);
+        $fw = new Core(null, null, null, $server);
 
         $this->assertEquals('text/html', $fw->get('REQUEST.Content-Type'));
         $this->assertEquals('XMLHttpRequest', $fw->get('REQUEST.X-Requested-With'));
@@ -1200,14 +1200,14 @@ class CoreTest extends TestCase
 
     public function testCreate()
     {
-        $fw = Core::create('phpunit-test', array('foo' => 'bar'));
+        $fw = Core::create(array('foo' => 'bar'));
 
         $this->assertEquals(array('foo' => 'bar'), $fw->get('GET'));
     }
 
     public function testCreateFromGlobals()
     {
-        $fw = Core::createFromGlobals('phpunit-test');
+        $fw = Core::createFromGlobals();
 
         $this->assertEquals($_SERVER, $fw->get('SERVER'));
     }

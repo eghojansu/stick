@@ -28,7 +28,7 @@ class ParameterConverterTest extends TestCase
 
     private function prepare($handler, array $params)
     {
-        $this->fw = new Core('phpunit-test');
+        $this->fw = new Core();
         $conn = new Connection($this->fw, 'sqlite::memory:', null, null, array(file_get_contents(TEST_FIXTURE.'files/schema.sql')));
 
         $conn->getPdo()->exec('insert into user (username) values ("foo"), ("bar"), ("baz")');
@@ -41,7 +41,7 @@ class ParameterConverterTest extends TestCase
 
     public function testCreate()
     {
-        $this->assertInstanceOf('Fal\\Stick\\Sql\\ParameterConverter', ParameterConverter::create(new Core('phpunit-test'), function () {}, array()));
+        $this->assertInstanceOf('Fal\\Stick\\Sql\\ParameterConverter', ParameterConverter::create(new Core(), function () {}, array()));
     }
 
     /**

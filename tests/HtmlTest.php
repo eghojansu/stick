@@ -23,7 +23,7 @@ class HtmlTest extends TestCase
 
     public function setUp()
     {
-        $this->html = new Html($this->fw = new Core('phpunit-test'));
+        $this->html = new Html($this->fw = new Core());
     }
 
     public function testAttr()

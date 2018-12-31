@@ -23,7 +23,7 @@ class TemplateTest extends TestCase
 
     public function setUp()
     {
-        $this->template = new Template(new Core('phpunit-test'), TEST_FIXTURE.'template/', array(
+        $this->template = new Template(new Core(), TEST_FIXTURE.'template/', array(
             'profile' => true,
         ));
     }

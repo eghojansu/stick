@@ -24,7 +24,7 @@ class WebTest extends TestCase
 
     public function setUp()
     {
-        $this->web = new Web($this->fw = new Core('phpunit-test'));
+        $this->web = new Web($this->fw = new Core());
     }
 
     public function tearDown()

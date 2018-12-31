@@ -28,7 +28,7 @@ class Twbs3FormTest extends TestCase
 
     public function setUp()
     {
-        $this->form = new Twbs3Form($this->fw = new Core('phpunit-test'), $this->validator = new Validator($this->fw), new Html($this->fw));
+        $this->form = new Twbs3Form($this->fw = new Core(), $this->validator = new Validator($this->fw), new Html($this->fw));
     }
 
     public function testAdd()

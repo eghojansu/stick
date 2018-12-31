@@ -26,7 +26,7 @@ class TestTest extends TestCase
 
     public function setUp()
     {
-        $this->test = new Test($this->fw = new Core('phpunit-test'));
+        $this->test = new Test($this->fw = new Core());
         $this->fw
             ->route('GET foo /foo', function () {
                 return 'foo';

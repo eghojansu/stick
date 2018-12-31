@@ -24,7 +24,7 @@ class ImageTest extends TestCase
 
     public function setUp()
     {
-        $this->fw = new Core('phpunit-test');
+        $this->fw = new Core();
         $this->image = new Image($this->fw);
     }
 

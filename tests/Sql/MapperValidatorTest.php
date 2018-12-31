@@ -24,7 +24,7 @@ class MapperValidatorTest extends TestCase
 
     public function setUp()
     {
-        $fw = new Core('phpunit-test');
+        $fw = new Core();
         $conn = new Connection($fw, 'sqlite::memory:', null, null, array(file_get_contents(TEST_FIXTURE.'files/schema.sql')));
         $conn->getPdo()->exec('insert into user (username, password) values ("foo", "foo"), ("bar", "bar"), ("baz", "baz")');
 
