@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 namespace Fal\Stick\Validation;
 
-use Fal\Stick\Fw;
+use Fal\Stick\Core;
 
 /**
  * Validator wrapper.
@@ -23,7 +23,7 @@ use Fal\Stick\Fw;
 final class Validator
 {
     /**
-     * @var Fw
+     * @var Core
      */
     private $fw;
 
@@ -35,10 +35,10 @@ final class Validator
     /**
      * Class constructor.
      *
-     * @param Fw         $fw
+     * @param Core         $fw
      * @param array|null $validators
      */
-    public function __construct(Fw $fw, array $validators = null)
+    public function __construct(Core $fw, array $validators = null)
     {
         $this->fw = $fw->prepend('LOCALES', __DIR__.'/dict/;');
 

@@ -23,7 +23,7 @@ namespace Fal\Stick;
 final class Web
 {
     /**
-     * @var Fw
+     * @var Core
      */
     private $fw;
 
@@ -84,9 +84,9 @@ final class Web
     /**
      * Class constructor.
      *
-     * @param Fw $fw
+     * @param Core $fw
      */
-    public function __construct(Fw $fw)
+    public function __construct(Core $fw)
     {
         $this->fw = $fw;
     }

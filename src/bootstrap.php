@@ -11,6 +11,6 @@
  * Created at Dec 06, 2018 20:30
  */
 require __DIR__.'/functions.php';
-require __DIR__.'/Fw.php';
+require __DIR__.'/Core.php';
 
-return Fal\Stick\Fw::createFromGlobals()->registerClassLoader();
+return Fal\Stick\Core::createFromGlobals()->registerClassLoader();

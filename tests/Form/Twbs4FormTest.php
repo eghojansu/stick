@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 namespace Fal\Stick\Test\Form;
 
-use Fal\Stick\Fw;
+use Fal\Stick\Core;
 use Fal\Stick\Html;
 use Fal\Stick\Form\Twbs4Form;
 use Fal\Stick\Validation\CommonValidator;
@@ -28,7 +28,7 @@ class Twbs4FormTest extends TestCase
 
     public function setUp()
     {
-        $this->form = new Twbs4Form($this->fw = new Fw('phpunit-test'), $this->validator = new Validator($this->fw), new Html($this->fw));
+        $this->form = new Twbs4Form($this->fw = new Core('phpunit-test'), $this->validator = new Validator($this->fw), new Html($this->fw));
     }
 
     public function testAdd()

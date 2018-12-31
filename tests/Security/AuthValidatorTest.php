@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 namespace Fal\Stick\Test\Security;
 
-use Fal\Stick\Fw;
+use Fal\Stick\Core;
 use Fal\Stick\Security\Auth;
 use Fal\Stick\Security\AuthValidator;
 use Fal\Stick\Security\InMemoryUserProvider;
@@ -28,7 +28,7 @@ class AuthValidatorTest extends TestCase
 
     public function setUp()
     {
-        $this->auth = new Auth(new Fw('phpunit-test'), new InMemoryUserProvider(), new PlainPasswordEncoder());
+        $this->auth = new Auth(new Core('phpunit-test'), new InMemoryUserProvider(), new PlainPasswordEncoder());
         $this->validator = new AuthValidator($this->auth);
     }
 

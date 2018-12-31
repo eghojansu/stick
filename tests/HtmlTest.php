@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 namespace Fal\Stick\Test;
 
-use Fal\Stick\Fw;
+use Fal\Stick\Core;
 use Fal\Stick\Html;
 use PHPUnit\Framework\TestCase;
 
@@ -23,7 +23,7 @@ class HtmlTest extends TestCase
 
     public function setUp()
     {
-        $this->html = new Html($this->fw = new Fw('phpunit-test'));
+        $this->html = new Html($this->fw = new Core('phpunit-test'));
     }
 
     public function testAttr()

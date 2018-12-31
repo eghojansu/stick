@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 namespace Fal\Stick\Test\Template;
 
-use Fal\Stick\Fw;
+use Fal\Stick\Core;
 use Fal\Stick\Template\Template;
 use PHPUnit\Framework\TestCase;
 
@@ -23,7 +23,7 @@ class TemplateTest extends TestCase
 
     public function setUp()
     {
-        $this->template = new Template(new Fw('phpunit-test'), TEST_FIXTURE.'template/', array(
+        $this->template = new Template(new Core('phpunit-test'), TEST_FIXTURE.'template/', array(
             'profile' => true,
         ));
     }

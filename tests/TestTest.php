@@ -15,7 +15,7 @@ declare(strict_types=1);
 
 namespace Fal\Stick\Test;
 
-use Fal\Stick\Fw;
+use Fal\Stick\Core;
 use Fal\Stick\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -26,7 +26,7 @@ class TestTest extends TestCase
 
     public function setUp()
     {
-        $this->test = new Test($this->fw = new Fw('phpunit-test'));
+        $this->test = new Test($this->fw = new Core('phpunit-test'));
         $this->fw
             ->route('GET foo /foo', function () {
                 return 'foo';
@@ -34,7 +34,7 @@ class TestTest extends TestCase
             ->route('GET /home', function () {
                 return file_get_contents(TEST_FIXTURE.'response/home.html');
             })
-            ->route('POST /home', function (Fw $fw) {
+            ->route('POST /home', function (Core $fw) {
                 if ($data = $fw->get('POST.data')) {
                     return 'Data valid: '.$data;
                 }
@@ -44,7 +44,7 @@ class TestTest extends TestCase
             ->route('GET login /login', function () {
                 return 'Login';
             })
-            ->route('POST login', function (Fw $fw) {
+            ->route('POST login', function (Core $fw) {
                 return $fw->get('POST.username') ? 'Login Success' : 'Login Failed';
             })
             ->route('GET /none', function () {
@@ -53,9 +53,9 @@ class TestTest extends TestCase
         ;
     }
 
-    public function testGetFw()
+    public function testGetCore()
     {
-        $this->assertSame($this->fw, $this->test->getFw());
+        $this->assertSame($this->fw, $this->test->getCore());
     }
 
     public function testSuccess()

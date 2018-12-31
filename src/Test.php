@@ -27,7 +27,7 @@ use Symfony\Component\CssSelector\CssSelectorConverter;
 class Test
 {
     /**
-     * @var Fw
+     * @var Core
      */
     protected $fw;
 
@@ -59,10 +59,10 @@ class Test
     /**
      * Class constructor.
      *
-     * @param Fw            $fw
+     * @param Core            $fw
      * @param TestCase|null $test
      */
-    public function __construct(Fw $fw, TestCase $test = null)
+    public function __construct(Core $fw, TestCase $test = null)
     {
         $this->fw = $fw;
         $this->test = $test;
@@ -71,9 +71,9 @@ class Test
     /**
      * Returns fw instance.
      *
-     * @return Fw
+     * @return Core
      */
-    public function getFw(): Fw
+    public function getCore(): Core
     {
         return $this->fw;
     }

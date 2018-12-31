@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 namespace Fal\Stick\Sql;
 
-use Fal\Stick\Fw;
+use Fal\Stick\Core;
 
 /**
  * PDO Wrapper.
@@ -36,7 +36,7 @@ final class Connection
     const PARAM_FLOAT = -1;
 
     /**
-     * @var Fw
+     * @var Core
      */
     private $fw;
 
@@ -88,14 +88,14 @@ final class Connection
     /**
      * Class constructor.
      *
-     * @param Fw          $fw
+     * @param Core          $fw
      * @param string      $dsn
      * @param string|null $username
      * @param string|null $password
      * @param array|null  $commands
      * @param array|null  $options
      */
-    public function __construct(Fw $fw, string $dsn, string $username = null, string $password = null, array $commands = null, array $options = null)
+    public function __construct(Core $fw, string $dsn, string $username = null, string $password = null, array $commands = null, array $options = null)
     {
         $this->fw = $fw;
         $this->dsn = $dsn;
@@ -127,7 +127,7 @@ final class Connection
 
                 $this->pdo = $pdo;
             } catch (\Throwable $e) {
-                $this->fw->log(Fw::LOG_EMERGENCY, $e->getMessage());
+                $this->fw->log(Core::LOG_EMERGENCY, $e->getMessage());
 
                 throw new \LogicException('Database connection failed!');
             }
@@ -230,7 +230,7 @@ final class Connection
         $hash = $this->fw->hash($table.var_export($fields, true)).'.schema';
 
         if ($ttl && ($schema = $this->fw->cacheGet($hash, $found)) && $found) {
-            $this->fw->log(Fw::LOG_INFO, sprintf('(%fms) [CACHED] Retrieving schema of %s table', $this->fw->ellapsed(), $table));
+            $this->fw->log(Core::LOG_INFO, sprintf('(%fms) [CACHED] Retrieving schema of %s table', $this->fw->ellapsed(), $table));
 
             return $schema;
         }
@@ -268,7 +268,7 @@ final class Connection
             $this->fw->cacheSet($hash, $schema, $ttl);
         }
 
-        $this->fw->log(Fw::LOG_INFO, sprintf('(%fms) Retrieving schema of %s table (%s)', $this->fw->ellapsed(), $table, $command));
+        $this->fw->log(Core::LOG_INFO, sprintf('(%fms) Retrieving schema of %s table (%s)', $this->fw->ellapsed(), $table, $command));
 
         return $schema;
     }
@@ -326,14 +326,14 @@ final class Connection
         $hash = $this->fw->hash($cmd.var_export($args, true)).'.sql';
 
         if ($ttl && ($data = $this->fw->cacheGet($hash, $found)) && $found) {
-            $this->fw->log(Fw::LOG_INFO, sprintf('(%fms) [CACHED] %s', $this->fw->ellapsed(), $this->buildQuery($cmd, $args)));
+            $this->fw->log(Core::LOG_INFO, sprintf('(%fms) [CACHED] %s', $this->fw->ellapsed(), $this->buildQuery($cmd, $args)));
 
             return $data;
         }
 
         $query = $this->prepare($cmd, $args);
 
-        $this->fw->log(Fw::LOG_INFO, sprintf('(%fms) %s', $this->fw->ellapsed(), $this->buildQuery($cmd, $args)));
+        $this->fw->log(Core::LOG_INFO, sprintf('(%fms) %s', $this->fw->ellapsed(), $this->buildQuery($cmd, $args)));
 
         if (!$query) {
             $this->rollback();

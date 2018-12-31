@@ -247,7 +247,7 @@ class TemplateFile
     }
 
     /**
-     * Returns globals data or proxy to Fw::service.
+     * Returns globals data or proxy to Core::service.
      *
      * @param string $key
      *

@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 namespace Fal\Stick\Test\Sql;
 
-use Fal\Stick\Fw;
+use Fal\Stick\Core;
 use Fal\Stick\Sql\Connection;
 use Fal\Stick\Sql\Mapper;
 use Fal\Stick\Sql\ParameterConverter;
@@ -28,7 +28,7 @@ class ParameterConverterTest extends TestCase
 
     private function prepare($handler, array $params)
     {
-        $this->fw = new Fw('phpunit-test');
+        $this->fw = new Core('phpunit-test');
         $conn = new Connection($this->fw, 'sqlite::memory:', null, null, array(file_get_contents(TEST_FIXTURE.'files/schema.sql')));
 
         $conn->getPdo()->exec('insert into user (username) values ("foo"), ("bar"), ("baz")');
@@ -41,7 +41,7 @@ class ParameterConverterTest extends TestCase
 
     public function testCreate()
     {
-        $this->assertInstanceOf('Fal\\Stick\\Sql\\ParameterConverter', ParameterConverter::create(new Fw('phpunit-test'), function () {}, array()));
+        $this->assertInstanceOf('Fal\\Stick\\Sql\\ParameterConverter', ParameterConverter::create(new Core('phpunit-test'), function () {}, array()));
     }
 
     /**

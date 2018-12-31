@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 namespace Fal\Stick\Form;
 
-use Fal\Stick\Fw;
+use Fal\Stick\Core;
 use Fal\Stick\Html;
 use Fal\Stick\Validation\Validator;
 
@@ -25,7 +25,7 @@ use Fal\Stick\Validation\Validator;
 class Form
 {
     /**
-     * @var Fw
+     * @var Core
      */
     protected $_fw;
 
@@ -124,11 +124,11 @@ class Form
     /**
      * Class constructor.
      *
-     * @param Fw        $fw
+     * @param Core        $fw
      * @param Validator $validator
      * @param Html      $html
      */
-    public function __construct(Fw $fw, Validator $validator, Html $html)
+    public function __construct(Core $fw, Validator $validator, Html $html)
     {
         $this->_fw = $fw;
         $this->_html = $html;

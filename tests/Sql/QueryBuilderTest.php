@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 namespace Fal\Stick\Test\Sql;
 
-use Fal\Stick\Fw;
+use Fal\Stick\Core;
 use Fal\Stick\Sql\Connection;
 use Fal\Stick\Sql\QueryBuilder;
 use Fixture\Mapper\TUser;
@@ -26,7 +26,7 @@ class QueryBuilderTest extends TestCase
 
     public function setUp()
     {
-        $fw = new Fw('phpunit-test');
+        $fw = new Core('phpunit-test');
         $db = new Connection($fw, 'sqlite::memory:', null, null, array(
             file_get_contents(TEST_FIXTURE.'files/schema.sql'),
             'insert into user (username) values ("foo"), ("bar"), ("baz")',

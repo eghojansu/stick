@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 namespace Fal\Stick\Test;
 
-use Fal\Stick\Fw;
+use Fal\Stick\Core;
 use Fal\Stick\Web;
 use PHPUnit\Framework\TestCase;
 
@@ -24,7 +24,7 @@ class WebTest extends TestCase
 
     public function setUp()
     {
-        $this->web = new Web($this->fw = new Fw('phpunit-test'));
+        $this->web = new Web($this->fw = new Core('phpunit-test'));
     }
 
     public function tearDown()

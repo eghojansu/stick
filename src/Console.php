@@ -21,7 +21,7 @@ namespace Fal\Stick;
 class Console
 {
     /**
-     * @var Fw
+     * @var Core
      */
     protected $fw;
 
@@ -40,10 +40,10 @@ class Console
     /**
      * Class constructor.
      *
-     * @param Fw  $fw
+     * @param Core  $fw
      * @param Cli $cli
      */
-    public function __construct(Fw $fw, Cli $cli)
+    public function __construct(Core $fw, Cli $cli)
     {
         if (!$fw->exists('RULES.Fal\\Stick\\Console')) {
             $fw->rule('Fal\\Stick\\Console', $this);
@@ -105,9 +105,9 @@ class Console
     /**
      * Register route handler.
      *
-     * @param Fw $fw
+     * @param Core $fw
      */
-    public static function register(Fw $fw): void
+    public static function register(Core $fw): void
     {
         $fw->controller('Fal\\Stick\\Console', array(
             'GET / cli' => 'run',
@@ -326,14 +326,14 @@ class Console
     /**
      * Show help message.
      *
-     * @param Fw      $fw
+     * @param Core      $fw
      * @param Console $console
      * @param Cli     $cli
      * @param array   $options
      * @param array   $args
      * @param array   $def
      */
-    public static function helpCommand(Fw $fw, Console $console, Cli $cli, array $options, array $args, array $def): void
+    public static function helpCommand(Core $fw, Console $console, Cli $cli, array $options, array $args, array $def): void
     {
         $command = $args['command'] ?? $def['name'];
 
@@ -417,11 +417,11 @@ class Console
     /**
      * Initialize project structure.
      *
-     * @param Fw    $fw
+     * @param Core    $fw
      * @param Cli   $cli
      * @param array $options
      */
-    public static function initCommand(Fw $fw, Cli $cli, array $options): void
+    public static function initCommand(Core $fw, Cli $cli, array $options): void
     {
         $fw->mark();
 
@@ -470,7 +470,7 @@ class Console
                 "    'CONTROLLERS' => require __DIR__.'/controllers.php',\n".
                 ");\n",
             'app/bootstrap.php' => "<?php\n\n".
-                "return Fal\\Stick\\Fw::createFromGlobals()\n".
+                "return Fal\\Stick\\Core::createFromGlobals()\n".
                 "    ->config(__DIR__.'/env.php')\n".
                 ";\n",
             'app/config.dist.php' => "<?php\n\n".
@@ -586,11 +586,11 @@ class Console
     /**
      * Build project command.
      *
-     * @param Fw    $fw
+     * @param Core    $fw
      * @param Cli   $cli
      * @param array $options
      */
-    public static function buildCommand(Fw $fw, Cli $cli, array $options): void
+    public static function buildCommand(Core $fw, Cli $cli, array $options): void
     {
         $fw->mark();
 
@@ -725,11 +725,11 @@ class Console
     /**
      * Setup project.
      *
-     * @param Fw    $fw
+     * @param Core    $fw
      * @param Cli   $cli
      * @param array $options
      */
-    public static function setupCommand(Fw $fw, Cli $cli, array $options): void
+    public static function setupCommand(Core $fw, Cli $cli, array $options): void
     {
         $fw->mark();
 

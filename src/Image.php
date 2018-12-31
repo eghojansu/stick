@@ -59,10 +59,10 @@ class Image
     /**
      * Class constructor.
      *
-     * @param Fw     $fw
+     * @param Core     $fw
      * @param string $defaultFormat
      */
-    public function __construct(Fw $fw, string $defaultFormat = 'png')
+    public function __construct(Core $fw, string $defaultFormat = 'png')
     {
         $this->fw = $fw;
         $this->defaultFormat = $defaultFormat;

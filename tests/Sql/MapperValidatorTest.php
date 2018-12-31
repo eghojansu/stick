@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 namespace Fal\Stick\Test\Sql;
 
-use Fal\Stick\Fw;
+use Fal\Stick\Core;
 use Fal\Stick\Sql\Connection;
 use Fal\Stick\Sql\MapperValidator;
 use PHPUnit\Framework\TestCase;
@@ -24,7 +24,7 @@ class MapperValidatorTest extends TestCase
 
     public function setUp()
     {
-        $fw = new Fw('phpunit-test');
+        $fw = new Core('phpunit-test');
         $conn = new Connection($fw, 'sqlite::memory:', null, null, array(file_get_contents(TEST_FIXTURE.'files/schema.sql')));
         $conn->getPdo()->exec('insert into user (username, password) values ("foo", "foo"), ("bar", "bar"), ("baz", "baz")');
 

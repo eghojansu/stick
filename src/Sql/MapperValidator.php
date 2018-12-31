@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 namespace Fal\Stick\Sql;
 
-use Fal\Stick\Fw;
+use Fal\Stick\Core;
 use Fal\Stick\Validation\ValidatorInterface;
 use Fal\Stick\Validation\ValidatorTrait;
 
@@ -27,7 +27,7 @@ class MapperValidator implements ValidatorInterface
     use ValidatorTrait;
 
     /**
-     * @var Fw
+     * @var Core
      */
     private $fw;
 
@@ -39,10 +39,10 @@ class MapperValidator implements ValidatorInterface
     /**
      * Class constructor.
      *
-     * @param Fw         $fw
+     * @param Core         $fw
      * @param Connection $db
      */
-    public function __construct(Fw $fw, Connection $db)
+    public function __construct(Core $fw, Connection $db)
     {
         $this->fw = $fw;
         $this->db = $db;

@@ -14,7 +14,7 @@ declare(strict_types=1);
 namespace Fal\Stick\Test;
 
 use Fal\Stick\Crud;
-use Fal\Stick\Fw;
+use Fal\Stick\Core;
 use Fal\Stick\Security\Auth;
 use Fal\Stick\Security\BcryptPasswordEncoder;
 use Fal\Stick\Security\InMemoryUserProvider;
@@ -29,7 +29,7 @@ class CrudTest extends TestCase
 
     public function setUp()
     {
-        $this->fw = new Fw('phpunit-test');
+        $this->fw = new Core('phpunit-test');
         $this->fw
             ->rule(Connection::class, array(
                 'arguments' => array(
@@ -325,7 +325,7 @@ class CrudTest extends TestCase
     {
         $this->fw->set('QUIET', true);
         $this->fw
-            ->on('fw_reroute', function (Fw $fw, $url) {
+            ->on('fw_reroute', function (Core $fw, $url) {
                 $fw->set('rerouted', $url);
             })
             ->route('GET|POST foo /foo/@segments*', function ($segments) {
@@ -445,7 +445,7 @@ class CrudTest extends TestCase
     {
         $this->fw->set('QUIET', true);
         $this->fw
-            ->on('fw_reroute', function (Fw $fw, $url) {
+            ->on('fw_reroute', function (Core $fw, $url) {
                 $fw->set('rerouted', $url);
             })
             ->route('GET|POST foo /foo/@segments*', function ($segments) {

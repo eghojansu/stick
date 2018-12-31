@@ -23,7 +23,7 @@ namespace Fal\Stick;
  *
  * @author Eko Kurniawan <ekokurniawanbs@gmail.com>
  */
-final class Fw implements \ArrayAccess
+final class Core implements \ArrayAccess
 {
     const PACKAGE = 'Stick-Framework';
     const VERSION = 'v0.1.0';
@@ -254,9 +254,9 @@ final class Fw implements \ArrayAccess
      * @param array|null $cookie
      * @param array|null $server
      *
-     * @return Fw
+     * @return Core
      */
-    public static function create(string $environment = 'prod', array $get = null, array $post = null, array $cookie = null, array $server = null): Fw
+    public static function create(string $environment = 'prod', array $get = null, array $post = null, array $cookie = null, array $server = null): Core
     {
         return new self($environment, $get, $post, $cookie, $server);
     }
@@ -266,9 +266,9 @@ final class Fw implements \ArrayAccess
      *
      * @param string $environment
      *
-     * @return Fw
+     * @return Core
      */
-    public static function createFromGlobals(string $environment = 'prod'): Fw
+    public static function createFromGlobals(string $environment = 'prod'): Core
     {
         return new self($environment, $_GET, $_POST, $_COOKIE, $_SERVER);
     }
@@ -556,9 +556,9 @@ final class Fw implements \ArrayAccess
      * @param string     $key
      * @param array|null &$var
      *
-     * @return Fw
+     * @return Core
      */
-    public function deReference(string $key, array &$var = null): Fw
+    public function deReference(string $key, array &$var = null): Core
     {
         $self = null == $var;
         $last = strrchr('.'.$key, '.');
@@ -620,9 +620,9 @@ final class Fw implements \ArrayAccess
      * @param string $key
      * @param mixed  $value
      *
-     * @return Fw
+     * @return Core
      */
-    public function set(string $key, $value): Fw
+    public function set(string $key, $value): Core
     {
         $maps = array(
             'CONFIGS' => 'config',
@@ -667,9 +667,9 @@ final class Fw implements \ArrayAccess
      *
      * @param string $key
      *
-     * @return Fw
+     * @return Core
      */
-    public function clear(string $key): Fw
+    public function clear(string $key): Core
     {
         $init = $this->init;
         $reference = $this->reference($key, false, $init, $found);
@@ -726,9 +726,9 @@ final class Fw implements \ArrayAccess
      * @param array       $values
      * @param string|null $prefix
      *
-     * @return Fw
+     * @return Core
      */
-    public function allSet(array $values, string $prefix = null): Fw
+    public function allSet(array $values, string $prefix = null): Core
     {
         foreach ($values as $key => $val) {
             $this->set($prefix.$key, $val);
@@ -743,9 +743,9 @@ final class Fw implements \ArrayAccess
      * @param string|array $keys
      * @param string|null  $prefix
      *
-     * @return Fw
+     * @return Core
      */
-    public function allClear($keys, string $prefix = null): Fw
+    public function allClear($keys, string $prefix = null): Core
     {
         foreach ($this->split($keys) as $key) {
             $this->clear($prefix.$key);
@@ -760,9 +760,9 @@ final class Fw implements \ArrayAccess
      * @param string $source
      * @param string $destination
      *
-     * @return Fw
+     * @return Core
      */
-    public function copy(string $source, string $destination): Fw
+    public function copy(string $source, string $destination): Core
     {
         return $this->set($destination, $this->get($source));
     }
@@ -788,9 +788,9 @@ final class Fw implements \ArrayAccess
      * @param string $key
      * @param mixed  $value
      *
-     * @return Fw
+     * @return Core
      */
-    public function prepend(string $key, $value): Fw
+    public function prepend(string $key, $value): Core
     {
         $var = $this->get($key);
 
@@ -809,9 +809,9 @@ final class Fw implements \ArrayAccess
      * @param string $key
      * @param mixed  $value
      *
-     * @return Fw
+     * @return Core
      */
-    public function append(string $key, $value): Fw
+    public function append(string $key, $value): Core
     {
         $var = $this->get($key);
 
@@ -829,9 +829,9 @@ final class Fw implements \ArrayAccess
      *
      * @param string $source
      *
-     * @return Fw
+     * @return Core
      */
-    public function config(string $source): Fw
+    public function config(string $source): Core
     {
         return $this->allSet((array) (is_file($source) ? requireFile($source) : null));
     }
@@ -1031,9 +1031,9 @@ final class Fw implements \ArrayAccess
      *
      * @param int|string $mark
      *
-     * @return Fw
+     * @return Core
      */
-    public function mark($mark = null): Fw
+    public function mark($mark = null): Core
     {
         $time = microtime(true);
 
@@ -1118,9 +1118,9 @@ final class Fw implements \ArrayAccess
      *
      * @param bool $prepend
      *
-     * @return Fw
+     * @return Core
      */
-    public function registerClassLoader(bool $prepend = false): Fw
+    public function registerClassLoader(bool $prepend = false): Core
     {
         spl_autoload_register(array($this, 'loadClass'), true, $prepend);
 
@@ -1130,9 +1130,9 @@ final class Fw implements \ArrayAccess
     /**
      * Unregister class loader.
      *
-     * @return Fw
+     * @return Core
      */
-    public function unregisterClassLoader(): Fw
+    public function unregisterClassLoader(): Core
     {
         spl_autoload_unregister(array($this, 'loadClass'));
 
@@ -1184,9 +1184,9 @@ final class Fw implements \ArrayAccess
     /**
      * Override request method.
      *
-     * @return Fw
+     * @return Core
      */
-    public function overrideRequestMethod(): Fw
+    public function overrideRequestMethod(): Core
     {
         $verb = $this->hive['REQUEST']['X-Http-Method-Override'] ?? $this->hive['VERB'];
 
@@ -1202,9 +1202,9 @@ final class Fw implements \ArrayAccess
     /**
      * Emulate CLI Request.
      *
-     * @return Fw
+     * @return Core
      */
-    public function emulateCliRequest(): Fw
+    public function emulateCliRequest(): Core
     {
         if ($this->hive['CLI'] && isset($this->hive['SERVER']['argv'])) {
             $argv = $this->hive['SERVER']['argv'] + array(1 => '/');
@@ -1254,9 +1254,9 @@ final class Fw implements \ArrayAccess
      * @param string $expression
      * @param mixed  $handler
      *
-     * @return Fw
+     * @return Core
      */
-    public function route(string $expression, $handler): Fw
+    public function route(string $expression, $handler): Core
     {
         $rule = '~^([\w+|]+)(?:\h+(\w+))?(?:\h+(/[^\h]*))?(?:\h+(ajax|cli|sync))?(?:\h+(\d+))?(?:\h+(\d+))?$~';
 
@@ -1299,9 +1299,9 @@ final class Fw implements \ArrayAccess
      * @param string $class
      * @param array  $routes
      *
-     * @return Fw
+     * @return Core
      */
-    public function controller(string $class, array $routes): Fw
+    public function controller(string $class, array $routes): Core
     {
         foreach ($routes as $route => $method) {
             $this->route($route, $class.'->'.$method);
@@ -1316,9 +1316,9 @@ final class Fw implements \ArrayAccess
      * @param string $expression
      * @param string $class
      *
-     * @return Fw
+     * @return Core
      */
-    public function rest(string $expression, string $class): Fw
+    public function rest(string $expression, string $class): Core
     {
         $itemExpression = preg_replace_callback('~^(?:(\w+)\h+)?(/[^\h]*)~', function ($match) {
             return ($match[1] ? $match[1].'_item' : '').' '.$match[2].'/@item';
@@ -1340,9 +1340,9 @@ final class Fw implements \ArrayAccess
      * @param mixed  $target
      * @param bool   $permanent
      *
-     * @return Fw
+     * @return Core
      */
-    public function redirect(string $expression, $target, bool $permanent = true): Fw
+    public function redirect(string $expression, $target, bool $permanent = true): Core
     {
         return $this->route($expression, function () use ($target, $permanent) {
             return $this->reroute($target, $permanent);
@@ -1482,9 +1482,9 @@ final class Fw implements \ArrayAccess
      * @param string $id
      * @param mixed  $rule
      *
-     * @return Fw
+     * @return Core
      */
-    public function rule(string $id, $rule): Fw
+    public function rule(string $id, $rule): Core
     {
         unset($this->hive['SERVICES'][$id]);
 
@@ -1571,9 +1571,9 @@ final class Fw implements \ArrayAccess
      *
      * @param callable $callback
      *
-     * @return Fw
+     * @return Core
      */
-    public function execute(callable $callback): Fw
+    public function execute(callable $callback): Core
     {
         $this->call($callback);
 
@@ -1654,9 +1654,9 @@ final class Fw implements \ArrayAccess
      * @param string $level
      * @param string $message
      *
-     * @return Fw
+     * @return Core
      */
-    public function log(string $level, string $message): Fw
+    public function log(string $level, string $message): Core
     {
         $write = $this->hive['LOG'] && (self::LOG_LEVELS[$level] ?? 100) <= (self::LOG_LEVELS[$this->hive['THRESHOLD']] ?? 99);
 
@@ -1681,9 +1681,9 @@ final class Fw implements \ArrayAccess
      * @param int    $code
      * @param string $message
      *
-     * @return Fw
+     * @return Core
      */
-    public function logCode(int $code, string $message): Fw
+    public function logCode(int $code, string $message): Core
     {
         $map = array(
             E_ERROR => self::LOG_EMERGENCY,
@@ -1756,9 +1756,9 @@ final class Fw implements \ArrayAccess
      * @param mixed  $handler
      * @param bool   $once
      *
-     * @return Fw
+     * @return Core
      */
-    public function on(string $event, $handler, bool $once = false): Fw
+    public function on(string $event, $handler, bool $once = false): Core
     {
         $this->hive['EVENTS'][$event] = array($handler, $once);
 
@@ -1771,9 +1771,9 @@ final class Fw implements \ArrayAccess
      * @param string $event
      * @param mixed  $handler
      *
-     * @return Fw
+     * @return Core
      */
-    public function one(string $event, $handler): Fw
+    public function one(string $event, $handler): Core
     {
         return $this->on($event, $handler, true);
     }
@@ -1783,9 +1783,9 @@ final class Fw implements \ArrayAccess
      *
      * @param string $event
      *
-     * @return Fw
+     * @return Core
      */
-    public function off(string $event): Fw
+    public function off(string $event): Core
     {
         unset($this->hive['EVENTS'][$event]);
 
@@ -1797,9 +1797,9 @@ final class Fw implements \ArrayAccess
      *
      * @param string|object $subscriber
      *
-     * @return Fw
+     * @return Core
      */
-    public function subscribe($subscriber): Fw
+    public function subscribe($subscriber): Core
     {
         if (!is_subclass_of($subscriber, 'Fal\\Stick\\EventSubscriberInterface')) {
             throw new \LogicException(sprintf('Subscriber "%s" should implements Fal\\Stick\\EventSubscriberInterface.', $subscriber));
@@ -1847,9 +1847,9 @@ final class Fw implements \ArrayAccess
      *
      * @param int $code
      *
-     * @return Fw
+     * @return Core
      */
-    public function status(int $code): Fw
+    public function status(int $code): Core
     {
         $name = 'self::HTTP_'.$code;
 
@@ -1868,9 +1868,9 @@ final class Fw implements \ArrayAccess
      *
      * @param int $seconds
      *
-     * @return Fw
+     * @return Core
      */
-    public function expire(int $seconds = 0): Fw
+    public function expire(int $seconds = 0): Core
     {
         $headers = &$this->hive['RESPONSE'];
 
@@ -1906,9 +1906,9 @@ final class Fw implements \ArrayAccess
      * @param string|null $mime
      * @param int         $kbps
      *
-     * @return Fw
+     * @return Core
      */
-    public function send(int $code = null, array $headers = null, string $content = null, string $mime = null, int $kbps = 0): Fw
+    public function send(int $code = null, array $headers = null, string $content = null, string $mime = null, int $kbps = 0): Core
     {
         if ($this->hive['SENT']) {
             return $this;
@@ -1952,9 +1952,9 @@ final class Fw implements \ArrayAccess
      * @param array|null  $headers
      * @param int|null    $level
      *
-     * @return Fw
+     * @return Core
      */
-    public function error(int $code, string $message = null, array $trace = null, array $headers = null, int $level = null): Fw
+    public function error(int $code, string $message = null, array $trace = null, array $headers = null, int $level = null): Core
     {
         $this->status($code);
 
@@ -2052,9 +2052,9 @@ final class Fw implements \ArrayAccess
     /**
      * Start engine.
      *
-     * @return Fw
+     * @return Core
      */
-    public function run(): Fw
+    public function run(): Core
     {
         try {
             return $this->handleRequest();
@@ -2071,9 +2071,9 @@ final class Fw implements \ArrayAccess
      * @param array|null  $server
      * @param string|null $body
      *
-     * @return Fw
+     * @return Core
      */
-    public function mock(string $expression, array $arguments = null, array $server = null, string $body = null): Fw
+    public function mock(string $expression, array $arguments = null, array $server = null, string $body = null): Core
     {
         $mockPattern = '~^(\w+)\h+([^\h?]+)(\?[^\h]+)?(?:\h+(ajax|cli|sync))?$~';
 
@@ -2123,9 +2123,9 @@ final class Fw implements \ArrayAccess
      * @param mixed $target
      * @param bool  $permanent
      *
-     * @return Fw
+     * @return Core
      */
-    public function reroute($target = null, bool $permanent = false): Fw
+    public function reroute($target = null, bool $permanent = false): Core
     {
         if (!$target) {
             $path = $this->hive['PATH'];
@@ -2165,9 +2165,9 @@ final class Fw implements \ArrayAccess
     /**
      * Engine core.
      *
-     * @return Fw
+     * @return Core
      */
-    private function handleRequest(): Fw
+    private function handleRequest(): Core
     {
         // @codeCoverageIgnoreStart
         if ($this->blacklisted($this->hive['IP'])) {
@@ -2256,9 +2256,9 @@ final class Fw implements \ArrayAccess
      *
      * @param Throwable $e
      *
-     * @return Fw
+     * @return Core
      */
-    private function handleError(\Throwable $e): Fw
+    private function handleError(\Throwable $e): Core
     {
         $httpCode = 500;
         $errorCode = $e->getCode();
@@ -2462,9 +2462,9 @@ final class Fw implements \ArrayAccess
      *
      * @param mixed $response
      *
-     * @return Fw
+     * @return Core
      */
-    private function sendResponse($response): Fw
+    private function sendResponse($response): Core
     {
         $mResponse = $response;
 

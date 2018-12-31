@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 namespace Fal\Stick\Security;
 
-use Fal\Stick\Fw;
+use Fal\Stick\Core;
 use Fal\Stick\HttpException;
 
 /**
@@ -36,7 +36,7 @@ class Auth
     const EVENT_VOTE = 'auth_vote';
 
     /**
-     * @var Fw
+     * @var Core
      */
     protected $fw;
 
@@ -84,12 +84,12 @@ class Auth
     /**
      * Class constructor.
      *
-     * @param Fw                       $fw
+     * @param Core                       $fw
      * @param UserProviderInterface    $provider
      * @param PasswordEncoderInterface $encoder
      * @param array|null               $options
      */
-    public function __construct(Fw $fw, UserProviderInterface $provider, PasswordEncoderInterface $encoder, array $options = null)
+    public function __construct(Core $fw, UserProviderInterface $provider, PasswordEncoderInterface $encoder, array $options = null)
     {
         $this->fw = $fw;
         $this->provider = $provider;

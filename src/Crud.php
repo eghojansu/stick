@@ -33,7 +33,7 @@ class Crud
     const STATE_FORBIDDEN = 'forbidden';
 
     /**
-     * @var Fw
+     * @var Core
      */
     protected $_fw;
 
@@ -119,10 +119,10 @@ class Crud
     /**
      * Class constructor.
      *
-     * @param Fw       $app
+     * @param Core       $app
      * @param Template $template
      */
-    public function __construct(Fw $fw, Template $template)
+    public function __construct(Core $fw, Template $template)
     {
         $states = array(
             static::STATE_LISTING,

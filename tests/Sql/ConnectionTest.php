@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 namespace Fal\Stick\Test\Sql;
 
-use Fal\Stick\Fw;
+use Fal\Stick\Core;
 use Fal\Stick\Sql\Connection;
 use PHPUnit\Framework\TestCase;
 
@@ -24,7 +24,7 @@ class ConnectionTest extends TestCase
 
     public function setUp()
     {
-        $this->fw = new Fw('phpunit-test');
+        $this->fw = new Core('phpunit-test');
         $this->build();
     }
 

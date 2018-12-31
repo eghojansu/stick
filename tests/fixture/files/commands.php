@@ -1,12 +1,12 @@
 <?php
 
-use Fal\Stick\Fw;
+use Fal\Stick\Core;
 use Fal\Stick\Cli;
 
 return array(
     'env_file' => __DIR__.'/commands_env.php',
     'commands' => array(
-        'custom' => function(Fw $fw, Cli $cli) {
+        'custom' => function(Core $fw, Cli $cli) {
             $cli->writeln('Custom command executed with env: %s!', $fw['command_env']);
         },
         'custom2' => array(

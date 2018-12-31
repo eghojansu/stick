@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 namespace Fal\Stick\Sql;
 
-use Fal\Stick\Fw;
+use Fal\Stick\Core;
 
 /**
  * Sql record mapper.
@@ -35,9 +35,9 @@ class Mapper implements \ArrayAccess
     const EVENT_AFTER_DELETE = 'mapper_after_delete';
 
     /**
-     * Fw instance.
+     * Core instance.
      *
-     * @var Fw
+     * @var Core
      */
     protected $fw;
 
@@ -103,13 +103,13 @@ class Mapper implements \ArrayAccess
     /**
      * Class constructor.
      *
-     * @param Fw          $fw
+     * @param Core          $fw
      * @param Connection  $db
      * @param string|null $table
      * @param array|null  $fields
      * @param int         $ttl
      */
-    public function __construct(Fw $fw, Connection $db, string $table = null, array $fields = null, int $ttl = 60)
+    public function __construct(Core $fw, Connection $db, string $table = null, array $fields = null, int $ttl = 60)
     {
         $mTable = $table ?? $this->table ?? $fw->snakeCase($fw->className($this));
         $map = Connection::DB_OCI === $db->getDriverName() ? strtoupper($mTable) : $mTable;

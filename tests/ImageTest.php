@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 namespace Fal\Stick\Test;
 
-use Fal\Stick\Fw;
+use Fal\Stick\Core;
 use Fal\Stick\Image;
 use PHPUnit\Framework\TestCase;
 
@@ -24,7 +24,7 @@ class ImageTest extends TestCase
 
     public function setUp()
     {
-        $this->fw = new Fw('phpunit-test');
+        $this->fw = new Core('phpunit-test');
         $this->image = new Image($this->fw);
     }
 

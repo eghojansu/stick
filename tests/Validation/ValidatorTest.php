@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 namespace Fal\Stick\Test\Validation;
 
-use Fal\Stick\Fw;
+use Fal\Stick\Core;
 use Fal\Stick\Validation\CommonValidator;
 use Fal\Stick\Validation\Validator;
 use PHPUnit\Framework\TestCase;
@@ -24,7 +24,7 @@ class ValidatorTest extends TestCase
 
     public function setUp()
     {
-        $this->validator = new Validator(new Fw('phpunit-test'), array(
+        $this->validator = new Validator(new Core('phpunit-test'), array(
             'Fal\\Stick\\Validation\\CommonValidator',
             'Fal\\Stick\\Validation\\UrlValidator',
         ));
@@ -32,7 +32,7 @@ class ValidatorTest extends TestCase
 
     public function testConstruct()
     {
-        $fw = new Fw('phpunit-test');
+        $fw = new Core('phpunit-test');
         $validator = new Validator($fw);
 
         $this->assertStringEndsWith('/Validation/dict/;', $fw->get('LOCALES'));

@@ -21,16 +21,16 @@ namespace Fal\Stick;
 class Html
 {
     /**
-     * @var Fw
+     * @var Core
      */
     private $fw;
 
     /**
      * Class constructor.
      *
-     * @param Fw $fw
+     * @param Core $fw
      */
-    public function __construct(Fw $fw)
+    public function __construct(Core $fw)
     {
         $this->fw = $fw;
     }

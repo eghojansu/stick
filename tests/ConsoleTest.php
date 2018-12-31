@@ -14,7 +14,7 @@ declare(strict_types=1);
 namespace Fal\Stick\Test;
 
 use Fal\Stick\Console;
-use Fal\Stick\Fw;
+use Fal\Stick\Core;
 use Fal\Stick\Cli;
 use PHPUnit\Framework\TestCase;
 
@@ -26,7 +26,7 @@ class ConsoleTest extends TestCase
 
     public function setUp()
     {
-        $this->console = new Console($this->fw = new Fw('phpunit-test'), $this->cli = new Cli());
+        $this->console = new Console($this->fw = new Core('phpunit-test'), $this->cli = new Cli());
     }
 
     public function testRegister()

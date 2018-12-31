@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 namespace Fal\Stick\Sql;
 
-use Fal\Stick\Fw;
+use Fal\Stick\Core;
 use Fal\Stick\HttpException;
 
 /**
@@ -27,7 +27,7 @@ use Fal\Stick\HttpException;
 final class ParameterConverter
 {
     /**
-     * @var Fw
+     * @var Core
      */
     private $fw;
 
@@ -69,11 +69,11 @@ final class ParameterConverter
     /**
      * Class constructor.
      *
-     * @param Fw    $fw
+     * @param Core    $fw
      * @param mixed $handler
      * @param array $params
      */
-    public function __construct(Fw $fw, $handler, array $params)
+    public function __construct(Core $fw, $handler, array $params)
     {
         $this->fw = $fw;
         $this->params = $params;
@@ -85,13 +85,13 @@ final class ParameterConverter
     /**
      * Create instance.
      *
-     * @param Fw    $fw
+     * @param Core    $fw
      * @param mixed $handler
      * @param array $params
      *
      * @return ParameterConverter
      */
-    public static function create(Fw $fw, $handler, array $params): ParameterConverter
+    public static function create(Core $fw, $handler, array $params): ParameterConverter
     {
         return new self($fw, $handler, $params);
     }

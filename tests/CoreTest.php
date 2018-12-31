@@ -15,17 +15,17 @@ declare(strict_types=1);
 
 namespace Fal\Stick\Test;
 
-use Fal\Stick\Fw;
+use Fal\Stick\Core;
 use Fal\Stick\HttpException;
 use PHPUnit\Framework\TestCase;
 
-class FwTest extends TestCase
+class CoreTest extends TestCase
 {
     private $fw;
 
     public function setUp()
     {
-        $this->fw = new Fw('phpunit-test');
+        $this->fw = new Core('phpunit-test');
     }
 
     /**
@@ -568,7 +568,7 @@ class FwTest extends TestCase
      */
     public function testService($expected, $id, $rule = null, $secondCall = null, $useCreated = true)
     {
-        if (!in_array($id, array('fw', 'Fal\\Stick\\Fw'))) {
+        if (!in_array($id, array('fw', 'Fal\\Stick\\Core'))) {
             $this->fw->rule($id, $rule);
         }
 
@@ -1028,7 +1028,7 @@ class FwTest extends TestCase
         $this->fw->route('GET foo /foo/@bar', function ($bar) {
             return 'foo'.$bar;
         });
-        $this->fw->route('POST /bar', function (Fw $fw) {
+        $this->fw->route('POST /bar', function (Core $fw) {
             return $fw->get('POST.bar');
         });
 
@@ -1074,7 +1074,7 @@ class FwTest extends TestCase
 
     public function testRerouteInterception()
     {
-        $this->fw->on('fw_reroute', function (Fw $fw, $url) {
+        $this->fw->on('fw_reroute', function (Core $fw, $url) {
             return $fw->set('rerouted_to', $url);
         });
 
@@ -1191,7 +1191,7 @@ class FwTest extends TestCase
             'CONTENT_TYPE' => 'text/html',
             'HTTP_X_REQUESTED_WITH' => 'XMLHttpRequest',
         );
-        $fw = new Fw('phpunit-test', null, null, null, $server);
+        $fw = new Core('phpunit-test', null, null, null, $server);
 
         $this->assertEquals('text/html', $fw->get('REQUEST.Content-Type'));
         $this->assertEquals('XMLHttpRequest', $fw->get('REQUEST.X-Requested-With'));
@@ -1200,14 +1200,14 @@ class FwTest extends TestCase
 
     public function testCreate()
     {
-        $fw = Fw::create('phpunit-test', array('foo' => 'bar'));
+        $fw = Core::create('phpunit-test', array('foo' => 'bar'));
 
         $this->assertEquals(array('foo' => 'bar'), $fw->get('GET'));
     }
 
     public function testCreateFromGlobals()
     {
-        $fw = Fw::createFromGlobals('phpunit-test');
+        $fw = Core::createFromGlobals('phpunit-test');
 
         $this->assertEquals($_SERVER, $fw->get('SERVER'));
     }
@@ -1234,8 +1234,8 @@ class FwTest extends TestCase
     public function classNameProvider()
     {
         return array(
-            array('FwTest', $this),
-            array('FwTest', 'Fal\\Stick\\Test\FwTest'),
+            array('CoreTest', $this),
+            array('CoreTest', 'Fal\\Stick\\Test\CoreTest'),
             array('DateTime', new \DateTime()),
             array('DateTime', 'DateTime'),
         );
@@ -1653,8 +1653,8 @@ class FwTest extends TestCase
     public function serviceProvider()
     {
         return array(
-            array('Fal\\Stick\\Fw', 'fw'),
-            array('Fal\\Stick\\Fw', 'Fal\\Stick\\Fw'),
+            array('Fal\\Stick\\Core', 'fw'),
+            array('Fal\\Stick\\Core', 'Fal\\Stick\\Core'),
             array('Fixture\\FooService', 'Fixture\\FooService'),
             array('Fixture\\FooService', 'foo', 'Fixture\\FooService', 'Fixture\\FooService'),
             array('Fixture\\FooService', 'Fixture\\FooService', null, null, false),

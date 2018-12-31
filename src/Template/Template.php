@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 namespace Fal\Stick\Template;
 
-use Fal\Stick\Fw;
+use Fal\Stick\Core;
 
 /**
  * PHP Template engine.
@@ -23,7 +23,7 @@ use Fal\Stick\Fw;
 class Template
 {
     /**
-     * @var Fw
+     * @var Core
      */
     protected $fw;
 
@@ -58,12 +58,12 @@ class Template
     /**
      * Class constructor.
      *
-     * @param Fw                  $fw
+     * @param Core                  $fw
      * @param array|string|null   $paths
      * @param array|callable|null $globals
      * @param string              $extension
      */
-    public function __construct(Fw $fw, $paths = null, $globals = null, string $extension = '.php')
+    public function __construct(Core $fw, $paths = null, $globals = null, string $extension = '.php')
     {
         $this->fw = $fw;
         $this->paths = $fw->split($paths);
