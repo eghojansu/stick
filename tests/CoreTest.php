@@ -33,7 +33,7 @@ class CoreTest extends TestCase
      */
     public function testCamelCase($expected, $text)
     {
-        $this->assertEquals($expected, $this->fw->camelCase($text));
+        $this->assertEquals($expected, Core::camelCase($text));
     }
 
     /**
@@ -41,7 +41,7 @@ class CoreTest extends TestCase
      */
     public function testSnakeCase($expected, $text)
     {
-        $this->assertEquals($expected, $this->fw->snakeCase($text));
+        $this->assertEquals($expected, Core::snakeCase($text));
     }
 
     /**
@@ -49,7 +49,7 @@ class CoreTest extends TestCase
      */
     public function testClassName($expected, $class)
     {
-        $this->assertEquals($expected, $this->fw->className($class));
+        $this->assertEquals($expected, Core::className($class));
     }
 
     /**
@@ -57,7 +57,7 @@ class CoreTest extends TestCase
      */
     public function testFixSlashes($expected, $text)
     {
-        $this->assertEquals($expected, $this->fw->fixSlashes($text));
+        $this->assertEquals($expected, Core::fixSlashes($text));
     }
 
     /**
@@ -65,7 +65,7 @@ class CoreTest extends TestCase
      */
     public function testVariableName($expected, $text)
     {
-        $this->assertEquals($expected, $this->fw->variableName($text));
+        $this->assertEquals($expected, Core::variableName($text));
     }
 
     /**
@@ -73,7 +73,7 @@ class CoreTest extends TestCase
      */
     public function testSplit($expected, $var, $delimiter = null)
     {
-        $this->assertEquals($expected, $this->fw->split($var, $delimiter));
+        $this->assertEquals($expected, Core::split($var, $delimiter));
     }
 
     /**
@@ -81,7 +81,7 @@ class CoreTest extends TestCase
      */
     public function testJoin($expected, $var, $glue = null)
     {
-        $this->assertEquals($expected, $this->fw->join($var, $glue));
+        $this->assertEquals($expected, Core::join($var, $glue));
     }
 
     /**
@@ -89,7 +89,7 @@ class CoreTest extends TestCase
      */
     public function testPick($expected, $keys, $collections = null, $default = null, $twoTier = false)
     {
-        $this->assertEquals($expected, $this->fw->pick($keys, $collections, $default, $twoTier));
+        $this->assertEquals($expected, Core::pick($keys, $collections, $default, $twoTier));
     }
 
     /**
@@ -97,7 +97,7 @@ class CoreTest extends TestCase
      */
     public function testUrlEncode($expected, $var, $glue = '/')
     {
-        $this->assertEquals($expected, $this->fw->urlEncode($var, $glue));
+        $this->assertEquals($expected, Core::urlEncode($var, $glue));
     }
 
     public function testMkdir()
@@ -105,28 +105,28 @@ class CoreTest extends TestCase
         $dir = TEST_TEMP.'test-mkdir';
 
         $this->assertFalse(is_dir($dir));
-        $this->fw->mkdir($dir);
+        Core::mkdir($dir);
         $this->assertTrue(is_dir($dir));
         rmdir($dir);
     }
 
     public function testRead()
     {
-        $this->assertEquals("foo\nbar", $this->fw->read(TEST_FIXTURE.'files/foobar.txt', true));
+        $this->assertEquals("foo\nbar", Core::read(TEST_FIXTURE.'files/foobar.txt', true));
     }
 
     public function testWrite()
     {
-        $this->assertEquals(3, $this->fw->write(TEST_TEMP.'test-write.txt', 'foo'));
-        $this->assertEquals(6, $this->fw->write(TEST_TEMP.'test-write.txt', 'barbaz', true));
-        $this->assertEquals('foobarbaz', $this->fw->read(TEST_TEMP.'test-write.txt'));
+        $this->assertEquals(3, Core::write(TEST_TEMP.'test-write.txt', 'foo'));
+        $this->assertEquals(6, Core::write(TEST_TEMP.'test-write.txt', 'barbaz', true));
+        $this->assertEquals('foobarbaz', Core::read(TEST_TEMP.'test-write.txt'));
     }
 
     public function testDelete()
     {
-        $this->assertFalse($this->fw->delete(TEST_TEMP.'test-delete.txt'));
+        $this->assertFalse(Core::delete(TEST_TEMP.'test-delete.txt'));
         touch(TEST_TEMP.'test-delete.txt');
-        $this->assertTrue($this->fw->delete(TEST_TEMP.'test-delete.txt'));
+        $this->assertTrue(Core::delete(TEST_TEMP.'test-delete.txt'));
     }
 
     /**

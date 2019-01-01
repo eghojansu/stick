@@ -123,7 +123,7 @@ final class Core implements \ArrayAccess
     {
         $time = microtime(true);
         $cli = 'cli' === PHP_SAPI;
-        $entry = $this->fixslashes($server['SCRIPT_NAME'] ?? $_SERVER['SCRIPT_NAME']);
+        $entry = self::fixslashes($server['SCRIPT_NAME'] ?? $_SERVER['SCRIPT_NAME']);
         $uri = $server['REQUEST_URI'] ?? '/';
         $host = $server['SERVER_NAME'] ?? gethostname();
         $base = dirname($entry);
@@ -219,7 +219,7 @@ final class Core implements \ArrayAccess
             'ROUTE_HANDLERS' => null,
             'ROUTES' => null,
             'SCHEME' => $scheme,
-            'SEED' => $this->hash($host.$base),
+            'SEED' => self::hash($host.$base),
             'SENT' => false,
             'SERVER' => $server,
             'SERVICE_ALIASES' => null,
@@ -270,7 +270,7 @@ final class Core implements \ArrayAccess
      *
      * @return string
      */
-    public function camelCase(string $text): string
+    public static function camelCase(string $text): string
     {
         return str_replace('_', '', lcfirst(ucwords(strtolower($text), '_')));
     }
@@ -282,7 +282,7 @@ final class Core implements \ArrayAccess
      *
      * @return string
      */
-    public function snakeCase(string $text): string
+    public static function snakeCase(string $text): string
     {
         return strtolower(preg_replace('/(?!^)\p{Lu}/u', '_\0', $text));
     }
@@ -294,7 +294,7 @@ final class Core implements \ArrayAccess
      *
      * @return string
      */
-    public function className($class): string
+    public static function className($class): string
     {
         return ltrim(strrchr('\\'.(is_object($class) ? get_class($class) : $class), '\\'), '\\');
     }
@@ -306,7 +306,7 @@ final class Core implements \ArrayAccess
      *
      * @return string
      */
-    public function fixSlashes(string $text): string
+    public static function fixSlashes(string $text): string
     {
         return str_replace('\\', '/', $text);
     }
@@ -318,7 +318,7 @@ final class Core implements \ArrayAccess
      *
      * @return mixed
      */
-    public function cast($var)
+    public static function cast($var)
     {
         if (is_numeric($var)) {
             return $var + 0;
@@ -342,7 +342,7 @@ final class Core implements \ArrayAccess
      *
      * @return bool
      */
-    public function variableName(string $text): bool
+    public static function variableName(string $text): bool
     {
         return (bool) preg_match('/^[a-z_](\w+)?$/i', $text);
     }
@@ -355,7 +355,7 @@ final class Core implements \ArrayAccess
      *
      * @return array
      */
-    public function split($var, string $delimiter = null): array
+    public static function split($var, string $delimiter = null): array
     {
         if (is_array($var)) {
             return $var;
@@ -378,7 +378,7 @@ final class Core implements \ArrayAccess
      *
      * @return string
      */
-    public function join($var, string $glue = null): string
+    public static function join($var, string $glue = null): string
     {
         return is_array($var) ? implode($glue ?? ',', $var) : (string) $var;
     }
@@ -393,7 +393,7 @@ final class Core implements \ArrayAccess
      *
      * @return mixed
      */
-    public function pick($key, array $collections = null, $default = null, bool $twoTier = false)
+    public static function pick($key, array $collections = null, $default = null, bool $twoTier = false)
     {
         foreach ($twoTier ? $collections ?? array() : array($collections ?? array()) as $collection) {
             if ($collection && is_array($collection) && array_key_exists($key, $collection)) {
@@ -412,7 +412,7 @@ final class Core implements \ArrayAccess
      *
      * @return string
      */
-    public function urlEncode($var, string $glue = '/'): string
+    public static function urlEncode($var, string $glue = '/'): string
     {
         $result = '';
 
@@ -420,7 +420,7 @@ final class Core implements \ArrayAccess
             if (is_string($item)) {
                 $result .= $glue.urlencode($item);
             } elseif (is_array($item)) {
-                $result .= $glue.$this->urlEncode($item);
+                $result .= $glue.self::urlEncode($item);
             } else {
                 $result .= $glue.$item;
             }
@@ -438,7 +438,7 @@ final class Core implements \ArrayAccess
      *
      * @return bool
      */
-    public function mkdir(string $path, int $mode = 0755, bool $recursive = true): bool
+    public static function mkdir(string $path, int $mode = 0755, bool $recursive = true): bool
     {
         return file_exists($path) ? true : mkdir($path, $mode, $recursive);
     }
@@ -451,7 +451,7 @@ final class Core implements \ArrayAccess
      *
      * @return string
      */
-    public function read(string $file, bool $normalizeLinefeed = false): string
+    public static function read(string $file, bool $normalizeLinefeed = false): string
     {
         $out = is_file($file) ? file_get_contents($file) : '';
 
@@ -467,7 +467,7 @@ final class Core implements \ArrayAccess
      *
      * @return int|false
      */
-    public function write(string $file, string $content, bool $append = false)
+    public static function write(string $file, string $content, bool $append = false)
     {
         return file_put_contents($file, $content, LOCK_EX | ((int) $append * FILE_APPEND));
     }
@@ -479,9 +479,21 @@ final class Core implements \ArrayAccess
      *
      * @return bool
      */
-    public function delete(string $file): bool
+    public static function delete(string $file): bool
     {
         return is_file($file) ? unlink($file) : false;
+    }
+
+    /**
+     * Returns 64bit/base36 hash.
+     *
+     * @param string $text
+     *
+     * @return string
+     */
+    public static function hash(string $text): string
+    {
+        return str_pad(base_convert(substr(sha1($text), -16), 16, 36), 11, '0', STR_PAD_LEFT);
     }
 
     /**
@@ -680,7 +692,7 @@ final class Core implements \ArrayAccess
      */
     public function allExists($keys): bool
     {
-        foreach ($this->split($keys) as $key) {
+        foreach (self::split($keys) as $key) {
             if (!$this->exists($key)) {
                 return false;
             }
@@ -702,7 +714,7 @@ final class Core implements \ArrayAccess
     {
         $pick = array();
 
-        foreach ($this->split($keys) as $key) {
+        foreach (self::split($keys) as $key) {
             $newKey = $maps[$key] ?? ($lowerize && is_string($key) ? strtolower($key) : $key);
             $pick[$newKey] = $this->get($key);
         }
@@ -737,7 +749,7 @@ final class Core implements \ArrayAccess
      */
     public function allClear($keys, string $prefix = null): Core
     {
-        foreach ($this->split($keys) as $key) {
+        foreach (self::split($keys) as $key) {
             $this->clear($prefix.$key);
         }
 
@@ -1066,18 +1078,6 @@ final class Core implements \ArrayAccess
     }
 
     /**
-     * Returns 64bit/base36 hash.
-     *
-     * @param string $text
-     *
-     * @return string
-     */
-    public function hash(string $text): string
-    {
-        return str_pad(base_convert(substr(sha1($text), -16), 16, 36), 11, '0', STR_PAD_LEFT);
-    }
-
-    /**
      * Returns true if ip blacklisted.
      *
      * @param string $ip
@@ -1088,11 +1088,11 @@ final class Core implements \ArrayAccess
      */
     public function blacklisted(string $ip): bool
     {
-        if ($this->hive['DNSBL'] && !in_array($ip, $this->split($this->hive['EXEMPT']))) {
+        if ($this->hive['DNSBL'] && !in_array($ip, self::split($this->hive['EXEMPT']))) {
             // Reverse IPv4 dotted quad
             $rev = implode('.', array_reverse(explode('.', $ip)));
 
-            foreach ($this->split($this->hive['DNSBL']) as $server) {
+            foreach (self::split($this->hive['DNSBL']) as $server) {
                 // DNSBL lookup
                 if (checkdnsrr($rev.'.'.$server, 'A')) {
                     return true;
@@ -1335,7 +1335,7 @@ final class Core implements \ArrayAccess
 
                 unset($mParameters[$name]);
 
-                return $this->urlEncode($replace);
+                return self::urlEncode($replace);
             }, $pattern);
         }
 
@@ -1590,8 +1590,8 @@ final class Core implements \ArrayAccess
             $file = $files[0] ?? $prefix.date('Y-m-d').$suffix;
             $content = date('Y-m-d G:i:s.u').' '.$level.' '.$message.PHP_EOL;
 
-            $this->mkdir(dirname($file));
-            $this->write($file, $content, true);
+            self::mkdir(dirname($file));
+            self::write($file, $content, true);
         }
 
         return $this;
@@ -2120,7 +2120,7 @@ final class Core implements \ArrayAccess
         }
 
         list($handler, $alias, $ttl, $kbps, $pattern, $parameters, $headers) = $route;
-        $hash = $this->hash($this->hive['VERB'].' '.$this->hive['PATH']).'.url';
+        $hash = self::hash($this->hive['VERB'].' '.$this->hive['PATH']).'.url';
         $checkCache = $ttl && in_array($this->hive['VERB'], array('GET', 'HEAD'));
 
         if ($checkCache) {
@@ -2247,18 +2247,18 @@ final class Core implements \ArrayAccess
             }
 
             if ($cors && $cors['expose']) {
-                $headers['Access-Control-Expose-Headers'] = $this->join($cors['expose']);
+                $headers['Access-Control-Expose-Headers'] = self::join($cors['expose']);
             }
 
             return $this->hive['ROUTE_HANDLERS'][$handlerId] + array(4 => $pattern, $parameters, $headers);
         }
 
         if ($allowed) {
-            $headers['Allow'] = $this->join(array_unique($allowed));
+            $headers['Allow'] = self::join(array_unique($allowed));
 
             if ($cors) {
                 $headers['Access-Control-Allow-Methods'] = 'OPTIONS,'.$headers['Allow'];
-                $headers['Access-Control-Allow-Headers'] = $cors['headers'] ? $this->join($cors['headers']) : null;
+                $headers['Access-Control-Allow-Headers'] = $cors['headers'] ? self::join($cors['headers']) : null;
                 $headers['Access-Control-Max-Age'] = $cors['ttl'] > 0 ? $cors['ttl'] : null;
             }
 
@@ -2642,16 +2642,16 @@ final class Core implements \ArrayAccess
         $file = $this->hive['CACHE_REFERENCE'].str_replace(array('\\', '/'), '', $key);
 
         if ($delete) {
-            return $this->delete($file);
+            return self::delete($file);
         }
 
         if (null !== $cache) {
-            $this->mkdir(dirname($file));
+            self::mkdir(dirname($file));
 
-            return false !== $this->write($file, $cache);
+            return false !== self::write($file, $cache);
         }
 
-        return $this->read($file);
+        return self::read($file);
     }
 
     /**
@@ -2715,8 +2715,8 @@ final class Core implements \ArrayAccess
                 $engine = $parts[0];
                 $reference = new $engine();
 
-                foreach ($this->split($parts[1]) as $server) {
-                    list($host, $port) = $this->split($server, ':') + array(1 => 11211);
+                foreach (self::split($parts[1]) as $server) {
+                    list($host, $port) = self::split($server, ':') + array(1 => 11211);
 
                     $reference->addServer($host, $port + 0);
                     // a hack because addserver always returns true
@@ -2734,7 +2734,7 @@ final class Core implements \ArrayAccess
                 $engine = $parts[0];
                 $reference = new \Redis();
 
-                list($host, $port, $db) = $this->split($parts[1], ':') + array(1 => 6379, null);
+                list($host, $port, $db) = self::split($parts[1], ':') + array(1 => 6379, null);
 
                 $reference->connect($host, $port + 0, 2);
 
@@ -2781,7 +2781,7 @@ final class Core implements \ArrayAccess
         $languages = preg_replace('/\h+|;q=[0-9.]+/', '', $this->hive['LANGUAGE']).','.$this->hive['FALLBACK'];
         $final = array();
 
-        foreach ($this->split($languages) as $lang) {
+        foreach (self::split($languages) as $lang) {
             if (preg_match('/^(\w{2})(?:-(\w{2}))?\b/i', $lang, $parts)) {
                 // Generic language
                 $final[] = $parts[1];
@@ -2806,7 +2806,7 @@ final class Core implements \ArrayAccess
         $dict = array();
 
         foreach ($this->languageCodes() as $code) {
-            foreach ($this->split($this->hive['LOCALES']) as $locale) {
+            foreach (self::split($this->hive['LOCALES']) as $locale) {
                 $file = $locale.$code.'.php';
                 $dict = array_replace_recursive($dict, (array) requireFile($file));
             }
