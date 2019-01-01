@@ -10,7 +10,6 @@
  *
  * Created at Dec 06, 2018 20:30
  */
-require __DIR__.'/functions.php';
-require __DIR__.'/Core.php';
+require __DIR__.'/ClassLoader.php';
 
-return Fal\Stick\Core::createFromGlobals()->registerClassLoader();
+return new Fal\Stick\ClassLoader();

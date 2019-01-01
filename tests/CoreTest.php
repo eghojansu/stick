@@ -357,48 +357,6 @@ class CoreTest extends TestCase
         $this->assertTrue(true);
     }
 
-    public function testRegisterClassLoader()
-    {
-        $this->assertSame($this->fw, $this->fw->registerClassLoader());
-        $this->assertSame($this->fw, $this->fw->unregisterClassLoader());
-    }
-
-    public function testUnregisterClassLoader()
-    {
-        $this->assertSame($this->fw, $this->fw->unregisterClassLoader());
-    }
-
-    public function testFindClass()
-    {
-        $this->fw->set('CACHE', true);
-
-        // first try
-        $this->assertNull($this->fw->findClass('SpecialNamespace\\LoadOnceOnlyClass'));
-
-        // add namespace and fallback
-        $this->fw->set('AUTOLOAD', array('SpecialNamespace\\' => TEST_FIXTURE.'special-namespace/'));
-        $this->fw->set('AUTOLOAD_FALLBACK', array(TEST_FIXTURE.'special-namespace/different-namespace/'));
-
-        $this->assertEquals(TEST_FIXTURE.'special-namespace/LoadOnceOnlyClass.php', $this->fw->findClass('SpecialNamespace\\LoadOnceOnlyClass'));
-        // second call hit cache
-        $this->assertEquals(TEST_FIXTURE.'special-namespace/LoadOnceOnlyClass.php', $this->fw->findClass('SpecialNamespace\\LoadOnceOnlyClass'));
-
-        // fallback
-        $this->assertEquals(TEST_FIXTURE.'special-namespace/different-namespace/Divergent/DifferentClass.php', $this->fw->findClass('Divergent\\DifferentClass'));
-    }
-
-    public function testLoadClass()
-    {
-        $this->assertFalse(class_exists('SpecialNamespace\\AutoloadOnceOnlyClass'));
-
-        // register autoloader
-        $this->fw->set('AUTOLOAD', array('SpecialNamespace\\' => TEST_FIXTURE.'special-namespace/'));
-        $this->fw->registerClassLoader();
-
-        $this->assertTrue(class_exists('SpecialNamespace\\AutoloadOnceOnlyClass'));
-        $this->assertFalse(class_exists('SpecialNamespace\\UnknownClass'));
-    }
-
     public function testOverrideRequestMethod()
     {
         $this->fw->set('REQUEST.X-Http-Method-Override', 'POST');
@@ -848,6 +806,11 @@ class CoreTest extends TestCase
         $this->assertNotEquals($expected, $this->fw->get('OUTPUT'));
         $this->assertStringStartsWith($expected, $this->fw->get('OUTPUT'));
         $this->assertEquals(500, $this->fw->get('CODE'));
+    }
+
+    public function testRegisterShutdownHandler()
+    {
+        $this->assertTrue(true);
     }
 
     public function testUnload()

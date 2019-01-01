@@ -173,8 +173,6 @@ final class Core implements \ArrayAccess
             'ASSET' => null,
             'ASSET_MAP' => null,
             'ASSET_VERSION' => null,
-            'AUTOLOAD' => null,
-            'AUTOLOAD_FALLBACK' => null,
             'BASE' => $base,
             'BASEURL' => $domain.$base,
             'BODY' => null,
@@ -1103,74 +1101,6 @@ final class Core implements \ArrayAccess
         }
 
         return false;
-    }
-
-    /**
-     * Register class loader.
-     *
-     * @param bool $prepend
-     *
-     * @return Core
-     */
-    public function registerClassLoader(bool $prepend = false): Core
-    {
-        spl_autoload_register(array($this, 'loadClass'), true, $prepend);
-
-        return $this;
-    }
-
-    /**
-     * Unregister class loader.
-     *
-     * @return Core
-     */
-    public function unregisterClassLoader(): Core
-    {
-        spl_autoload_unregister(array($this, 'loadClass'));
-
-        return $this;
-    }
-
-    /**
-     * Find class file.
-     *
-     * @param string $class
-     *
-     * @return string|null
-     */
-    public function findClass($class): ?string
-    {
-        if (($file = $this->cacheGet($key = $class.'.class', $found)) && $found) {
-            return $file;
-        }
-
-        // @codeCoverageIgnoreStart
-        if ((!$file = $this->findFileWithExtension($class, '.php')) && defined('HHVM_VERSION')) {
-            $file = $this->findFileWithExtension($class, '.hh');
-        }
-        // @codeCoverageIgnoreEnd
-
-        if ($file) {
-            $this->cacheSet($key, $file);
-        }
-
-        return $file;
-    }
-
-    /**
-     * Load class file.
-     *
-     * @param string $class
-     *
-     * @return true|null
-     */
-    public function loadClass($class)
-    {
-        if ($file = $this->findClass($class)) {
-            includeFile($file);
-
-            return true;
-        }
     }
 
     /**
@@ -2569,46 +2499,6 @@ final class Core implements \ArrayAccess
         }
 
         return $cookies;
-    }
-
-    /**
-     * Find file class with extension.
-     *
-     * @param string $class
-     * @param string $extension
-     *
-     * @return string|null
-     */
-    private function findFileWithExtension(string $class, string $extension): ?string
-    {
-        // PSR-4 lookup
-        $logicalPath = strtr($class, '\\', DIRECTORY_SEPARATOR).$extension;
-        $autoload = (array) $this->hive['AUTOLOAD'] + array('Fal\\Stick\\' => __DIR__.'/');
-        $subPath = $class;
-
-        while (false !== $lastPos = strrpos($subPath, '\\')) {
-            $subPath = substr($subPath, 0, $lastPos);
-            $search = $subPath.'\\';
-
-            if (isset($autoload[$search])) {
-                $pathEnd = DIRECTORY_SEPARATOR.substr($logicalPath, $lastPos + 1);
-
-                foreach ($this->split($autoload[$search]) as $dir) {
-                    if (is_file($file = rtrim($dir, '/\\').$pathEnd)) {
-                        return $file;
-                    }
-                }
-            }
-        }
-
-        // PSR-4 fallback dirs
-        foreach ($this->split($this->hive['AUTOLOAD_FALLBACK']) as $dir) {
-            if (file_exists($file = rtrim($dir, '/\\').DIRECTORY_SEPARATOR.$logicalPath)) {
-                return $file;
-            }
-        }
-
-        return null;
     }
 
     /**
