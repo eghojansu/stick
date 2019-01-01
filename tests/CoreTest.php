@@ -29,6 +29,22 @@ class CoreTest extends TestCase
     }
 
     /**
+     * @dataProvider normalizeUploadFilesProvider
+     */
+    public function testNormalizeUploadFiles($expected, $files)
+    {
+        $this->assertEquals($expected, Core::normalizeUploadFiles($files));
+    }
+
+    /**
+     * @dataProvider gatherHeadersProvider
+     */
+    public function testGatherHeaders($expected, $server)
+    {
+        $this->assertEquals($expected, Core::gatherHeaders($server));
+    }
+
+    /**
      * @dataProvider camelCaseProvider
      */
     public function testCamelCase($expected, $text)
@@ -1148,19 +1164,6 @@ class CoreTest extends TestCase
         $this->assertEquals('subscribe foo', $this->fw->dispatch('foo'));
     }
 
-    public function testConstruct()
-    {
-        $server = array(
-            'CONTENT_TYPE' => 'text/html',
-            'HTTP_X_REQUESTED_WITH' => 'XMLHttpRequest',
-        );
-        $fw = new Core(null, null, null, $server);
-
-        $this->assertEquals('text/html', $fw->get('REQUEST.Content-Type'));
-        $this->assertEquals('XMLHttpRequest', $fw->get('REQUEST.X-Requested-With'));
-        $this->assertTrue($fw->get('AJAX'));
-    }
-
     public function testCreate()
     {
         $fw = Core::create(array('foo' => 'bar'));
@@ -1170,9 +1173,84 @@ class CoreTest extends TestCase
 
     public function testCreateFromGlobals()
     {
+        $server = $_SERVER;
+        $_SERVER['REQUEST_METHOD'] = 'PUT';
+        $_SERVER['CONTENT_TYPE'] = 'application/x-www-form-urlencoded';
+
         $fw = Core::createFromGlobals();
 
         $this->assertEquals($_SERVER, $fw->get('SERVER'));
+
+        $_SERVER = $server;
+    }
+
+    public function testOffsetExists()
+    {
+        $this->assertFalse(isset($this->fw['foo']));
+    }
+
+    public function testOffsetGet()
+    {
+        $this->assertNull($this->fw['foo']);
+    }
+
+    public function testOffsetSet()
+    {
+        $this->fw['foo'] = 'bar';
+
+        $this->assertEquals('bar', $this->fw['foo']);
+    }
+
+    public function testOffsetUnset()
+    {
+        $this->fw['foo'] = 'bar';
+        unset($this->fw['foo']);
+
+        $this->assertNull($this->fw['foo']);
+    }
+
+    /**
+     * @dataProvider castProvider
+     */
+    public function testCast($expected, $val)
+    {
+        $this->assertEquals($expected, $this->fw->cast($val));
+    }
+
+    public function testIncludeFile()
+    {
+        $this->assertEquals('foo', \Fal\Stick\includeFile(TEST_FIXTURE.'files/foo.php'));
+    }
+
+    public function testRequireFile()
+    {
+        $this->assertEquals('foo', \Fal\Stick\requireFile(TEST_FIXTURE.'files/foo.php'));
+    }
+
+    public function gatherHeadersProvider()
+    {
+        return array(
+            array(array(), null),
+            array(
+                array('Content-Type' => 'text/html', 'X-Requested-With' => 'XMLHttpRequest'),
+                array('CONTENT_TYPE' => 'text/html', 'HTTP_X_REQUESTED_WITH' => 'XMLHttpRequest'),
+            ),
+        );
+    }
+
+    public function normalizeUploadFilesProvider()
+    {
+        return array(
+            array(array(), null),
+            array(
+                array('foo' => array(array('name' => 'bar'))),
+                array('foo' => array('name' => 'bar')),
+            ),
+            array(
+                array('foo' => array(array('name' => 'bar', 'type' => null, 'size' => null, 'tmp_name' => null, 'error' => null))),
+                array('foo' => array('name' => array('bar'))),
+            ),
+        );
     }
 
     public function camelCaseProvider()
@@ -1400,49 +1478,6 @@ class CoreTest extends TestCase
             array(array('bar', 'baz'), 'foo', array('bar'), 'baz'),
             array('barbaz', 'foo', 'bar', 'baz'),
         );
-    }
-
-    public function testOffsetExists()
-    {
-        $this->assertFalse(isset($this->fw['foo']));
-    }
-
-    public function testOffsetGet()
-    {
-        $this->assertNull($this->fw['foo']);
-    }
-
-    public function testOffsetSet()
-    {
-        $this->fw['foo'] = 'bar';
-
-        $this->assertEquals('bar', $this->fw['foo']);
-    }
-
-    public function testOffsetUnset()
-    {
-        $this->fw['foo'] = 'bar';
-        unset($this->fw['foo']);
-
-        $this->assertNull($this->fw['foo']);
-    }
-
-    /**
-     * @dataProvider castProvider
-     */
-    public function testCast($expected, $val)
-    {
-        $this->assertEquals($expected, $this->fw->cast($val));
-    }
-
-    public function testIncludeFile()
-    {
-        $this->assertEquals('foo', \Fal\Stick\includeFile(TEST_FIXTURE.'files/foo.php'));
-    }
-
-    public function testRequireFile()
-    {
-        $this->assertEquals('foo', \Fal\Stick\requireFile(TEST_FIXTURE.'files/foo.php'));
     }
 
     public function cacheProvider()

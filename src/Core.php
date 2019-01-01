@@ -117,9 +117,11 @@ final class Core implements \ArrayAccess
      * @param array|null $get
      * @param array|null $post
      * @param array|null $cookie
+     * @param array|null $files
      * @param array|null $server
+     * @param mixed      $content
      */
-    public function __construct(array $get = null, array $post = null, array $cookie = null, array $server = null)
+    public function __construct(array $get = null, array $post = null, array $cookie = null, array $files = null, array $server = null, $content = null)
     {
         $time = microtime(true);
         $cli = 'cli' === PHP_SAPI;
@@ -128,22 +130,11 @@ final class Core implements \ArrayAccess
         $host = $server['SERVER_NAME'] ?? gethostname();
         $base = dirname($entry);
         $front = '/'.basename($entry);
-        $headers = null;
+        $headers = self::gatherHeaders($server);
 
         if ($cli) {
             $base = '';
             $front = '';
-        }
-
-        foreach ($server ?? array() as $key => $val) {
-            if (in_array($key, array('CONTENT_LENGTH', 'CONTENT_TYPE'))) {
-                $key = 'HTTP_'.$key;
-            }
-
-            if ('HTTP' === strstr($key, '_', true) && $key = strstr($key, '_')) {
-                $key = ucwords(str_replace('_', '-', strtolower(substr($key, 1))), '-');
-                $headers[$key] = $val;
-            }
         }
 
         $url = parse_url((preg_match('/^\w+:\/\//', $uri) ? '' : '//'.$host).$uri);
@@ -175,7 +166,7 @@ final class Core implements \ArrayAccess
             'ASSET_VERSION' => null,
             'BASE' => $base,
             'BASEURL' => $domain.$base,
-            'BODY' => null,
+            'BODY' => $content,
             'CACHE' => null,
             'CACHE_ENGINE' => null,
             'CACHE_REFERENCE' => null,
@@ -191,6 +182,7 @@ final class Core implements \ArrayAccess
             'EVENTS' => null,
             'EXEMPT' => null,
             'FALLBACK' => 'en',
+            'FILES' => self::normalizeUploadFiles($files),
             'FRONT' => $front,
             'GET' => $get,
             'HOST' => $host,
@@ -211,7 +203,6 @@ final class Core implements \ArrayAccess
             'POST' => $post,
             'PROTOCOL' => $server['SERVER_PROTOCOL'] ?? 'HTTP/1.0',
             'QUIET' => false,
-            'RAW' => false,
             'REQUEST' => $headers,
             'RESPONSE' => null,
             'ROUTE_ALIASES' => null,
@@ -244,13 +235,15 @@ final class Core implements \ArrayAccess
      * @param array|null $get
      * @param array|null $post
      * @param array|null $cookie
+     * @param array|null $files
      * @param array|null $server
+     * @param mixed      $content
      *
      * @return Core
      */
-    public static function create(array $get = null, array $post = null, array $cookie = null, array $server = null): Core
+    public static function create(array $get = null, array $post = null, array $cookie = null, array $files = null, array $server = null, $content = null): Core
     {
-        return new self($get, $post, $cookie, $server);
+        return new self($get, $post, $cookie, $files, $server, $content);
     }
 
     /**
@@ -260,7 +253,74 @@ final class Core implements \ArrayAccess
      */
     public static function createFromGlobals(): Core
     {
-        return new self($_GET, $_POST, $_COOKIE, $_SERVER);
+        if ('application/x-www-form-urlencoded' === ($_SERVER['CONTENT_TYPE'] ?? null) && in_array($_SERVER['REQUEST_METHOD'] ?? 'GET', array('DELETE', 'PATCH', 'PUT'))) {
+            parse_str(file_get_contents('php://input'), $request);
+        }
+
+        return new self($_GET, $request ?? $_POST, $_COOKIE, $_FILES, $_SERVER);
+    }
+
+    /**
+     * Returns normalized upload files.
+     *
+     * @param  array|null $files
+     *
+     * @return array
+     */
+    public static function normalizeUploadFiles(array $files = null): array
+    {
+        if (!$files) {
+            return array();
+        }
+
+        $template = array('type', 'size', 'tmp_name', 'error');
+        $normalized = array();
+
+        foreach ($files as $key => $file) {
+            if (is_array($file['name'])) {
+                foreach ($file['name'] as $position => $value) {
+                    $normalized[$key][$position]['name'] = $value;
+
+                    foreach ($template as $pick) {
+                        $normalized[$key][$position][$pick] = $file[$pick][$position] ?? null;
+                    }
+                }
+            } else {
+                $normalized[$key] = array($file);
+            }
+        }
+
+        return $normalized;
+    }
+
+    /**
+     * Gather headers from server.
+     *
+     * @param  array|null $server
+     *
+     * @return array
+     */
+    public static function gatherHeaders(array $server = null): array
+    {
+        if (!$server) {
+            return array();
+        }
+
+        $headers = array();
+        $contentKeys = array('CONTENT_TYPE', 'CONTENT_LENGTH');
+
+        foreach ($server ?? array() as $key => $value) {
+            if (in_array($key, $contentKeys)) {
+                $key = 'HTTP_'.$key;
+            }
+
+            if (0 === strpos($key, 'HTTP_') && $name = substr($key, 5)) {
+                $name = str_replace('_', '-', ucwords(strtolower($name), '_'));
+                $headers[$name] = $value;
+            }
+        }
+
+        return $headers;
     }
 
     /**
@@ -2141,10 +2201,6 @@ final class Core implements \ArrayAccess
         $this->hive['PATTERN'] = $pattern;
         $this->hive['ALIAS'] = $alias;
         $this->hive['RESPONSE'] += $headers;
-
-        if (!$this->hive['RAW'] && !$this->hive['BODY']) {
-            $this->hive['BODY'] = file_get_contents('php://input');
-        }
 
         if (is_string($handler)) {
             if ($this->handlerInvalid($handler)) {
