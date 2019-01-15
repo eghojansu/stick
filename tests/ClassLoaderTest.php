@@ -8,10 +8,8 @@
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
  *
- * Created at Jan 01, 2019 06:35
+ * Created at Jan 12, 2019 18:09
  */
-
-declare(strict_types=1);
 
 namespace Fal\Stick\Test;
 
@@ -48,13 +46,12 @@ class ClassLoaderTest extends TestCase
 
     public function testGetNamespaces()
     {
-        $this->assertEquals(array('Fal\\Stick\\' => array(dirname(__DIR__).'/src')), $this->loader->getNamespaces());
+        $this->assertEquals(array(), $this->loader->getNamespaces());
     }
 
     public function testAddNamespace()
     {
         $expected = array(
-            'Fal\\Stick\\' => array(dirname(__DIR__).'/src'),
             'foo\\' => array('foo', 'bar'),
         );
 
@@ -75,7 +72,6 @@ class ClassLoaderTest extends TestCase
     public function testSetNamespaces()
     {
         $expected = array(
-            'Fal\\Stick\\' => array(dirname(__DIR__).'/src'),
             'foo\\' => array('foo'),
         );
 
@@ -116,15 +112,15 @@ class ClassLoaderTest extends TestCase
     public function testFindClass()
     {
         $this->loader->setApcuPrefix('test');
-        $this->loader->setNamespaces(array('SpecialNamespace\\' => TEST_FIXTURE.'special-namespace/'));
-        $this->loader->setFallback(array(TEST_FIXTURE.'special-namespace/different-namespace/'));
+        $this->loader->setNamespaces(array('SpecialNamespace\\' => TEST_FIXTURE.'/special-namespace/'));
+        $this->loader->setFallback(array(TEST_FIXTURE.'/special-namespace/different-namespace/'));
 
-        $this->assertEquals(TEST_FIXTURE.'special-namespace/LoadOnceOnlyClass.php', $this->loader->findClass('SpecialNamespace\\LoadOnceOnlyClass'));
+        $this->assertEquals(TEST_FIXTURE.'/special-namespace/LoadOnceOnlyClass.php', $this->loader->findClass('SpecialNamespace\\LoadOnceOnlyClass'));
         // second call hit cache
-        $this->assertEquals(TEST_FIXTURE.'special-namespace/LoadOnceOnlyClass.php', $this->loader->findClass('SpecialNamespace\\LoadOnceOnlyClass'));
+        $this->assertEquals(TEST_FIXTURE.'/special-namespace/LoadOnceOnlyClass.php', $this->loader->findClass('SpecialNamespace\\LoadOnceOnlyClass'));
 
         // fallback
-        $this->assertEquals(TEST_FIXTURE.'special-namespace/different-namespace/Divergent/DifferentClass.php', $this->loader->findClass('Divergent\\DifferentClass'));
+        $this->assertEquals(TEST_FIXTURE.'/special-namespace/different-namespace/Divergent/DifferentClass.php', $this->loader->findClass('Divergent\\DifferentClass'));
 
         // unknown
         $this->assertNull($this->loader->loadClass('SpecialNamespace\\UnknownClass'));
@@ -137,7 +133,7 @@ class ClassLoaderTest extends TestCase
         $this->assertFalse(class_exists('SpecialNamespace\\AutoloadOnceOnlyClass'));
 
         // register autoloader
-        $this->loader->setNamespaces(array('SpecialNamespace\\' => TEST_FIXTURE.'special-namespace/'));
+        $this->loader->setNamespaces(array('SpecialNamespace\\' => TEST_FIXTURE.'/special-namespace/'));
 
         $this->assertTrue($this->loader->loadClass('SpecialNamespace\\AutoloadOnceOnlyClass'));
         $this->assertTrue(class_exists('SpecialNamespace\\AutoloadOnceOnlyClass'));

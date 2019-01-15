@@ -1,7 +1,7 @@
-<?php $this->extend('layout') ?>
+<?php $this->layout('layout'); ?>
 
-<?php $this->start('content') ?>
-<h1><?= $crud->title ?></h1>
+<?php $this->start('content'); ?>
+<h1><?= $crud->title; ?></h1>
 
-Delete user: <?= $crud->mapper['username'] ?>?
-<?php $this->stop() ?>
+Delete user: <?= $crud->mapper['username']; ?>?
+<?php $this->stop(); ?>

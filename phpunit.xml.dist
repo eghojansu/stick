@@ -3,13 +3,13 @@
   <testsuite name="Stick Framework Test Unit">
     <directory>tests</directory>
     <exclude>fixture</exclude>
+    <exclude>Template/view</exclude>
   </testsuite>
 
   <filter>
     <whitelist processUncoveredFilesFromWhitelist="true">
       <directory suffix=".php">src</directory>
       <exclude>
-        <file>src/autoload.php</file>
         <directory suffix=".php">src/Validation/dict</directory>
       </exclude>
     </whitelist>

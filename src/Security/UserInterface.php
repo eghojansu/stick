@@ -7,9 +7,9 @@
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
+ *
+ * Created at Jan 14, 2019 08:41
  */
-
-declare(strict_types=1);
 
 namespace Fal\Stick\Security;
 
@@ -25,33 +25,33 @@ interface UserInterface
      *
      * @return string
      */
-    public function getId(): string;
+    public function getId();
 
     /**
      * Returns username.
      *
      * @return string
      */
-    public function getUsername(): string;
+    public function getUsername();
 
     /**
      * Returns password.
      *
      * @return string
      */
-    public function getPassword(): string;
+    public function getPassword();
 
     /**
      * Returns roles.
      *
      * @return array
      */
-    public function getRoles(): array;
+    public function getRoles();
 
     /**
      * Returns credential expired status.
      *
      * @return bool
      */
-    public function isCredentialsExpired(): bool;
+    public function isCredentialsExpired();
 }

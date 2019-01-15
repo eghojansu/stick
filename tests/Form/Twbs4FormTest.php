@@ -7,14 +7,14 @@
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
+ *
+ * Created at Jan 14, 2019 19:52
  */
-
-declare(strict_types=1);
 
 namespace Fal\Stick\Test\Form;
 
 use Fal\Stick\Core;
-use Fal\Stick\Html;
+use Fal\Stick\Util\Html;
 use Fal\Stick\Form\Twbs4Form;
 use Fal\Stick\Validation\CommonValidator;
 use Fal\Stick\Validation\Validator;
@@ -23,15 +23,15 @@ use PHPUnit\Framework\TestCase;
 class Twbs4FormTest extends TestCase
 {
     private $form;
-    private $fw;
+    private $core;
     private $validator;
 
     public function setUp()
     {
-        $this->form = new Twbs4Form($this->fw = new Core(), $this->validator = new Validator($this->fw), new Html($this->fw));
+        $this->form = new Twbs4Form($this->core = new Core(), $this->validator = new Validator($this->core), new Html($this->core));
     }
 
-    public function testAdd()
+    public function testAddField()
     {
         $name = 'foo';
         $type = null;
@@ -59,7 +59,7 @@ class Twbs4FormTest extends TestCase
             ),
         );
 
-        $this->assertEquals($expected, $this->form->add($name, $type, $options, $attr)->getFields());
+        $this->assertEquals($expected, $this->form->addField($name, $type, $options, $attr)->getFields());
     }
 
     public function testOpen()
@@ -72,7 +72,7 @@ class Twbs4FormTest extends TestCase
 
     public function testRow()
     {
-        $this->form->add('foo');
+        $this->form->addField('foo');
         $expected = '<div class="form-group row"><label for="twbs4_form_foo" class="col-form-label col-sm-2">Foo</label><div class="col-sm-10"><input class="form-control" type="text" name="twbs4_form[foo]" id="twbs4_form_foo" placeholder="Foo"></div></div>'.PHP_EOL;
 
         $this->assertEquals($expected, $this->form->row('foo'));
@@ -81,26 +81,26 @@ class Twbs4FormTest extends TestCase
 
     public function testRender()
     {
-        $this->form->add('hidden', 'hidden');
-        $this->form->add('text', 'text');
-        $this->form->add('password', 'password');
-        $this->form->add('checkbox', 'checkbox');
-        $this->form->add('radio', 'radio');
-        $this->form->add('textarea', 'textarea');
-        $this->form->add('choice', 'choice', array(
+        $this->form->addField('hidden', 'hidden');
+        $this->form->addField('text', 'text');
+        $this->form->addField('password', 'password');
+        $this->form->addField('checkbox', 'checkbox');
+        $this->form->addField('radio', 'radio');
+        $this->form->addField('textarea', 'textarea');
+        $this->form->addField('choice', 'choice', array(
             'items' => array(
                 'One' => 1,
                 'Two' => 2,
             ),
         ));
-        $this->form->add('choice2', 'choice', array(
+        $this->form->addField('choice2', 'choice', array(
             'expanded' => true,
             'items' => array(
                 'Three' => 3,
                 'Four' => 4,
             ),
         ));
-        $this->form->add('choice3', 'choice', array(
+        $this->form->addField('choice3', 'choice', array(
             'expanded' => true,
             'multiple' => true,
             'items' => function () {
@@ -133,26 +133,26 @@ TXT;
 
     public function testRenderSubmitted()
     {
-        $this->form->add('hidden', 'hidden');
-        $this->form->add('text', 'text', array('constraints' => 'required'));
-        $this->form->add('password', 'password', array('constraints' => 'required'));
-        $this->form->add('checkbox', 'checkbox');
-        $this->form->add('radio', 'radio');
-        $this->form->add('textarea', 'textarea');
-        $this->form->add('choice', 'choice', array(
+        $this->form->addField('hidden', 'hidden');
+        $this->form->addField('text', 'text', array('constraints' => 'required'));
+        $this->form->addField('password', 'password', array('constraints' => 'required'));
+        $this->form->addField('checkbox', 'checkbox');
+        $this->form->addField('radio', 'radio');
+        $this->form->addField('textarea', 'textarea');
+        $this->form->addField('choice', 'choice', array(
             'items' => array(
                 'One' => 1,
                 'Two' => 2,
             ),
         ));
-        $this->form->add('choice2', 'choice', array(
+        $this->form->addField('choice2', 'choice', array(
             'expanded' => true,
             'items' => array(
                 'Three' => 3,
                 'Four' => 4,
             ),
         ));
-        $this->form->add('choice3', 'choice', array(
+        $this->form->addField('choice3', 'choice', array(
             'expanded' => true,
             'multiple' => true,
             'items' => function () {
@@ -166,7 +166,7 @@ TXT;
 <form name="twbs4_form" method="POST">
 <input type="hidden" name="twbs4_form[_form]" value="twbs4_form">
 <input type="hidden" name="twbs4_form[hidden]" id="twbs4_form_hidden" value="hidden">
-<div class="form-group row"><label for="twbs4_form_text" class="col-form-label col-sm-2">Text</label><div class="col-sm-10"><input class="form-control is-invalid" type="text" name="twbs4_form[text]" id="twbs4_form_text" placeholder="Text"><div class="invalid-feedback">This value should not be blank.</div></div></div>
+<div class="form-group row"><label for="twbs4_form_text" class="col-form-label col-sm-2">Text</label><div class="col-sm-10"><input class="form-control is-invalid" type="text" name="twbs4_form[text]" id="twbs4_form_text" placeholder="Text"><div class="invalid-feedback">This value should not be blank</div></div></div>
 <div class="form-group row"><label for="twbs4_form_password" class="col-form-label col-sm-2">Password</label><div class="col-sm-10"><input class="form-control is-valid" type="password" name="twbs4_form[password]" id="twbs4_form_password" placeholder="Password"></div></div>
 <div class="form-group row"><div class="ml-auto col-sm-10"><div class="form-check"><input type="checkbox" name="twbs4_form[checkbox]" id="twbs4_form_checkbox" class="form-check-input" checked><label class="form-check-label" for="twbs4_form_checkbox">Checkbox</label></div></div></div>
 <div class="form-group row"><div class="ml-auto col-sm-10"><div class="form-check"><input type="radio" name="twbs4_form[radio]" id="twbs4_form_radio" class="form-check-input" checked><label class="form-check-label" for="twbs4_form_radio">Radio</label></div></div></div>
@@ -191,8 +191,8 @@ TXT;
             'choice2' => 3,
             'choice3' => 5,
         );
-        $this->fw->set('VERB', 'POST');
-        $this->fw->set('POST.twbs4_form', array('_form' => 'twbs4_form') + $data);
+        $this->core->set('VERB', 'POST');
+        $this->core->set('REQUEST.twbs4_form', array('_form' => 'twbs4_form') + $data);
 
         $this->validator->add(new CommonValidator());
         $this->form->setOptions(array('mark' => 1 | 2));

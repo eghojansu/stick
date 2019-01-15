@@ -7,275 +7,152 @@
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
+ *
+ * Created at Jan 13, 2019 11:10
  */
-
-declare(strict_types=1);
 
 namespace Fal\Stick\Template;
 
-/**
- * Template file data.
- *
- * @author Eko Kurniawan <ekokurniawanbs@gmail.com>
- */
+use Fal\Stick\Core;
+
 class TemplateFile
 {
-    /**
-     * @var Template
-     */
-    protected $_engine;
+    protected $core;
 
-    /**
-     * @var string
-     */
-    protected $_name;
+    protected $engine;
 
-    /**
-     * @var string
-     */
-    protected $_file;
+    protected $view;
 
-    /**
-     * @var TemplateFile
-     */
-    protected $_reference;
+    protected $context;
 
-    /**
-     * @var TemplateFile
-     */
-    protected $_parent;
+    protected $parent;
 
-    /**
-     * @var array
-     */
-    protected $_sections;
+    protected $child;
 
-    /**
-     * @var array
-     */
-    protected $_starts;
+    protected $blocks = array();
+    protected $parentMarks = array();
 
-    /**
-     * @var int
-     */
-    protected $_level;
-
-    /**
-     * @var string
-     */
-    protected $_content;
-
-    /**
-     * @var array
-     */
-    protected $_context;
-
-    /**
-     * @var array
-     */
-    protected $_globals;
-
-    /**
-     * @var int
-     */
-    protected $_ptr;
-
-    /**
-     * Class constructor.
-     *
-     * @param Template          $engine
-     * @param string            $name
-     * @param array|null        $context
-     * @param TemplateFile|null $reference
-     */
-    public function __construct(Template $engine, string $name, array $context = null, TemplateFile $reference = null)
+    public static function create(Template $engine, Core $core, $view, array $context = null, TemplateFile $child = null)
     {
-        $this->_engine = $engine;
-        $this->_name = $name;
-        $this->_reference = $reference;
-        $this->_file = $engine->find($name);
-        $this->_context = (array) $context;
+        return new static($engine, $core, $view, $context, $child);
     }
 
-    /**
-     * Render template.
-     *
-     * @return string
-     */
-    public function render(): string
+    public function __construct(Template $engine, Core $core, $view, array $context = null, TemplateFile $child = null)
     {
-        $this->_sections = array();
-        $this->_starts = array();
-        $this->_ptr = -1;
+        $this->engine = $engine;
+        $this->core = $core;
+        $this->view = $view;
+        $this->context = $context;
+        $this->child = $child;
+    }
 
-        $this->doRender();
+    public function render()
+    {
+        $content = $this->load($this->view);
 
-        if ($this->_parent) {
-            return $this->_parent->render();
+        return $this->parent ? $this->parent->render() : $content;
+    }
+
+    protected function fork($view, array $context = null, TemplateFile $child = null)
+    {
+        return new static($this->engine, $this->core, $view, $context, $child);
+    }
+
+    protected function load($view, array $context = null)
+    {
+        $file = $this->engine->findView($view);
+
+        if ($this->context) {
+            extract($this->context);
         }
 
-        return $this->_content;
-    }
-
-    /**
-     * Load another template.
-     *
-     * @param string|null $name
-     * @param array|null  $context
-     * @param bool        $useContext
-     *
-     * @return string
-     */
-    protected function load(string $name = null, array $context = null, bool $useContext = true): string
-    {
-        return $this->_engine->render($name, (array) $context + ($useContext ? $this->_context : array()));
-    }
-
-    /**
-     * Returns section.
-     *
-     * @param string $name
-     *
-     * @return string|null
-     */
-    protected function section(string $name): ?string
-    {
-        if ($this->_reference && $content = $this->_reference->section($name)) {
-            return $content;
+        if ($context) {
+            extract($context);
         }
 
-        return $this->_sections[$name] ?? null;
+        ob_start();
+        require $file;
+
+        return ob_get_clean();
     }
 
-    /**
-     * Returns parent section content.
-     *
-     * @param string $name
-     *
-     * @return string|null
-     */
-    protected function parent(string $name): ?string
+    protected function layout($view, array $context = null)
     {
-        return $this->_parent ? $this->_parent->section($name) : null;
+        $this->parent = $this->fork($view, $context, $this);
     }
 
-    /**
-     * Set template parent.
-     *
-     * @param string $view
-     */
-    protected function extend(string $view): void
+    protected function parent($parentBlock = null)
     {
-        $this->_parent = new TemplateFile($this->_engine, $view, $this->_context, $this);
-        $this->_parent->render();
+        if (!$block = $this->findOpenBlock()) {
+            return null;
+        }
 
-        $this->_sections = $this->_parent->_sections;
+        $parentBlock || $parentBlock = $block;
+
+        return $this->parentMarks[$block][$parentBlock][] = '%parent_'.microtime(true).'_parent%';
     }
 
-    /**
-     * Start block.
-     *
-     * @param string $name
-     * @param bool   $raw
-     */
-    protected function start(string $name, bool $raw = false): void
+    protected function block($block)
     {
-        $this->_starts[++$this->_ptr] = array($this->_ptr, $name, false, $raw);
+        return isset($this->blocks[$block]) ? $this->blocks[$block] : null;
+    }
+
+    protected function applyParentBlock($block, $content)
+    {
+        $subject = isset($this->blocks[$block]) ? $this->blocks[$block] : $content;
+
+        if (isset($this->parentMarks[$block])) {
+            foreach ($this->parentMarks[$block] as $parentBlock => $search) {
+                if (null !== $replace = $this->parent->block($parentBlock)) {
+                    $subject = str_replace($search, $replace, $subject);
+                }
+            }
+        }
+
+        return $subject;
+    }
+
+    protected function start($block)
+    {
+        $this->blocks[$block] = null;
         ob_start();
     }
 
-    /**
-     * Stop block.
-     */
-    protected function stop(): void
+    protected function stop()
     {
-        if (!$start = $this->findStart()) {
-            throw new \LogicException(sprintf('Stop without starting point is not possible.'));
+        if (!$block = $this->findOpenBlock()) {
+            return;
         }
 
-        $content = ob_get_clean();
-        list($ptr, $name, $closed, $raw) = $start;
+        $this->blocks[$block] = ob_get_clean();
 
-        $this->_sections[$name] = $raw ? $content : trim($content).PHP_EOL;
-        $this->_starts[$ptr][2] = true;
+        if ($this->child) {
+            $this->blocks[$block] = $this->child->applyParentBlock($block, $this->blocks[$block]);
+        }
 
-        if (!$this->_parent) {
-            echo $this->section($name);
+        if (!$this->parent) {
+            echo $this->blocks[$block];
         }
     }
 
-    /**
-     * Find start block.
-     *
-     * @return array|null
-     */
-    protected function findStart(): ?array
+    protected function findOpenBlock()
     {
-        for ($i = count($this->_starts) - 1; $i >= 0; --$i) {
-            if ($this->_starts[$i][2]) {
-                continue;
+        foreach (array_reverse($this->blocks) as $block => $content) {
+            if (null === $content) {
+                return $block;
             }
-
-            return $this->_starts[$i];
         }
 
         return null;
     }
 
-    /**
-     * Do render.
-     */
-    protected function doRender(): void
+    public function __get($service)
     {
-        $this->_level = ob_get_level();
-
-        ob_start();
-
-        try {
-            extract($this->_context);
-
-            include $this->_file;
-        } catch (\Throwable $e) {
-            while (ob_get_level() > $this->_level) {
-                ob_end_clean();
-            }
-
-            throw $e;
-        }
-
-        $this->_content = ob_get_clean();
+        return $this->core->service($service);
     }
 
-    /**
-     * Returns globals data or proxy to Core::service.
-     *
-     * @param string $key
-     *
-     * @return mixed
-     */
-    public function __get($key)
+    public function __call($method, $arguments)
     {
-        if (null === $this->_globals) {
-            $this->_globals = $this->_engine->getGlobals();
-        }
-
-        if (array_key_exists($key, $this->_globals)) {
-            return $this->_globals[$key];
-        }
-
-        return $this->_engine->service($key);
-    }
-
-    /**
-     * Proxy to engine method call.
-     *
-     * @param string $method
-     * @param array  $args
-     *
-     * @return mixed
-     */
-    public function __call($method, $args)
-    {
-        return $this->_engine->$method(...$args);
+        return call_user_func_array(array($this->engine, $method), $arguments);
     }
 }

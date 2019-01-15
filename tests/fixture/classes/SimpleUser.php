@@ -1,26 +1,10 @@
 <?php
 
-/**
- * This file is part of the eghojansu/stick library.
- *
- * (c) Eko Kurniawan <ekokurniawanbs@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- */
-
-declare(strict_types=1);
-
 namespace Fixture;
 
 use Fal\Stick\Security\UserInterface;
 
-/**
- * Simple user class.
- *
- * @author Eko Kurniawan <ekokurniawanbs@gmail.com>
- */
-final class SimpleUser implements UserInterface
+class SimpleUser implements UserInterface
 {
     /**
      * @var string
@@ -56,19 +40,19 @@ final class SimpleUser implements UserInterface
      * @param array  $roles
      * @param mixed  $credentialsExpired
      */
-    public function __construct(string $id, string $username, string $password, array $roles = null, $credentialsExpired = false)
+    public function __construct($id, $username, $password, array $roles = null, $credentialsExpired = false)
     {
         $this->id = $id;
         $this->username = $username;
         $this->password = $password;
-        $this->roles = $roles ?? array('ROLE_ANONYMOUS');
+        $this->roles = $roles ?: array('ROLE_ANONYMOUS');
         $this->credentialsExpired = (bool) $credentialsExpired;
     }
 
     /**
      * {@inheritdoc}
      */
-    public function getId(): string
+    public function getId()
     {
         return $this->id;
     }
@@ -76,7 +60,7 @@ final class SimpleUser implements UserInterface
     /**
      * {@inheritdoc}
      */
-    public function getUsername(): string
+    public function getUsername()
     {
         return $this->username;
     }
@@ -84,7 +68,7 @@ final class SimpleUser implements UserInterface
     /**
      * {@inheritdoc}
      */
-    public function getPassword(): string
+    public function getPassword()
     {
         return $this->password;
     }
@@ -92,7 +76,7 @@ final class SimpleUser implements UserInterface
     /**
      * {@inheritdoc}
      */
-    public function getRoles(): array
+    public function getRoles()
     {
         return $this->roles;
     }
@@ -100,7 +84,7 @@ final class SimpleUser implements UserInterface
     /**
      * {@inheritdoc}
      */
-    public function isCredentialsExpired(): bool
+    public function isCredentialsExpired()
     {
         return $this->credentialsExpired;
     }
@@ -112,7 +96,7 @@ final class SimpleUser implements UserInterface
      *
      * @return SimpleUser
      */
-    public function setId(string $id): SimpleUser
+    public function setId($id)
     {
         $this->id = $id;
 
@@ -126,7 +110,7 @@ final class SimpleUser implements UserInterface
      *
      * @return SimpleUser
      */
-    public function setUsername(string $username): SimpleUser
+    public function setUsername($username)
     {
         $this->username = $username;
 
@@ -140,7 +124,7 @@ final class SimpleUser implements UserInterface
      *
      * @return SimpleUser
      */
-    public function setPassword(string $password): SimpleUser
+    public function setPassword($password)
     {
         $this->password = $password;
 
@@ -154,7 +138,7 @@ final class SimpleUser implements UserInterface
      *
      * @return SimpleUser
      */
-    public function setRoles(array $roles): SimpleUser
+    public function setRoles(array $roles)
     {
         $this->roles = $roles;
 
@@ -168,7 +152,7 @@ final class SimpleUser implements UserInterface
      *
      * @return SimpleUser
      */
-    public function setCredentialsExpired(bool $credentialsExpired): SimpleUser
+    public function setCredentialsExpired($credentialsExpired)
     {
         $this->credentialsExpired = $credentialsExpired;
 

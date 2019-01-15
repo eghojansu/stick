@@ -8,7 +8,7 @@
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
  *
- * Created at Jan 01, 2019 06:02
+ * Created at Jan 12, 2019 17:56
  */
 
 namespace Fal\Stick;
@@ -25,12 +25,12 @@ class ClassLoader
     /**
      * @var array
      */
-    protected $fallback;
+    protected $fallback = array();
 
     /**
      * @var array
      */
-    protected $namespaces;
+    protected $namespaces = array();
 
     /**
      * @var string
@@ -44,20 +44,17 @@ class ClassLoader
 
     public function __construct(array $namespaces = null, array $fallback = null, string $apcuPrefix = null)
     {
-        $this->setNamespaces($namespaces ?? array(), true);
-        $this->setFallback($fallback ?? array());
-        $this->setApcuPrefix($apcuPrefix);
-
-        // Load first class citizen
-        class_exists('Fal\\Stick\\Core') || include __DIR__.'/Core.php';
+        null === $namespaces || $this->setNamespaces($namespaces);
+        null === $fallback || $this->setFallback($fallback);
+        null === $apcuPrefix || $this->setApcuPrefix($apcuPrefix);
     }
 
-    public function getFallback(): array
+    public function getFallback()
     {
         return $this->fallback;
     }
 
-    public function setFallback(array $fallback): ClassLoader
+    public function setFallback(array $fallback)
     {
         $this->fallback = array();
 
@@ -68,12 +65,12 @@ class ClassLoader
         return $this;
     }
 
-    public function getNamespaces(): array
+    public function getNamespaces()
     {
         return $this->namespaces;
     }
 
-    public function addNamespace(string $namespace, $directories): ClassLoader
+    public function addNamespace($namespace, $directories)
     {
         if ('\\' !== substr($namespace, -1)) {
             throw new \LogicException('Namespace should ends with "\\"');
@@ -94,11 +91,9 @@ class ClassLoader
         return $this;
     }
 
-    public function setNamespaces(array $namespaces, bool $reset = false): ClassLoader
+    public function setNamespaces(array $namespaces)
     {
-        if ($reset) {
-            $this->namespaces = array('Fal\\Stick\\' => array(__DIR__));
-        }
+        $this->namespaces = array();
 
         foreach ($namespaces as $namespace => $directories) {
             $this->addNamespace($namespace, $directories);
@@ -112,7 +107,7 @@ class ClassLoader
      *
      * @return string|null
      */
-    public function getApcuPrefix(): ?string
+    public function getApcuPrefix()
     {
         return $this->apcuPrefix;
     }
@@ -122,7 +117,7 @@ class ClassLoader
      *
      * @param string|null $apcuPrefix
      */
-    public function setApcuPrefix(string $apcuPrefix = null): ClassLoader
+    public function setApcuPrefix($apcuPrefix = null)
     {
         $this->apcuPrefix = function_exists('apcu_fetch') && filter_var(ini_get('apc.enabled'), FILTER_VALIDATE_BOOLEAN) ? $apcuPrefix : null;
 
@@ -136,7 +131,7 @@ class ClassLoader
      *
      * @return ClassLoader
      */
-    public function register(bool $prepend = false): ClassLoader
+    public function register($prepend = false)
     {
         spl_autoload_register(array($this, 'loadClass'), true, $prepend);
 
@@ -148,7 +143,7 @@ class ClassLoader
      *
      * @return ClassLoader
      */
-    public function unregister(): ClassLoader
+    public function unregister()
     {
         spl_autoload_unregister(array($this, 'loadClass'));
 
@@ -162,7 +157,7 @@ class ClassLoader
      *
      * @return string|null
      */
-    public function findClass($class): ?string
+    public function findClass($class)
     {
         if (isset($this->missingClasses[$class])) {
             return null;
@@ -172,8 +167,10 @@ class ClassLoader
             return $file;
         }
 
+        $file = $this->findFileWithExtension($class, '.php');
+
         // @codeCoverageIgnoreStart
-        if ((!$file = $this->findFileWithExtension($class, '.php')) && defined('HHVM_VERSION')) {
+        if (!$file && defined('HHVM_VERSION')) {
             $file = $this->findFileWithExtension($class, '.hh');
         }
         // @codeCoverageIgnoreEnd
@@ -200,7 +197,7 @@ class ClassLoader
     public function loadClass($class)
     {
         if ($file = $this->findClass($class)) {
-            includeFile($file);
+            require $file;
 
             return true;
         }
@@ -214,7 +211,7 @@ class ClassLoader
      *
      * @return string|null
      */
-    private function findFileWithExtension(string $class, string $extension): ?string
+    protected function findFileWithExtension($class, $extension)
     {
         // PSR-4 lookup
         $logicalPath = strtr($class, '\\', DIRECTORY_SEPARATOR).$extension;

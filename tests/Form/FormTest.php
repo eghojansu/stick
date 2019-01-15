@@ -7,15 +7,15 @@
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
+ *
+ * Created at Jan 14, 2019 19:34
  */
-
-declare(strict_types=1);
 
 namespace Fal\Stick\Test\Form;
 
 use Fal\Stick\Core;
 use Fal\Stick\Form\Form;
-use Fal\Stick\Html;
+use Fal\Stick\Util\Html;
 use Fal\Stick\Validation\CommonValidator;
 use Fal\Stick\Validation\Validator;
 use PHPUnit\Framework\TestCase;
@@ -23,12 +23,12 @@ use PHPUnit\Framework\TestCase;
 class FormTest extends TestCase
 {
     private $form;
-    private $fw;
+    private $core;
     private $validator;
 
     public function setUp()
     {
-        $this->form = new Form($this->fw = new Core(), $this->validator = new Validator($this->fw), new Html($this->fw));
+        $this->form = new Form($this->core = new Core(), $this->validator = new Validator($this->core), new Html($this->core));
     }
 
     public function testGetName()
@@ -41,6 +41,16 @@ class FormTest extends TestCase
         $this->assertEquals('foo', $this->form->setName('foo')->getName());
     }
 
+    public function testGetKey()
+    {
+        $this->assertEquals('REQUEST', $this->form->getKey());
+    }
+
+    public function testSetKey()
+    {
+        $this->assertEquals('foo', $this->form->setKey('foo')->getKey());
+    }
+
     public function testGetVerb()
     {
         $this->assertEquals('POST', $this->form->getVerb());
@@ -49,11 +59,20 @@ class FormTest extends TestCase
     public function testSetVerb()
     {
         $this->assertEquals('FOO', $this->form->setVerb('foo')->getVerb());
+        $this->assertEquals('QUERY', $this->form->setVerb('GET')->getKey());
+        $this->assertEquals('REQUEST', $this->form->setVerb('POST')->getKey());
     }
 
     public function testGetData()
     {
         $this->assertNull($this->form->getData());
+
+        $this->core->set('VERB', 'POST');
+        $this->core->set('REQUEST', array('form' => array('_form' => 'form')));
+        $this->form->addField('foo');
+        $this->form->isSubmitted();
+
+        $this->assertEquals(array('foo' => null), $this->form->getData());
     }
 
     public function testSetData()
@@ -102,7 +121,7 @@ class FormTest extends TestCase
         $this->assertEquals(array(), $this->form->getErrors());
     }
 
-    public function testAdd()
+    public function testAddField()
     {
         $name = 'foo';
         $type = null;
@@ -129,7 +148,7 @@ class FormTest extends TestCase
             ),
         );
 
-        $this->assertEquals($expected, $this->form->add($name, $type, $options, $attr)->getFields());
+        $this->assertEquals($expected, $this->form->addField($name, $type, $options, $attr)->getFields());
     }
 
     public function testAddButton()
@@ -156,8 +175,8 @@ class FormTest extends TestCase
     {
         $this->assertFalse($this->form->isSubmitted());
 
-        $this->fw->set('VERB', 'POST');
-        $this->fw->set('POST', array('form' => array('_form' => 'form')));
+        $this->core->set('VERB', 'POST');
+        $this->core->set('REQUEST', array('form' => array('_form' => 'form')));
 
         $this->assertTrue($this->form->isSubmitted());
     }
@@ -169,11 +188,11 @@ class FormTest extends TestCase
     {
         $this->validator->add(new CommonValidator());
 
-        $this->fw->set('VERB', 'POST');
-        $this->fw->set('POST', array('form' => ((array) $update) + array('_form' => 'form')));
+        $this->core->set('VERB', 'POST');
+        $this->core->set('REQUEST', array('form' => ((array) $update) + array('_form' => 'form')));
 
         foreach ((array) $fields as $field) {
-            $this->form->add(...$field);
+            $this->form->addField(...$field);
         }
 
         $this->form->isSubmitted();
@@ -200,10 +219,10 @@ class FormTest extends TestCase
     {
         $this->validator->add(new CommonValidator());
 
-        $this->fw->set('VERB', 'POST');
-        $this->fw->set('POST', array('form' => array('_form' => 'form', 'foo' => 'bar ')));
+        $this->core->set('VERB', 'POST');
+        $this->core->set('REQUEST', array('form' => array('_form' => 'form', 'foo' => 'bar ')));
 
-        $this->form->add('foo', 'text', array(
+        $this->form->addField('foo', 'text', array(
             'constraints' => 'trim',
         ));
 
@@ -227,7 +246,7 @@ class FormTest extends TestCase
 
     public function testRow()
     {
-        $this->form->add('foo');
+        $this->form->addField('foo');
         $expected = '<div><label for="form_foo">Foo</label> <span><input type="text" name="form[foo]" id="form_foo" placeholder="Foo"></span></div>'.PHP_EOL;
 
         $this->assertEquals($expected, $this->form->row('foo'));
@@ -244,7 +263,7 @@ class FormTest extends TestCase
 
     public function testRows()
     {
-        $this->form->add('foo');
+        $this->form->addField('foo');
         $expected = '<div><label for="form_foo">Foo</label> <span><input type="text" name="form[foo]" id="form_foo" placeholder="Foo"></span></div>'.PHP_EOL;
 
         $this->assertEquals($expected, $this->form->rows());
@@ -264,26 +283,26 @@ class FormTest extends TestCase
      */
     public function testRender($expected, $submit = false, $data = array(), $initialize = array())
     {
-        $this->form->add('hidden', 'hidden');
-        $this->form->add('text', 'text');
-        $this->form->add('password', 'password');
-        $this->form->add('checkbox', 'checkbox');
-        $this->form->add('radio', 'radio');
-        $this->form->add('textarea', 'textarea');
-        $this->form->add('choice', 'choice', array(
+        $this->form->addField('hidden', 'hidden');
+        $this->form->addField('text', 'text');
+        $this->form->addField('password', 'password');
+        $this->form->addField('checkbox', 'checkbox');
+        $this->form->addField('radio', 'radio');
+        $this->form->addField('textarea', 'textarea');
+        $this->form->addField('choice', 'choice', array(
             'items' => array(
                 'One' => 1,
                 'Two' => 2,
             ),
         ));
-        $this->form->add('choice2', 'choice', array(
+        $this->form->addField('choice2', 'choice', array(
             'expanded' => true,
             'items' => array(
                 'Three' => 3,
                 'Four' => 4,
             ),
         ));
-        $this->form->add('choice3', 'choice', array(
+        $this->form->addField('choice3', 'choice', array(
             'expanded' => true,
             'multiple' => true,
             'items' => function () {
@@ -301,8 +320,8 @@ class FormTest extends TestCase
         $this->form->prepare();
 
         if ($submit) {
-            $this->fw->set('VERB', 'POST');
-            $this->fw->set('POST.form', array('_form' => 'form') + $data);
+            $this->core->set('VERB', 'POST');
+            $this->core->set('REQUEST.form', array('_form' => 'form') + $data);
 
             $this->assertTrue($this->form->isSubmitted());
             $this->assertTrue($this->form->valid());
@@ -317,7 +336,7 @@ class FormTest extends TestCase
      */
     public function testRenderTransformation($expected, $submit = false)
     {
-        $this->form->add('foo', 'choice', array(
+        $this->form->addField('foo', 'choice', array(
             'expanded' => true,
             'multiple' => true,
             'items' => function () {
@@ -334,8 +353,8 @@ class FormTest extends TestCase
         $this->form->prepare();
 
         if ($submit) {
-            $this->fw->set('VERB', 'POST');
-            $this->fw->set('POST.form', array('_form' => 'form', 'foo' => array(5)));
+            $this->core->set('VERB', 'POST');
+            $this->core->set('REQUEST.form', array('_form' => 'form', 'foo' => array(5)));
 
             $this->assertTrue($this->form->isSubmitted());
             $this->assertTrue($this->form->valid());
@@ -347,7 +366,21 @@ class FormTest extends TestCase
 
     public function testMagicGet()
     {
+        $this->core->set('VERB', 'POST');
+        $this->core->set('REQUEST', array('form' => array(
+            '_form' => 'form',
+            'normalized' => 'n',
+        )));
+        $this->form->setData(array('data' => 'd'));
+        $this->form->addField('normalized');
+        $this->form->isSubmitted();
+
+        $this->assertEquals('d', $this->form->data);
+        $this->assertEquals('n', $this->form->normalized);
         $this->assertNull($this->form->foo);
+
+        $this->form->valid();
+        $this->assertEquals('n', $this->form->normalized);
     }
 
     public function validProvider()
@@ -374,7 +407,7 @@ class FormTest extends TestCase
                 ),
                 null,
                 array(
-                    'foo' => array('This value should not be blank.'),
+                    'foo' => array('This value should not be blank'),
                 ),
             ),
             array(

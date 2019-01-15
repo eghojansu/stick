@@ -7,30 +7,25 @@
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
+ *
+ * Created at Jan 14, 2019 05:58
  */
-
-declare(strict_types=1);
 
 namespace Fal\Stick\Validation;
 
-/**
- * Validator trait.
- *
- * @author Eko Kurniawan <ekokurniawanbs@gmail.com>
- */
 trait ValidatorTrait
 {
     /**
      * Current rule data.
      *
-     * @var array
+     * @var Result
      */
-    protected $data;
+    protected $context;
 
     /**
      * {@inheritdoc}
      */
-    public function has(string $rule): bool
+    public function has($rule)
     {
         return method_exists($this, '_'.$rule);
     }
@@ -38,20 +33,20 @@ trait ValidatorTrait
     /**
      * {@inheritdoc}
      */
-    public function validate(string $rule, $value, array $args = null, string $field = null, array $validated = null, array $raw = null)
+    public function context(Result $context)
     {
-        $this->data = array(
-            'rule' => $rule,
-            'field' => $field,
-            'validated' => (array) $validated,
-            'raw' => (array) $raw,
-        );
+        $this->context = $context;
 
-        $call = '_'.$rule;
-        $result = $this->$call($value, ...((array) $args));
+        return $this;
+    }
 
-        $this->data = null;
+    /**
+     * {@inheritdoc}
+     */
+    public function validate($rule, $value, array $arguments)
+    {
+        array_unshift($arguments, $value);
 
-        return $result;
+        return call_user_func_array(array($this, '_'.$rule), $arguments);
     }
 }

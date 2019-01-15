@@ -3,4 +3,5 @@
 namespace Fixture;
 
 interface FooInterface
-{}
+{
+}

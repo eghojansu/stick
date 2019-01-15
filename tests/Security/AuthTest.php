@@ -7,48 +7,37 @@
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
+ *
+ * Created at Jan 14, 2019 09:52
  */
-
-declare(strict_types=1);
 
 namespace Fal\Stick\Test\Security;
 
 use Fal\Stick\Core;
+use Fixture\SimpleUser;
 use Fal\Stick\Security\Auth;
+use PHPUnit\Framework\TestCase;
 use Fal\Stick\Security\InMemoryUserProvider;
 use Fal\Stick\Security\PlainPasswordEncoder;
-use Fixture\SimpleUser;
-use PHPUnit\Framework\TestCase;
 
 class AuthTest extends TestCase
 {
     private $auth;
-    private $fw;
+    private $core;
 
-    public function setUp()
+    public function setup()
     {
-        $this->fw = new Core();
-        $this->auth();
+        $this->auth = new Auth($this->core = new Core(), new InMemoryUserProvider(), new PlainPasswordEncoder());
     }
 
-    public function tearDown()
+    public function testGetProvider()
     {
-        $this->fw->clear('SESSION');
+        $this->assertInstanceOf('Fal\\Stick\\Security\\InMemoryUserProvider', $this->auth->getProvider());
     }
 
-    private function auth(array $options = null)
+    public function testGetEncoder()
     {
-        $this->auth = new Auth($this->fw, new InMemoryUserProvider(), new PlainPasswordEncoder(), $options);
-    }
-
-    private function createUser($roles = null, $expired = false)
-    {
-        return new SimpleUser('1', 'foo', 'bar', explode('|', (string) $roles), $expired);
-    }
-
-    public function testIsLogged()
-    {
-        $this->assertFalse($this->auth->isLogged());
+        $this->assertInstanceOf('Fal\\Stick\\Security\\PlainPasswordEncoder', $this->auth->getEncoder());
     }
 
     public function testGetOptions()
@@ -78,103 +67,85 @@ class AuthTest extends TestCase
         ), $this->auth->getOptions());
     }
 
-    public function testGetSessionUserId()
-    {
-        $this->assertNull($this->auth->getSessionUserId());
-        $this->fw->set('SESSION.user_login_id', 1);
-        $this->assertEquals(1, $this->auth->getSessionUserId());
-    }
-
     public function testGetCookieUserId()
     {
         $this->assertNull($this->auth->getCookieUserId());
-        $this->fw->set('COOKIE.user_login_id', 1);
-        $this->assertEquals(1, $this->auth->getCookieUserId());
-        $this->fw->set('COOKIE.user_login_id', array(2, 2));
-        $this->assertEquals(2, $this->auth->getCookieUserId());
     }
 
-    public function testGetUser()
+    public function testGetSessionUserId()
     {
-        $this->fw->one('auth_load_user', function () {
-            return $this->createUser();
-        });
-
-        $user = $this->auth->getUser();
-        $this->assertEquals('1', $user->getId());
-
-        // second call
-        $this->assertSame($user, $this->auth->getUser());
-
-        $this->auth->getProvider()->addUser(new SimpleUser('foo', 'foo', 'bar'));
-
-        // reset user
-        $this->auth->logout();
-        $this->fw->set('SESSION.user_login_id', 'foo');
-        $user = $this->auth->getUser();
-        $this->assertEquals('foo', $user->getId());
-        $this->assertEquals('foo', $user->getUsername());
-        $this->assertTrue($this->auth->isGranted('IS_AUTHENTICATED_FULLY'));
-        $this->assertFalse($this->auth->isGranted('IS_AUTHENTICATED_REMEMBERED'));
-
-        // reset again
-        $this->auth->logout();
-        $this->fw->set('COOKIE.user_login_id', 'foo');
-        $user = $this->auth->getUser();
-        $this->assertEquals('foo', $user->getId());
-        $this->assertEquals('foo', $user->getUsername());
-        $this->assertTrue($this->auth->isGranted('IS_AUTHENTICATED_REMEMBERED'));
-        $this->assertFalse($this->auth->isGranted('IS_AUTHENTICATED_FULLY'));
+        $this->assertNull($this->auth->getSessionUserId());
     }
 
-    public function testSetUser()
+    public function testIsLogged()
     {
-        $user = $this->createUser();
-
-        $this->assertSame($user, $this->auth->setUser($user)->getUser());
-    }
-
-    public function testGetUserRoles()
-    {
-        $this->assertEquals(array('IS_AUTHENTICATED_ANONYMOUSLY'), $this->auth->getUserRoles());
-        $this->auth->logout();
-
-        $expected = array('IS_AUTHENTICATED_ANONYMOUSLY', 'foo');
-        $this->auth->setUser($this->createUser('foo'));
-        $this->assertEquals($expected, $this->auth->getUserRoles());
-    }
-
-    public function testLogin()
-    {
-        $user = $this->createUser();
-        $this->fw->one('auth_login', function ($user) {
-            $user->setCredentialsExpired(true);
-        });
-
-        $user = $this->auth->login($user, true)->getUser();
-        $this->assertTrue($user->isCredentialsExpired());
-        $this->assertEquals($user->getId(), $this->fw->get('SESSION.user_login_id'));
-        $this->assertEquals(array($user->getId(), 1541932314), $this->fw->get('COOKIE.user_login_id'));
+        $this->assertFalse($this->auth->isLogged());
     }
 
     public function testLogout()
     {
-        $user = $this->createUser();
-        $user = $this->auth->login($user)->getUser();
-        $this->assertEquals($user->getId(), $this->fw->get('SESSION.user_login_id'));
-
-        $this->auth->logout();
-        $this->assertFalse($this->fw->exists('SESSION.user_login_id'));
+        $this->assertSame($this->auth, $this->auth->logout());
     }
 
-    public function testGetProvider()
+    public function testSetUser()
     {
-        $this->assertInstanceOf(InMemoryUserProvider::class, $this->auth->getProvider());
+        $this->assertEquals('foo', $this->auth->setUser(new SimpleUser(1, 'foo', 'bar'))->getUser()->getUsername());
     }
 
-    public function testGetEncoder()
+    public function testLogin()
     {
-        $this->assertInstanceOf(PlainPasswordEncoder::class, $this->auth->getEncoder());
+        $this->assertEquals('foo', $this->auth->login(new SimpleUser(1, 'foo', 'bar'), true)->getUser()->getUsername());
+        $this->assertEquals(1, $this->core->get('SESSION.user_login_id'));
+        $this->assertEquals(1, $this->core->get('COOKIE_SET.user_login_id.arguments.1'));
+    }
+
+    /**
+     * @dataProvider guardProvider
+     */
+    public function testGuard($path, $user, $expected, $expectedBool)
+    {
+        $this->core->set('QUIET', true);
+        $this->core->set('PATH', $path);
+
+        $this->core->route('GET /admin-area', function () {
+            return 'Admin Area';
+        });
+        $this->core->route('GET /login', function () {
+            return 'Login';
+        });
+
+        $this->auth->setOptions(array(
+            'rules' => array(
+                '/admin-area' => array(
+                    'roles' => 'ROLE_ADMIN',
+                    'home' => '/admin-area',
+                ),
+            ),
+            'logout' => array(
+                '/logout' => '/login',
+            ),
+            'excludes' => '/exclude',
+        ));
+        $this->auth->setUser($user);
+
+        $this->assertEquals($expectedBool, $this->auth->guard());
+        $this->assertEquals($expected, $this->core->get('OUTPUT'));
+    }
+
+    /**
+     * @dataProvider isGrantedProvider
+     */
+    public function testIsGranted($expected, $user, $roles)
+    {
+        $this->auth->setOptions(array(
+            'roleHierarchy' => array(
+                'ROLE_ADMIN' => 'ROLE_USER',
+                'ROLE_SUPER_ADMIN' => array('ROLE_ADMIN', 'ROLE_FOO'),
+            ),
+        ));
+        $this->auth->setUser($user);
+
+        $this->assertEquals($expected, $this->auth->isGranted($roles));
     }
 
     /**
@@ -190,90 +161,66 @@ class AuthTest extends TestCase
         $this->assertEquals($expectedMessage, $message);
     }
 
-    /**
-     * @dataProvider isGrantedProvider
-     */
-    public function testIsGranted($expected, $user, $roles)
+    public function testGetUser()
     {
-        $this->auth(array(
-            'roleHierarchy' => array(
-                'ROLE_ADMIN' => 'ROLE_USER',
-                'ROLE_SUPER_ADMIN' => array('ROLE_ADMIN', 'ROLE_FOO'),
-            ),
-        ));
-        $this->auth->setUser($user);
-
-        $this->assertEquals($expected, $this->auth->isGranted($roles));
-    }
-
-    public function testIsGrantedAnon()
-    {
-        $this->assertTrue($this->auth->isGranted('IS_AUTHENTICATED_ANONYMOUSLY'));
-    }
-
-    public function testIsGrantedEvent()
-    {
-        $this->fw->on('auth_vote', function () {
-            return false;
+        $this->core->one('auth.load_user', function ($event) {
+            $event->setUser($this->createUser());
         });
 
-        $this->assertFalse($this->auth->isGranted('IS_AUTHENTICATED_ANONYMOUSLY'));
+        $user = $this->auth->getUser();
+        $this->assertEquals('1', $user->getId());
+
+        // second call
+        $this->assertSame($user, $this->auth->getUser());
+
+        $this->auth->getProvider()->addUser(new SimpleUser('foo', 'foo', 'bar'));
+
+        // reset user
+        $this->auth->logout();
+        $this->core->set('SESSION.user_login_id', 'foo');
+        $user = $this->auth->getUser();
+        $this->assertEquals('foo', $user->getId());
+        $this->assertEquals('foo', $user->getUsername());
+        $this->assertTrue($this->auth->isGranted('IS_AUTHENTICATED_FULLY'));
+        $this->assertFalse($this->auth->isGranted('IS_AUTHENTICATED_REMEMBERED'));
+
+        // reset again
+        $this->auth->logout();
+        $this->core->set('COOKIE.user_login_id', 'foo');
+        $user = $this->auth->getUser();
+        $this->assertEquals('foo', $user->getId());
+        $this->assertEquals('foo', $user->getUsername());
+        $this->assertTrue($this->auth->isGranted('IS_AUTHENTICATED_REMEMBERED'));
+        $this->assertFalse($this->auth->isGranted('IS_AUTHENTICATED_FULLY'));
     }
 
-    public function testDenyAccessUnlessGranted()
+    public function testGetUserRoles()
     {
-        $this->expectException('Fal\\Stick\\HttpException');
-        $this->expectExceptionMessage('Access denied.');
+        $this->assertEquals(array('IS_AUTHENTICATED_ANONYMOUSLY'), $this->auth->getUserRoles());
+        $this->auth->logout();
 
-        $this->auth->denyAccessUnlessGranted('foo');
+        $expected = array('IS_AUTHENTICATED_ANONYMOUSLY', 'foo');
+        $this->auth->setUser($this->createUser('foo'));
+        $this->assertEquals($expected, $this->auth->getUserRoles());
     }
 
-    public function testDenyAccessUnlessGrantedTrue()
+    public function guardProvider()
     {
-        $this->auth->denyAccessUnlessGranted('IS_AUTHENTICATED_ANONYMOUSLY');
+        $admin = $this->createUser('ROLE_ADMIN');
 
-        $this->assertTrue(true);
-    }
-
-    /**
-     * @dataProvider guardProvider
-     */
-    public function testGuard($path, $user, $expected, $expectedBool)
-    {
-        $this->fw->set('QUIET', true);
-        $this->fw->set('PATH', $path);
-
-        $this->fw->route('GET /admin-area', function () {
-            return 'Admin Area';
-        });
-        $this->fw->route('GET /login', function () {
-            return 'Login';
-        });
-
-        $this->auth(array(
-            'rules' => array(
-                '/admin-area' => array(
-                    'roles' => 'ROLE_ADMIN',
-                    'home' => '/admin-area',
-                ),
-            ),
-            'logout' => array(
-                '/logout' => '/login',
-            ),
-            'excludes' => '/exclude',
-        ));
-        $this->auth->setUser($user);
-
-        $this->assertEquals($expectedBool, $this->auth->guard());
-        $this->assertEquals($expected, $this->fw->get('OUTPUT'));
-    }
-
-    public function attemptProvider()
-    {
         return array(
-            array(true, 'foo', 'bar'),
-            array(false, 'bar', 'baz', 'Your credentials is expired.'),
-            array(false, 'foo', 'baz', 'Invalid credentials.'),
+            // Not login yet, trying access admin area
+            array('/admin-area', null, 'Login', true),
+            // Has been login, access admin area
+            array('/admin-area', $admin, null, false),
+            // Has been login, access login page
+            array('/login', $admin, 'Admin Area', true),
+            // Not login yet, access login page
+            array('/login', null, null, false),
+            // Has been login, access logout
+            array('/logout', $admin, 'Login', true),
+            // Access excluded path
+            array('/exclude', null, null, false),
         );
     }
 
@@ -295,23 +242,17 @@ class AuthTest extends TestCase
         );
     }
 
-    public function guardProvider()
+    public function attemptProvider()
     {
-        $admin = $this->createUser('ROLE_ADMIN');
-
         return array(
-            // Not login yet, trying access admin area
-            array('/admin-area', null, 'Login', true),
-            // Has been login, access admin area
-            array('/admin-area', $admin, null, false),
-            // Has been login, access login page
-            array('/login', $admin, 'Admin Area', true),
-            // Not login yet, access login page
-            array('/login', null, null, false),
-            // Has been login, access logout
-            array('/logout', $admin, 'Login', true),
-            // Access excluded path
-            array('/exclude', null, null, false),
+            array(true, 'foo', 'bar'),
+            array(false, 'bar', 'baz', 'Your credentials is expired.'),
+            array(false, 'foo', 'baz', 'Invalid credentials.'),
         );
+    }
+
+    private function createUser($roles = null, $expired = false)
+    {
+        return new SimpleUser('1', 'foo', 'bar', explode('|', (string) $roles), $expired);
     }
 }

@@ -7,66 +7,42 @@
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
+ *
+ * Created at Jan 13, 2019 11:48
  */
-
-declare(strict_types=1);
 
 namespace Fal\Stick\Test\Template;
 
 use Fal\Stick\Core;
-use Fal\Stick\Template\Template;
 use PHPUnit\Framework\TestCase;
+use Fal\Stick\Template\Template;
 
 class TemplateTest extends TestCase
 {
     private $template;
+    private $core;
 
-    public function setUp()
+    public function setup()
     {
-        $this->template = new Template(new Core(), TEST_FIXTURE.'template/', array(
-            'profile' => true,
-        ));
+        $this->template = new Template($this->core = new Core());
     }
 
-    public function testGetPaths()
+    public function testGetDirectories()
     {
-        $this->assertEquals(array(TEST_FIXTURE.'template/'), $this->template->getPaths());
+        $this->assertEquals(array(), $this->template->getDirectories());
     }
 
-    public function testAddPath()
+    public function testAddDirectory()
     {
-        $this->assertEquals(array(TEST_FIXTURE.'template/', 'foo'), $this->template->addPath('foo')->getPaths());
+        $this->template->addDirectory('foo');
+        $this->template->addDirectory('bar', true);
+
+        $this->assertEquals(array('bar', 'foo'), $this->template->getDirectories());
     }
 
-    public function testPrependPath()
+    public function testSetDirectories()
     {
-        $this->assertEquals(array('foo', TEST_FIXTURE.'template/'), $this->template->prependPath('foo')->getPaths());
-    }
-
-    public function testFind()
-    {
-        $this->assertEquals(TEST_FIXTURE.'template/layout.php', $this->template->find('layout'));
-    }
-
-    public function testFindException()
-    {
-        $this->expectException('LogicException');
-        $this->expectExceptionMessage('Template "foo" does not exists.');
-
-        $this->template->find('foo');
-    }
-
-    public function testGetGlobals()
-    {
-        $this->assertEquals(array('profile' => true), $this->template->getGlobals());
-    }
-
-    public function testSetGlobals()
-    {
-        $this->assertEquals(array('foo'), $this->template->setGlobals(array('foo'))->getGlobals());
-        $this->assertEquals(array('foo'), $this->template->setGlobals(function () {
-            return array('foo');
-        })->getGlobals());
+        $this->assertEquals(array('foo'), $this->template->setDirectories(array('foo'))->getDirectories());
     }
 
     public function testGetExtension()
@@ -82,49 +58,46 @@ class TemplateTest extends TestCase
     public function testAddFunction()
     {
         $this->template->addFunction('foo', function () {
-            return 'bar';
+            return 'foo';
+        });
+        $this->template->addFunction('bar', function ($core, $bar) {
+            return array($core, $bar);
         });
 
-        $this->assertEquals('bar', $this->template->foo());
-        $this->assertEquals('/foo', $this->template->path('foo'));
+        $this->assertEquals('foo', $this->template->foo());
+        $this->assertEquals(array($this->core, 'foo'), $this->template->bar('foo'));
+        $this->assertEquals('/path', $this->template->path('path'));
     }
 
     public function testCallException()
     {
-        $this->expectException('LogicException');
-        $this->expectExceptionMessage('Call to undefined function "foo".');
+        $this->expectException('BadFunctionCallException');
+        $this->expectExceptionMessage('Call to undefined function: foo');
 
         $this->template->foo();
     }
 
-    /**
-     * @dataProvider renderProvider
-     */
-    public function testRender($name, $context = null)
+    public function testFindView()
     {
-        $actual = $this->template->render($name, $context);
-        $expected = file_get_contents(TEST_FIXTURE.'template/'.$name.'.html');
+        $this->template->addDirectory(__DIR__.'/view/');
 
-        $this->assertEquals($expected, $actual);
+        $this->assertEquals(__DIR__.'/view/simple.php', $this->template->findView('simple'));
     }
 
-    public function testRenderException()
+    public function testFindViewException()
     {
         $this->expectException('LogicException');
-        $this->expectExceptionMessage('Stop without starting point is not possible.');
+        $this->expectExceptionMessage('View not exists: "simple"');
 
-        $this->template->render('nostart');
+        $this->template->findView('simple');
     }
 
-    public function renderProvider()
+    public function testRender()
     {
-        return array(
-            array('layout'),
-            array('layout2'),
-            array('dashboard'),
-            array('include', array('title' => 'Included')),
-            array('profile', array('username' => '<span>user</span>')),
-            array('service'),
-        );
+        $this->template->addDirectory(__DIR__.'/view/');
+
+        $this->assertEquals('simple', $this->template->render('simple'));
+        $this->assertEquals('text/html', $this->core->get('RESPONSE.Content-Type'));
+        $this->assertEquals(6, $this->core->get('RESPONSE.Content-Length'));
     }
 }

@@ -5,6 +5,6 @@
   <title>CRUD</title>
 </head>
 <body>
-  <?php $this->start('content') ?><?php $this->stop() ?>
+  <?php $this->start('content'); ?><?php $this->stop(); ?>
 </body>
 </html>

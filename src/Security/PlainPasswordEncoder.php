@@ -7,23 +7,18 @@
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
+ *
+ * Created at Jan 14, 2019 01:35
  */
-
-declare(strict_types=1);
 
 namespace Fal\Stick\Security;
 
-/**
- * Plain password encoder.
- *
- * @author Eko Kurniawan <ekokurniawanbs@gmail.com>
- */
-final class PlainPasswordEncoder implements PasswordEncoderInterface
+class PlainPasswordEncoder implements PasswordEncoderInterface
 {
     /**
      * {@inheritdoc}
      */
-    public function hash(string $plainText): string
+    public function hash($plainText)
     {
         return $plainText;
     }
@@ -31,8 +26,8 @@ final class PlainPasswordEncoder implements PasswordEncoderInterface
     /**
      * {@inheritdoc}
      */
-    public function verify(string $plainText, string $hash): bool
+    public function verify($plainText, $hash)
     {
-        return 0 === strcmp($hash, $plainText);
+        return 0 === strcmp($plainText, $hash);
     }
 }

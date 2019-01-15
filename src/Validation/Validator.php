@@ -7,9 +7,9 @@
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
+ *
+ * Created at Jan 14, 2019 06:22
  */
-
-declare(strict_types=1);
 
 namespace Fal\Stick\Validation;
 
@@ -20,34 +20,29 @@ use Fal\Stick\Core;
  *
  * @author Eko Kurniawan <ekokurniawanbs@gmail.com>
  */
-final class Validator
+class Validator
 {
     /**
      * @var Core
      */
-    private $fw;
+    protected $core;
 
     /**
      * @var array
      */
-    private $validators = array();
+    protected $validators = array();
 
     /**
      * Class constructor.
      *
-     * @param Core         $fw
-     * @param array|null $validators
+     * @param Core $core
      */
-    public function __construct(Core $fw, array $validators = null)
+    public function __construct(Core $core, array $validators = null)
     {
-        $this->fw = $fw->prepend('LOCALES', __DIR__.'/dict/;');
+        $this->core = $core->prepend('LANGUAGE_LOCALES', __DIR__.'/dict/;');
 
-        foreach ($validators ?? array() as $validator) {
-            if (is_string($validator)) {
-                $validator = $fw->service($validator);
-            }
-
-            $this->add($validator);
+        foreach ((array) $validators as $validator) {
+            $this->add($core->service($validator));
         }
     }
 
@@ -62,7 +57,7 @@ final class Validator
      *
      * @return array
      */
-    public function parseExpr(string $expr): array
+    public function parseExpr($expr)
     {
         $len = strlen($expr);
         $res = array();
@@ -75,7 +70,7 @@ final class Validator
 
         for ($ptr = 0; $ptr < $len; ++$ptr) {
             $char = $expr[$ptr];
-            $prev = $expr[$ptr - 1] ?? null;
+            $prev = isset($expr[$ptr - 1]) ? $expr[$ptr - 1] : null;
 
             if (('"' === $char || "'" === $char) && '\\' !== $prev) {
                 if ($quote) {
@@ -87,17 +82,17 @@ final class Validator
             } elseif (!$quote) {
                 if (':' === $char && 0 === $jstate) {
                     // next chars is arg
-                    $args[] = $this->fw->cast($tmp);
+                    $args[] = $this->core->cast($tmp);
                     $tmp = '';
                 } elseif (',' === $char && 0 === $astate && 0 === $jstate) {
                     if ($tmp) {
-                        $args[] = $this->fw->cast($tmp);
+                        $args[] = $this->core->cast($tmp);
                         $tmp = '';
                     }
                 } elseif ('|' === $char) {
                     $process = true;
                     if ($tmp) {
-                        $args[] = $this->fw->cast($tmp);
+                        $args[] = $this->core->cast($tmp);
                         $tmp = '';
                     }
                 } elseif ('[' === $char) {
@@ -126,7 +121,7 @@ final class Validator
             if (!$process && $ptr === $len - 1) {
                 $process = true;
                 if ('' !== $tmp) {
-                    $args[] = $this->fw->cast($tmp);
+                    $args[] = $this->core->cast($tmp);
                     $tmp = '';
                 }
             }
@@ -146,13 +141,13 @@ final class Validator
     /**
      * Add validator.
      *
-     * @param ValidatorInterface ...$validators
+     * @param ValidatorInterface $validator
      *
      * @return Validator
      */
-    public function add(ValidatorInterface ...$validators): Validator
+    public function add(ValidatorInterface $validator)
     {
-        array_push($this->validators, ...$validators);
+        $this->validators[] = $validator;
 
         return $this;
     }
@@ -164,38 +159,33 @@ final class Validator
      * @param array $rules
      * @param array $messages
      *
-     * @return array
+     * @return Result
      */
-    public function validate(array $data, array $rules, array $messages = null): array
+    public function validate(array $data, array $rules, array $messages = null)
     {
-        $validated = array();
-        $errors = array();
+        $context = new Result($data);
 
         foreach ($rules as $field => $fieldRules) {
-            foreach ($this->parseExpr($fieldRules) as $rule => $args) {
-                $value = array_key_exists($field, $validated) ? $validated[$field] : ($data[$field] ?? null);
-                $result = $this->findValidator($rule)->validate($rule, $value, $args, $field, $validated, $data);
+            foreach ($this->parseExpr($fieldRules) as $rule => $arguments) {
+                $value = $context->setCurrent($rule, $field)->value();
+                $result = $this->findValidator($rule)->context($context)->validate($rule, $value, $arguments);
 
                 if (false === $result) {
                     // validation fail
-                    $messageKey = $field.'.'.$rule;
-                    $custom = $messages[$messageKey] ?? null;
-                    $errors[$field][] = $this->message($rule, $value, $args, $field, $custom);
+                    $key = $field.'.'.$rule;
+                    $message = isset($messages[$key]) ? $messages[$key] : $this->message($rule, $value, $arguments, $field);
+                    $context->addError($field, $message);
 
                     break;
                 } elseif (true === $result) {
-                    $validated[$field] = $value;
+                    $context->addData($field, $value);
                 } else {
-                    $validated[$field] = $result;
+                    $context->addData($field, $result);
                 }
             }
         }
 
-        return array(
-            'success' => empty($errors),
-            'errors' => $errors,
-            'data' => $validated,
-        );
+        return $context;
     }
 
     /**
@@ -207,7 +197,7 @@ final class Validator
      *
      * @throws DomainException If no validator supports the rule
      */
-    private function findValidator($rule): ValidatorInterface
+    protected function findValidator($rule)
     {
         foreach ($this->validators as $validator) {
             if ($validator->has($rule)) {
@@ -215,7 +205,7 @@ final class Validator
             }
         }
 
-        throw new \DomainException(sprintf('Rule "%s" does not exists.', $rule));
+        throw new \DomainException(sprintf('Rule "%s" not exists', $rule));
     }
 
     /**
@@ -223,27 +213,23 @@ final class Validator
      *
      * @param string $rule
      * @param mixed  $value
-     * @param array  $args
+     * @param array  $arguments
      * @param string $field
-     * @param string $message
      *
      * @return string
      */
-    private function message(string $rule, $value = null, array $args = null, string $field = null, string $message = null): string
+    protected function message($rule, $value = null, array $arguments, $field)
     {
-        if ($message && false === strpos($message, '{')) {
-            return $message;
-        }
-
-        $key = 'validation.'.strtolower($rule);
-        $alt = 'validation.default';
-        $fallback = 'This value is not valid.';
         $data = array();
 
-        foreach (compact('field', 'rule', 'value') + $args as $k => $v) {
+        foreach (compact('field', 'rule', 'value') + $arguments as $k => $v) {
             $data['{'.$k.'}'] = is_array($v) ? implode(',', $v) : (string) $v;
         }
 
-        return $this->fw->trans($key, $data, $fallback, $alt);
+        return $this->core->transAlt(array(
+            'validation.'.strtolower($rule),
+            'validation.default',
+            'This value is not valid',
+        ), $data);
     }
 }

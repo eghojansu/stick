@@ -8,9 +8,9 @@ use Fal\Stick\Form\Form;
 
 class FUserForm extends Form
 {
-    public function build(array $options = null): Form
+    public function build(array $options = null)
     {
-        $this->add('username');
+        $this->addField('username');
 
         return $this;
     }

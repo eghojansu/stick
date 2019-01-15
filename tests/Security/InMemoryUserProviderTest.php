@@ -7,15 +7,15 @@
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
+ *
+ * Created at Jan 14, 2019 09:06
  */
-
-declare(strict_types=1);
 
 namespace Fal\Stick\Test\Security;
 
-use Fal\Stick\Security\InMemoryUserProvider;
 use Fixture\SimpleUser;
 use PHPUnit\Framework\TestCase;
+use Fal\Stick\Security\InMemoryUserProvider;
 
 class InMemoryUserProviderTest extends TestCase
 {

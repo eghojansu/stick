@@ -7,9 +7,9 @@
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
+ *
+ * Created at Jan 14, 2019 10:26
  */
-
-declare(strict_types=1);
 
 namespace Fal\Stick\Security;
 
@@ -28,7 +28,7 @@ class AuthValidator implements ValidatorInterface
     /**
      * @var Auth
      */
-    private $auth;
+    protected $auth;
 
     /**
      * Class constructor.
@@ -47,7 +47,7 @@ class AuthValidator implements ValidatorInterface
      *
      * @return bool
      */
-    protected function _password($val): bool
+    protected function _password($val)
     {
         $user = $this->auth->getUser();
 

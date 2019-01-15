@@ -7,23 +7,18 @@
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
+ *
+ * Created at Jan 14, 2019 01:36
  */
-
-declare(strict_types=1);
 
 namespace Fal\Stick\Security;
 
-/**
- * Password encoder using bcrypt algorithm.
- *
- * @author Eko Kurniawan <ekokurniawanbs@gmail.com>
- */
-final class BcryptPasswordEncoder implements PasswordEncoderInterface
+class BcryptPasswordEncoder implements PasswordEncoderInterface
 {
     /**
      * {@inheritdoc}
      */
-    public function hash(string $plainText): string
+    public function hash($plainText)
     {
         return password_hash($plainText, PASSWORD_BCRYPT);
     }
@@ -31,7 +26,7 @@ final class BcryptPasswordEncoder implements PasswordEncoderInterface
     /**
      * {@inheritdoc}
      */
-    public function verify(string $plainText, string $hash): bool
+    public function verify($plainText, $hash)
     {
         return password_verify($plainText, $hash);
     }

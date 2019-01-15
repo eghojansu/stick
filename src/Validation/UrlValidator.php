@@ -7,9 +7,9 @@
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
+ *
+ * Created at Jan 14, 2019 06:21
  */
-
-declare(strict_types=1);
 
 namespace Fal\Stick\Validation;
 
@@ -18,7 +18,7 @@ namespace Fal\Stick\Validation;
  *
  * @author Eko Kurniawan <ekokurniawanbs@gmail.com>
  */
-final class UrlValidator implements ValidatorInterface
+class UrlValidator implements ValidatorInterface
 {
     use ValidatorTrait;
 
@@ -29,7 +29,7 @@ final class UrlValidator implements ValidatorInterface
      *
      * @return bool
      */
-    protected function _url($str): bool
+    protected function _url($str)
     {
         return is_string(filter_var($str, FILTER_VALIDATE_URL));
     }
@@ -46,7 +46,7 @@ final class UrlValidator implements ValidatorInterface
      *
      * @return bool
      */
-    protected function _email($str, $mx = false): bool
+    protected function _email($str, $mx = false)
     {
         $hosts = array();
 
@@ -60,7 +60,7 @@ final class UrlValidator implements ValidatorInterface
      *
      * @return bool
      */
-    protected function _ipv4($addr): bool
+    protected function _ipv4($addr)
     {
         return (bool) filter_var($addr, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4);
     }
@@ -72,7 +72,7 @@ final class UrlValidator implements ValidatorInterface
      *
      * @return bool
      */
-    protected function _ipv6($addr): bool
+    protected function _ipv6($addr)
     {
         return (bool) filter_var($addr, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6);
     }
@@ -84,7 +84,7 @@ final class UrlValidator implements ValidatorInterface
      *
      * @return bool
      */
-    protected function _isPrivate($addr): bool
+    protected function _isPrivate($addr)
     {
         return !(bool) filter_var($addr, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4 | FILTER_FLAG_IPV6 | FILTER_FLAG_NO_PRIV_RANGE);
     }
@@ -96,7 +96,7 @@ final class UrlValidator implements ValidatorInterface
      *
      * @return bool
      */
-    protected function _isReserved($addr): bool
+    protected function _isReserved($addr)
     {
         return !(bool) filter_var($addr, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4 | FILTER_FLAG_IPV6 | FILTER_FLAG_NO_RES_RANGE);
     }
@@ -108,7 +108,7 @@ final class UrlValidator implements ValidatorInterface
      *
      * @return bool
      */
-    protected function _isPublic($addr): bool
+    protected function _isPublic($addr)
     {
         return (bool) filter_var($addr, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4 | FILTER_FLAG_IPV6 | FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE);
     }

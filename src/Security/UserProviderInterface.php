@@ -7,9 +7,9 @@
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
+ *
+ * Created at Jan 14, 2019 08:39
  */
-
-declare(strict_types=1);
 
 namespace Fal\Stick\Security;
 
@@ -27,7 +27,7 @@ interface UserProviderInterface
      *
      * @return UserInterface|null
      */
-    public function findByUsername($username): ?UserInterface;
+    public function findByUsername($username);
 
     /**
      * Find user by id.
@@ -36,5 +36,5 @@ interface UserProviderInterface
      *
      * @return UserInterface|null
      */
-    public function findById($id): ?UserInterface;
+    public function findById($id);
 }

@@ -7,9 +7,9 @@
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
+ *
+ * Created at Jan 14, 2019 06:17
  */
-
-declare(strict_types=1);
 
 namespace Fal\Stick\Validation;
 
@@ -29,33 +29,9 @@ class CommonValidator implements ValidatorInterface
      *
      * @return string
      */
-    protected function _trim($val): string
+    protected function _trim($val)
     {
         return trim((string) $val);
-    }
-
-    /**
-     * Proxy to ltrim, prevent trimming null value.
-     *
-     * @param mixed $val
-     *
-     * @return string
-     */
-    protected function _ltrim($val): string
-    {
-        return ltrim((string) $val);
-    }
-
-    /**
-     * Proxy to rtrim, prevent trimming null value.
-     *
-     * @param mixed $val
-     *
-     * @return string
-     */
-    protected function _rtrim($val): string
-    {
-        return rtrim((string) $val);
     }
 
     /**
@@ -65,7 +41,7 @@ class CommonValidator implements ValidatorInterface
      *
      * @return bool
      */
-    protected function _required($val): bool
+    protected function _required($val)
     {
         return isset($val) && '' !== $val;
     }
@@ -78,7 +54,7 @@ class CommonValidator implements ValidatorInterface
      *
      * @return bool
      */
-    protected function _type($val, $type): bool
+    protected function _type($val, $type)
     {
         return gettype($val) === $type;
     }
@@ -91,17 +67,17 @@ class CommonValidator implements ValidatorInterface
      *
      * @return bool
      */
-    protected function _equalField($val, $compared): bool
+    protected function _equalField($val, $compared)
     {
-        if (isset($this->data['validated'][$compared])) {
-            $compare = $this->data['validated'][$compared];
-        } elseif (isset($this->data['raw'][$compared])) {
-            $compare = $this->data['raw'][$compared];
-        } else {
-            return false;
+        if ($this->context && null !== $compare = $this->context->data($compared)) {
+            return $compare === $val;
         }
 
-        return $compare === $val;
+        if ($this->context && null !== $compare = $this->context->raw($compared)) {
+            return $compare === $val;
+        }
+
+        return false;
     }
 
     /**
@@ -112,17 +88,17 @@ class CommonValidator implements ValidatorInterface
      *
      * @return bool
      */
-    protected function _notEqualField($val, $compared): bool
+    protected function _notEqualField($val, $compared)
     {
-        if (isset($this->data['validated'][$compared])) {
-            $compare = $this->data['validated'][$compared];
-        } elseif (isset($this->data['raw'][$compared])) {
-            $compare = $this->data['raw'][$compared];
-        } else {
-            return true;
+        if ($this->context && null !== $compare = $this->context->data($compared)) {
+            return $compare !== $val;
         }
 
-        return $compare !== $val;
+        if ($this->context && null !== $compare = $this->context->raw($compared)) {
+            return $compare !== $val;
+        }
+
+        return true;
     }
 
     /**
@@ -133,7 +109,7 @@ class CommonValidator implements ValidatorInterface
      *
      * @return bool
      */
-    protected function _equal($val, $compared): bool
+    protected function _equal($val, $compared)
     {
         return $val == $compared;
     }
@@ -146,7 +122,7 @@ class CommonValidator implements ValidatorInterface
      *
      * @return bool
      */
-    protected function _notEqual($val, $compared): bool
+    protected function _notEqual($val, $compared)
     {
         return $val != $compared;
     }
@@ -159,7 +135,7 @@ class CommonValidator implements ValidatorInterface
      *
      * @return bool
      */
-    protected function _identical($val, $compared): bool
+    protected function _identical($val, $compared)
     {
         return $val === $compared;
     }
@@ -172,7 +148,7 @@ class CommonValidator implements ValidatorInterface
      *
      * @return bool
      */
-    protected function _notIdentical($val, $compared): bool
+    protected function _notIdentical($val, $compared)
     {
         return $val !== $compared;
     }
@@ -185,7 +161,7 @@ class CommonValidator implements ValidatorInterface
      *
      * @return bool
      */
-    protected function _lt($val, $min): bool
+    protected function _lt($val, $min)
     {
         return $val < $min;
     }
@@ -198,7 +174,7 @@ class CommonValidator implements ValidatorInterface
      *
      * @return bool
      */
-    protected function _gt($val, $max): bool
+    protected function _gt($val, $max)
     {
         return $val > $max;
     }
@@ -211,7 +187,7 @@ class CommonValidator implements ValidatorInterface
      *
      * @return bool
      */
-    protected function _lte($val, $min): bool
+    protected function _lte($val, $min)
     {
         return $val <= $min;
     }
@@ -224,7 +200,7 @@ class CommonValidator implements ValidatorInterface
      *
      * @return bool
      */
-    protected function _gte($val, $max): bool
+    protected function _gte($val, $max)
     {
         return $val >= $max;
     }
@@ -237,7 +213,7 @@ class CommonValidator implements ValidatorInterface
      *
      * @return bool
      */
-    protected function _min($val, $min): bool
+    protected function _min($val, $min)
     {
         return $val >= $min;
     }
@@ -250,7 +226,7 @@ class CommonValidator implements ValidatorInterface
      *
      * @return bool
      */
-    protected function _max($val, $max): bool
+    protected function _max($val, $max)
     {
         return $val <= $max;
     }
@@ -263,7 +239,7 @@ class CommonValidator implements ValidatorInterface
      *
      * @return bool
      */
-    protected function _len($val, $len): bool
+    protected function _len($val, $len)
     {
         return !$this->_required($val) || strlen($val) === $len;
     }
@@ -276,7 +252,7 @@ class CommonValidator implements ValidatorInterface
      *
      * @return bool
      */
-    protected function _lenMin($val, $min): bool
+    protected function _lenMin($val, $min)
     {
         return !$this->_required($val) || strlen($val) >= $min;
     }
@@ -289,7 +265,7 @@ class CommonValidator implements ValidatorInterface
      *
      * @return bool
      */
-    protected function _lenMax($val, $max): bool
+    protected function _lenMax($val, $max)
     {
         return !$this->_required($val) || strlen($val) <= $max;
     }
@@ -302,7 +278,7 @@ class CommonValidator implements ValidatorInterface
      *
      * @return bool
      */
-    protected function _count(array $val, $count): bool
+    protected function _count(array $val, $count)
     {
         return count($val) === $count;
     }
@@ -315,7 +291,7 @@ class CommonValidator implements ValidatorInterface
      *
      * @return bool
      */
-    protected function _countMin(array $val, $min): bool
+    protected function _countMin(array $val, $min)
     {
         return count($val) >= $min;
     }
@@ -328,7 +304,7 @@ class CommonValidator implements ValidatorInterface
      *
      * @return bool
      */
-    protected function _countMax(array $val, $max): bool
+    protected function _countMax(array $val, $max)
     {
         return count($val) <= $max;
     }
@@ -341,7 +317,7 @@ class CommonValidator implements ValidatorInterface
      *
      * @return string
      */
-    protected function _toDate($val, $format = 'Y-m-d'): string
+    protected function _toDate($val, $format = 'Y-m-d')
     {
         try {
             $date = (new \DateTime($val))->format($format);
@@ -359,7 +335,7 @@ class CommonValidator implements ValidatorInterface
      *
      * @return bool
      */
-    protected function _date($val): bool
+    protected function _date($val)
     {
         return
             $val &&
@@ -378,7 +354,7 @@ class CommonValidator implements ValidatorInterface
      *
      * @return bool
      */
-    protected function _datetime($val): bool
+    protected function _datetime($val)
     {
         return
             $val &&
@@ -401,7 +377,7 @@ class CommonValidator implements ValidatorInterface
      *
      * @return bool
      */
-    protected function _regex($val, $pattern): bool
+    protected function _regex($val, $pattern)
     {
         $quote = $pattern[0];
 
@@ -420,7 +396,7 @@ class CommonValidator implements ValidatorInterface
      *
      * @return bool
      */
-    protected function _choice($val, array $choices): bool
+    protected function _choice($val, array $choices)
     {
         return in_array($val, $choices);
     }
@@ -433,7 +409,7 @@ class CommonValidator implements ValidatorInterface
      *
      * @return bool
      */
-    protected function _choices($val, array $choices): bool
+    protected function _choices($val, array $choices)
     {
         $vals = (array) $val;
         $intersection = array_intersect($vals, $choices);

@@ -7,9 +7,9 @@
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
+ *
+ * Created at Jan 14, 2019 08:27
  */
-
-declare(strict_types=1);
 
 namespace Fal\Stick\Test\Validation;
 
@@ -36,9 +36,9 @@ class UrlValidatorTest extends TestCase
     /**
      * @dataProvider validateProvider
      */
-    public function testValidate($rule, $expected, $value, array $args = null, array $validated = null, array $raw = null)
+    public function testValidate($rule, $expected, $value, array $arguments = array())
     {
-        $this->assertEquals($expected, $this->validator->validate($rule, $value, $args, null, $validated, $raw));
+        $this->assertEquals($expected, $this->validator->validate($rule, $value, $arguments));
     }
 
     public function hasProvider()

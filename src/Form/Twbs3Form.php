@@ -7,9 +7,9 @@
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
+ *
+ * Created at Jan 14, 2019 19:47
  */
-
-declare(strict_types=1);
 
 namespace Fal\Stick\Form;
 
@@ -37,19 +37,19 @@ class Twbs3Form extends Form
     /**
      * {@inheritdoc}
      */
-    public function add(string $name, string $type = null, array $options = null, array $attr = null): Form
+    public function addField($name, $type = null, array $options = null, array $attr = null)
     {
         if (!isset($attr['class']) && (!$type || !in_array($type, array('radio', 'checkbox', 'hidden', 'choice')) || ('choice' === $type && !isset($options['expanded'])))) {
             $attr['class'] = 'form-control';
         }
 
-        return parent::add($name, $type, $options, $attr);
+        return parent::addField($name, $type, $options, $attr);
     }
 
     /**
      * {@inheritdoc}
      */
-    public function addButton(string $name, string $type = null, string $label = null, array $attr = null): Form
+    public function addButton($name, $type = null, $label = null, array $attr = null)
     {
         if (!isset($attr['class'])) {
             $attr['class'] = 'link' === $type ? 'btn btn-default' : 'btn btn-primary';
@@ -61,7 +61,7 @@ class Twbs3Form extends Form
     /**
      * {@inheritdoc}
      */
-    public function open(array $attr = null, bool $multipart = false): string
+    public function open(array $attr = null, $multipart = false)
     {
         if (!isset($attr['class'])) {
             $attr['class'] = 'form-horizontal';
@@ -73,9 +73,9 @@ class Twbs3Form extends Form
     /**
      * {@inheritdoc}
      */
-    protected function inputRadio(string $field, $value, array $attr, array $options): string
+    protected function inputRadio($field, $value, array $attr, array $options)
     {
-        $wrapperAttr = $options['wrapper_attr'] ?? array();
+        $wrapperAttr = isset($options['wrapper_attr']) ? $options['wrapper_attr'] : array();
         $default = array('class' => 'radio');
 
         return $this->_html->tag('div', $wrapperAttr + $default, true, parent::inputRadio($field, $value, $attr, $options));
@@ -84,9 +84,9 @@ class Twbs3Form extends Form
     /**
      * {@inheritdoc}
      */
-    protected function inputCheckbox(string $field, $value, array $attr, array $options): string
+    protected function inputCheckbox($field, $value, array $attr, array $options)
     {
-        $wrapperAttr = $options['wrapper_attr'] ?? array();
+        $wrapperAttr = isset($options['wrapper_attr']) ? $options['wrapper_attr'] : array();
         $default = array('class' => 'checkbox');
 
         return $this->_html->tag('div', $wrapperAttr + $default, true, parent::inputCheckbox($field, $value, $attr, $options));
@@ -95,7 +95,7 @@ class Twbs3Form extends Form
     /**
      * {@inheritdoc}
      */
-    protected function renderRow(string $input, string $type, string $name = null, array $options = null): string
+    protected function renderRow($input, $type, $name = null, array $options = null)
     {
         if ('hidden' === $type) {
             return $input.PHP_EOL;

@@ -1,2 +1,0 @@
-<?= $title ?>.
-<?= $this->load('included') ?>

@@ -7,9 +7,9 @@
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
+ *
+ * Created at Jan 14, 2019 10:27
  */
-
-declare(strict_types=1);
 
 namespace Fal\Stick\Test\Security;
 
@@ -45,7 +45,7 @@ class AuthValidatorTest extends TestCase
     {
         $this->auth->setUser($user);
 
-        $this->assertEquals($expected, $this->validator->validate('password', $password));
+        $this->assertEquals($expected, $this->validator->validate('password', $password, array()));
     }
 
     public function validatePasswordProvider()

@@ -7,9 +7,9 @@
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
+ *
+ * Created at Jan 14, 2019 08:40
  */
-
-declare(strict_types=1);
 
 namespace Fal\Stick\Security;
 
@@ -37,7 +37,7 @@ class InMemoryUserProvider implements UserProviderInterface
      *
      * @return InMemoryUserProvider
      */
-    public function addUser(UserInterface $user): InMemoryUserProvider
+    public function addUser(UserInterface $user)
     {
         $this->users[$user->getUsername()] = $user;
         $this->mapId[$user->getId()] = $user->getUsername();
@@ -48,7 +48,7 @@ class InMemoryUserProvider implements UserProviderInterface
     /**
      * {@inheritdoc}
      */
-    public function findByUsername($username): ?UserInterface
+    public function findByUsername($username)
     {
         return $this->users[$username] ?? null;
     }
@@ -56,7 +56,7 @@ class InMemoryUserProvider implements UserProviderInterface
     /**
      * {@inheritdoc}
      */
-    public function findById($id): ?UserInterface
+    public function findById($id)
     {
         return $this->users[$this->mapId[$id] ?? 'none'] ?? null;
     }

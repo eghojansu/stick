@@ -3,4 +3,5 @@
 namespace Divergent;
 
 class DifferentClass
-{}
+{
+}

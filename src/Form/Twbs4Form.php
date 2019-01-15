@@ -7,9 +7,9 @@
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
+ *
+ * Created at Jan 14, 2019 19:50
  */
-
-declare(strict_types=1);
 
 namespace Fal\Stick\Form;
 
@@ -23,19 +23,19 @@ class Twbs4Form extends Twbs3Form
     /**
      * {@inheritdoc}
      */
-    public function add(string $name, string $type = null, array $options = null, array $attr = null): Form
+    public function addField($name, $type = null, array $options = null, array $attr = null)
     {
         if (!isset($attr['class']) && (!$type || !in_array($type, array('radio', 'checkbox', 'hidden', 'choice')) || ('choice' === $type && !isset($options['expanded'])))) {
             $attr['class'] = 'form-control';
         }
 
-        return parent::add($name, $type, $options, $attr);
+        return parent::addField($name, $type, $options, $attr);
     }
 
     /**
      * {@inheritdoc}
      */
-    public function open(array $attr = null, bool $multipart = false): string
+    public function open(array $attr = null, $multipart = false)
     {
         if (!isset($attr['class'])) {
             $attr['class'] = false;
@@ -47,7 +47,7 @@ class Twbs4Form extends Twbs3Form
     /**
      * {@inheritdoc}
      */
-    public function row(string $name, array $overrideAttr = null): string
+    public function row($name, array $overrideAttr = null)
     {
         if (isset($this->_fields[$name]['attr']['class']) && !preg_match('/is\-(valid|invalid)/i', $this->_fields[$name]['attr']['class'])) {
             $this->_fields[$name]['attr']['class'] .= $this->validationClass($name);
@@ -59,7 +59,7 @@ class Twbs4Form extends Twbs3Form
     /**
      * {@inheritdoc}
      */
-    protected function renderRow(string $input, string $type, string $name = null, array $options = null): string
+    protected function renderRow($input, $type, $name = null, array $options = null)
     {
         if ('hidden' === $type) {
             return $input.PHP_EOL;
@@ -99,16 +99,16 @@ class Twbs4Form extends Twbs3Form
     /**
      * {@inheritdoc}
      */
-    protected function inputRadio(string $field, $value, array $attr, array $options): string
+    protected function inputRadio($field, $value, array $attr, array $options)
     {
-        $wrapperAttr = $options['wrapper_attr'] ?? array();
+        $wrapperAttr = isset($options['wrapper_attr']) ? $options['wrapper_attr'] : array();
         $wrapperDefault = array('class' => 'form-check');
         $labelAttr = array('class' => 'form-check-label', 'for' => $attr['id']);
         $attr['class'] = 'form-check-input'.$this->validationClass($field);
         $attr['type'] = 'radio';
 
         $add = array();
-        $value = $this->_fw->pick('value', $attr);
+        $value = array_key_exists('value', $attr) ? $attr['value'] : null;
 
         if (!array_key_exists('checked', $attr)) {
             $submitted = $this->fieldValue($field);
@@ -125,16 +125,16 @@ class Twbs4Form extends Twbs3Form
     /**
      * {@inheritdoc}
      */
-    protected function inputCheckbox(string $field, $value, array $attr, array $options): string
+    protected function inputCheckbox($field, $value, array $attr, array $options)
     {
-        $wrapperAttr = $options['wrapper_attr'] ?? array();
+        $wrapperAttr = isset($options['wrapper_attr']) ? $options['wrapper_attr'] : array();
         $wrapperDefault = array('class' => 'form-check');
         $labelAttr = array('class' => 'form-check-label', 'for' => $attr['id']);
         $attr['class'] = 'form-check-input'.$this->validationClass($field);
         $attr['type'] = 'checkbox';
 
         $add = array();
-        $value = $this->_fw->pick('value', $attr);
+        $value = array_key_exists('value', $attr) ? $attr['value'] : null;
 
         if (!array_key_exists('checked', $attr)) {
             $submitted = $this->fieldValue($field);
@@ -155,7 +155,7 @@ class Twbs4Form extends Twbs3Form
      *
      * @return string
      */
-    protected function validationClass(string $field): string
+    protected function validationClass($field)
     {
         if ($this->_submitted && isset($this->_fields[$field]['options']['constraints'])) {
             return isset($this->_errors[$field]) ? ' is-invalid' : ' is-valid';

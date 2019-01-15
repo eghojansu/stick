@@ -7,20 +7,20 @@
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
+ *
+ * Created at Jan 14, 2019 08:54
  */
-
-declare(strict_types=1);
 
 namespace Fal\Stick\Test\Security;
 
-use Fal\Stick\Security\PlainPasswordEncoder;
 use PHPUnit\Framework\TestCase;
+use Fal\Stick\Security\PlainPasswordEncoder;
 
 class PlainPasswordEncoderTest extends TestCase
 {
     private $encoder;
 
-    public function setUp()
+    public function setup()
     {
         $this->encoder = new PlainPasswordEncoder();
     }
@@ -33,6 +33,5 @@ class PlainPasswordEncoderTest extends TestCase
     public function testVerify()
     {
         $this->assertTrue($this->encoder->verify('foo', 'foo'));
-        $this->assertFalse($this->encoder->verify('bar', 'foo'));
     }
 }

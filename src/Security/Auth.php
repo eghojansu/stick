@@ -7,14 +7,13 @@
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
+ *
+ * Created at Jan 14, 2019 09:09
  */
-
-declare(strict_types=1);
 
 namespace Fal\Stick\Security;
 
 use Fal\Stick\Core;
-use Fal\Stick\HttpException;
 
 /**
  * Authentication helper.
@@ -30,15 +29,15 @@ class Auth
     const ERROR_CREDENTIAL_EXPIRED = 'Your credentials is expired.';
 
     // Supported events
-    const EVENT_LOGIN = 'auth_login';
-    const EVENT_LOGOUT = 'auth_logout';
-    const EVENT_LOAD_USER = 'auth_load_user';
-    const EVENT_VOTE = 'auth_vote';
+    const ON_LOGIN = 'auth.login';
+    const ON_LOGOUT = 'auth.logout';
+    const ON_LOAD_USER = 'auth.load_user';
+    const ON_VOTE = 'auth.vote';
 
     /**
      * @var Core
      */
-    protected $fw;
+    protected $core;
 
     /**
      * @var UserProviderInterface
@@ -84,17 +83,17 @@ class Auth
     /**
      * Class constructor.
      *
-     * @param Core                       $fw
+     * @param Core                     $core
      * @param UserProviderInterface    $provider
      * @param PasswordEncoderInterface $encoder
      * @param array|null               $options
      */
-    public function __construct(Core $fw, UserProviderInterface $provider, PasswordEncoderInterface $encoder, array $options = null)
+    public function __construct(Core $core, UserProviderInterface $provider, PasswordEncoderInterface $encoder, array $options = null)
     {
-        $this->fw = $fw;
+        $this->core = $core;
         $this->provider = $provider;
         $this->encoder = $encoder;
-        $this->setOptions($options ?? array());
+        empty($options) || $this->setOptions($options);
     }
 
     /**
@@ -104,9 +103,9 @@ class Auth
      *
      * @return bool
      */
-    public function guard(): bool
+    public function guard()
     {
-        $path = urldecode($this->fw->get('PATH'));
+        $path = urldecode($this->core->get('PATH'));
 
         if (in_array($path, $this->options['excludes'])) {
             return false;
@@ -114,19 +113,19 @@ class Auth
 
         if (isset($this->options['logout'][$path])) {
             $this->logout();
-            $this->fw->reroute($this->options['logout'][$path]);
+            $this->core->reroute($this->options['logout'][$path]);
 
             return true;
         }
 
         foreach ($this->options['rules'] as $check => $rule) {
-            $login = $rule['login'] ?? '/login';
-            $home = $rule['home'] ?? '/';
-            $roles = $rule['roles'] ?? null;
+            $login = isset($rule['login']) ? $rule['login'] : '/login';
+            $home = isset($rule['home']) ? $rule['home'] : '/';
+            $roles = isset($rule['roles']) ? $rule['roles'] : null;
 
             if ($login === $path) {
                 if ($this->isLogged()) {
-                    $this->fw->reroute($home);
+                    $this->core->reroute($home);
 
                     return true;
                 }
@@ -135,26 +134,13 @@ class Auth
             }
 
             if (preg_match('#'.$check.'#', $path) && !$this->isGranted($roles)) {
-                $this->fw->reroute($login);
+                $this->core->reroute($login);
 
                 return true;
             }
         }
 
         return false;
-    }
-
-    /**
-     * Throw exception if not granted.
-     *
-     * @param mixed $roles
-     * @param mixed $data
-     */
-    public function denyAccessUnlessGranted($roles, $data = null): void
-    {
-        if (!$this->isGranted($roles, $data)) {
-            throw new HttpException('Access denied.', 403);
-        }
     }
 
     /**
@@ -165,13 +151,16 @@ class Auth
      *
      * @return bool
      */
-    public function isGranted($roles, $data = null): bool
+    public function isGranted($roles, $data = null)
     {
         $attributes = $this->getUserRoles();
-        $granted = (bool) array_intersect($this->fw->split($roles), $attributes);
+        $granted = (bool) array_intersect($this->core->split($roles), $attributes);
 
-        if ($granted && false === $this->fw->dispatch(self::EVENT_VOTE, array($data, $attributes))) {
-            return false;
+        if ($granted) {
+            $event = new Event\VoteEvent($this, $data, $attributes);
+            $this->core->dispatch(static::ON_VOTE, $event);
+
+            return $event->isGranted();
         }
 
         return $granted;
@@ -187,15 +176,15 @@ class Auth
      *
      * @return bool
      */
-    public function attempt(string $username, string $password, bool $remember = null, string &$message = null): bool
+    public function attempt($username, $password, $remember = null, &$message = null)
     {
         $result = false;
         $user = $this->provider->findByUsername($username);
 
         if (!$user || !$this->encoder->verify($password, $user->getPassword())) {
-            $message = self::ERROR_CREDENTIAL_INVALID;
+            $message = static::ERROR_CREDENTIAL_INVALID;
         } elseif ($user->isCredentialsExpired()) {
-            $message = self::ERROR_CREDENTIAL_EXPIRED;
+            $message = static::ERROR_CREDENTIAL_EXPIRED;
         } else {
             $result = true;
 
@@ -213,15 +202,16 @@ class Auth
      *
      * @return Auth
      */
-    public function login(UserInterface $user, bool $remember = null): Auth
+    public function login(UserInterface $user, $remember = null)
     {
-        $this->fw->dispatch(self::EVENT_LOGIN, array($user));
+        $event = new Event\LoginEvent($this, $user);
+        $this->core->dispatch(static::ON_LOGIN, $event);
 
-        $this->user = $user;
-        $this->fw->set('SESSION.'.self::SESSION_KEY, $user->getId());
+        $this->user = $event->getUser();
+        $this->core->set('SESSION.'.static::SESSION_KEY, $user->getId());
 
         if ($remember) {
-            $this->fw->set('COOKIE.'.self::SESSION_KEY, array($user->getId(), $this->options['lifetime']));
+            $this->core->cookie(static::SESSION_KEY, $user->getId(), $this->options['lifetime']);
         }
 
         return $this;
@@ -232,16 +222,17 @@ class Auth
      *
      * @return Auth
      */
-    public function logout(): Auth
+    public function logout()
     {
-        $user = $this->getUser();
-        $this->fw->dispatch(self::EVENT_LOGOUT, array($user));
+        $event = new Event\LogoutEvent($this);
+        $this->core->dispatch(static::ON_LOGOUT, $event);
 
         $this->userLoaded = false;
         $this->userRoles = null;
         $this->user = null;
         $this->extraRoles = null;
-        $this->fw->allClear('SESSION.'.self::SESSION_KEY.',COOKIE.'.self::SESSION_KEY);
+        $this->core->clear('SESSION.'.static::SESSION_KEY);
+        $this->core->cookieRemove(static::SESSION_KEY);
 
         return $this;
     }
@@ -251,14 +242,17 @@ class Auth
      *
      * @return UserInterface|null
      */
-    public function getUser(): ?UserInterface
+    public function getUser()
     {
         if ($this->userLoaded || $this->user) {
             return $this->user;
         }
 
-        if (($user = $this->fw->dispatch(self::EVENT_LOAD_USER)) && $user instanceof UserInterface) {
-            $this->user = $user;
+        $event = new Event\LoadUserEvent($this);
+        $this->core->dispatch(static::ON_LOAD_USER, $event);
+
+        if ($event->isPropagationStopped()) {
+            $this->user = $event->getUser();
             $this->userRoles = null;
         }
 
@@ -284,7 +278,7 @@ class Auth
      *
      * @return Auth
      */
-    public function setUser(UserInterface $user = null): Auth
+    public function setUser(UserInterface $user = null)
     {
         $this->user = $user;
 
@@ -296,7 +290,7 @@ class Auth
      *
      * @return array
      */
-    public function getUserRoles(): array
+    public function getUserRoles()
     {
         if (null === $this->userRoles) {
             $userRoles = $this->extraRoles;
@@ -323,7 +317,7 @@ class Auth
      */
     public function getCookieUserId()
     {
-        $id = $this->fw->get('COOKIE.'.self::SESSION_KEY);
+        $id = $this->core->get('COOKIE.'.static::SESSION_KEY);
 
         return is_array($id) ? array_shift($id) : $id;
     }
@@ -335,7 +329,7 @@ class Auth
      */
     public function getSessionUserId()
     {
-        return $this->fw->get('SESSION.'.self::SESSION_KEY);
+        return $this->core->get('SESSION.'.static::SESSION_KEY);
     }
 
     /**
@@ -343,7 +337,7 @@ class Auth
      *
      * @return bool
      */
-    public function isLogged(): bool
+    public function isLogged()
     {
         return null !== $this->getUser();
     }
@@ -353,7 +347,7 @@ class Auth
      *
      * @return array
      */
-    public function getOptions(): array
+    public function getOptions()
     {
         return $this->options;
     }
@@ -365,7 +359,7 @@ class Auth
      *
      * @return Auth
      */
-    public function setOptions(array $options): Auth
+    public function setOptions(array $options)
     {
         foreach ($options as $option => $value) {
             if (in_array($option, array('excludes', 'logout', 'roleHierarchy', 'rules')) && !is_array($value)) {
@@ -385,7 +379,7 @@ class Auth
      *
      * @return UserProviderInterface
      */
-    public function getProvider(): UserProviderInterface
+    public function getProvider()
     {
         return $this->provider;
     }
@@ -395,7 +389,7 @@ class Auth
      *
      * @return PasswordEncoderInterface
      */
-    public function getEncoder(): PasswordEncoderInterface
+    public function getEncoder()
     {
         return $this->encoder;
     }
@@ -407,12 +401,12 @@ class Auth
      *
      * @return array
      */
-    protected function getRoleHierarchy(string $role): array
+    protected function getRoleHierarchy($role)
     {
         $roles = array($role);
 
         if (array_key_exists($role, $this->options['roleHierarchy'])) {
-            $children = $this->fw->split($this->options['roleHierarchy'][$role]);
+            $children = $this->core->split($this->options['roleHierarchy'][$role]);
 
             foreach ($children as $child) {
                 $roles = array_merge($roles, $this->getRoleHierarchy($child));

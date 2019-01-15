@@ -7,20 +7,21 @@
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
+ *
+ * Created at Jan 14, 2019 07:07
  */
-
-declare(strict_types=1);
 
 namespace Fal\Stick\Test\Validation;
 
-use Fal\Stick\Validation\CommonValidator;
 use PHPUnit\Framework\TestCase;
+use Fal\Stick\Validation\Result;
+use Fal\Stick\Validation\CommonValidator;
 
 class CommonValidatorTest extends TestCase
 {
     private $validator;
 
-    public function setUp()
+    public function setup()
     {
         $this->validator = new CommonValidator();
     }
@@ -36,17 +37,19 @@ class CommonValidatorTest extends TestCase
     /**
      * @dataProvider validateProvider
      */
-    public function testValidate($rule, $expected, $value, array $args = null, array $validated = null, array $raw = null)
+    public function testValidate($rule, $expected, $value, array $arguments = array(), Result $context = null)
     {
-        $this->assertEquals($expected, $this->validator->validate($rule, $value, $args, null, $validated, $raw));
+        if ($context) {
+            $this->validator->context($context);
+        }
+
+        $this->assertEquals($expected, $this->validator->validate($rule, $value, $arguments));
     }
 
     public function hasProvider()
     {
         return array(
             array('trim'),
-            array('ltrim'),
-            array('rtrim'),
             array('required'),
             array('type'),
             array('min'),
@@ -79,13 +82,12 @@ class CommonValidatorTest extends TestCase
 
     public function validateProvider()
     {
+        $equalContext2 = new Result(array());
+        $equalContext2->data = array('foo' => 'bar');
+
         return array(
             array('trim', 'foo', ' foo '),
             array('trim', '', null),
-            array('ltrim', 'foo ', ' foo '),
-            array('ltrim', '', null),
-            array('rtrim', ' foo', ' foo '),
-            array('rtrim', '', null),
             array('required', true, 'foo'),
             array('required', false, null),
             array('required', false, ''),
@@ -150,14 +152,14 @@ class CommonValidatorTest extends TestCase
             array('choice', false, 'baz', array(array('foo', 'bar'))),
             array('choices', true, array('foo', 'bar'), array(array('foo', 'bar', 'baz'))),
             array('choices', false, array('foo', 'qux'), array(array('foo', 'bar', 'baz'))),
-            array('equalfield', true, 'bar', array('foo'), array('foo' => 'bar')),
-            array('equalfield', false, 'foo', array('foo'), array('foo' => 'bar')),
-            array('equalfield', false, 'foo', array('bar'), array('foo' => 'bar')),
-            array('equalfield', true, 'bar', array('foo'), null, array('foo' => 'bar')),
-            array('notequalfield', true, 'foo', array('foo'), array('foo' => 'bar')),
-            array('notequalfield', true, 'foo', array('bar'), array('foo' => 'bar')),
-            array('notequalfield', false, 'bar', array('foo'), array('foo' => 'bar')),
-            array('notequalfield', true, 'foo', array('foo'), null, array('foo' => 'bar')),
+            array('equalfield', true, 'bar', array('foo'), new Result(array('foo' => 'bar'))),
+            array('equalfield', false, 'foo', array('foo'), new Result(array('foo' => 'bar'))),
+            array('equalfield', false, 'foo', array('bar'), new Result(array('foo' => 'bar'))),
+            array('equalfield', true, 'bar', array('foo'), $equalContext2),
+            array('notequalfield', true, 'foo', array('foo'), new Result(array('foo' => 'bar'))),
+            array('notequalfield', true, 'foo', array('bar'), new Result(array('foo' => 'bar'))),
+            array('notequalfield', false, 'bar', array('foo'), new Result(array('foo' => 'bar'))),
+            array('notequalfield', true, 'foo', array('foo'), $equalContext2),
         );
     }
 }
