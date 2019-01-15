@@ -1,6 +1,6 @@
 <?php $this->layout('layout') ?>
 
 <?php $this->start('content') ?>
-<?= $this->load('partial', array('context' => 'full')) ?> and parent context: <?= $parent_context ?>.
+<?= $this->load('partial', ['context' => 'full']) ?> and parent context: <?= $parent_context ?>.
 And also parent block (title): <?= $this->parent('title') ?>.
 <?php $this->stop() ?>

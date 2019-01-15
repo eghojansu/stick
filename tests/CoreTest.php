@@ -1,21 +1,19 @@
 <?php
 
-/**
+/*
  * This file is part of the eghojansu/stick library.
  *
- * (c) Eko Kurniawan <ekokurniawanbs@gmail.com>
+ *  (c) Eko Kurniawan <ekokurniawanbs@gmail.com>
  *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- *
- * Created at Jan 10, 2019 20:40
+ *  For the full copyright and license information, please view the LICENSE
+ *  file that was distributed with this source code.
  */
 
 namespace Fal\Stick\Test;
 
+use Fal\Stick\CacheItem;
 use Fal\Stick\Core;
 use Fal\Stick\Event;
-use Fal\Stick\CacheItem;
 use PHPUnit\Framework\TestCase;
 
 class CoreTest extends TestCase
@@ -46,14 +44,14 @@ class CoreTest extends TestCase
 
     public function testRequestHeaders()
     {
-        $expected = array(
-            'Content-Length' => 0,
+        $expected = [
+            'Content-Length'   => 0,
             'X-Requested-With' => 'Foo',
-        );
-        $server = array(
-            'CONTENT_LENGTH' => 0,
+        ];
+        $server = [
+            'CONTENT_LENGTH'        => 0,
             'HTTP_X_REQUESTED_WITH' => 'Foo',
-        );
+        ];
 
         $this->assertEquals($expected, Core::requestHeaders($server));
     }
@@ -68,17 +66,17 @@ class CoreTest extends TestCase
 
     public function testSplit()
     {
-        $this->assertEquals(array('foo', 'bar'), Core::split(array('foo', 'bar')));
-        $this->assertEquals(array(), Core::split(null));
-        $this->assertEquals(array('foo', 'bar'), Core::split('foo,bar'));
-        $this->assertEquals(array('foo', 'bar'), Core::split('foo:bar', ':'));
-        $this->assertEquals(array('foo', 'bar', 'baz'), Core::split('foo, bar|baz '));
+        $this->assertEquals(['foo', 'bar'], Core::split(['foo', 'bar']));
+        $this->assertEquals([], Core::split(null));
+        $this->assertEquals(['foo', 'bar'], Core::split('foo,bar'));
+        $this->assertEquals(['foo', 'bar'], Core::split('foo:bar', ':'));
+        $this->assertEquals(['foo', 'bar', 'baz'], Core::split('foo, bar|baz '));
     }
 
     public function testJoin()
     {
-        $this->assertEquals('foo,bar', Core::join(array('foo', 'bar')));
-        $this->assertEquals('foo:bar', Core::join(array('foo', 'bar'), ':'));
+        $this->assertEquals('foo,bar', Core::join(['foo', 'bar']));
+        $this->assertEquals('foo:bar', Core::join(['foo', 'bar'], ':'));
     }
 
     /**
@@ -155,7 +153,7 @@ class CoreTest extends TestCase
         $this->assertEquals('bar', $set);
         $this->assertTrue($found);
 
-        $hive = array('foo' => array('bar' => 'baz'));
+        $hive = ['foo' => ['bar' => 'baz']];
         $ref = &$this->core->reference('foo.bar', true, $hive, $found);
         $ref = 'qux';
 
@@ -185,10 +183,10 @@ class CoreTest extends TestCase
         $this->assertNull($this->core->deReference('SESSION.foo')->reference('SESSION.foo'));
         $this->assertEmpty($this->core->deReference('SESSION')->reference('SESSION'));
 
-        $hive = array('foo' => array('bar' => 'baz'));
+        $hive = ['foo' => ['bar' => 'baz']];
         $this->core->deReference('foo.bar', $hive);
 
-        $this->assertEquals(array(), $hive['foo']);
+        $this->assertEquals([], $hive['foo']);
     }
 
     public function testExists()
@@ -224,15 +222,15 @@ class CoreTest extends TestCase
 
     public function testAllGet()
     {
-        $expected = array('foo' => null, 'cli' => true, 'is_ajax' => '');
+        $expected = ['foo' => null, 'cli' => true, 'is_ajax' => ''];
 
-        $this->assertEquals($expected, $this->core->allGet('foo,CLI,AJAX', true, array('AJAX' => 'is_ajax')));
-        $this->assertEquals(array('CLI' => true), $this->core->allGet('CLI'));
+        $this->assertEquals($expected, $this->core->allGet('foo,CLI,AJAX', true, ['AJAX' => 'is_ajax']));
+        $this->assertEquals(['CLI' => true], $this->core->allGet('CLI'));
     }
 
     public function testAllSet()
     {
-        $expected = array('foo' => 'bar', 'bar' => 'baz');
+        $expected = ['foo' => 'bar', 'bar' => 'baz'];
 
         $this->assertEquals($expected, $this->core->allSet($expected, 'foo.')->get('foo'));
         $this->assertEquals('bar', $this->core->get('foo.foo'));
@@ -240,7 +238,7 @@ class CoreTest extends TestCase
 
     public function testAllClear()
     {
-        $set = array('foo' => 'bar', 'bar' => 'baz');
+        $set = ['foo' => 'bar', 'bar' => 'baz'];
 
         $this->assertEmpty($this->core->set('foo', $set)->allClear('foo,bar', 'foo.')->get('foo'));
     }
@@ -258,21 +256,21 @@ class CoreTest extends TestCase
     public function testPrepend()
     {
         $this->core->set('foo', 'bar');
-        $this->core->set('bar', array('baz'));
+        $this->core->set('bar', ['baz']);
 
         $this->assertEquals('foobar', $this->core->prepend('foo', 'foo')->get('foo'));
-        $this->assertEquals(array('foo', 'baz'), $this->core->prepend('bar', 'foo')->get('bar'));
-        $this->assertEquals(array('foo'), $this->core->prepend('baz', 'foo', true)->get('baz'));
+        $this->assertEquals(['foo', 'baz'], $this->core->prepend('bar', 'foo')->get('bar'));
+        $this->assertEquals(['foo'], $this->core->prepend('baz', 'foo', true)->get('baz'));
     }
 
     public function testAppend()
     {
         $this->core->set('foo', 'bar');
-        $this->core->set('bar', array('baz'));
+        $this->core->set('bar', ['baz']);
 
         $this->assertEquals('barfoo', $this->core->append('foo', 'foo')->get('foo'));
-        $this->assertEquals(array('baz', 'foo'), $this->core->append('bar', 'foo')->get('bar'));
-        $this->assertEquals(array('foo'), $this->core->append('baz', 'foo', true)->get('baz'));
+        $this->assertEquals(['baz', 'foo'], $this->core->append('bar', 'foo')->get('bar'));
+        $this->assertEquals(['foo'], $this->core->append('baz', 'foo', true)->get('baz'));
     }
 
     /**
@@ -305,7 +303,7 @@ class CoreTest extends TestCase
      */
     public function testService($expected, $id, $rule = null, $secondCall = null, $service = true)
     {
-        if (!in_array($id, array('core', 'Fal\\Stick\\Core'))) {
+        if (!in_array($id, ['core', 'Fal\\Stick\\Core'])) {
             $this->core->rule($id, $rule);
         }
 
@@ -377,9 +375,9 @@ class CoreTest extends TestCase
 
     public function testController()
     {
-        $this->core->controller('foo', array(
+        $this->core->controller('foo', [
             'GET home /home' => 'home',
-        ));
+        ]);
 
         $this->assertEquals('/home', $this->core->get('ALIASES.home'));
         $this->assertCount(1, $this->core->get('ROUTES'));
@@ -433,9 +431,9 @@ class CoreTest extends TestCase
 
     public function testAsset()
     {
-        $this->core->set('ASSETS', array(
+        $this->core->set('ASSETS', [
             'foo' => 'bar',
-        ));
+        ]);
         $this->core->set('ASSETS_VERSION', 3);
 
         $this->assertEquals('/bar?3', $this->core->asset('foo'));
@@ -445,7 +443,7 @@ class CoreTest extends TestCase
     {
         $this->core->route('GET foo /bar/@baz', 'foo');
 
-        $this->assertEquals('/bar/qux?foo=bar', $this->core->path('foo', array('baz' => 'qux'), 'foo=bar'));
+        $this->assertEquals('/bar/qux?foo=bar', $this->core->path('foo', ['baz' => 'qux'], 'foo=bar'));
         $this->assertEquals('/bar', $this->core->path('bar'));
     }
 
@@ -456,12 +454,12 @@ class CoreTest extends TestCase
         $this->core->on('foo', 'foo3', 2);
         $this->core->on('foo', 'foo4');
 
-        $expected = array(
-            array('foo3', false, 2),
-            array('foo2', false, 1),
-            array('foo1', false, 0),
-            array('foo4', false, 0),
-        );
+        $expected = [
+            ['foo3', false, 2],
+            ['foo2', false, 1],
+            ['foo1', false, 0],
+            ['foo4', false, 0],
+        ];
 
         $this->assertEquals($expected, $this->core->get('EVENTS.foo'));
     }
@@ -476,7 +474,7 @@ class CoreTest extends TestCase
 
     public function testOne()
     {
-        $this->assertEquals(array('foo1', true, 0), $this->core->one('foo', 'foo1')->get('EVENTS.foo.0'));
+        $this->assertEquals(['foo1', true, 0], $this->core->one('foo', 'foo1')->get('EVENTS.foo.0'));
     }
 
     public function testDispatch()
@@ -595,12 +593,12 @@ class CoreTest extends TestCase
      */
     public function testExpire($expected, $seconds)
     {
-        $headers = array_merge(array(
+        $headers = array_merge([
             'X-Powered-By',
             'X-Frame-Options',
             'X-XSS-Protection',
             'X-Content-Type-Options',
-        ), $expected);
+        ], $expected);
 
         $this->core->expire($seconds);
 
@@ -615,7 +613,7 @@ class CoreTest extends TestCase
         $this->core->set('CLI', false);
         $this->core->cookie('foo');
         $this->core->set('RESPONSE.foo', 'bar');
-        $this->core->set('RESPONSE.bar', array('foo'));
+        $this->core->set('RESPONSE.bar', ['foo']);
 
         $this->core->sendHeaders();
 
@@ -718,7 +716,7 @@ class CoreTest extends TestCase
             return 'OK';
         });
         $this->core->on('core.controller_arguments', function ($event) {
-            $event->setArguments(array(new \DateTime()));
+            $event->setArguments([new \DateTime()]);
         });
         $this->core->on('core.view', function ($event) {
             $event->setResult('VeryOK');
@@ -831,10 +829,10 @@ class CoreTest extends TestCase
         $this->core->mock('GET bar(baz=qux)');
         $this->assertEquals('Barqux', $this->core->get('OUTPUT'));
 
-        $this->core->mock('POST baz?foo=bar', array('bar' => 'qux'));
+        $this->core->mock('POST baz?foo=bar', ['bar' => 'qux']);
         $this->assertEquals('Query: foo=bar and request data: bar=qux', $this->core->get('OUTPUT'));
 
-        $this->core->mock('PUT qux', array('foo' => 'bar'));
+        $this->core->mock('PUT qux', ['foo' => 'bar']);
         $this->assertEquals('Request content: foo=bar', $this->core->get('OUTPUT'));
 
         $this->core->mock('GET /get/all/things');
@@ -1064,19 +1062,19 @@ class CoreTest extends TestCase
         $this->assertEquals('baz', $this->core->get('bar'));
         $this->assertEquals('bar', $this->core->get('my_section.sub.foo'));
         $this->assertEquals('foo', $this->core->get('subconfig'));
-        $this->assertEquals(array(
-            'GET' => array('foo', 'home', 1, 2),
-            'POST' => array('bar', 'home', 0, 0),
-        ), $this->core->get('ROUTES./.all'));
-        $this->assertEquals(array(
-            'GET' => array('foo->all', 'rest', 0, 0),
-            'POST' => array('foo->create', 'rest', 0, 0),
-        ), $this->core->get('ROUTES./rest.all'));
-        $this->assertEquals(array(
-            'GET' => array('foo->get', 'rest_item', 0, 0),
-            'PUT' => array('foo->put', 'rest_item', 0, 0),
-            'DELETE' => array('foo->delete', 'rest_item', 0, 0),
-        ), $this->core->get('ROUTES./rest/@item.all'));
+        $this->assertEquals([
+            'GET'  => ['foo', 'home', 1, 2],
+            'POST' => ['bar', 'home', 0, 0],
+        ], $this->core->get('ROUTES./.all'));
+        $this->assertEquals([
+            'GET'  => ['foo->all', 'rest', 0, 0],
+            'POST' => ['foo->create', 'rest', 0, 0],
+        ], $this->core->get('ROUTES./rest.all'));
+        $this->assertEquals([
+            'GET'    => ['foo->get', 'rest_item', 0, 0],
+            'PUT'    => ['foo->put', 'rest_item', 0, 0],
+            'DELETE' => ['foo->delete', 'rest_item', 0, 0],
+        ], $this->core->get('ROUTES./rest/@item.all'));
         $this->assertEquals('old_homepage', $this->core->get('ROUTES./old-homepage.all.GET.1'));
 
         // this run will resulting error, because home is not callable
@@ -1114,154 +1112,155 @@ class CoreTest extends TestCase
 
     public function normalizeUploadFilesProvider()
     {
-        return array(
-            array(array(), null),
-            array(
-                array('foo' => array(array('name' => 'bar'))),
-                array('foo' => array('name' => 'bar')),
-            ),
-            array(
-                array('foo' => array(array('name' => 'bar', 'type' => null, 'size' => null, 'tmp_name' => null, 'error' => null))),
-                array('foo' => array('name' => array('bar'))),
-            ),
-        );
+        return [
+            [[], null],
+            [
+                ['foo' => [['name' => 'bar']]],
+                ['foo' => ['name' => 'bar']],
+            ],
+            [
+                ['foo' => [['name' => 'bar', 'type' => null, 'size' => null, 'tmp_name' => null, 'error' => null]]],
+                ['foo' => ['name' => ['bar']]],
+            ],
+        ];
     }
 
     public function initializeProvider()
     {
-        return array(
-            array('/', 'PATH', array(
+        return [
+            ['/', 'PATH', [
                 'SCRIPT_NAME' => '/foo.php',
                 'REQUEST_URI' => '/foo.php',
-            )),
-            array(80, 'PORT', array(
-            )),
-            array(1000, 'PORT', array(
+            ]],
+            [80, 'PORT', [
+            ]],
+            [1000, 'PORT', [
                 'HTTP_X_FORWARDED_PORT' => 1000,
-            )),
-            array(1000, 'PORT', array(
+            ]],
+            [1000, 'PORT', [
                 'SERVER_PORT' => 1000,
-            )),
-            array('1.1.1.1', 'IP', array(
+            ]],
+            ['1.1.1.1', 'IP', [
                 'HTTP_X_CLIENT_IP' => '1.1.1.1',
-            )),
-            array('1.1.1.1', 'IP', array(
+            ]],
+            ['1.1.1.1', 'IP', [
                 'HTTP_X_FORWARDED_FOR' => '1.1.1.1',
-            )),
-            array('1.1.1.1', 'IP', array(
+            ]],
+            ['1.1.1.1', 'IP', [
                 'REMOTE_ADDR' => '1.1.1.1',
-            )),
-            array('', 'IP', array(
-            )),
-            array(true, 'SECURE', array(
+            ]],
+            ['', 'IP', [
+            ]],
+            [true, 'SECURE', [
                 'HTTP_X_FORWARDED_PROTO' => 'https',
-            )),
-            array(true, 'SECURE', array(
+            ]],
+            [true, 'SECURE', [
                 'HTTPS' => 'on',
-            )),
-            array(false, 'SECURE', array(
-            )),
-        );
+            ]],
+            [false, 'SECURE', [
+            ]],
+        ];
     }
 
     public function overrideRequestMethodProvider()
     {
-        return array(
-            array('FOO', array(
+        return [
+            ['FOO', [
                 'HTTP_X_HTTP_METHOD_OVERRIDE' => 'foo',
-            )),
-            array('FOO', array(
+            ]],
+            ['FOO', [
                 'REQUEST_METHOD' => 'POST',
-            ), array('_method' => 'foo')),
-        );
+            ], ['_method' => 'foo']],
+        ];
     }
 
     public function emulateCliRequestProvider()
     {
-        return array(
-            array('/', null, null),
-            array('/foo', null, array(
-                'argv' => array(null, '/foo'),
-            )),
-            array('/foo', array('bar' => 'baz', 'qux' => ''), array(
-                'argv' => array(null, '/foo?bar=baz&qux'),
-            )),
-            array('/foo/bar', array('f' => '', 'o' => '', 'bar' => 'baz'), array(
-                'argv' => array(null, 'foo', 'bar', '-fo', '--bar=baz'),
-            )),
-        );
+        return [
+            ['/', null, null],
+            ['/foo', null, [
+                'argv' => [null, '/foo'],
+            ]],
+            ['/foo', ['bar' => 'baz', 'qux' => ''], [
+                'argv' => [null, '/foo?bar=baz&qux'],
+            ]],
+            ['/foo/bar', ['f' => '', 'o' => '', 'bar' => 'baz'], [
+                'argv' => [null, 'foo', 'bar', '-fo', '--bar=baz'],
+            ]],
+        ];
     }
 
     public function createInstanceProvider()
     {
-        return array(
-            array('Fixture\\FooService', 'Fixture\\FooService'),
-            array(
+        return [
+            ['Fixture\\FooService', 'Fixture\\FooService'],
+            [
                 'Fixture\\BarService',
                 'bar',
-                array(
-                    'use' => 'Fixture\\BarService',
-                    'arguments' => array('name' => 'bar'),
-                ),
-            ),
-            array(
+                [
+                    'use'       => 'Fixture\\BarService',
+                    'arguments' => ['name' => 'bar'],
+                ],
+            ],
+            [
                 'Fixture\\FooService',
                 'Fixture\\FooService',
-                array(
-                    'boot' => function ($instance, $core) {},
-                ),
-            ),
-            array(
+                [
+                    'boot' => function ($instance, $core) {
+                    },
+                ],
+            ],
+            [
                 'Fixture\\FooService',
                 'Fixture\\FooService',
-                array(
+                [
                     'factory' => function () {
                         return new \Fixture\FooService();
                     },
-                ),
-            ),
-            array(
+                ],
+            ],
+            [
                 'Factory should return instance of Fixture\\FooService (foo)',
                 'foo',
-                array(
-                    'class' => 'Fixture\\FooService',
+                [
+                    'class'   => 'Fixture\\FooService',
                     'factory' => function () {
                         return new \DateTime();
                     },
-                ),
+                ],
                 'LogicException',
-            ),
-            array(
+            ],
+            [
                 'Cannot instantiate Fixture\\FooInterface (Fixture\\FooInterface)',
                 'Fixture\\FooInterface',
                 null,
                 'LogicException',
-            ),
-        );
+            ],
+        ];
     }
 
     public function ruleProvider()
     {
-        return array(
-            array(array('class' => 'foo', 'shared' => true), 'foo', null),
-            array(array('class' => 'foo', 'shared' => false, false), 'foo', false),
-            array(array('class' => 'foo', 'shared' => false), 'foo', array('shared' => false)),
-            array(array('factory' => 'trim', 'class' => 'foo', 'shared' => true), 'foo', 'trim'),
-            array(array('class' => 'DateTime', 'shared' => true), 'foo', 'DateTime'),
-            array(array('class' => 'DateTime', 'shared' => true), 'foo', new \DateTime()),
-        );
+        return [
+            [['class' => 'foo', 'shared' => true], 'foo', null],
+            [['class' => 'foo', 'shared' => false, false], 'foo', false],
+            [['class' => 'foo', 'shared' => false], 'foo', ['shared' => false]],
+            [['factory' => 'trim', 'class' => 'foo', 'shared' => true], 'foo', 'trim'],
+            [['class' => 'DateTime', 'shared' => true], 'foo', 'DateTime'],
+            [['class' => 'DateTime', 'shared' => true], 'foo', new \DateTime()],
+        ];
     }
 
     public function serviceProvider()
     {
-        return array(
-            array('Fal\\Stick\\Core', 'core'),
-            array('Fal\\Stick\\Core', 'Fal\\Stick\\Core'),
-            array('Fixture\\FooService', 'Fixture\\FooService'),
-            array('Fixture\\FooService', 'foo', 'Fixture\\FooService', 'Fixture\\FooService'),
-            array('Fixture\\FooService', 'Fixture\\FooService', null, null, false),
-            array('Fixture\\FooService', 'foo', array('class' => 'Fixture\\FooService', 'shared' => false), 'Fixture\\FooService'),
-        );
+        return [
+            ['Fal\\Stick\\Core', 'core'],
+            ['Fal\\Stick\\Core', 'Fal\\Stick\\Core'],
+            ['Fixture\\FooService', 'Fixture\\FooService'],
+            ['Fixture\\FooService', 'foo', 'Fixture\\FooService', 'Fixture\\FooService'],
+            ['Fixture\\FooService', 'Fixture\\FooService', null, null, false],
+            ['Fixture\\FooService', 'foo', ['class' => 'Fixture\\FooService', 'shared' => false], 'Fixture\\FooService'],
+        ];
     }
 
     public function callProvider()
@@ -1269,310 +1268,310 @@ class CoreTest extends TestCase
         $std = new \StdClass();
         $std->foo = 'bar';
 
-        return array(
-            array('foo', 'trim', array('foo')),
-            array('baz class instance name', array(new \Fixture\BazClass(), 'getInstanceName')),
-            array('baz class static name', array('Fixture\\BazClass', 'getStaticName')),
-            array('foo bar baz qux quux', 'implode', array(' ', array('foo bar baz qux quux'))),
-            array('success', function (\DateTime $datetime) {
+        return [
+            ['foo', 'trim', ['foo']],
+            ['baz class instance name', [new \Fixture\BazClass(), 'getInstanceName']],
+            ['baz class static name', ['Fixture\\BazClass', 'getStaticName']],
+            ['foo bar baz qux quux', 'implode', [' ', ['foo bar baz qux quux']]],
+            ['success', function (\DateTime $datetime) {
                 return 'success';
-            }),
-            array('success', function (\DateTime $datetime) {
+            }],
+            ['success', function (\DateTime $datetime) {
                 return 'success';
-            }, array('DateTime')),
-            array('success', function (\StdClass $std) {
+            }, ['DateTime']],
+            ['success', function (\StdClass $std) {
                 return isset($std->foo) && 'bar' === $std->foo ? 'success' : 'error';
-            }, array($std)),
-            array('success', function ($cli, \StdClass $std, $false = false) {
+            }, [$std]],
+            ['success', function ($cli, \StdClass $std, $false = false) {
                 return $cli && isset($std->foo) && 'bar' === $std->foo && false === $false ? 'success' : 'error';
-            }, array('cli' => '%CLI%', '%std_service%')),
-            array('success', function ($true = true) {
+            }, ['cli' => '%CLI%', '%std_service%']],
+            ['success', function ($true = true) {
                 return $true ? 'success' : 'error';
-            }),
-            array('success', function ($foo) {
+            }],
+            ['success', function ($foo) {
                 return 'success';
-            }, array('bar' => 'foo')),
-        );
+            }, ['bar' => 'foo']],
+        ];
     }
 
     public function grabProvider()
     {
-        return array(
-            array(phpversion(), 'phpversion'),
-            array('baz class instance name', 'Fixture\\BazClass->getInstanceName'),
-            array('baz class static name', 'Fixture\\BazClass::getStaticName'),
-        );
+        return [
+            [phpversion(), 'phpversion'],
+            ['baz class instance name', 'Fixture\\BazClass->getInstanceName'],
+            ['baz class static name', 'Fixture\\BazClass::getStaticName'],
+        ];
     }
 
     public function routeExceptionProvider()
     {
-        return array(
-            array('Invalid route: "foo"', 'foo'),
-            array('Route not exists: "foo"', 'GET foo'),
-        );
+        return [
+            ['Invalid route: "foo"', 'foo'],
+            ['Route not exists: "foo"', 'GET foo'],
+        ];
     }
 
     public function aliasProvider()
     {
-        return array(
-            array('/', 'home'),
-            array('/foo', 'foo'),
-            array('/foo/any', 'bar', array('bar' => 'any')),
-            array('/foo/1', 'baz', array('bar' => 1)),
-            array('/foo/1/any', 'qux', array('bar' => 1, 'baz' => 'any')),
-            array('/foo/1/any', 'qux', 'bar=1&baz=any'),
-            array('/foo/1/any/take/all', 'quux', array('bar' => 1, 'baz' => 'any', 'take', 'all')),
-            array('/unknown', 'unknown'),
-            array('Parameter "bar" should be provided', 'bar', null, 'LogicException'),
-            array('Parameter "bar" is not valid, given: "baz"', 'baz', array('bar' => 'baz'), 'LogicException'),
-        );
+        return [
+            ['/', 'home'],
+            ['/foo', 'foo'],
+            ['/foo/any', 'bar', ['bar' => 'any']],
+            ['/foo/1', 'baz', ['bar' => 1]],
+            ['/foo/1/any', 'qux', ['bar' => 1, 'baz' => 'any']],
+            ['/foo/1/any', 'qux', 'bar=1&baz=any'],
+            ['/foo/1/any/take/all', 'quux', ['bar' => 1, 'baz' => 'any', 'take', 'all']],
+            ['/unknown', 'unknown'],
+            ['Parameter "bar" should be provided', 'bar', null, 'LogicException'],
+            ['Parameter "bar" is not valid, given: "baz"', 'baz', ['bar' => 'baz'], 'LogicException'],
+        ];
     }
 
     public function statusProvider()
     {
-        return array(
-            array('OK', 200),
-            array('Forbidden', 403),
-            array('Internal Server Error', 500),
-            array('Unsupported HTTP code: 900', 900, 'LogicException'),
-        );
+        return [
+            ['OK', 200],
+            ['Forbidden', 403],
+            ['Internal Server Error', 500],
+            ['Unsupported HTTP code: 900', 900, 'LogicException'],
+        ];
     }
 
     public function expireProvider()
     {
-        return array(
-            array(array(
+        return [
+            [[
                 'Pragma',
                 'Cache-Control',
                 'Expires',
-            ), 0),
-            array(array(
+            ], 0],
+            [[
                 'Cache-Control',
                 'Expires',
                 'Last-Modified',
-            ), 1),
-        );
+            ], 1],
+        ];
     }
 
     public function sendContentProvider()
     {
-        return array(
-            array('foo', 'foo'),
-            array('foo', 'foo', 1),
-            array('', array(), 0),
-        );
+        return [
+            ['foo', 'foo'],
+            ['foo', 'foo', 1],
+            ['', [], 0],
+        ];
     }
 
     public function stringifyProvider()
     {
-        return array(
-            array('Object(stdClass)', new \stdClass()),
-            array("['foo', 'bar', Object(stdClass)]", array('foo', 'bar', new \stdClass())),
-            array("'foo'", 'foo'),
-            array(1, 1),
-            array('true', true),
-            array('NULL', null),
-        );
+        return [
+            ['Object(stdClass)', new \stdClass()],
+            ["['foo', 'bar', Object(stdClass)]", ['foo', 'bar', new \stdClass()]],
+            ["'foo'", 'foo'],
+            [1, 1],
+            ['true', true],
+            ['NULL', null],
+        ];
     }
 
     public function errorProvider()
     {
-        return array(
-            array('GET / (404 Not Found)', 'Not Found', 404),
-            array('Ajax request not found', 'Not Found', 404, 'Ajax request not found', true),
-            array('Something wrong', 'Internal Server Error', 500, 'Something wrong'),
-        );
+        return [
+            ['GET / (404 Not Found)', 'Not Found', 404],
+            ['Ajax request not found', 'Not Found', 404, 'Ajax request not found', true],
+            ['Something wrong', 'Internal Server Error', 500, 'Something wrong'],
+        ];
     }
 
     public function runProvider()
     {
-        return array(
-            array('Home', 200, array(
-            )),
-            array('Number 1', 200, array(
+        return [
+            ['Home', 200, [
+            ]],
+            ['Number 1', 200, [
                 'PATH' => '/number/1',
-            )),
-            array('Number 1000', 200, array(
+            ]],
+            ['Number 1000', 200, [
                 'PATH' => '/number/1000',
-            )),
-            array('Not Found', 404, array(
+            ]],
+            ['Not Found', 404, [
                 'PATH' => '/number/nan',
-            )),
-            array('a', 200, array(
+            ]],
+            ['a', 200, [
                 'PATH' => '/split/abcdef',
-            )),
-            array('Internal Server Error', 500, array(
+            ]],
+            ['Internal Server Error', 500, [
                 'PATH' => '/not-callable',
-            )),
-            array('output from callable', 200, array(
+            ]],
+            ['output from callable', 200, [
                 'PATH' => '/callable',
-            )),
-            array('Forbidden', 403, array(
+            ]],
+            ['Forbidden', 403, [
                 'VERB' => 'POST',
-            )),
-        );
+            ]],
+        ];
     }
 
     public function rerouteProvider()
     {
-        return array(
-            array('home', '/'),
-            array('foo', '/foo'),
-            array('foobaz', '/bar/baz'),
-            array('fooqux', '/bar/qux'),
-            array('foobar', array('bar', array('bar' => 'bar'))),
-            array('foobar', 'bar(bar=bar)'),
-            array('Query: foo=bar&baz=', '/query?foo=bar&baz'),
-            array('home', null),
-            array('qux', 'qux'),
-            array('/bar/qux', '/bar/qux', false),
-        );
+        return [
+            ['home', '/'],
+            ['foo', '/foo'],
+            ['foobaz', '/bar/baz'],
+            ['fooqux', '/bar/qux'],
+            ['foobar', ['bar', ['bar' => 'bar']]],
+            ['foobar', 'bar(bar=bar)'],
+            ['Query: foo=bar&baz=', '/query?foo=bar&baz'],
+            ['home', null],
+            ['qux', 'qux'],
+            ['/bar/qux', '/bar/qux', false],
+        ];
     }
 
     public function transProvider()
     {
-        return array(
-            array('foo', 'foo'),
-            array('Sebuah bendera nasional', 'a_flag'),
-            array('There is a blueberry', 'there.is.one.blueberry'),
-            array('Ada sebuah apel', 'there.is.one.apple'),
-            array('Ada sebuah jeruk', 'there.is.one.orange'),
-            array('Ada sebuah mangga', 'there.is.one.mango'),
-            array('Ada sebuah strawberi', 'there.is.one.fruit', array('{fruit}' => 'strawberi')),
-            array('Tidak ada buah yang diinginkan', 'there.is.one.pineaplle', null, 'Tidak ada buah yang diinginkan'),
-        );
+        return [
+            ['foo', 'foo'],
+            ['Sebuah bendera nasional', 'a_flag'],
+            ['There is a blueberry', 'there.is.one.blueberry'],
+            ['Ada sebuah apel', 'there.is.one.apple'],
+            ['Ada sebuah jeruk', 'there.is.one.orange'],
+            ['Ada sebuah mangga', 'there.is.one.mango'],
+            ['Ada sebuah strawberi', 'there.is.one.fruit', ['{fruit}' => 'strawberi']],
+            ['Tidak ada buah yang diinginkan', 'there.is.one.pineaplle', null, 'Tidak ada buah yang diinginkan'],
+        ];
     }
 
     public function choiceProvider()
     {
-        return array(
-            array('foo', 'foo', 0),
-            array('There is no apple', 'apples', 0),
-            array('There is one apple', 'apples', 1),
-            array('There is 2 apples', 'apples', 2),
-            array('There is 99 apples', 'apples', 99),
-            array('There is no fruits', 'fruits', 0, array(
+        return [
+            ['foo', 'foo', 0],
+            ['There is no apple', 'apples', 0],
+            ['There is one apple', 'apples', 1],
+            ['There is 2 apples', 'apples', 2],
+            ['There is 99 apples', 'apples', 99],
+            ['There is no fruits', 'fruits', 0, [
                 '{fruit1}' => 'apple',
                 '{fruit2}' => 'orange',
                 '{fruit3}' => 'mango',
-            )),
-            array('There is apple, orange and mango', 'fruits', 1, array(
+            ]],
+            ['There is apple, orange and mango', 'fruits', 1, [
                 '{fruit1}' => 'apple',
                 '{fruit2}' => 'orange',
                 '{fruit3}' => 'mango',
-            )),
-            array('There is lots of apple, orange and mango', 'fruits', 2, array(
+            ]],
+            ['There is lots of apple, orange and mango', 'fruits', 2, [
                 '{fruit1}' => 'apple',
                 '{fruit2}' => 'orange',
                 '{fruit3}' => 'mango',
-            )),
-        );
+            ]],
+        ];
     }
 
     public function transAltProvider()
     {
-        return array(
-            array(
+        return [
+            [
                 'Ada sebuah apel',
-                array('there.is.one.apple'),
-            ),
-            array(
+                ['there.is.one.apple'],
+            ],
+            [
                 'Tidak ada buah yang diinginkan',
-                array('there.is.one.melon', 'Tidak ada buah yang diinginkan'),
-            ),
-            array(
+                ['there.is.one.melon', 'Tidak ada buah yang diinginkan'],
+            ],
+            [
                 'Ada sebuah melon',
-                array('there.is.one.fruit'),
-                array('{fruit}' => 'melon'),
-            ),
-        );
+                ['there.is.one.fruit'],
+                ['{fruit}' => 'melon'],
+            ],
+        ];
     }
 
     public function cacheProvider()
     {
-        return array(
-            array(null),
-            array('apc'),
-            array('apcu'),
-            array('filesystem='.TEST_TEMP.'/cache-test/'),
-            array('memcache=127.0.0.1'),
-            array('memcached=127.0.0.1'),
-            array('redis=127.0.0.1'),
-            array(true),
-        );
+        return [
+            [null],
+            ['apc'],
+            ['apcu'],
+            ['filesystem='.TEST_TEMP.'/cache-test/'],
+            ['memcache=127.0.0.1'],
+            ['memcached=127.0.0.1'],
+            ['redis=127.0.0.1'],
+            [true],
+        ];
     }
 
     public function cacheSetProvider()
     {
-        return array(
-            array(false, null, false, null),
-            array(true, 'foo', true, 'apc'),
-            array(true, 'foo', true, 'apcu'),
-            array(true, 'foo', true, 'filesystem='.TEST_TEMP.'/cache-test/'),
-            array(true, 'foo', true, 'memcache=127.0.0.1'),
-            array(true, 'foo', true, 'memcached=127.0.0.1'),
-            array(true, 'foo', true, 'redis=127.0.0.1'),
-            array(true, 'foo', true, 'redis=127.0.0.1:6379:1'),
-            array(true, 'foo', true, true),
+        return [
+            [false, null, false, null],
+            [true, 'foo', true, 'apc'],
+            [true, 'foo', true, 'apcu'],
+            [true, 'foo', true, 'filesystem='.TEST_TEMP.'/cache-test/'],
+            [true, 'foo', true, 'memcache=127.0.0.1'],
+            [true, 'foo', true, 'memcached=127.0.0.1'],
+            [true, 'foo', true, 'redis=127.0.0.1'],
+            [true, 'foo', true, 'redis=127.0.0.1:6379:1'],
+            [true, 'foo', true, true],
             // host/db error, fallback to automatic selection
-            array(true, 'foo', true, 'memcache=foo'),
-            array(true, 'foo', true, 'redis=foo'),
-        );
+            [true, 'foo', true, 'memcache=foo'],
+            [true, 'foo', true, 'redis=foo'],
+        ];
     }
 
     public function cacheResetProvider()
     {
-        return array(
-            array(null, 0, null),
-            array(true, 1, 'apc'),
-            array(true, 1, 'apcu'),
-            array(true, 1, 'filesystem='.TEST_TEMP.'/cache-test/'),
-            array(true, 1, 'memcache=127.0.0.1'),
-            array(true, 1, 'memcached=127.0.0.1'),
-            array(true, 1, 'redis=127.0.0.1'),
-            array(true, 1, true),
-        );
+        return [
+            [null, 0, null],
+            [true, 1, 'apc'],
+            [true, 1, 'apcu'],
+            [true, 1, 'filesystem='.TEST_TEMP.'/cache-test/'],
+            [true, 1, 'memcache=127.0.0.1'],
+            [true, 1, 'memcached=127.0.0.1'],
+            [true, 1, 'redis=127.0.0.1'],
+            [true, 1, true],
+        ];
     }
 
     public function castProvider()
     {
-        return array(
-            array(1, '1'),
-            array(1.2, '1.2'),
-            array('foo', 'foo'),
-            array(null, 'null'),
-            array(true, 'true'),
-            array(false, 'false'),
-            array(array('foo'), array('foo')),
-        );
+        return [
+            [1, '1'],
+            [1.2, '1.2'],
+            ['foo', 'foo'],
+            [null, 'null'],
+            [true, 'true'],
+            [false, 'false'],
+            [['foo'], ['foo']],
+        ];
     }
 
     public function classNameProvider()
     {
-        return array(
-            array('CoreTest', $this),
-            array('CoreTest', 'Fal\\Stick\\Test\CoreTest'),
-            array('DateTime', new \DateTime()),
-            array('DateTime', 'DateTime'),
-        );
+        return [
+            ['CoreTest', $this],
+            ['CoreTest', 'Fal\\Stick\\Test\CoreTest'],
+            ['DateTime', new \DateTime()],
+            ['DateTime', 'DateTime'],
+        ];
     }
 
     public function camelCaseProvider()
     {
-        return array(
-            array('snakeCase', 'snake_case'),
-            array('snakeCase', 'SNAKE_CASE'),
-            array('snakeCaseText', 'snake_case_text'),
-            array('snakeCaseText', 'Snake_case_text'),
-        );
+        return [
+            ['snakeCase', 'snake_case'],
+            ['snakeCase', 'SNAKE_CASE'],
+            ['snakeCaseText', 'snake_case_text'],
+            ['snakeCaseText', 'Snake_case_text'],
+        ];
     }
 
     public function snakeCaseProvider()
     {
-        return array(
-            array('camel_case', 'camelCase'),
-            array('camel_case_text', 'camelCaseText'),
-            array('camel_case_text', 'CamelCaseText'),
-        );
+        return [
+            ['camel_case', 'camelCase'],
+            ['camel_case_text', 'camelCaseText'],
+            ['camel_case_text', 'CamelCaseText'],
+        ];
     }
 }

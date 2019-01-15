@@ -1,14 +1,12 @@
 <?php
 
-/**
+/*
  * This file is part of the eghojansu/stick library.
  *
- * (c) Eko Kurniawan <ekokurniawanbs@gmail.com>
+ *  (c) Eko Kurniawan <ekokurniawanbs@gmail.com>
  *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- *
- * Created at Jan 15, 2019 11:12
+ *  For the full copyright and license information, please view the LICENSE
+ *  file that was distributed with this source code.
  */
 
 namespace Fal\Stick\Database\Sql;
@@ -60,7 +58,7 @@ class MapperValidator implements ValidatorInterface
     protected function _exists($val, $table, $column)
     {
         $mapper = new Mapper($this->core, $this->db, $table);
-        $mapper->load(array($column => $val), array('limit' => 1));
+        $mapper->load([$column => $val], ['limit' => 1]);
 
         return $mapper->valid();
     }
@@ -79,7 +77,7 @@ class MapperValidator implements ValidatorInterface
     protected function _unique($val, $table, $column, $fid = null, $id = null)
     {
         $mapper = new Mapper($this->core, $this->db, $table);
-        $mapper->load(array($column => $val), array('limit' => 1));
+        $mapper->load([$column => $val], ['limit' => 1]);
 
         return $mapper->dry() || ($fid && (!$mapper->exists($fid) || $mapper->get($fid) == $id));
     }

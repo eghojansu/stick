@@ -1,14 +1,12 @@
 <?php
 
-/**
+/*
  * This file is part of the eghojansu/stick library.
  *
- * (c) Eko Kurniawan <ekokurniawanbs@gmail.com>
+ *  (c) Eko Kurniawan <ekokurniawanbs@gmail.com>
  *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- *
- * Created at Jan 14, 2019 19:34
+ *  For the full copyright and license information, please view the LICENSE
+ *  file that was distributed with this source code.
  */
 
 namespace Fal\Stick\Test\Form;
@@ -68,27 +66,27 @@ class FormTest extends TestCase
         $this->assertNull($this->form->getData());
 
         $this->core->set('VERB', 'POST');
-        $this->core->set('REQUEST', array('form' => array('_form' => 'form')));
+        $this->core->set('REQUEST', ['form' => ['_form' => 'form']]);
         $this->form->addField('foo');
         $this->form->isSubmitted();
 
-        $this->assertEquals(array('foo' => null), $this->form->getData());
+        $this->assertEquals(['foo' => null], $this->form->getData());
     }
 
     public function testSetData()
     {
-        $this->assertEquals(array('foo' => 'bar'), $this->form->setData(array('foo' => 'bar'))->getData());
+        $this->assertEquals(['foo' => 'bar'], $this->form->setData(['foo' => 'bar'])->getData());
         $this->assertEquals('bar', $this->form->foo);
     }
 
     public function testGetOptions()
     {
-        $this->assertEquals(array(), $this->form->getOptions());
+        $this->assertEquals([], $this->form->getOptions());
     }
 
     public function testSetOptions()
     {
-        $this->assertEquals(array('foo'), $this->form->setOptions(array('foo'))->getOptions());
+        $this->assertEquals(['foo'], $this->form->setOptions(['foo'])->getOptions());
     }
 
     public function testPrepare()
@@ -103,12 +101,12 @@ class FormTest extends TestCase
 
     public function testGetFields()
     {
-        $this->assertEquals(array(), $this->form->getFields());
+        $this->assertEquals([], $this->form->getFields());
     }
 
     public function testGetButtons()
     {
-        $this->assertEquals(array(), $this->form->getButtons());
+        $this->assertEquals([], $this->form->getButtons());
     }
 
     public function testGetError()
@@ -118,7 +116,7 @@ class FormTest extends TestCase
 
     public function testGetErrors()
     {
-        $this->assertEquals(array(), $this->form->getErrors());
+        $this->assertEquals([], $this->form->getErrors());
     }
 
     public function testAddField()
@@ -127,26 +125,26 @@ class FormTest extends TestCase
         $type = null;
         $options = null;
         $attr = null;
-        $expected = array(
-            'foo' => array(
-                'type' => 'text',
-                'options' => array(
-                    'label' => 'Foo',
-                    'label_attr' => array('for' => 'form_foo'),
-                    'constraints' => null,
-                    'messages' => array(),
-                    'transformer' => null,
+        $expected = [
+            'foo' => [
+                'type'    => 'text',
+                'options' => [
+                    'label'               => 'Foo',
+                    'label_attr'          => ['for' => 'form_foo'],
+                    'constraints'         => null,
+                    'messages'            => [],
+                    'transformer'         => null,
                     'reverse_transformer' => null,
-                ),
-                'attr' => array(
-                    'name' => 'form[foo]',
-                    'type' => 'text',
-                    'id' => 'form_foo',
+                ],
+                'attr' => [
+                    'name'        => 'form[foo]',
+                    'type'        => 'text',
+                    'id'          => 'form_foo',
                     'placeholder' => 'Foo',
-                ),
+                ],
                 'rendered' => false,
-            ),
-        );
+            ],
+        ];
 
         $this->assertEquals($expected, $this->form->addField($name, $type, $options, $attr)->getFields());
     }
@@ -157,16 +155,16 @@ class FormTest extends TestCase
         $type = null;
         $label = null;
         $attr = null;
-        $expected = array(
-            'foo' => array(
+        $expected = [
+            'foo' => [
                 'type' => 'button',
-                'attr' => array(
+                'attr' => [
                     'name' => 'form[foo]',
-                    'id' => 'form_foo',
-                ),
+                    'id'   => 'form_foo',
+                ],
                 'label' => 'Foo',
-            ),
-        );
+            ],
+        ];
 
         $this->assertEquals($expected, $this->form->addButton($name, $type, $label, $attr)->getButtons());
     }
@@ -176,7 +174,7 @@ class FormTest extends TestCase
         $this->assertFalse($this->form->isSubmitted());
 
         $this->core->set('VERB', 'POST');
-        $this->core->set('REQUEST', array('form' => array('_form' => 'form')));
+        $this->core->set('REQUEST', ['form' => ['_form' => 'form']]);
 
         $this->assertTrue($this->form->isSubmitted());
     }
@@ -189,7 +187,7 @@ class FormTest extends TestCase
         $this->validator->add(new CommonValidator());
 
         $this->core->set('VERB', 'POST');
-        $this->core->set('REQUEST', array('form' => ((array) $update) + array('_form' => 'form')));
+        $this->core->set('REQUEST', ['form' => ((array) $update) + ['_form' => 'form']]);
 
         foreach ((array) $fields as $field) {
             $this->form->addField(...$field);
@@ -220,15 +218,15 @@ class FormTest extends TestCase
         $this->validator->add(new CommonValidator());
 
         $this->core->set('VERB', 'POST');
-        $this->core->set('REQUEST', array('form' => array('_form' => 'form', 'foo' => 'bar ')));
+        $this->core->set('REQUEST', ['form' => ['_form' => 'form', 'foo' => 'bar ']]);
 
-        $this->form->addField('foo', 'text', array(
+        $this->form->addField('foo', 'text', [
             'constraints' => 'trim',
-        ));
+        ]);
 
         $this->assertTrue($this->form->posted());
-        $this->assertEquals(array(), $this->form->getErrors());
-        $this->assertEquals(array('foo' => 'bar'), $this->form->getData());
+        $this->assertEquals([], $this->form->getErrors());
+        $this->assertEquals(['foo' => 'bar'], $this->form->getData());
     }
 
     public function testOpen()
@@ -281,7 +279,7 @@ class FormTest extends TestCase
     /**
      * @dataProvider renderProvider
      */
-    public function testRender($expected, $submit = false, $data = array(), $initialize = array())
+    public function testRender($expected, $submit = false, $data = [], $initialize = [])
     {
         $this->form->addField('hidden', 'hidden');
         $this->form->addField('text', 'text');
@@ -289,29 +287,29 @@ class FormTest extends TestCase
         $this->form->addField('checkbox', 'checkbox');
         $this->form->addField('radio', 'radio');
         $this->form->addField('textarea', 'textarea');
-        $this->form->addField('choice', 'choice', array(
-            'items' => array(
+        $this->form->addField('choice', 'choice', [
+            'items' => [
                 'One' => 1,
                 'Two' => 2,
-            ),
-        ));
-        $this->form->addField('choice2', 'choice', array(
+            ],
+        ]);
+        $this->form->addField('choice2', 'choice', [
             'expanded' => true,
-            'items' => array(
+            'items'    => [
                 'Three' => 3,
-                'Four' => 4,
-            ),
-        ));
-        $this->form->addField('choice3', 'choice', array(
+                'Four'  => 4,
+            ],
+        ]);
+        $this->form->addField('choice3', 'choice', [
             'expanded' => true,
             'multiple' => true,
-            'items' => function () {
-                return array(
+            'items'    => function () {
+                return [
                     'Five' => 5,
-                    'Six' => 6,
-                );
+                    'Six'  => 6,
+                ];
             },
-        ));
+        ]);
 
         if ($initialize) {
             $this->form->setData($initialize);
@@ -321,7 +319,7 @@ class FormTest extends TestCase
 
         if ($submit) {
             $this->core->set('VERB', 'POST');
-            $this->core->set('REQUEST.form', array('_form' => 'form') + $data);
+            $this->core->set('REQUEST.form', ['_form' => 'form'] + $data);
 
             $this->assertTrue($this->form->isSubmitted());
             $this->assertTrue($this->form->valid());
@@ -336,29 +334,33 @@ class FormTest extends TestCase
      */
     public function testRenderTransformation($expected, $submit = false)
     {
-        $this->form->addField('foo', 'choice', array(
+        $this->form->addField('foo', 'choice', [
             'expanded' => true,
             'multiple' => true,
-            'items' => function () {
-                return array(
+            'items'    => function () {
+                return [
                     'Five' => 5,
-                    'Six' => 6,
-                );
+                    'Six'  => 6,
+                ];
             },
-            'transformer' => function ($val) { return explode(',', $val); },
-            'reverse_transformer' => function ($val) { return implode(',', $val); },
-        ));
+            'transformer' => function ($val) {
+                return explode(',', $val);
+            },
+            'reverse_transformer' => function ($val) {
+                return implode(',', $val);
+            },
+        ]);
 
-        $this->form->setData(array('foo' => '5,6'));
+        $this->form->setData(['foo' => '5,6']);
         $this->form->prepare();
 
         if ($submit) {
             $this->core->set('VERB', 'POST');
-            $this->core->set('REQUEST.form', array('_form' => 'form', 'foo' => array(5)));
+            $this->core->set('REQUEST.form', ['_form' => 'form', 'foo' => [5]]);
 
             $this->assertTrue($this->form->isSubmitted());
             $this->assertTrue($this->form->valid());
-            $this->assertEquals(array('foo' => '5'), $this->form->getData());
+            $this->assertEquals(['foo' => '5'], $this->form->getData());
         }
 
         $this->assertEquals($expected, $this->form->render());
@@ -367,11 +369,11 @@ class FormTest extends TestCase
     public function testMagicGet()
     {
         $this->core->set('VERB', 'POST');
-        $this->core->set('REQUEST', array('form' => array(
-            '_form' => 'form',
+        $this->core->set('REQUEST', ['form' => [
+            '_form'      => 'form',
             'normalized' => 'n',
-        )));
-        $this->form->setData(array('data' => 'd'));
+        ]]);
+        $this->form->setData(['data' => 'd']);
         $this->form->addField('normalized');
         $this->form->isSubmitted();
 
@@ -385,68 +387,68 @@ class FormTest extends TestCase
 
     public function validProvider()
     {
-        return array(
-            array(
+        return [
+            [
                 true,
-            ),
-            array(
+            ],
+            [
                 true,
-                array(
-                    array('foo'),
-                ),
+                [
+                    ['foo'],
+                ],
                 null,
                 null,
-                array('foo' => null),
-            ),
-            array(
+                ['foo' => null],
+            ],
+            [
                 false,
-                array(
-                    array('foo', null, array(
+                [
+                    ['foo', null, [
                         'constraints' => 'required',
-                    )),
-                ),
+                    ]],
+                ],
                 null,
-                array(
-                    'foo' => array('This value should not be blank'),
-                ),
-            ),
-            array(
+                [
+                    'foo' => ['This value should not be blank'],
+                ],
+            ],
+            [
                 false,
-                array(
-                    array('foo', null, array(
+                [
+                    ['foo', null, [
                         'constraints' => 'required',
-                        'messages' => array(
+                        'messages'    => [
                             'required' => 'Fill it!',
-                        ),
-                    )),
-                ),
+                        ],
+                    ]],
+                ],
                 null,
-                array(
-                    'foo' => array('Fill it!'),
-                ),
-            ),
-            array(
+                [
+                    'foo' => ['Fill it!'],
+                ],
+            ],
+            [
                 true,
-                array(
-                    array('foo', null, array(
+                [
+                    ['foo', null, [
                         'constraints' => 'required',
-                    )),
-                ),
-                array(
+                    ]],
+                ],
+                [
                     'foo' => 'bar',
-                ),
+                ],
                 null,
-                array(
+                [
                     'foo' => 'bar',
-                ),
-            ),
-        );
+                ],
+            ],
+        ];
     }
 
     public function renderProvider()
     {
-        return array(
-            array(
+        return [
+            [
                 '<form name="form" method="POST">
 <input type="hidden" name="form[_form]" value="form">
 <input type="hidden" name="form[hidden]" id="form_hidden">
@@ -462,8 +464,8 @@ class FormTest extends TestCase
 <div></div>
 
 </form>',
-            ),
-            array(
+            ],
+            [
                 '<form name="form" method="POST">
 <input type="hidden" name="form[_form]" value="form">
 <input type="hidden" name="form[hidden]" id="form_hidden" value="hidden">
@@ -480,19 +482,19 @@ class FormTest extends TestCase
 
 </form>',
                 true,
-                array(
-                    'hidden' => 'hidden',
+                [
+                    'hidden'   => 'hidden',
                     'password' => 'password',
-                    'text' => 'text',
+                    'text'     => 'text',
                     'checkbox' => 'on',
-                    'radio' => 'on',
+                    'radio'    => 'on',
                     'textarea' => 'textarea',
-                    'choice' => 1,
-                    'choice2' => 3,
-                    'choice3' => 5,
-                ),
-            ),
-            array(
+                    'choice'   => 1,
+                    'choice2'  => 3,
+                    'choice3'  => 5,
+                ],
+            ],
+            [
                 '<form name="form" method="POST">
 <input type="hidden" name="form[_form]" value="form">
 <input type="hidden" name="form[hidden]" id="form_hidden" value="hidden">
@@ -509,20 +511,20 @@ class FormTest extends TestCase
 
 </form>',
                 false,
-                array(),
-                array(
-                    'hidden' => 'hidden',
+                [],
+                [
+                    'hidden'   => 'hidden',
                     'password' => 'password',
-                    'text' => 'text',
+                    'text'     => 'text',
                     'checkbox' => 'checkbox',
-                    'radio' => 'radio',
+                    'radio'    => 'radio',
                     'textarea' => 'textarea',
-                    'choice' => 1,
-                    'choice2' => 3,
-                    'choice3' => 5,
-                ),
-            ),
-            array(
+                    'choice'   => 1,
+                    'choice2'  => 3,
+                    'choice3'  => 5,
+                ],
+            ],
+            [
                 '<form name="form" method="POST">
 <input type="hidden" name="form[_form]" value="form">
 <input type="hidden" name="form[hidden]" id="form_hidden" value="not hidden">
@@ -539,36 +541,36 @@ class FormTest extends TestCase
 
 </form>',
                 true,
-                array(
-                    'hidden' => 'not hidden',
+                [
+                    'hidden'   => 'not hidden',
                     'password' => 'password',
-                    'text' => 'text update',
+                    'text'     => 'text update',
                     'checkbox' => 'on',
-                    'radio' => 'on',
+                    'radio'    => 'on',
                     'textarea' => 'textarea',
-                    'choice' => 1,
-                    'choice2' => 3,
-                    'choice3' => 5,
-                ),
-                array(
-                    'hidden' => 'hidden',
+                    'choice'   => 1,
+                    'choice2'  => 3,
+                    'choice3'  => 5,
+                ],
+                [
+                    'hidden'   => 'hidden',
                     'password' => 'password',
-                    'text' => 'text',
+                    'text'     => 'text',
                     'checkbox' => 'checkbox',
-                    'radio' => 'radio',
+                    'radio'    => 'radio',
                     'textarea' => 'textarea',
-                    'choice' => 1,
-                    'choice2' => 3,
-                    'choice3' => 5,
-                ),
-            ),
-        );
+                    'choice'   => 1,
+                    'choice2'  => 3,
+                    'choice3'  => 5,
+                ],
+            ],
+        ];
     }
 
     public function renderTransformationProvider()
     {
-        return array(
-            array(
+        return [
+            [
                 '<form name="form" method="POST">
 <input type="hidden" name="form[_form]" value="form">
 <div><label for="form_foo">Foo</label> <span><div><label><input name="form[foo][]" id="form_foo_0" value="5" checked type="checkbox"> Five</label><label><input name="form[foo][]" id="form_foo_1" value="6" checked type="checkbox"> Six</label></div></span></div>
@@ -576,8 +578,8 @@ class FormTest extends TestCase
 <div></div>
 
 </form>',
-            ),
-            array(
+            ],
+            [
                 '<form name="form" method="POST">
 <input type="hidden" name="form[_form]" value="form">
 <div><label for="form_foo">Foo</label> <span><div><label><input name="form[foo][]" id="form_foo_0" value="5" checked type="checkbox"> Five</label><label><input name="form[foo][]" id="form_foo_1" value="6" type="checkbox"> Six</label></div></span></div>
@@ -585,7 +587,7 @@ class FormTest extends TestCase
 <div></div>
 
 </form>', true,
-            ),
-        );
+            ],
+        ];
     }
 }

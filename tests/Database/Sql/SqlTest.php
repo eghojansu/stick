@@ -1,14 +1,12 @@
 <?php
 
-/**
+/*
  * This file is part of the eghojansu/stick library.
  *
- * (c) Eko Kurniawan <ekokurniawanbs@gmail.com>
+ *  (c) Eko Kurniawan <ekokurniawanbs@gmail.com>
  *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- *
- * Created at Jan 15, 2019 10:15
+ *  For the full copyright and license information, please view the LICENSE
+ *  file that was distributed with this source code.
  */
 
 namespace Fal\Stick\Test\Database\Sql;
@@ -85,7 +83,7 @@ class SqlTest extends TestCase
         $this->expectException('LogicException');
         $this->expectExceptionMessage('Database connection failed!');
 
-        $this->build(null, null, null, array('invalid query;'));
+        $this->build(null, null, null, ['invalid query;']);
         $this->conn->getPdo();
     }
 
@@ -120,40 +118,40 @@ class SqlTest extends TestCase
     public function testGetTableSchema()
     {
         $schema = $this->conn->getTableSchema('db.user');
-        $expected = array(
-            'id' => array(
-                'type' => 'INTEGER',
+        $expected = [
+            'id' => [
+                'type'     => 'INTEGER',
                 'pdo_type' => \PDO::PARAM_INT,
-                'default' => null,
+                'default'  => null,
                 'nullable' => false,
-                'pkey' => true,
-                'name' => 'id',
-            ),
-            'username' => array(
-                'type' => 'TEXT',
+                'pkey'     => true,
+                'name'     => 'id',
+            ],
+            'username' => [
+                'type'     => 'TEXT',
                 'pdo_type' => \PDO::PARAM_STR,
-                'default' => null,
+                'default'  => null,
                 'nullable' => false,
-                'pkey' => false,
-                'name' => 'username',
-            ),
-            'password' => array(
-                'type' => 'TEXT',
+                'pkey'     => false,
+                'name'     => 'username',
+            ],
+            'password' => [
+                'type'     => 'TEXT',
                 'pdo_type' => \PDO::PARAM_STR,
-                'default' => null,
+                'default'  => null,
                 'nullable' => true,
-                'pkey' => false,
-                'name' => 'password',
-            ),
-            'active' => array(
-                'type' => 'INTEGER',
+                'pkey'     => false,
+                'name'     => 'password',
+            ],
+            'active' => [
+                'type'     => 'INTEGER',
                 'pdo_type' => \PDO::PARAM_INT,
-                'default' => 1,
+                'default'  => 1,
                 'nullable' => false,
-                'pkey' => false,
-                'name' => 'active',
-            ),
-        );
+                'pkey'     => false,
+                'name'     => 'active',
+            ],
+        ];
 
         $this->assertEquals($expected, $schema);
     }
@@ -211,16 +209,16 @@ class SqlTest extends TestCase
     {
         $this->filldb();
 
-        $stmt = $this->conn->prepare('select * from user where id = ?', array(1));
+        $stmt = $this->conn->prepare('select * from user where id = ?', [1]);
         $stmt->execute();
 
         $row = $stmt->fetch(\PDO::FETCH_ASSOC);
-        $expected = array(
-            'id' => 1,
+        $expected = [
+            'id'       => 1,
             'username' => 'foo',
             'password' => null,
-            'active' => 1,
-        );
+            'active'   => 1,
+        ];
 
         $this->assertEquals($expected, $row);
     }
@@ -229,9 +227,9 @@ class SqlTest extends TestCase
     {
         $this->filldb();
         $rows = $this->conn->exec('SELECT * FROM user');
-        $inserted = $this->conn->exec('INSERT INTO user (username) values (?)', array(
+        $inserted = $this->conn->exec('INSERT INTO user (username) values (?)', [
             'qux',
-        ));
+        ]);
 
         $this->assertCount(3, $rows);
         $this->assertEquals(1, $inserted);
@@ -261,11 +259,11 @@ class SqlTest extends TestCase
 
     public function testExecAll()
     {
-        $commands = array(
+        $commands = [
             'select * from user',
-            'insert into user (username) values (?)' => array('foo'),
-            'select * from user where id = ?' => array(1),
-        );
+            'insert into user (username) values (?)' => ['foo'],
+            'select * from user where id = ?'        => [1],
+        ];
         $result = $this->conn->execAll($commands);
 
         $this->assertCount(0, $result[0]);
@@ -275,11 +273,11 @@ class SqlTest extends TestCase
 
     public function execExceptionProvider()
     {
-        return array(
-            array(' ', 'Cannot execute an empty query!'),
-            array('SELECT', 'PDO: incomplete input.'),
-            array('INSERT INTO user (username) VALUES (NULL)', 'PDOStatement: NOT NULL constraint failed: user.username.'),
-        );
+        return [
+            [' ', 'Cannot execute an empty query!'],
+            ['SELECT', 'PDO: incomplete input.'],
+            ['INSERT INTO user (username) VALUES (NULL)', 'PDOStatement: NOT NULL constraint failed: user.username.'],
+        ];
     }
 
     private function build($dsn = null, $username = null, $password = null, $commands = null)
@@ -289,7 +287,7 @@ class SqlTest extends TestCase
             $dsn ?: 'sqlite::memory:',
             $username,
             $password,
-            $commands ?: array(file_get_contents(TEST_FIXTURE.'/files/schema.sql'))
+            $commands ?: [file_get_contents(TEST_FIXTURE.'/files/schema.sql')]
         );
     }
 

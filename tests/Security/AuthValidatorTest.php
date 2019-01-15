@@ -1,14 +1,12 @@
 <?php
 
-/**
+/*
  * This file is part of the eghojansu/stick library.
  *
- * (c) Eko Kurniawan <ekokurniawanbs@gmail.com>
+ *  (c) Eko Kurniawan <ekokurniawanbs@gmail.com>
  *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- *
- * Created at Jan 14, 2019 10:27
+ *  For the full copyright and license information, please view the LICENSE
+ *  file that was distributed with this source code.
  */
 
 namespace Fal\Stick\Test\Security;
@@ -45,16 +43,16 @@ class AuthValidatorTest extends TestCase
     {
         $this->auth->setUser($user);
 
-        $this->assertEquals($expected, $this->validator->validate('password', $password, array()));
+        $this->assertEquals($expected, $this->validator->validate('password', $password, []));
     }
 
     public function validatePasswordProvider()
     {
-        return array(
-            array(null, 'bar'),
-            array(new SimpleUser('1', 'foo', 'bar'), 'bar'),
-            array(new SimpleUser('1', 'foo', 'baz'), 'baz'),
-            array(new SimpleUser('1', 'foo', 'bar'), 'baz', false),
-        );
+        return [
+            [null, 'bar'],
+            [new SimpleUser('1', 'foo', 'bar'), 'bar'],
+            [new SimpleUser('1', 'foo', 'baz'), 'baz'],
+            [new SimpleUser('1', 'foo', 'bar'), 'baz', false],
+        ];
     }
 }

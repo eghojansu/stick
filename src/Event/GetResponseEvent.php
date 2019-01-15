@@ -1,14 +1,12 @@
 <?php
 
-/**
+/*
  * This file is part of the eghojansu/stick library.
  *
- * (c) Eko Kurniawan <ekokurniawanbs@gmail.com>
+ *  (c) Eko Kurniawan <ekokurniawanbs@gmail.com>
  *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- *
- * Created at Jan 10, 2019 07:15
+ *  For the full copyright and license information, please view the LICENSE
+ *  file that was distributed with this source code.
  */
 
 namespace Fal\Stick\Event;
@@ -32,11 +30,11 @@ class GetResponseEvent extends Event
 
     public function getResponse()
     {
-        return array(
-            'code' => $this->core->get('CODE'),
+        return [
+            'code'    => $this->core->get('CODE'),
             'headers' => $this->core->get('RESPONSE'),
             'content' => $this->core->get('OUTPUT'),
-        );
+        ];
     }
 
     public function setResponse($content, $code = 200, array $headers = null)

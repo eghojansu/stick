@@ -1,14 +1,12 @@
 <?php
 
-/**
+/*
  * This file is part of the eghojansu/stick library.
  *
- * (c) Eko Kurniawan <ekokurniawanbs@gmail.com>
+ *  (c) Eko Kurniawan <ekokurniawanbs@gmail.com>
  *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- *
- * Created at Jan 14, 2019 06:46
+ *  For the full copyright and license information, please view the LICENSE
+ *  file that was distributed with this source code.
  */
 
 namespace Fal\Stick\Validation;
@@ -16,8 +14,8 @@ namespace Fal\Stick\Validation;
 class Result
 {
     public $raw;
-    public $data = array();
-    public $errors = array();
+    public $data = [];
+    public $errors = [];
     public $field;
     public $rule;
 

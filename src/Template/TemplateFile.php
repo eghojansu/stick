@@ -1,14 +1,12 @@
 <?php
 
-/**
+/*
  * This file is part of the eghojansu/stick library.
  *
- * (c) Eko Kurniawan <ekokurniawanbs@gmail.com>
+ *  (c) Eko Kurniawan <ekokurniawanbs@gmail.com>
  *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- *
- * Created at Jan 13, 2019 11:10
+ *  For the full copyright and license information, please view the LICENSE
+ *  file that was distributed with this source code.
  */
 
 namespace Fal\Stick\Template;
@@ -29,15 +27,15 @@ class TemplateFile
 
     protected $child;
 
-    protected $blocks = array();
-    protected $parentMarks = array();
+    protected $blocks = [];
+    protected $parentMarks = [];
 
-    public static function create(Template $engine, Core $core, $view, array $context = null, TemplateFile $child = null)
+    public static function create(Template $engine, Core $core, $view, array $context = null, self $child = null)
     {
         return new static($engine, $core, $view, $context, $child);
     }
 
-    public function __construct(Template $engine, Core $core, $view, array $context = null, TemplateFile $child = null)
+    public function __construct(Template $engine, Core $core, $view, array $context = null, self $child = null)
     {
         $this->engine = $engine;
         $this->core = $core;
@@ -53,7 +51,7 @@ class TemplateFile
         return $this->parent ? $this->parent->render() : $content;
     }
 
-    protected function fork($view, array $context = null, TemplateFile $child = null)
+    protected function fork($view, array $context = null, self $child = null)
     {
         return new static($this->engine, $this->core, $view, $context, $child);
     }
@@ -84,7 +82,7 @@ class TemplateFile
     protected function parent($parentBlock = null)
     {
         if (!$block = $this->findOpenBlock()) {
-            return null;
+            return;
         }
 
         $parentBlock || $parentBlock = $block;
@@ -142,8 +140,6 @@ class TemplateFile
                 return $block;
             }
         }
-
-        return null;
     }
 
     public function __get($service)
@@ -153,6 +149,6 @@ class TemplateFile
 
     public function __call($method, $arguments)
     {
-        return call_user_func_array(array($this->engine, $method), $arguments);
+        return call_user_func_array([$this->engine, $method], $arguments);
     }
 }

@@ -1,14 +1,12 @@
 <?php
 
-/**
+/*
  * This file is part of the eghojansu/stick library.
  *
- * (c) Eko Kurniawan <ekokurniawanbs@gmail.com>
+ *  (c) Eko Kurniawan <ekokurniawanbs@gmail.com>
  *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- *
- * Created at Jan 12, 2019 18:09
+ *  For the full copyright and license information, please view the LICENSE
+ *  file that was distributed with this source code.
  */
 
 namespace Fal\Stick\Test;
@@ -36,27 +34,27 @@ class ClassLoaderTest extends TestCase
 
     public function testGetFallback()
     {
-        $this->assertEquals(array(), $this->loader->getFallback());
+        $this->assertEquals([], $this->loader->getFallback());
     }
 
     public function testSetFallback()
     {
-        $this->assertEquals(array('foo'), $this->loader->setFallback(array('foo'))->getFallback());
+        $this->assertEquals(['foo'], $this->loader->setFallback(['foo'])->getFallback());
     }
 
     public function testGetNamespaces()
     {
-        $this->assertEquals(array(), $this->loader->getNamespaces());
+        $this->assertEquals([], $this->loader->getNamespaces());
     }
 
     public function testAddNamespace()
     {
-        $expected = array(
-            'foo\\' => array('foo', 'bar'),
-        );
+        $expected = [
+            'foo\\' => ['foo', 'bar'],
+        ];
 
         $this->loader->addNamespace('foo\\', 'foo/');
-        $this->loader->addNamespace('foo\\', array('bar/'));
+        $this->loader->addNamespace('foo\\', ['bar/']);
 
         $this->assertEquals($expected, $this->loader->getNamespaces());
     }
@@ -71,11 +69,11 @@ class ClassLoaderTest extends TestCase
 
     public function testSetNamespaces()
     {
-        $expected = array(
-            'foo\\' => array('foo'),
-        );
+        $expected = [
+            'foo\\' => ['foo'],
+        ];
 
-        $this->assertEquals($expected, $this->loader->setNamespaces(array('foo\\' => 'foo/'))->getNamespaces());
+        $this->assertEquals($expected, $this->loader->setNamespaces(['foo\\' => 'foo/'])->getNamespaces());
     }
 
     public function testGetApcuPrefix()
@@ -92,7 +90,7 @@ class ClassLoaderTest extends TestCase
     {
         $this->loader->register();
         $autoloaders = spl_autoload_functions();
-        $expected = array($this->loader, 'loadClass');
+        $expected = [$this->loader, 'loadClass'];
 
         $this->assertEquals($expected, end($autoloaders));
 
@@ -104,7 +102,7 @@ class ClassLoaderTest extends TestCase
         $this->loader->register();
         $this->loader->unregister();
         $autoloaders = spl_autoload_functions();
-        $expected = array($this->loader, 'loadClass');
+        $expected = [$this->loader, 'loadClass'];
 
         $this->assertNotEquals($expected, end($autoloaders));
     }
@@ -112,8 +110,8 @@ class ClassLoaderTest extends TestCase
     public function testFindClass()
     {
         $this->loader->setApcuPrefix('test');
-        $this->loader->setNamespaces(array('SpecialNamespace\\' => TEST_FIXTURE.'/special-namespace/'));
-        $this->loader->setFallback(array(TEST_FIXTURE.'/special-namespace/different-namespace/'));
+        $this->loader->setNamespaces(['SpecialNamespace\\' => TEST_FIXTURE.'/special-namespace/']);
+        $this->loader->setFallback([TEST_FIXTURE.'/special-namespace/different-namespace/']);
 
         $this->assertEquals(TEST_FIXTURE.'/special-namespace/LoadOnceOnlyClass.php', $this->loader->findClass('SpecialNamespace\\LoadOnceOnlyClass'));
         // second call hit cache
@@ -133,7 +131,7 @@ class ClassLoaderTest extends TestCase
         $this->assertFalse(class_exists('SpecialNamespace\\AutoloadOnceOnlyClass'));
 
         // register autoloader
-        $this->loader->setNamespaces(array('SpecialNamespace\\' => TEST_FIXTURE.'/special-namespace/'));
+        $this->loader->setNamespaces(['SpecialNamespace\\' => TEST_FIXTURE.'/special-namespace/']);
 
         $this->assertTrue($this->loader->loadClass('SpecialNamespace\\AutoloadOnceOnlyClass'));
         $this->assertTrue(class_exists('SpecialNamespace\\AutoloadOnceOnlyClass'));

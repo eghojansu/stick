@@ -1,21 +1,19 @@
 <?php
 
-/**
+/*
  * This file is part of the eghojansu/stick library.
  *
- * (c) Eko Kurniawan <ekokurniawanbs@gmail.com>
+ *  (c) Eko Kurniawan <ekokurniawanbs@gmail.com>
  *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- *
- * Created at Jan 15, 2019 11:55
+ *  For the full copyright and license information, please view the LICENSE
+ *  file that was distributed with this source code.
  */
 
 namespace Fal\Stick\Test\Util;
 
 use Fal\Stick\Core;
-use Fal\Stick\Security\Auth;
 use Fal\Stick\Database\Sql\Sql;
+use Fal\Stick\Security\Auth;
 use Fal\Stick\Template\Template;
 use Fal\Stick\Util\Crud;
 use PHPUnit\Framework\TestCase;
@@ -29,27 +27,26 @@ class CrudTest extends TestCase
     {
         $this->core = new Core();
         $this->core
-            ->rule(Sql::class, array(
-                'arguments' => array(
-                    'core' => '%core%',
-                    'dsn' => 'sqlite::memory:',
+            ->rule(Sql::class, [
+                'arguments' => [
+                    'core'     => '%core%',
+                    'dsn'      => 'sqlite::memory:',
                     'username' => null,
                     'password' => null,
-                    'commands' => array(
+                    'commands' => [
                         file_get_contents(TEST_FIXTURE.'/files/schema.sql'),
                         'insert into user (username) values ("foo"), ("bar"), ("baz")',
-                    ),
+                    ],
                     'options' => null,
-                ),
-            ))
-            ->rule(Auth::class, array(
-                'arguments' => array(
-                    'core' => '%core%',
+                ],
+            ])
+            ->rule(Auth::class, [
+                'arguments' => [
+                    'core'     => '%core%',
                     'provider' => 'Fal\\Stick\\Security\\InMemoryUserProvider',
-                    'encoder' => 'Fal\\Stick\\Security\\PlainPasswordEncoder',
-                ),
-            ))
-        ;
+                    'encoder'  => 'Fal\\Stick\\Security\\PlainPasswordEncoder',
+                ],
+            ]);
         $this->crud = new Crud($this->core, new Template($this->core, TEST_FIXTURE.'/crud/'));
     }
 
@@ -97,96 +94,96 @@ class CrudTest extends TestCase
 
     public function testOption()
     {
-        $expected = array(
+        $expected = [
             'listing' => true,
-            'view' => true,
-            'create' => true,
-            'update' => true,
-            'delete' => true,
-        );
+            'view'    => true,
+            'create'  => true,
+            'update'  => true,
+            'delete'  => true,
+        ];
 
         $this->assertEquals($expected, $this->crud->option('states'));
     }
 
     public function testEnable()
     {
-        $expected = array(
+        $expected = [
             'listing' => true,
-            'view' => true,
-            'create' => true,
-            'update' => true,
-            'delete' => true,
-        );
+            'view'    => true,
+            'create'  => true,
+            'update'  => true,
+            'delete'  => true,
+        ];
 
         $this->assertEquals($expected, $this->crud->enable('view,create')->option('states'));
     }
 
     public function testDisable()
     {
-        $expected = array(
+        $expected = [
             'listing' => true,
-            'view' => false,
-            'create' => false,
-            'update' => true,
-            'delete' => true,
-        );
+            'view'    => false,
+            'create'  => false,
+            'update'  => true,
+            'delete'  => true,
+        ];
 
         $this->assertEquals($expected, $this->crud->disable('view,create')->option('states'));
     }
 
     public function testField()
     {
-        $expected = array(
+        $expected = [
             'listing' => null,
-            'view' => 'id,name',
-            'create' => 'id,name',
-            'update' => null,
-            'delete' => null,
-        );
+            'view'    => 'id,name',
+            'create'  => 'id,name',
+            'update'  => null,
+            'delete'  => null,
+        ];
 
         $this->assertEquals($expected, $this->crud->field('view,create', 'id,name')->option('fields'));
     }
 
     public function testView()
     {
-        $expected = array(
+        $expected = [
             'listing' => null,
-            'view' => 'foo',
-            'create' => null,
-            'update' => null,
-            'delete' => null,
-        );
+            'view'    => 'foo',
+            'create'  => null,
+            'update'  => null,
+            'delete'  => null,
+        ];
 
         $this->assertEquals($expected, $this->crud->view('view', 'foo')->option('views'));
     }
 
     public function testRole()
     {
-        $expected = array(
+        $expected = [
             'listing' => null,
-            'view' => 'foo',
-            'create' => null,
-            'update' => null,
-            'delete' => null,
-        );
+            'view'    => 'foo',
+            'create'  => null,
+            'update'  => null,
+            'delete'  => null,
+        ];
 
         $this->assertEquals($expected, $this->crud->role('view', 'foo')->option('roles'));
     }
 
     public function testRoles()
     {
-        $expected = array(
+        $expected = [
             'listing' => null,
-            'view' => 'foo',
-            'create' => 'bar',
-            'update' => null,
-            'delete' => null,
-        );
+            'view'    => 'foo',
+            'create'  => 'bar',
+            'update'  => null,
+            'delete'  => null,
+        ];
 
-        $this->assertEquals($expected, $this->crud->roles(array(
-            'view' => 'foo',
+        $this->assertEquals($expected, $this->crud->roles([
+            'view'   => 'foo',
             'create' => 'bar',
-        ))->option('roles'));
+        ])->option('roles'));
     }
 
     public function testOptions()
@@ -230,7 +227,7 @@ class CrudTest extends TestCase
     public function testCallMagic()
     {
         $this->assertEquals('foo', $this->crud->route('foo')->option('route'));
-        $this->assertEquals(array('foo'), $this->crud->filters(array('foo'))->option('filters'));
+        $this->assertEquals(['foo'], $this->crud->filters(['foo'])->option('filters'));
     }
 
     public function testCallMagicException()
@@ -250,17 +247,16 @@ class CrudTest extends TestCase
         $this->crud
             ->route('foo')
             ->segments($path)
-            ->views(array(
+            ->views([
                 'listing' => 'listing',
-                'view' => 'view',
-                'create' => 'form',
-                'update' => 'form',
-                'delete' => 'delete',
-            ))
-            ->fieldOrders(array('id', 'username', 'password', 'active'))
+                'view'    => 'view',
+                'create'  => 'form',
+                'update'  => 'form',
+                'delete'  => 'delete',
+            ])
+            ->fieldOrders(['id', 'username', 'password', 'active'])
             ->mapper('user')
-            ->form('Fixture\\Form\\FUserForm')
-        ;
+            ->form('Fixture\\Form\\FUserForm');
 
         $this->assertEquals($expected, $this->crud->render());
     }
@@ -295,11 +291,10 @@ class CrudTest extends TestCase
         $this->crud
             ->route('foo')
             ->searchable('username')
-            ->views(array(
+            ->views([
                 'listing' => 'listing',
-            ))
-            ->mapper('user')
-        ;
+            ])
+            ->mapper('user');
 
         $this->assertEquals(file_get_contents(TEST_FIXTURE.'/crud/listing_search.html'), $this->crud->render());
     }
@@ -317,25 +312,26 @@ class CrudTest extends TestCase
             ->route('GET|POST foo /foo/@segments*', function ($segments) {
                 return $this->crud
                     ->segments($segments)
-                    ->views(array(
+                    ->views([
                         'create' => 'form',
                         'update' => 'form',
                         'delete' => 'delete',
-                    ))
-                    ->beforeCreate(function () {}) // trigger before create
+                    ])
+                    ->beforeCreate(function () {
+                    }) // trigger before create
                     ->mapper('user')
                     ->form('Fixture\\Form\\FUserForm')
-                    ->formOptions(function () {})
-                    ->onPrepareData(function () {})
-                    ->render()
-                ;
-            })
-        ;
+                    ->formOptions(function () {
+                    })
+                    ->onPrepareData(function () {
+                    })
+                    ->render();
+            });
 
-        $this->core->mock('POST /foo'.$path, array('f_user_form' => array(
+        $this->core->mock('POST /foo'.$path, ['f_user_form' => [
             'username' => 'xfoo',
-            '_form' => 'f_user_form',
-        )));
+            '_form'    => 'f_user_form',
+        ]]);
 
         $this->assertNull($this->core->get('OUTPUT'));
         $this->assertStringEndsWith('/foo/index?page=1', $this->core->get('rerouted'));
@@ -347,13 +343,12 @@ class CrudTest extends TestCase
         $this->core->set('QUIET', true);
         $this->crud
             ->route('foo')
-            ->segments(array('view', 100))
-            ->views(array(
+            ->segments(['view', 100])
+            ->views([
                 'view' => 'crud/view',
-            ))
+            ])
             ->mapper('user')
-            ->render()
-        ;
+            ->render();
 
         $this->assertEquals(404, $this->core->get('CODE'));
         $this->assertContains('404 - Not Found', $this->core->get('OUTPUT'));
@@ -366,13 +361,12 @@ class CrudTest extends TestCase
 
         $this->crud
             ->route('foo')
-            ->segments(array('view'))
-            ->views(array(
+            ->segments(['view'])
+            ->views([
                 'view' => 'view',
-            ))
+            ])
             ->mapper('user')
-            ->render()
-        ;
+            ->render();
     }
 
     public function testPrepareFields()
@@ -381,12 +375,11 @@ class CrudTest extends TestCase
         $this->crud
             ->route('foo')
             ->segments('view/1')
-            ->views(array(
+            ->views([
                 'view' => 'view',
-            ))
+            ])
             ->field('view', 'id,username')
-            ->mapper('user')
-        ;
+            ->mapper('user');
 
         $this->assertEquals(file_get_contents(TEST_FIXTURE.'/crud/view_id_username.html'), $this->crud->render());
     }
@@ -397,8 +390,7 @@ class CrudTest extends TestCase
             ->route('foo')
             ->view('listing', 'listing')
             ->mapper('user')
-            ->render()
-        ;
+            ->render();
 
         $this->assertInstanceOf('Fal\\Stick\\Database\\Sql\\Mapper', $this->crud->get('mapper'));
         $this->resetCrud();
@@ -418,8 +410,7 @@ class CrudTest extends TestCase
             ->route('foo')
             ->view('listing', 'listing')
             ->mapper('user')
-            ->render()
-        ;
+            ->render();
 
         $this->assertInstanceOf('Fal\\Stick\\Form\\Form', $this->crud->get('form'));
         $this->resetCrud();
@@ -439,22 +430,20 @@ class CrudTest extends TestCase
             ->route('GET|POST foo /foo/@segments*', function ($segments) {
                 return $this->crud
                     ->segments($segments)
-                    ->views(array(
+                    ->views([
                         'create' => 'create',
-                    ))
+                    ])
                     ->mapper('user')
                     ->form('Fixture\\Form\\FUserForm')
                     ->createNew(true)
-                    ->render()
-                ;
-            })
-        ;
+                    ->render();
+            });
 
-        $this->core->mock('POST /foo/create', array('f_user_form' => array(
-            'username' => 'xfoo',
+        $this->core->mock('POST /foo/create', ['f_user_form' => [
+            'username'   => 'xfoo',
             'create_new' => true,
-            '_form' => 'f_user_form',
-        )));
+            '_form'      => 'f_user_form',
+        ]]);
 
         $this->assertNull($this->core->get('OUTPUT'));
         $this->assertEquals($this->core->get('URL'), $this->core->get('rerouted'));
@@ -462,29 +451,28 @@ class CrudTest extends TestCase
 
     public function renderProvider()
     {
-        return array(
-            array('index', file_get_contents(TEST_FIXTURE.'/crud/listing.html')),
-            array('view/1', file_get_contents(TEST_FIXTURE.'/crud/view.html')),
-            array('create', file_get_contents(TEST_FIXTURE.'/crud/create.html')),
-            array('update/1', file_get_contents(TEST_FIXTURE.'/crud/update.html')),
-            array('delete/1', file_get_contents(TEST_FIXTURE.'/crud/delete.html')),
-        );
+        return [
+            ['index', file_get_contents(TEST_FIXTURE.'/crud/listing.html')],
+            ['view/1', file_get_contents(TEST_FIXTURE.'/crud/view.html')],
+            ['create', file_get_contents(TEST_FIXTURE.'/crud/create.html')],
+            ['update/1', file_get_contents(TEST_FIXTURE.'/crud/update.html')],
+            ['delete/1', file_get_contents(TEST_FIXTURE.'/crud/delete.html')],
+        ];
     }
 
     public function renderPostProvider()
     {
-        return array(
-            array('/create', 'Data has been created.', 'SESSION.alerts.success'),
-            array('/update/1', 'Data has been updated.', 'SESSION.alerts.info'),
-            array('/delete/1', 'Data has been deleted.', 'SESSION.alerts.warning'),
-        );
+        return [
+            ['/create', 'Data has been created.', 'SESSION.alerts.success'],
+            ['/update/1', 'Data has been updated.', 'SESSION.alerts.info'],
+            ['/delete/1', 'Data has been deleted.', 'SESSION.alerts.warning'],
+        ];
     }
 
     private function resetCrud()
     {
         $this->crud
             ->set('mapper', null)
-            ->set('form', null)
-        ;
+            ->set('form', null);
     }
 }

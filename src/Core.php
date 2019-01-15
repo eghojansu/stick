@@ -1,14 +1,12 @@
 <?php
 
-/**
+/*
  * This file is part of the eghojansu/stick library.
  *
- * (c) Eko Kurniawan <ekokurniawanbs@gmail.com>
+ *  (c) Eko Kurniawan <ekokurniawanbs@gmail.com>
  *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- *
- * Created at Jan 08, 2019 23:05
+ *  For the full copyright and license information, please view the LICENSE
+ *  file that was distributed with this source code.
  */
 
 namespace Fal\Stick;
@@ -111,14 +109,14 @@ class Core implements \ArrayAccess
     public static function requestHeaders(array $server = null)
     {
         if (!$server) {
-            return array();
+            return [];
         }
 
-        $headers = array();
-        $contents = array(
-            'CONTENT_TYPE' => 'Content-Type',
+        $headers = [];
+        $contents = [
+            'CONTENT_TYPE'   => 'Content-Type',
             'CONTENT_LENGTH' => 'Content-Length',
-        );
+        ];
 
         foreach ($server as $key => $value) {
             if (isset($contents[$key])) {
@@ -135,11 +133,11 @@ class Core implements \ArrayAccess
     public static function normalizeUploadFiles(array $files = null)
     {
         if (!$files) {
-            return array();
+            return [];
         }
 
-        $template = array('type', 'size', 'tmp_name', 'error');
-        $normalized = array();
+        $template = ['type', 'size', 'tmp_name', 'error'];
+        $normalized = [];
 
         foreach ($files as $key => $file) {
             if (is_array($file['name'])) {
@@ -151,7 +149,7 @@ class Core implements \ArrayAccess
                     }
                 }
             } else {
-                $normalized[$key] = array($file);
+                $normalized[$key] = [$file];
             }
         }
 
@@ -165,7 +163,7 @@ class Core implements \ArrayAccess
         }
 
         if (!$var) {
-            return array();
+            return [];
         }
 
         $pattern = '/['.preg_quote($delimiter ?: ',;|', '/').']/';
@@ -202,7 +200,7 @@ class Core implements \ArrayAccess
 
     public function initialize(array $query = null, array $request = null, array $cookie = null, array $files = null, array $server = null)
     {
-        $cli = in_array(PHP_SAPI, array('cli', 'phpdbg'));
+        $cli = in_array(PHP_SAPI, ['cli', 'phpdbg']);
         $headers = static::requestHeaders($server);
         $ajax = isset($headers['X-Requested-With']) && 'XMLHttpRequest' === $headers['X-Requested-With'];
         $script = str_replace('\\', '/', isset($server['SCRIPT_NAME']) ? $server['SCRIPT_NAME'] : $_SERVER['SCRIPT_NAME']);
@@ -249,75 +247,75 @@ class Core implements \ArrayAccess
         }
 
         $scheme = $secure ? 'https' : 'http';
-        $cookieJar = array(
-            'expire' => 0,
-            'path' => $base,
-            'domain' => (false === strpos($host, '.') || filter_var($host, FILTER_VALIDATE_IP)) ? '' : $host,
-            'secure' => $secure,
+        $cookieJar = [
+            'expire'   => 0,
+            'path'     => $base,
+            'domain'   => (false === strpos($host, '.') || filter_var($host, FILTER_VALIDATE_IP)) ? '' : $host,
+            'secure'   => $secure,
             'httponly' => true,
-        );
+        ];
 
-        $this->hive = $this->init = array(
-            'AJAX' => $ajax,
-            'ALIAS' => null,
-            'ALIASES' => null,
-            'ASSETS' => null,
-            'ASSETS_VERSION' => null,
-            'BASE' => $base,
-            'CACHE' => null,
-            'CACHE_ENGINE' => null,
-            'CACHE_REFERENCE' => null,
-            'CASELESS' => true,
-            'CLI' => $cli,
-            'CODE' => 200,
-            'CONTENT' => null,
-            'COOKIE' => $cookie,
-            'COOKIE_JAR' => $cookieJar,
-            'COOKIE_SET' => null,
-            'DEBUG' => false,
-            'ERROR' => null,
-            'FILES' => $files,
-            'FRONT' => $front,
-            'HEADERS' => $headers,
-            'HOST' => $host,
-            'IP' => $ip,
-            'KBPS' => 0,
-            'LANGUAGE' => null,
-            'LANGUAGE_DICT' => null,
+        $this->hive = $this->init = [
+            'AJAX'              => $ajax,
+            'ALIAS'             => null,
+            'ALIASES'           => null,
+            'ASSETS'            => null,
+            'ASSETS_VERSION'    => null,
+            'BASE'              => $base,
+            'CACHE'             => null,
+            'CACHE_ENGINE'      => null,
+            'CACHE_REFERENCE'   => null,
+            'CASELESS'          => true,
+            'CLI'               => $cli,
+            'CODE'              => 200,
+            'CONTENT'           => null,
+            'COOKIE'            => $cookie,
+            'COOKIE_JAR'        => $cookieJar,
+            'COOKIE_SET'        => null,
+            'DEBUG'             => false,
+            'ERROR'             => null,
+            'FILES'             => $files,
+            'FRONT'             => $front,
+            'HEADERS'           => $headers,
+            'HOST'              => $host,
+            'IP'                => $ip,
+            'KBPS'              => 0,
+            'LANGUAGE'          => null,
+            'LANGUAGE_DICT'     => null,
             'LANGUAGE_FALLBACK' => 'en',
-            'LANGUAGE_LOCALES' => null,
-            'LOG' => true,
-            'LOG_DIR' => null,
-            'LOG_LEVEL' => null,
-            'LOG_THRESHOLD' => static::LOG_ERROR,
-            'OUTPUT' => null,
-            'PACKAGE' => static::PACKAGE,
-            'PARAMS' => null,
-            'PATH' => $path,
-            'PORT' => $port,
-            'PROTOCOL' => 'HTTP/1.1',
-            'QUERY' => $query,
-            'QUIET' => false,
-            'RAW' => true,
-            'REQUEST' => $request,
-            'RESPONSE' => null,
-            'ROUTE' => null,
-            'ROUTES' => null,
-            'SCHEME' => $scheme,
-            'SECURE' => $secure,
-            'SEED' => static::hash($base),
-            'SENT' => false,
-            'SERVER' => $server,
-            'SERVICE_ALIASES' => null,
-            'SERVICE_RULES' => null,
-            'SERVICES' => null,
-            'SESSION' => null,
-            'STATUS' => static::HTTP_200,
-            'TZ' => date_default_timezone_get(),
-            'VERB' => $verb,
-            'VERSION' => static::VERSION,
-            'XFRAME' => 'SAMEORIGIN',
-        );
+            'LANGUAGE_LOCALES'  => null,
+            'LOG'               => true,
+            'LOG_DIR'           => null,
+            'LOG_LEVEL'         => null,
+            'LOG_THRESHOLD'     => static::LOG_ERROR,
+            'OUTPUT'            => null,
+            'PACKAGE'           => static::PACKAGE,
+            'PARAMS'            => null,
+            'PATH'              => $path,
+            'PORT'              => $port,
+            'PROTOCOL'          => 'HTTP/1.1',
+            'QUERY'             => $query,
+            'QUIET'             => false,
+            'RAW'               => true,
+            'REQUEST'           => $request,
+            'RESPONSE'          => null,
+            'ROUTE'             => null,
+            'ROUTES'            => null,
+            'SCHEME'            => $scheme,
+            'SECURE'            => $secure,
+            'SEED'              => static::hash($base),
+            'SENT'              => false,
+            'SERVER'            => $server,
+            'SERVICE_ALIASES'   => null,
+            'SERVICE_RULES'     => null,
+            'SERVICES'          => null,
+            'SESSION'           => null,
+            'STATUS'            => static::HTTP_200,
+            'TZ'                => date_default_timezone_get(),
+            'VERB'              => $verb,
+            'VERSION'           => static::VERSION,
+            'XFRAME'            => 'SAMEORIGIN',
+        ];
 
         return $this;
     }
@@ -336,7 +334,7 @@ class Core implements \ArrayAccess
     public function emulateCliRequest()
     {
         if ($this->hive['CLI'] && isset($this->hive['SERVER']['argv'])) {
-            $argv = $this->hive['SERVER']['argv'] + array(1 => '/');
+            $argv = $this->hive['SERVER']['argv'] + [1 => '/'];
 
             if ('/' === $argv[1][0]) {
                 $req = $argv[1];
@@ -344,11 +342,11 @@ class Core implements \ArrayAccess
                 $req = '';
                 $opts = '';
 
-                for ($i = count($argv) - 1; $i > 0; --$i) {
+                for ($i = count($argv) - 1; $i > 0; $i--) {
                     $arg = $argv[$i];
 
                     if ('-' === $arg[0]) {
-                        $m = explode('=', $arg) + array(1 => '');
+                        $m = explode('=', $arg) + [1 => ''];
 
                         if ('-' === $arg[1]) {
                             $opts .= '&'.urlencode(substr($m[0], 2)).'=';
@@ -380,8 +378,8 @@ class Core implements \ArrayAccess
 
     public function registerErrorHandler()
     {
-        set_error_handler(array($this, 'handleError'));
-        set_exception_handler(array($this, 'handleException'));
+        set_error_handler([$this, 'handleError']);
+        set_exception_handler([$this, 'handleException']);
 
         return $this;
     }
@@ -399,7 +397,7 @@ class Core implements \ArrayAccess
      */
     public function registerShutdownHandler()
     {
-        register_shutdown_function(array($this, 'shutdown'), getcwd());
+        register_shutdown_function([$this, 'shutdown'], getcwd());
 
         return $this;
     }
@@ -426,7 +424,7 @@ class Core implements \ArrayAccess
 
         foreach ($parts as $part) {
             if (null === $var || is_scalar($var)) {
-                $var = array();
+                $var = [];
                 $found = false;
             }
 
@@ -495,7 +493,7 @@ class Core implements \ArrayAccess
 
         if ('CACHE' === $key) {
             $this->cacheLoad();
-        } elseif (in_array($key, array('LANGUAGE', 'LANGUAGE_FALLBACK', 'LANGUAGE_LOCALES'))) {
+        } elseif (in_array($key, ['LANGUAGE', 'LANGUAGE_FALLBACK', 'LANGUAGE_LOCALES'])) {
             $this->languageLoad();
         }
 
@@ -527,7 +525,7 @@ class Core implements \ArrayAccess
 
     public function allGet($keys, $lowerize = false, array $maps = null)
     {
-        $pick = array();
+        $pick = [];
 
         foreach (static::split($keys) as $key) {
             if (isset($maps[$key])) {
@@ -625,7 +623,7 @@ class Core implements \ArrayAccess
             }
 
             $section = 'globals';
-            $commands = array();
+            $commands = [];
 
             foreach ($matches as $match) {
                 if ($match['section']) {
@@ -641,14 +639,14 @@ class Core implements \ArrayAccess
                 }
 
                 if ($commands) {
-                    $arguments = array_merge(array($match['lval']), array_map(array($this, 'cast'), str_getcsv($match['rval'])));
+                    $arguments = array_merge([$match['lval']], array_map([$this, 'cast'], str_getcsv($match['rval'])));
 
                     if ('config' === strtolower($commands[1]) && $arguments[1]) {
                         // relative to current configuration file
                         $arguments[0] = dirname($file).'/'.$arguments[0];
                     }
 
-                    call_user_func_array(array($this, $commands[1]), $arguments);
+                    call_user_func_array([$this, $commands[1]], $arguments);
                 } else {
                     $rval = preg_replace('/\\\\\h*(\r?\n)/', '\1', $match['rval']);
                     $value = array_map(
@@ -705,7 +703,7 @@ class Core implements \ArrayAccess
         }
 
         if (isset($rule['boot'])) {
-            $this->call($rule['boot'], array($instance, $this));
+            $this->call($rule['boot'], [$instance, $this]);
         }
 
         return $instance;
@@ -716,17 +714,17 @@ class Core implements \ArrayAccess
         unset($this->hive['SERVICES'][$id]);
 
         if (is_callable($rule)) {
-            $this->hive['SERVICE_RULES'][$id] = array('factory' => $rule);
+            $this->hive['SERVICE_RULES'][$id] = ['factory' => $rule];
         } elseif (is_object($rule)) {
-            $this->hive['SERVICE_RULES'][$id] = array('class' => get_class($rule));
+            $this->hive['SERVICE_RULES'][$id] = ['class' => get_class($rule)];
             $this->hive['SERVICES'][$id] = $rule;
         } elseif (is_string($rule)) {
-            $this->hive['SERVICE_RULES'][$id] = array('class' => $rule);
+            $this->hive['SERVICE_RULES'][$id] = ['class' => $rule];
         } else {
             $this->hive['SERVICE_RULES'][$id] = (array) $rule;
         }
 
-        $this->hive['SERVICE_RULES'][$id] += array('class' => $id, 'shared' => false !== $rule);
+        $this->hive['SERVICE_RULES'][$id] += ['class' => $id, 'shared' => false !== $rule];
 
         if ($this->hive['SERVICE_RULES'][$id]['class'] !== $id) {
             $this->hive['SERVICE_ALIASES'][$id] = $this->hive['SERVICE_RULES'][$id]['class'];
@@ -737,7 +735,7 @@ class Core implements \ArrayAccess
 
     public function service($id, $service = true)
     {
-        if (in_array($id, array('core', static::class))) {
+        if (in_array($id, ['core', static::class])) {
             return $this;
         }
 
@@ -755,7 +753,7 @@ class Core implements \ArrayAccess
             $sid = $xid;
         }
 
-        $rule = isset($this->hive['SERVICE_RULES'][$sid]) ? $this->hive['SERVICE_RULES'][$sid] : array('shared' => false);
+        $rule = isset($this->hive['SERVICE_RULES'][$sid]) ? $this->hive['SERVICE_RULES'][$sid] : ['shared' => false];
         $instance = $this->createInstance($id, $rule);
 
         if ($service && isset($rule['shared']) && $rule['shared']) {
@@ -780,7 +778,7 @@ class Core implements \ArrayAccess
     public function grab($expression)
     {
         if (2 === count($parts = explode('->', $expression))) {
-            return array($this->service($parts[0]), $parts[1]);
+            return [$this->service($parts[0]), $parts[1]];
         }
 
         if (2 === count($parts = explode('::', $expression))) {
@@ -813,11 +811,11 @@ class Core implements \ArrayAccess
         }
 
         $mode = isset($match[4]) ? $match[4] : 'all';
-        $definition = array(
+        $definition = [
             $handler, $alias,
             isset($match[5]) ? $match[5] : 0,
             isset($match[6]) ? $match[6] : 0,
-        );
+        ];
 
         foreach (array_filter(explode('|', strtoupper($match[1]))) as $verb) {
             $this->hive['ROUTES'][$pattern][$mode][$verb] = $definition;
@@ -850,8 +848,7 @@ class Core implements \ArrayAccess
             ->route('POST '.$route, $class.'->create')
             ->route('GET '.$itemRoute, $class.'->get')
             ->route('PUT '.$itemRoute, $class.'->put')
-            ->route('DELETE '.$itemRoute, $class.'->delete')
-        ;
+            ->route('DELETE '.$itemRoute, $class.'->delete');
     }
 
     public function redirect($route, $target, bool $permanent = true)
@@ -885,7 +882,7 @@ class Core implements \ArrayAccess
                         $parameter = array_values($mParameters);
                     }
 
-                    $mParameters = array();
+                    $mParameters = [];
                 }
 
                 if (!$parameter) {
@@ -928,7 +925,7 @@ class Core implements \ArrayAccess
     public function on($event, $handler, $priority = 0, $once = false)
     {
         $ref = &$this->reference('EVENTS.'.$event);
-        $ref[] = array($handler, $once, $priority);
+        $ref[] = [$handler, $once, $priority];
 
         if (count($ref) > 1) {
             usort($ref, function ($a, $b) {
@@ -1006,7 +1003,7 @@ class Core implements \ArrayAccess
     public function logFiles($from = null, $to = null)
     {
         if (!$this->hive['LOG_DIR']) {
-            return array();
+            return [];
         }
 
         $pattern = $this->hive['LOG_DIR'].'log_*.log';
@@ -1020,10 +1017,10 @@ class Core implements \ArrayAccess
         $toTime = $to ? strtotime($to) : $fromTime;
 
         if (!$fromTime || !$toTime) {
-            return array();
+            return [];
         }
 
-        $filteredFiles = array();
+        $filteredFiles = [];
         $start = 4;
         $end = 10;
 
@@ -1040,9 +1037,9 @@ class Core implements \ArrayAccess
 
     public function cookie($name, $value = '', $expires = null, $raw = false, $path = null, $domain = null, $secure = null, $httponly = null)
     {
-        $this->hive['COOKIE_SET'][$name] = array(
-            'call' => $raw ? 'setrawcookie' : 'setcookie',
-            'arguments' => array(
+        $this->hive['COOKIE_SET'][$name] = [
+            'call'      => $raw ? 'setrawcookie' : 'setcookie',
+            'arguments' => [
                 $name,
                 $value,
                 isset($expires) ? $expires : $this->hive['COOKIE_JAR']['expire'],
@@ -1050,8 +1047,8 @@ class Core implements \ArrayAccess
                 isset($domain) ? $domain : $this->hive['COOKIE_JAR']['domain'],
                 isset($secure) ? $secure : $this->hive['COOKIE_JAR']['secure'],
                 isset($httponly) ? $httponly : $this->hive['COOKIE_JAR']['httponly'],
-            ),
-        );
+            ],
+        ];
 
         return $this;
     }
@@ -1116,7 +1113,7 @@ class Core implements \ArrayAccess
         }
 
         foreach ((array) $this->hive['RESPONSE'] as $header => $content) {
-            foreach (is_array($content) ? $content : array($content) as $row) {
+            foreach (is_array($content) ? $content : [$content] as $row) {
                 header($header.': '.$row);
             }
         }
@@ -1144,7 +1141,7 @@ class Core implements \ArrayAccess
 
         foreach (str_split($this->hive['OUTPUT'], 1024) as $part) {
             // Throttle output
-            ++$ctr;
+            $ctr++;
 
             if ($ctr / $kbps > ($elapsed = microtime(true) - $now) && !connection_aborted()) {
                 usleep((int) (1e6 * ($ctr / $kbps - $elapsed)));
@@ -1175,7 +1172,7 @@ class Core implements \ArrayAccess
         }
 
         if (is_array($argument)) {
-            return '['.implode(', ', array_map(array($this, 'stringify'), $argument)).']';
+            return '['.implode(', ', array_map([$this, 'stringify'], $argument)).']';
         }
 
         return var_export($argument, true);
@@ -1203,7 +1200,7 @@ class Core implements \ArrayAccess
                 $text .= $row['function'].'(';
 
                 if ($row['args']) {
-                    $text .= implode(', ', array_map(array($this, 'stringify'), $row['args']));
+                    $text .= implode(', ', array_map([$this, 'stringify'], $row['args']));
                 }
 
                 $text .= ')';
@@ -1223,12 +1220,12 @@ class Core implements \ArrayAccess
         $this->status($code);
         $this->expire();
 
-        $this->hive['ERROR'] = array(
-            'code' => $this->hive['CODE'],
+        $this->hive['ERROR'] = [
+            'code'   => $this->hive['CODE'],
             'status' => $this->hive['STATUS'],
-            'text' => $message ?: sprintf('%s %s (%s %s)', $this->hive['VERB'], $this->hive['PATH'], $this->hive['CODE'], $this->hive['STATUS']),
-            'trace' => $this->hive['DEBUG'] ? $this->trace($trace) : null,
-        );
+            'text'   => $message ?: sprintf('%s %s (%s %s)', $this->hive['VERB'], $this->hive['PATH'], $this->hive['CODE'], $this->hive['STATUS']),
+            'trace'  => $this->hive['DEBUG'] ? $this->trace($trace) : null,
+        ];
 
         $logLevel = isset($this->hive['LOG_LEVEL'][$code]) ? $this->hive['LOG_LEVEL'][$code] : static::LOG_WARNING;
         $logMessage = trim($this->hive['ERROR']['text'].PHP_EOL.$this->hive['ERROR']['trace']);
@@ -1286,7 +1283,7 @@ class Core implements \ArrayAccess
         $this->hive['PARAMS'] = $arguments;
 
         $hash = static::hash($this->hive['VERB'].' '.$this->hive['PATH']).'.url';
-        $cacheCheck = $ttl && in_array($this->hive['VERB'], array('GET', 'HEAD'));
+        $cacheCheck = $ttl && in_array($this->hive['VERB'], ['GET', 'HEAD']);
 
         if ($cacheCheck) {
             if ($cache = $this->cacheGet($hash)) {
@@ -1350,11 +1347,11 @@ class Core implements \ArrayAccess
         $this->send();
 
         if ($cacheCheck) {
-            $this->cacheSet($hash, new CacheItem(array(
+            $this->cacheSet($hash, new CacheItem([
                 $this->hive['CODE'],
                 $this->hive['RESPONSE'],
                 $this->hive['OUTPUT'],
-            ), $ttl));
+            ], $ttl));
         }
 
         $event = new Event\PostResponseEvent($this);
@@ -1399,7 +1396,7 @@ class Core implements \ArrayAccess
         if ('POST' === $verb) {
             $this->hive['QUERY'] = $query;
             $this->hive['REQUEST'] = $arguments;
-        } elseif (in_array($verb, array('GET', 'HEAD'))) {
+        } elseif (in_array($verb, ['GET', 'HEAD'])) {
             $this->hive['QUERY'] = array_merge((array) $arguments, $query);
             $this->hive['REQUEST'] = null;
         } elseif (!$content && $arguments) {
@@ -1417,7 +1414,7 @@ class Core implements \ArrayAccess
             $path = $this->hive['PATH'];
             $url = $this->path($path);
         } elseif (is_array($target)) {
-            $path = call_user_func_array(array($this, 'alias'), $target);
+            $path = call_user_func_array([$this, 'alias'], $target);
             $url = $this->path($path, null, isset($target[2]) ? $target[2] : null);
         } elseif (isset($this->hive['ALIASES'][$target])) {
             $path = $this->hive['ALIASES'][$target];
@@ -1445,20 +1442,20 @@ class Core implements \ArrayAccess
         }
 
         $this->status($permanent ? 301 : 302);
-        $this->allSet(array(
-            'OUTPUT' => null,
-            'RESPONSE' => array('Location' => $url),
-        ));
+        $this->allSet([
+            'OUTPUT'   => null,
+            'RESPONSE' => ['Location' => $url],
+        ]);
 
         return $this->send();
     }
 
     public function handleError($errno, $errstr, $errfile, $errline)
     {
-        $this->error(500, $errstr, array(array(
+        $this->error(500, $errstr, [[
             'file' => $errfile,
             'line' => $errline,
-        )));
+        ]]);
     }
 
     public function handleException($exception)
@@ -1479,7 +1476,7 @@ class Core implements \ArrayAccess
         }
 
         // @codeCoverageIgnoreStart
-        $this->error(500, $error['message'], array($error));
+        $this->error(500, $error['message'], [$error]);
         // @codeCoverageIgnoreEnd
     }
 
@@ -1565,7 +1562,7 @@ class Core implements \ArrayAccess
 
                 $this->cacheClear($name);
 
-                return null;
+                return;
             case 'memcache':
             case 'memcached':
             case 'redis':
@@ -1598,7 +1595,7 @@ class Core implements \ArrayAccess
 
                 return $this->hive['CACHE_REFERENCE']->set($key, $raw, $ttl);
             case 'redis':
-                return $this->hive['CACHE_REFERENCE']->set($key, $raw, array_filter(array('ex' => $ttl)));
+                return $this->hive['CACHE_REFERENCE']->set($key, $raw, array_filter(['ex' => $ttl]));
             default:
                 return false;
         }
@@ -1632,7 +1629,7 @@ class Core implements \ArrayAccess
         $prefix = $this->hive['SEED'];
         $pattern = '/^'.preg_quote($prefix, '/').'.+'.preg_quote($suffix ?: '', '/').'$/';
         $call = null;
-        $items = array();
+        $items = [];
 
         switch ($this->hive['CACHE_ENGINE']) {
             case 'apc':
@@ -1648,18 +1645,18 @@ class Core implements \ArrayAccess
                 $items = glob($this->hive['CACHE_REFERENCE'].$prefix.'*'.$suffix);
                 break;
             case 'memcache':
-                $call = array($this->hive['CACHE_REFERENCE'], 'delete');
+                $call = [$this->hive['CACHE_REFERENCE'], 'delete'];
                 // cachedump support has been removed, so we only can use hack way
                 $items = $this->cacheMemcache(null, null, $items);
                 break;
             case 'memcached':
-                $call = array($this->hive['CACHE_REFERENCE'], 'delete');
+                $call = [$this->hive['CACHE_REFERENCE'], 'delete'];
                 $items = preg_grep($pattern, $this->hive['CACHE_REFERENCE']->getAllKeys());
                 // cachedump support has been removed, so we only can use hack way
                 $items = $this->cacheMemcache(null, null, $items);
                 break;
             case 'redis':
-                $call = array($this->hive['CACHE_REFERENCE'], 'del');
+                $call = [$this->hive['CACHE_REFERENCE'], 'del'];
                 $items = $this->hive['CACHE_REFERENCE']->keys($prefix.'*'.$suffix);
                 break;
         }
@@ -1667,9 +1664,9 @@ class Core implements \ArrayAccess
         $iterator = $items instanceof \Iterator;
         $affected = 0;
 
-        foreach ($call ? $items : array() as $item) {
+        foreach ($call ? $items : [] as $item) {
             $call($iterator ? $item['key'] : $item);
-            ++$affected;
+            $affected++;
         }
 
         return $affected;
@@ -1690,7 +1687,7 @@ class Core implements \ArrayAccess
             if ($this->routeMatch($path, $pattern, $modifier, $arguments)) {
                 if (isset($routes[$m = $mode]) || isset($routes[$m = 'all'])) {
                     if (isset($routes[$m][$verb])) {
-                        return $routes[$m][$verb] + array(4 => $arguments, $pattern);
+                        return $routes[$m][$verb] + [4 => $arguments, $pattern];
                     }
                 }
 
@@ -1698,8 +1695,6 @@ class Core implements \ArrayAccess
                 break;
             }
         }
-
-        return null;
     }
 
     protected function routeMatch($path, $pattern, $modifier, array &$arguments = null)
@@ -1758,7 +1753,7 @@ class Core implements \ArrayAccess
             $method = new \ReflectionFunction($callable);
         }
 
-        $resolved = array();
+        $resolved = [];
         $mArguments = (array) $arguments;
 
         foreach ($method->getParameters() as $parameter) {
@@ -1839,7 +1834,7 @@ class Core implements \ArrayAccess
     protected function languageCodes()
     {
         $languages = preg_replace('/\h+|;q=[0-9.]+/', '', $this->hive['LANGUAGE'] ?: '').','.$this->hive['LANGUAGE_FALLBACK'];
-        $final = array();
+        $final = [];
 
         foreach (static::split($languages) as $lang) {
             if (preg_match('/^(\w{2})(?:-(\w{2}))?\b/i', $lang, $parts)) {
@@ -1864,7 +1859,7 @@ class Core implements \ArrayAccess
             '(?<rval>(?:\\\\\h*\r?\n|.+?)*)'.
         ')(?=\r?\n|$)/';
 
-        $this->hive['LANGUAGE_DICT'] = array();
+        $this->hive['LANGUAGE_DICT'] = [];
 
         foreach ($this->languageCodes() as $code) {
             foreach (static::split($this->hive['LANGUAGE_LOCALES']) as $locale) {
@@ -1889,7 +1884,7 @@ class Core implements \ArrayAccess
 
     protected function cacheFile($key, $content = null, $delete = false)
     {
-        $file = $this->hive['CACHE_REFERENCE'].str_replace(array('\\', '/'), '', $key);
+        $file = $this->hive['CACHE_REFERENCE'].str_replace(['\\', '/'], '', $key);
 
         if ($delete) {
             return file_exists($file) ? unlink($file) : false;
@@ -1934,7 +1929,7 @@ class Core implements \ArrayAccess
             return;
         }
 
-        list($engine, $reference) = explode('=', (string) $this->hive['CACHE']) + array(1 => null);
+        list($engine, $reference) = explode('=', (string) $this->hive['CACHE']) + [1 => null];
 
         if (('apc' === $engine && extension_loaded('apc')) ||
             ('apcu' === $engine && extension_loaded('apcu'))) {
@@ -1949,7 +1944,7 @@ class Core implements \ArrayAccess
                 $reference = new $engine();
 
                 foreach ($servers as $server) {
-                    list($host, $port) = explode(':', $server) + array(1 => 11211);
+                    list($host, $port) = explode(':', $server) + [1 => 11211];
 
                     $reference->addServer($host, $port + 0);
                     // a hack because addserver always returns true
@@ -1961,7 +1956,7 @@ class Core implements \ArrayAccess
             }
         } elseif ('redis' === $engine && $reference && extension_loaded('redis')) {
             try {
-                list($host, $port, $db) = explode(':', $reference) + array(1 => 6379, null);
+                list($host, $port, $db) = explode(':', $reference) + [1 => 6379, null];
 
                 $reference = new \Redis();
                 $reference->connect($host, $port + 0, 2);

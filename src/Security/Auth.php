@@ -1,14 +1,12 @@
 <?php
 
-/**
+/*
  * This file is part of the eghojansu/stick library.
  *
- * (c) Eko Kurniawan <ekokurniawanbs@gmail.com>
+ *  (c) Eko Kurniawan <ekokurniawanbs@gmail.com>
  *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- *
- * Created at Jan 14, 2019 09:09
+ *  For the full copyright and license information, please view the LICENSE
+ *  file that was distributed with this source code.
  */
 
 namespace Fal\Stick\Security;
@@ -52,13 +50,13 @@ class Auth
     /**
      * @var array
      */
-    protected $options = array(
-        'excludes' => array(),
-        'logout' => array(),
-        'rules' => array(),
-        'roleHierarchy' => array(),
-        'lifetime' => 1541932314, /* 1 week */
-    );
+    protected $options = [
+        'excludes'      => [],
+        'logout'        => [],
+        'rules'         => [],
+        'roleHierarchy' => [],
+        'lifetime'      => 1541932314, /* 1 week */
+    ];
 
     /**
      * @var UserInterface
@@ -362,7 +360,7 @@ class Auth
     public function setOptions(array $options)
     {
         foreach ($options as $option => $value) {
-            if (in_array($option, array('excludes', 'logout', 'roleHierarchy', 'rules')) && !is_array($value)) {
+            if (in_array($option, ['excludes', 'logout', 'roleHierarchy', 'rules']) && !is_array($value)) {
                 $value = (array) $value;
             } elseif ('lifetime' === $option && !is_int($value)) {
                 $value = $this->options[$option];
@@ -403,7 +401,7 @@ class Auth
      */
     protected function getRoleHierarchy($role)
     {
-        $roles = array($role);
+        $roles = [$role];
 
         if (array_key_exists($role, $this->options['roleHierarchy'])) {
             $children = $this->core->split($this->options['roleHierarchy'][$role]);

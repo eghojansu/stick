@@ -1,14 +1,12 @@
 <?php
 
-/**
+/*
  * This file is part of the eghojansu/stick library.
  *
- * (c) Eko Kurniawan <ekokurniawanbs@gmail.com>
+ *  (c) Eko Kurniawan <ekokurniawanbs@gmail.com>
  *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- *
- * Created at Jan 13, 2019 01:31
+ *  For the full copyright and license information, please view the LICENSE
+ *  file that was distributed with this source code.
  */
 
 namespace Fal\Stick\Util;
@@ -98,35 +96,35 @@ class Html
             return '';
         }
 
-        $dConfig = array(
-            'root_attr' => null,
-            'parent_attr' => null,
-            'parent_item_attr' => null,
+        $dConfig = [
+            'root_attr'           => null,
+            'parent_attr'         => null,
+            'parent_item_attr'    => null,
             'parent_wrapper_attr' => null,
-            'active_class' => 'active',
-        );
-        $dItem = array(
-            'route' => null,
-            'args' => null,
-            'query' => null,
-            'attr' => null,
-            'item_attr' => null,
+            'active_class'        => 'active',
+        ];
+        $dItem = [
+            'route'        => null,
+            'args'         => null,
+            'query'        => null,
+            'attr'         => null,
+            'item_attr'    => null,
             'wrapper_attr' => null,
-            'items' => null,
-        );
+            'items'        => null,
+        ];
         $mConfig = ((array) $config) + $dConfig;
-        $aClass = array(null, $mConfig['active_class']);
+        $aClass = [null, $mConfig['active_class']];
         $lists = '';
 
         foreach ($items as $label => $item) {
             $child = '';
-            $mItem = (is_array($item) ? $item : array('route' => $item)) + $dItem;
+            $mItem = (is_array($item) ? $item : ['route' => $item]) + $dItem;
             $aAttr = (array) $mItem['attr'];
             $iAttr = (array) $mItem['item_attr'];
             $active = (int) ($mItem['route'] && ($mItem['route'] === $activeRoute));
 
             if ($mItem['items']) {
-                $cAttr = array('root_attr' => (array) $mItem['wrapper_attr']) + $mConfig;
+                $cAttr = ['root_attr' => (array) $mItem['wrapper_attr']] + $mConfig;
 
                 $cAttr['root_attr'] += (array) $mConfig['parent_wrapper_attr'];
                 $aAttr += (array) $mConfig['parent_item_attr'];
@@ -164,21 +162,21 @@ class Html
             return '';
         }
 
-        $dConfig = array(
-            'route' => $this->core->get('ALIAS'),
-            'route_data' => $this->core->get('PARAMS'),
-            'route_query' => $this->core->get('GET') ?: array(),
-            'page_query' => 'page',
-            'adjacent' => 2,
-            'parent' => array('class' => 'pagination'),
-            'wrapper' => array('aria-label' => 'Page navigation'),
-            'prev_label' => 'Prev',
-            'next_label' => 'Next',
+        $dConfig = [
+            'route'        => $this->core->get('ALIAS'),
+            'route_data'   => $this->core->get('PARAMS'),
+            'route_query'  => $this->core->get('GET') ?: [],
+            'page_query'   => 'page',
+            'adjacent'     => 2,
+            'parent'       => ['class' => 'pagination'],
+            'wrapper'      => ['aria-label' => 'Page navigation'],
+            'prev_label'   => 'Prev',
+            'next_label'   => 'Next',
             'active_class' => 'active',
-        );
+        ];
         $mConfig = ((array) $config) + $dConfig;
         $urlPage = function ($page) use ($mConfig) {
-            $query = array($mConfig['page_query'] => $page) + $mConfig['route_query'];
+            $query = [$mConfig['page_query'] => $page] + $mConfig['route_query'];
 
             return $this->core->path($mConfig['route'], $mConfig['route_data'], $query);
         };
@@ -190,46 +188,46 @@ class Html
         $adjacent = $mConfig['adjacent'];
         $rangeStart = $page <= $adjacent ? 1 : $page - $adjacent;
         $rangeEnd = $page > $max - $adjacent ? $max : $page + $adjacent;
-        $aClass = array(null, $mConfig['active_class']);
+        $aClass = [null, $mConfig['active_class']];
         $lists = '';
 
         if ($rangeStart > 1) {
-            $lists .= $child($mConfig['prev_label'], array(
+            $lists .= $child($mConfig['prev_label'], [
                 'href' => $urlPage($page - 1),
-            ));
-            $lists .= $child(1, array(
+            ]);
+            $lists .= $child(1, [
                 'href' => $urlPage(1),
-            ));
+            ]);
         }
 
         if ($rangeStart > 2) {
-            $lists .= $child('&hellip;', null, array(
+            $lists .= $child('&hellip;', null, [
                 'class' => 'gap',
-            ), 'span');
+            ], 'span');
         }
 
-        for ($i = $rangeStart; $i <= $rangeEnd; ++$i) {
+        for ($i = $rangeStart; $i <= $rangeEnd; $i++) {
             $active = (int) ($i === $page);
-            $lists .= $child($i, array(
+            $lists .= $child($i, [
                 'href' => $urlPage($i),
-            ), array(
+            ], [
                 'class' => $aClass[$active],
-            ));
+            ]);
         }
 
         if ($rangeEnd < $max - 1) {
-            $lists .= $child('&hellip;', null, array(
+            $lists .= $child('&hellip;', null, [
                 'class' => 'gap',
-            ), 'span');
+            ], 'span');
         }
 
         if ($rangeEnd < $max) {
-            $lists .= $child($max, array(
+            $lists .= $child($max, [
                 'href' => $urlPage($max),
-            ));
-            $lists .= $child($mConfig['next_label'], array(
+            ]);
+            $lists .= $child($mConfig['next_label'], [
                 'href' => $urlPage($page + 1),
-            ));
+            ]);
         }
 
         $pagination = $this->tag('ul', $mConfig['parent'], true, $lists);

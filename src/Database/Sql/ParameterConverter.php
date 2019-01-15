@@ -1,14 +1,12 @@
 <?php
 
-/**
+/*
  * This file is part of the eghojansu/stick library.
  *
- * (c) Eko Kurniawan <ekokurniawanbs@gmail.com>
+ *  (c) Eko Kurniawan <ekokurniawanbs@gmail.com>
  *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- *
- * Created at Jan 15, 2019 11:17
+ *  For the full copyright and license information, please view the LICENSE
+ *  file that was distributed with this source code.
  */
 
 namespace Fal\Stick\Database\Sql;
@@ -49,7 +47,7 @@ class ParameterConverter
     /**
      * @var array
      */
-    protected $resolved = array();
+    protected $resolved = [];
 
     /**
      * @var int
@@ -108,7 +106,7 @@ class ParameterConverter
                 $this->resolved[$name] = $this->resolveMapper($class);
             } else {
                 $this->resolved[$name] = $this->params[$name];
-                ++$this->ptr;
+                $this->ptr++;
             }
         }
 
@@ -120,9 +118,9 @@ class ParameterConverter
      *
      * @param string $class
      *
-     * @return Mapper
-     *
      * @throws HttpException if record not found
+     *
+     * @return Mapper
      */
     protected function resolveMapper($class)
     {
@@ -152,7 +150,7 @@ class ParameterConverter
     protected function findMappers($handler)
     {
         $ref = is_array($handler) ? new \ReflectionMethod($handler[0], $handler[1]) : new \ReflectionFunction($handler);
-        $mappers = array();
+        $mappers = [];
 
         foreach ($ref->getParameters() as $param) {
             $class = $param->getClass();

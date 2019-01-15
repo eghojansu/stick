@@ -1,14 +1,12 @@
 <?php
 
-/**
+/*
  * This file is part of the eghojansu/stick library.
  *
- * (c) Eko Kurniawan <ekokurniawanbs@gmail.com>
+ *  (c) Eko Kurniawan <ekokurniawanbs@gmail.com>
  *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- *
- * Created at Jan 13, 2019 02:04
+ *  For the full copyright and license information, please view the LICENSE
+ *  file that was distributed with this source code.
  */
 
 namespace Fal\Stick\Test\Util;
@@ -41,7 +39,7 @@ class WebTest extends TestCase
 
     public function testAddDiacritics()
     {
-        $this->assertContains('bar', $this->web->addDiacritics(array('foo' => 'bar'))->getDiacritics());
+        $this->assertContains('bar', $this->web->addDiacritics(['foo' => 'bar'])->getDiacritics());
     }
 
     public function testSlug()
@@ -70,15 +68,15 @@ class WebTest extends TestCase
 
     public function testReceive()
     {
-        $this->core->set('FILES', array(
-            'foo' => array(
-                'name' => array('foo.txt', 'bar.txt'),
-                'type' => array('text/plain', null),
-                'size' => array(3, 0, 0),
-                'tmp_name' => array(TEST_TEMP.'/test-uploads/foo.txt', null),
-                'error' => array(UPLOAD_ERR_OK, UPLOAD_ERR_NO_FILE),
-            ),
-        ));
+        $this->core->set('FILES', [
+            'foo' => [
+                'name'     => ['foo.txt', 'bar.txt'],
+                'type'     => ['text/plain', null],
+                'size'     => [3, 0, 0],
+                'tmp_name' => [TEST_TEMP.'/test-uploads/foo.txt', null],
+                'error'    => [UPLOAD_ERR_OK, UPLOAD_ERR_NO_FILE],
+            ],
+        ]);
 
         if (!is_dir(TEST_TEMP.'/test-uploads')) {
             mkdir(TEST_TEMP.'/test-uploads');
@@ -87,10 +85,10 @@ class WebTest extends TestCase
         file_put_contents(TEST_TEMP.'/test-uploads/foo.txt', 'foo');
 
         $dir = TEST_TEMP.'/uploaded/';
-        $expected = array(
+        $expected = [
             TEST_TEMP.'/uploaded/foo.txt' => true,
             TEST_TEMP.'/uploaded/bar.txt' => false,
-        );
+        ];
 
         $this->assertEquals($expected, $this->web->receive($dir, false, null, null, true));
         $this->assertEquals('foo', file_get_contents(TEST_TEMP.'/uploaded/foo.txt'));
@@ -106,7 +104,7 @@ class WebTest extends TestCase
         $this->core->set('CONTENT', $content);
         $this->core->set('VERB', 'PUT');
 
-        $this->assertEquals(array($file => $expected), $this->web->receive($dir, false, $handler, null, true));
+        $this->assertEquals([$file => $expected], $this->web->receive($dir, false, $handler, null, true));
 
         if ($expected) {
             $this->assertEquals($content, file_get_contents($file));
@@ -115,50 +113,50 @@ class WebTest extends TestCase
 
     public function sendProvider()
     {
-        return array(
-            array(
+        return [
+            [
                 -1,
                 null,
                 '',
                 TEST_FIXTURE.'/files/unknown.txt',
-            ),
-            array(
+            ],
+            [
                 3128,
-                array(
-                    'Content-Type' => 'text/plain',
+                [
+                    'Content-Type'        => 'text/plain',
                     'Content-Disposition' => 'attachment; filename="long.txt"',
-                    'Accept-Ranges' => 'bytes',
-                    'Content-Length' => 3128,
-                ),
+                    'Accept-Ranges'       => 'bytes',
+                    'Content-Length'      => 3128,
+                ],
                 file_get_contents(TEST_FIXTURE.'/files/long.txt'),
                 TEST_FIXTURE.'/files/long.txt',
-            ),
-            array(
+            ],
+            [
                 3128,
-                array(
-                    'Content-Type' => 'text/plain',
+                [
+                    'Content-Type'        => 'text/plain',
                     'Content-Disposition' => 'attachment; filename="long.txt"',
-                    'Accept-Ranges' => 'bytes',
-                    'Content-Length' => 3128,
-                ),
+                    'Accept-Ranges'       => 'bytes',
+                    'Content-Length'      => 3128,
+                ],
                 file_get_contents(TEST_FIXTURE.'/files/long.txt'),
                 TEST_FIXTURE.'/files/long.txt',
                 1024,
-            ),
-        );
+            ],
+        ];
     }
 
     public function receivePutFilesProvider()
     {
-        return array(
-            array(
+        return [
+            [
                 true,
                 TEST_TEMP.'/uploaded/foo.txt',
                 '/upload/foo.txt',
                 'foo',
                 TEST_TEMP.'/uploaded/',
-            ),
-            array(
+            ],
+            [
                 true,
                 TEST_TEMP.'/uploaded/foo.txt',
                 '/upload/foo.txt',
@@ -167,7 +165,7 @@ class WebTest extends TestCase
                 function ($file) {
                     return file_put_contents($file['name'], $file['name']);
                 },
-            ),
-        );
+            ],
+        ];
     }
 }

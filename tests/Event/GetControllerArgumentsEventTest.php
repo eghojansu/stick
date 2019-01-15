@@ -1,21 +1,19 @@
 <?php
 
-/**
+/*
  * This file is part of the eghojansu/stick library.
  *
- * (c) Eko Kurniawan <ekokurniawanbs@gmail.com>
+ *  (c) Eko Kurniawan <ekokurniawanbs@gmail.com>
  *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- *
- * Created at Jan 10, 2019 19:48
+ *  For the full copyright and license information, please view the LICENSE
+ *  file that was distributed with this source code.
  */
 
 namespace Fal\Stick\Test\Event;
 
 use Fal\Stick\Core;
-use PHPUnit\Framework\TestCase;
 use Fal\Stick\Event\GetControllerArgumentsEvent;
+use PHPUnit\Framework\TestCase;
 
 class GetControllerArgumentsEventTest extends TestCase
 {
@@ -23,7 +21,8 @@ class GetControllerArgumentsEventTest extends TestCase
 
     public function setup()
     {
-        $this->event = new GetControllerArgumentsEvent(new Core(), function () {}, array('foo'));
+        $this->event = new GetControllerArgumentsEvent(new Core(), function () {
+        }, ['foo']);
     }
 
     public function testGetCore()
@@ -33,21 +32,26 @@ class GetControllerArgumentsEventTest extends TestCase
 
     public function testGetController()
     {
-        $this->assertEquals(function () {}, $this->event->getController());
+        $this->assertEquals(function () {
+        }, $this->event->getController());
     }
 
     public function testSetController()
     {
-        $this->assertEquals(function () { return 'foo'; }, $this->event->setController(function () { return 'foo'; })->getController());
+        $this->assertEquals(function () {
+            return 'foo';
+        }, $this->event->setController(function () {
+            return 'foo';
+        })->getController());
     }
 
     public function testGetArguments()
     {
-        $this->assertEquals(array('foo'), $this->event->getArguments());
+        $this->assertEquals(['foo'], $this->event->getArguments());
     }
 
     public function testSetArguments()
     {
-        $this->assertEquals(array('foobar'), $this->event->setArguments(array('foobar'))->getArguments());
+        $this->assertEquals(['foobar'], $this->event->setArguments(['foobar'])->getArguments());
     }
 }

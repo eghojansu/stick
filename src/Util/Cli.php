@@ -1,14 +1,12 @@
 <?php
 
-/**
+/*
  * This file is part of the eghojansu/stick library.
  *
- * (c) Eko Kurniawan <ekokurniawanbs@gmail.com>
+ *  (c) Eko Kurniawan <ekokurniawanbs@gmail.com>
  *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- *
- * Created at Jan 12, 2019 23:51
+ *  For the full copyright and license information, please view the LICENSE
+ *  file that was distributed with this source code.
  */
 
 namespace Fal\Stick\Util;
@@ -23,53 +21,53 @@ class Cli
     /**
      * @var array
      */
-    protected static $availableForegroundColors = array(
-        'black' => array('set' => 30, 'unset' => 39),
-        'red' => array('set' => 31, 'unset' => 39),
-        'green' => array('set' => 32, 'unset' => 39),
-        'yellow' => array('set' => 33, 'unset' => 39),
-        'blue' => array('set' => 34, 'unset' => 39),
-        'magenta' => array('set' => 35, 'unset' => 39),
-        'cyan' => array('set' => 36, 'unset' => 39),
-        'white' => array('set' => 37, 'unset' => 39),
-        'default' => array('set' => 39, 'unset' => 39),
-    );
+    protected static $availableForegroundColors = [
+        'black'   => ['set' => 30, 'unset' => 39],
+        'red'     => ['set' => 31, 'unset' => 39],
+        'green'   => ['set' => 32, 'unset' => 39],
+        'yellow'  => ['set' => 33, 'unset' => 39],
+        'blue'    => ['set' => 34, 'unset' => 39],
+        'magenta' => ['set' => 35, 'unset' => 39],
+        'cyan'    => ['set' => 36, 'unset' => 39],
+        'white'   => ['set' => 37, 'unset' => 39],
+        'default' => ['set' => 39, 'unset' => 39],
+    ];
 
     /**
      * @var array
      */
-    protected static $availableBackgroundColors = array(
-        'black' => array('set' => 40, 'unset' => 49),
-        'red' => array('set' => 41, 'unset' => 49),
-        'green' => array('set' => 42, 'unset' => 49),
-        'yellow' => array('set' => 43, 'unset' => 49),
-        'blue' => array('set' => 44, 'unset' => 49),
-        'magenta' => array('set' => 45, 'unset' => 49),
-        'cyan' => array('set' => 46, 'unset' => 49),
-        'white' => array('set' => 47, 'unset' => 49),
-        'default' => array('set' => 49, 'unset' => 49),
-    );
+    protected static $availableBackgroundColors = [
+        'black'   => ['set' => 40, 'unset' => 49],
+        'red'     => ['set' => 41, 'unset' => 49],
+        'green'   => ['set' => 42, 'unset' => 49],
+        'yellow'  => ['set' => 43, 'unset' => 49],
+        'blue'    => ['set' => 44, 'unset' => 49],
+        'magenta' => ['set' => 45, 'unset' => 49],
+        'cyan'    => ['set' => 46, 'unset' => 49],
+        'white'   => ['set' => 47, 'unset' => 49],
+        'default' => ['set' => 49, 'unset' => 49],
+    ];
 
     /**
      * @var array
      */
-    protected static $availableOptions = array(
-        'bold' => array('set' => 1, 'unset' => 22),
-        'underscore' => array('set' => 4, 'unset' => 24),
-        'blink' => array('set' => 5, 'unset' => 25),
-        'reverse' => array('set' => 7, 'unset' => 27),
-        'conceal' => array('set' => 8, 'unset' => 28),
-    );
+    protected static $availableOptions = [
+        'bold'       => ['set' => 1, 'unset' => 22],
+        'underscore' => ['set' => 4, 'unset' => 24],
+        'blink'      => ['set' => 5, 'unset' => 25],
+        'reverse'    => ['set' => 7, 'unset' => 27],
+        'conceal'    => ['set' => 8, 'unset' => 28],
+    ];
 
     /**
      * @var array
      */
-    protected $styles = array(
-        'error' => array('white', 'red', null),
-        'info' => array('green', null, null),
-        'comment' => array('yellow', null, null),
-        'question' => array('black', 'cyan', null),
-    );
+    protected $styles = [
+        'error'    => ['white', 'red', null],
+        'info'     => ['green', null, null],
+        'comment'  => ['yellow', null, null],
+        'question' => ['black', 'cyan', null],
+    ];
 
     /**
      * Get style definition.
@@ -95,11 +93,11 @@ class Cli
      */
     public function addStyle($name, $foreground = null, $background = null, array $options = null)
     {
-        $style = array(
+        $style = [
             isset(static::$availableForegroundColors[$foreground]) ? $foreground : null,
             isset(static::$availableBackgroundColors[$background]) ? $background : null,
             null,
-        );
+        ];
 
         foreach ((array) $options as $option) {
             if (isset(static::$availableOptions[$option])) {
@@ -162,7 +160,7 @@ class Cli
                 continue;
             }
 
-            list($closeTag, $closePosition) = isset($matches[0][$key + 1]) ? $matches[0][$key + 1] : array('</>', $length);
+            list($closeTag, $closePosition) = isset($matches[0][$key + 1]) ? $matches[0][$key + 1] : ['</>', $length];
 
             $tmp = substr($message, $offset, $position - $offset);
             $output .= $tmp;
@@ -208,14 +206,14 @@ class Cli
         $foregroundColor = isset(static::$availableForegroundColors[$foreground]) ? static::$availableForegroundColors[$foreground] : null;
         $backgroundColor = isset(static::$availableBackgroundColors[$background]) ? static::$availableBackgroundColors[$background] : null;
 
-        $setCodes = array(
+        $setCodes = [
             isset($foregroundColor['set']) ? $foregroundColor['set'] : null,
             isset($backgroundColor['set']) ? $backgroundColor['set'] : null,
-        );
-        $unsetCodes = array(
+        ];
+        $unsetCodes = [
             isset($foregroundColor['unset']) ? $foregroundColor['unset'] : null,
             isset($backgroundColor['unset']) ? $backgroundColor['unset'] : null,
-        );
+        ];
 
         foreach ((array) $options as $option) {
             $color = isset(static::$availableOptions[$option]) ? static::$availableOptions[$option] : null;

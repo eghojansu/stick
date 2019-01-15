@@ -1,24 +1,22 @@
 <?php
 
-/**
+/*
  * This file is part of the eghojansu/stick library.
  *
- * (c) Eko Kurniawan <ekokurniawanbs@gmail.com>
+ *  (c) Eko Kurniawan <ekokurniawanbs@gmail.com>
  *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- *
- * Created at Jan 14, 2019 09:52
+ *  For the full copyright and license information, please view the LICENSE
+ *  file that was distributed with this source code.
  */
 
 namespace Fal\Stick\Test\Security;
 
 use Fal\Stick\Core;
-use Fixture\SimpleUser;
 use Fal\Stick\Security\Auth;
-use PHPUnit\Framework\TestCase;
 use Fal\Stick\Security\InMemoryUserProvider;
 use Fal\Stick\Security\PlainPasswordEncoder;
+use Fixture\SimpleUser;
+use PHPUnit\Framework\TestCase;
 
 class AuthTest extends TestCase
 {
@@ -42,29 +40,29 @@ class AuthTest extends TestCase
 
     public function testGetOptions()
     {
-        $this->assertEquals(array(
-            'excludes' => array(),
-            'logout' => array(),
-            'rules' => array(),
-            'roleHierarchy' => array(),
-            'lifetime' => 1541932314,
-        ), $this->auth->getOptions());
+        $this->assertEquals([
+            'excludes'      => [],
+            'logout'        => [],
+            'rules'         => [],
+            'roleHierarchy' => [],
+            'lifetime'      => 1541932314,
+        ], $this->auth->getOptions());
     }
 
     public function testSetOptions()
     {
-        $this->auth->setOptions(array(
+        $this->auth->setOptions([
             'excludes' => '/foo',
             'lifetime' => null,
-        ));
+        ]);
 
-        $this->assertEquals(array(
-            'excludes' => array('/foo'),
-            'logout' => array(),
-            'rules' => array(),
-            'roleHierarchy' => array(),
-            'lifetime' => 1541932314,
-        ), $this->auth->getOptions());
+        $this->assertEquals([
+            'excludes'      => ['/foo'],
+            'logout'        => [],
+            'rules'         => [],
+            'roleHierarchy' => [],
+            'lifetime'      => 1541932314,
+        ], $this->auth->getOptions());
     }
 
     public function testGetCookieUserId()
@@ -114,18 +112,18 @@ class AuthTest extends TestCase
             return 'Login';
         });
 
-        $this->auth->setOptions(array(
-            'rules' => array(
-                '/admin-area' => array(
+        $this->auth->setOptions([
+            'rules' => [
+                '/admin-area' => [
                     'roles' => 'ROLE_ADMIN',
-                    'home' => '/admin-area',
-                ),
-            ),
-            'logout' => array(
+                    'home'  => '/admin-area',
+                ],
+            ],
+            'logout' => [
                 '/logout' => '/login',
-            ),
+            ],
             'excludes' => '/exclude',
-        ));
+        ]);
         $this->auth->setUser($user);
 
         $this->assertEquals($expectedBool, $this->auth->guard());
@@ -137,12 +135,12 @@ class AuthTest extends TestCase
      */
     public function testIsGranted($expected, $user, $roles)
     {
-        $this->auth->setOptions(array(
-            'roleHierarchy' => array(
-                'ROLE_ADMIN' => 'ROLE_USER',
-                'ROLE_SUPER_ADMIN' => array('ROLE_ADMIN', 'ROLE_FOO'),
-            ),
-        ));
+        $this->auth->setOptions([
+            'roleHierarchy' => [
+                'ROLE_ADMIN'       => 'ROLE_USER',
+                'ROLE_SUPER_ADMIN' => ['ROLE_ADMIN', 'ROLE_FOO'],
+            ],
+        ]);
         $this->auth->setUser($user);
 
         $this->assertEquals($expected, $this->auth->isGranted($roles));
@@ -196,10 +194,10 @@ class AuthTest extends TestCase
 
     public function testGetUserRoles()
     {
-        $this->assertEquals(array('IS_AUTHENTICATED_ANONYMOUSLY'), $this->auth->getUserRoles());
+        $this->assertEquals(['IS_AUTHENTICATED_ANONYMOUSLY'], $this->auth->getUserRoles());
         $this->auth->logout();
 
-        $expected = array('IS_AUTHENTICATED_ANONYMOUSLY', 'foo');
+        $expected = ['IS_AUTHENTICATED_ANONYMOUSLY', 'foo'];
         $this->auth->setUser($this->createUser('foo'));
         $this->assertEquals($expected, $this->auth->getUserRoles());
     }
@@ -208,47 +206,47 @@ class AuthTest extends TestCase
     {
         $admin = $this->createUser('ROLE_ADMIN');
 
-        return array(
+        return [
             // Not login yet, trying access admin area
-            array('/admin-area', null, 'Login', true),
+            ['/admin-area', null, 'Login', true],
             // Has been login, access admin area
-            array('/admin-area', $admin, null, false),
+            ['/admin-area', $admin, null, false],
             // Has been login, access login page
-            array('/login', $admin, 'Admin Area', true),
+            ['/login', $admin, 'Admin Area', true],
             // Not login yet, access login page
-            array('/login', null, null, false),
+            ['/login', null, null, false],
             // Has been login, access logout
-            array('/logout', $admin, 'Login', true),
+            ['/logout', $admin, 'Login', true],
             // Access excluded path
-            array('/exclude', null, null, false),
-        );
+            ['/exclude', null, null, false],
+        ];
     }
 
     public function isGrantedProvider()
     {
-        return array(
-            array(false, $this->createUser(), 'ROLE_USER'),
-            array(false, $this->createUser(), null),
-            array(false, null, 'ROLE_USER'),
-            array(true, $this->createUser('ROLE_USER'), 'ROLE_USER'),
-            array(true, $this->createUser('ROLE_ADMIN'), 'ROLE_USER|ROLE_ADMIN'),
-            array(true, $this->createUser('ROLE_SUPER_ADMIN'), 'ROLE_FOO|ROLE_USER|ROLE_ADMIN|ROLE_SUPER_ADMIN'),
-            array(true, $this->createUser('ROLE_SUPER_ADMIN'), 'ROLE_FOO'),
-            array(true, $this->createUser('ROLE_SUPER_ADMIN'), 'ROLE_USER'),
-            array(true, $this->createUser('ROLE_SUPER_ADMIN'), 'ROLE_ADMIN'),
-            array(true, $this->createUser('ROLE_SUPER_ADMIN'), 'ROLE_SUPER_ADMIN'),
-            array(true, $this->createUser('ROLE_FOO'), 'ROLE_FOO'),
-            array(true, $this->createUser('ROLE_USER|ROLE_FOO'), 'ROLE_FOO'),
-        );
+        return [
+            [false, $this->createUser(), 'ROLE_USER'],
+            [false, $this->createUser(), null],
+            [false, null, 'ROLE_USER'],
+            [true, $this->createUser('ROLE_USER'), 'ROLE_USER'],
+            [true, $this->createUser('ROLE_ADMIN'), 'ROLE_USER|ROLE_ADMIN'],
+            [true, $this->createUser('ROLE_SUPER_ADMIN'), 'ROLE_FOO|ROLE_USER|ROLE_ADMIN|ROLE_SUPER_ADMIN'],
+            [true, $this->createUser('ROLE_SUPER_ADMIN'), 'ROLE_FOO'],
+            [true, $this->createUser('ROLE_SUPER_ADMIN'), 'ROLE_USER'],
+            [true, $this->createUser('ROLE_SUPER_ADMIN'), 'ROLE_ADMIN'],
+            [true, $this->createUser('ROLE_SUPER_ADMIN'), 'ROLE_SUPER_ADMIN'],
+            [true, $this->createUser('ROLE_FOO'), 'ROLE_FOO'],
+            [true, $this->createUser('ROLE_USER|ROLE_FOO'), 'ROLE_FOO'],
+        ];
     }
 
     public function attemptProvider()
     {
-        return array(
-            array(true, 'foo', 'bar'),
-            array(false, 'bar', 'baz', 'Your credentials is expired.'),
-            array(false, 'foo', 'baz', 'Invalid credentials.'),
-        );
+        return [
+            [true, 'foo', 'bar'],
+            [false, 'bar', 'baz', 'Your credentials is expired.'],
+            [false, 'foo', 'baz', 'Invalid credentials.'],
+        ];
     }
 
     private function createUser($roles = null, $expired = false)

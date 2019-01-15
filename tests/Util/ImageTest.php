@@ -1,14 +1,12 @@
 <?php
 
-/**
+/*
  * This file is part of the eghojansu/stick library.
  *
- * (c) Eko Kurniawan <ekokurniawanbs@gmail.com>
+ *  (c) Eko Kurniawan <ekokurniawanbs@gmail.com>
  *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- *
- * Created at Jan 13, 2019 00:58
+ *  For the full copyright and license information, please view the LICENSE
+ *  file that was distributed with this source code.
  */
 
 namespace Fal\Stick\Test\Util;
@@ -149,10 +147,10 @@ class ImageTest extends TestCase
         $this->image->loadFile(TEST_FIXTURE.'/images/original.png');
         $this->image->render();
 
-        $expected = array(
-            'Content-Type' => 'image/png',
+        $expected = [
+            'Content-Type'   => 'image/png',
             'Content-Length' => 9853,
-        );
+        ];
         $actual = $this->core->get('RESPONSE');
 
         $this->assertEquals($expected, $actual);
@@ -382,33 +380,33 @@ class ImageTest extends TestCase
 
     public function rgbProvider()
     {
-        return array(
-            array(array(0, 0, 0), '000000'),
-            array(array(255, 0, 0), 'FF0000'),
-            array(array(255, 0, 0), 'F00'),
-            array('Invalid color specified: 0xff00000', 'FF00000', 'LogicException'),
-        );
+        return [
+            [[0, 0, 0], '000000'],
+            [[255, 0, 0], 'FF0000'],
+            [[255, 0, 0], 'F00'],
+            ['Invalid color specified: 0xff00000', 'FF00000', 'LogicException'],
+        ];
     }
 
     public function resizeProvider()
     {
-        return array(
-            array('original'),
-            array('resize-50-40', 50, 40),
-            array('resize-width', 50, null),
-            array('resize-height', null, 40),
-            array('resize-100-100', 100, 100, false),
-            array('resize-10-5-nocrop-noenlarge', 10, 5, false, false),
-        );
+        return [
+            ['original'],
+            ['resize-50-40', 50, 40],
+            ['resize-width', 50, null],
+            ['resize-height', null, 40],
+            ['resize-100-100', 100, 100, false],
+            ['resize-10-5-nocrop-noenlarge', 10, 5, false, false],
+        ];
     }
 
     public function overlayProvider()
     {
-        return array(
-            array('overlay'),
-            array('overlay-alpha50', null, 50),
-            array('overlay-x10-y10', array(10, 10)),
-            array('overlay-left-center-top-middle', 1 | 2 | 8 | 16),
-        );
+        return [
+            ['overlay'],
+            ['overlay-alpha50', null, 50],
+            ['overlay-x10-y10', [10, 10]],
+            ['overlay-left-center-top-middle', 1 | 2 | 8 | 16],
+        ];
     }
 }

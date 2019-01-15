@@ -1,14 +1,12 @@
 <?php
 
-/**
+/*
  * This file is part of the eghojansu/stick library.
  *
- * (c) Eko Kurniawan <ekokurniawanbs@gmail.com>
+ *  (c) Eko Kurniawan <ekokurniawanbs@gmail.com>
  *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- *
- * Created at Jan 14, 2019 19:50
+ *  For the full copyright and license information, please view the LICENSE
+ *  file that was distributed with this source code.
  */
 
 namespace Fal\Stick\Form;
@@ -25,7 +23,7 @@ class Twbs4Form extends Twbs3Form
      */
     public function addField($name, $type = null, array $options = null, array $attr = null)
     {
-        if (!isset($attr['class']) && (!$type || !in_array($type, array('radio', 'checkbox', 'hidden', 'choice')) || ('choice' === $type && !isset($options['expanded'])))) {
+        if (!isset($attr['class']) && (!$type || !in_array($type, ['radio', 'checkbox', 'hidden', 'choice']) || ('choice' === $type && !isset($options['expanded'])))) {
             $attr['class'] = 'form-control';
         }
 
@@ -73,18 +71,18 @@ class Twbs4Form extends Twbs3Form
                 PHP_EOL;
         }
 
-        $errorAttr = array('class' => 'invalid-feedback');
+        $errorAttr = ['class' => 'invalid-feedback'];
         $errors = isset($this->_errors[$name]) ? $this->_html->tag('div', $errorAttr, true, implode(', ', $this->_errors[$name])) : '';
         $wrapperClass = 'form-group row';
 
-        if (in_array($type, array('checkbox', 'radio'))) {
+        if (in_array($type, ['checkbox', 'radio'])) {
             return
                 '<div class="'.$wrapperClass.'"><div class="ml-auto '.$this->_options['right'].'">'.
                 $input.$errors.
                 '</div></div>'.PHP_EOL;
         }
 
-        $labelAttr = $options['label_attr'] + array('class' => 'col-form-label '.$this->_options['left']);
+        $labelAttr = $options['label_attr'] + ['class' => 'col-form-label '.$this->_options['left']];
         $label = $this->_html->tag('label', $labelAttr, true, $options['label']);
 
         return
@@ -101,13 +99,13 @@ class Twbs4Form extends Twbs3Form
      */
     protected function inputRadio($field, $value, array $attr, array $options)
     {
-        $wrapperAttr = isset($options['wrapper_attr']) ? $options['wrapper_attr'] : array();
-        $wrapperDefault = array('class' => 'form-check');
-        $labelAttr = array('class' => 'form-check-label', 'for' => $attr['id']);
+        $wrapperAttr = isset($options['wrapper_attr']) ? $options['wrapper_attr'] : [];
+        $wrapperDefault = ['class' => 'form-check'];
+        $labelAttr = ['class' => 'form-check-label', 'for' => $attr['id']];
         $attr['class'] = 'form-check-input'.$this->validationClass($field);
         $attr['type'] = 'radio';
 
-        $add = array();
+        $add = [];
         $value = array_key_exists('value', $attr) ? $attr['value'] : null;
 
         if (!array_key_exists('checked', $attr)) {
@@ -127,13 +125,13 @@ class Twbs4Form extends Twbs3Form
      */
     protected function inputCheckbox($field, $value, array $attr, array $options)
     {
-        $wrapperAttr = isset($options['wrapper_attr']) ? $options['wrapper_attr'] : array();
-        $wrapperDefault = array('class' => 'form-check');
-        $labelAttr = array('class' => 'form-check-label', 'for' => $attr['id']);
+        $wrapperAttr = isset($options['wrapper_attr']) ? $options['wrapper_attr'] : [];
+        $wrapperDefault = ['class' => 'form-check'];
+        $labelAttr = ['class' => 'form-check-label', 'for' => $attr['id']];
         $attr['class'] = 'form-check-input'.$this->validationClass($field);
         $attr['type'] = 'checkbox';
 
-        $add = array();
+        $add = [];
         $value = array_key_exists('value', $attr) ? $attr['value'] : null;
 
         if (!array_key_exists('checked', $attr)) {

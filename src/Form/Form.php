@@ -1,14 +1,12 @@
 <?php
 
-/**
+/*
  * This file is part of the eghojansu/stick library.
  *
- * (c) Eko Kurniawan <ekokurniawanbs@gmail.com>
+ *  (c) Eko Kurniawan <ekokurniawanbs@gmail.com>
  *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- *
- * Created at Jan 14, 2019 10:32
+ *  For the full copyright and license information, please view the LICENSE
+ *  file that was distributed with this source code.
  */
 
 namespace Fal\Stick\Form;
@@ -105,28 +103,28 @@ class Form
     /**
      * @var array
      */
-    protected $_options = array();
+    protected $_options = [];
 
     /**
      * Form fields.
      *
      * @var array
      */
-    protected $_fields = array();
+    protected $_fields = [];
 
     /**
      * Form buttons.
      *
      * @var array
      */
-    protected $_buttons = array();
+    protected $_buttons = [];
 
     /**
      * Form errors.
      *
      * @var array
      */
-    protected $_errors = array();
+    protected $_errors = [];
 
     /**
      * Class constructor.
@@ -358,26 +356,26 @@ class Form
         }
 
         if (!isset($options['messages'])) {
-            $options['messages'] = array();
+            $options['messages'] = [];
         }
 
-        if (!isset($attr['placeholder']) && !in_array($type, array('choice', 'radio', 'checkbox', 'hidden'))) {
+        if (!isset($attr['placeholder']) && !in_array($type, ['choice', 'radio', 'checkbox', 'hidden'])) {
             $attr['placeholder'] = $options['label'];
         }
 
-        if ($type && in_array($type, array('choice', 'textarea'))) {
+        if ($type && in_array($type, ['choice', 'textarea'])) {
             unset($attr['type']);
         }
 
-        $this->_fields[$name] = array(
-            'type' => $type ?: 'text',
-            'options' => $options + array(
-                'transformer' => null,
+        $this->_fields[$name] = [
+            'type'    => $type ?: 'text',
+            'options' => $options + [
+                'transformer'         => null,
                 'reverse_transformer' => null,
-            ),
-            'attr' => $attr,
+            ],
+            'attr'     => $attr,
             'rendered' => false,
-        );
+        ];
 
         return $this;
     }
@@ -400,11 +398,11 @@ class Form
             $attr['id'] = $this->fixId($attr['name']);
         }
 
-        $this->_buttons[$name] = array(
-            'type' => $type ?: 'button',
-            'attr' => $attr,
+        $this->_buttons[$name] = [
+            'type'  => $type ?: 'button',
+            'attr'  => $attr,
             'label' => $label ?: $this->label($name),
-        );
+        ];
 
         return $this;
     }
@@ -448,7 +446,7 @@ class Form
      */
     public function isSubmitted()
     {
-        $this->_submittedData = (array) $this->_core->get($this->_key.'.'.$this->_name) + array('_form' => null);
+        $this->_submittedData = (array) $this->_core->get($this->_key.'.'.$this->_name) + ['_form' => null];
         $this->_submitted = $this->_verb === $this->_core->get('VERB') && $this->_submittedData['_form'] === $this->_name;
         $this->reverseTransformData();
 
@@ -458,9 +456,9 @@ class Form
     /**
      * Returns true if validation success.
      *
-     * @return bool
-     *
      * @throws LogicException if form is not submitted yet
+     *
+     * @return bool
      */
     public function valid()
     {
@@ -490,20 +488,20 @@ class Form
      */
     public function open(array $attr = null, $multipart = false)
     {
-        $default = array(
+        $default = [
             'enctype' => $multipart ? 'multipart/form-data' : null,
-        );
+        ];
 
         $attr['name'] = $this->_name;
         $attr['method'] = $this->_verb;
 
         return
             $this->_html->tag('form', $attr + $default).PHP_EOL.
-            $this->_html->tag('input', array(
-                'type' => 'hidden',
-                'name' => $this->formName('_form'),
+            $this->_html->tag('input', [
+                'type'  => 'hidden',
+                'name'  => $this->formName('_form'),
                 'value' => $this->_name,
-            ));
+            ]);
     }
 
     /**
@@ -522,9 +520,9 @@ class Form
      * @param string     $name
      * @param array|null $overrideAttr
      *
-     * @return string
-     *
      * @throws LogicException if field not exists
+     *
+     * @return string
      */
     public function row($name, array $overrideAttr = null)
     {
@@ -631,7 +629,7 @@ class Form
 
         $errors = isset($this->_errors[$name]) ? $this->_html->tag('div', null, true, implode(', ', $this->_errors[$name])) : '';
 
-        if (in_array($type, array('checkbox', 'radio'))) {
+        if (in_array($type, ['checkbox', 'radio'])) {
             return '<div>'.$input.$errors.'</div>'.PHP_EOL;
         }
 
@@ -657,11 +655,11 @@ class Form
     protected function inputButton($label, $name, array $attr, $type = 'button')
     {
         $tag = 'button';
-        $add = array();
+        $add = [];
 
         if ('link' === $type) {
             $tag = 'a';
-            $add = array('href' => '#');
+            $add = ['href' => '#'];
         }
 
         return $this->_html->tag($tag, $attr + $add, true, $label);
@@ -679,7 +677,7 @@ class Form
      */
     protected function inputInput($field, $value, array $attr, array $options)
     {
-        $add = array('value' => $value);
+        $add = ['value' => $value];
 
         return $this->_html->tag('input', $attr + $add);
     }
@@ -696,7 +694,7 @@ class Form
      */
     protected function inputPassword($field, $value, array $attr, array $options)
     {
-        $add = array('value' => null);
+        $add = ['value' => null];
 
         return $this->inputInput($field, $value, $add + $attr, $options);
     }
@@ -713,7 +711,7 @@ class Form
      */
     protected function inputCheckbox($field, $value, array $attr, array $options)
     {
-        $add = array();
+        $add = [];
         $attr['type'] = 'checkbox';
         $value = array_key_exists('value', $attr) ? $attr['value'] : null;
 
@@ -740,7 +738,7 @@ class Form
      */
     protected function inputRadio($field, $value, array $attr, array $options)
     {
-        $add = array();
+        $add = [];
         $attr['type'] = 'radio';
         $value = array_key_exists('value', $attr) ? $attr['value'] : null;
 
@@ -778,25 +776,25 @@ class Form
      * @param array  $attr
      * @param array  $options
      *
-     * @return string
-     *
      * @throws LogicException if the returned items callable is not an array
+     *
+     * @return string
      */
     protected function inputChoice($field, $value, array $attr, array $options)
     {
-        $options += array(
-            'item_attr' => array(),
-            'wrapper_attr' => array(),
-            'items' => array(),
-            'multiple' => false,
-            'expanded' => false,
-            'placeholder' => '',
-        );
+        $options += [
+            'item_attr'    => [],
+            'wrapper_attr' => [],
+            'items'        => [],
+            'multiple'     => false,
+            'expanded'     => false,
+            'placeholder'  => '',
+        ];
 
         $items = &$options['items'];
 
         if ($items && is_callable($items)) {
-            $items = (array) $this->_core->call($items, array($options));
+            $items = (array) $this->_core->call($items, [$options]);
         }
 
         if ($options['expanded']) {
@@ -830,10 +828,10 @@ class Form
         $content = $options['placeholder'] ? '<option value="">'.$options['placeholder'].'</option>' : '';
 
         foreach ($options['items'] as $label => $val) {
-            $add = array(
-                'value' => $val,
+            $add = [
+                'value'    => $val,
                 'selected' => in_array($val, $check),
-            );
+            ];
 
             $content .= $this->_html->tag('option', $add + $options['item_attr'], true, $label);
         }
@@ -865,9 +863,9 @@ class Form
             $attr['name'] = $nameArr;
             $attr['id'] = isset($options['checkbox_id']) ? $options['checkbox_id'] : $id.'_'.$ctr++;
 
-            $content .= $this->inputCheckbox($name, $val, $attr, array(
+            $content .= $this->inputCheckbox($name, $val, $attr, [
                 'label' => $label,
-            ));
+            ]);
         }
 
         return $this->_html->tag('div', $options['wrapper_attr'], true, $content);
@@ -895,9 +893,9 @@ class Form
             $attr['checked'] = $val === $check;
             $attr['id'] = isset($options['radio_id']) ? $options['radio_id'] : $id.'_'.$ctr++;
 
-            $content .= $this->inputRadio($name, $val, $attr, array(
+            $content .= $this->inputRadio($name, $val, $attr, [
                 'label' => $label,
-            ));
+            ]);
         }
 
         return $this->_html->tag('div', $options['wrapper_attr'], true, $content);
@@ -910,8 +908,8 @@ class Form
      */
     protected function findRules()
     {
-        $rules = array();
-        $messages = array();
+        $rules = [];
+        $messages = [];
 
         foreach ($this->_fields as $field => $def) {
             foreach ($def['options']['messages'] as $rule => $message) {
@@ -921,7 +919,7 @@ class Form
             $rules[$field] = $def['options']['constraints'];
         }
 
-        return array(array_filter($rules), $messages);
+        return [array_filter($rules), $messages];
     }
 
     /**
@@ -943,7 +941,7 @@ class Form
             $value = isset($this->_data[$name]) ? $this->_data[$name] : null;
 
             if (is_callable($field['options']['transformer'])) {
-                $value = $this->_core->call($field['options']['transformer'], array($value));
+                $value = $this->_core->call($field['options']['transformer'], [$value]);
             }
 
             $this->_formData[$name] = $value;
@@ -959,7 +957,7 @@ class Form
             $value = isset($this->_submittedData[$name]) ? $this->_submittedData[$name] : null;
 
             if (is_callable($field['options']['reverse_transformer'])) {
-                $value = $this->_core->call($field['options']['reverse_transformer'], array($value));
+                $value = $this->_core->call($field['options']['reverse_transformer'], [$value]);
             }
 
             $this->_normalizedData[$name] = $value;
@@ -994,8 +992,6 @@ class Form
         if ($this->_formData && array_key_exists($field, $this->_formData)) {
             return $this->_formData[$field];
         }
-
-        return null;
     }
 
     /**
@@ -1019,7 +1015,7 @@ class Form
      */
     protected function fixId($name = null)
     {
-        return $name ? rtrim(str_replace(array('"', "'", '[', ']'), array('', '', '_', '_'), $name), '_') : null;
+        return $name ? rtrim(str_replace(['"', "'", '[', ']'], ['', '', '_', '_'], $name), '_') : null;
     }
 
     /**
@@ -1056,7 +1052,5 @@ class Form
         if ($this->_data && array_key_exists($key, $this->_data)) {
             return $this->_data[$key];
         }
-
-        return null;
     }
 }

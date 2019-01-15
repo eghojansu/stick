@@ -1,25 +1,23 @@
 <?php
 
-/**
+/*
  * This file is part of the eghojansu/stick library.
  *
- * (c) Eko Kurniawan <ekokurniawanbs@gmail.com>
+ *  (c) Eko Kurniawan <ekokurniawanbs@gmail.com>
  *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- *
- * Created at Jan 14, 2019 09:41
+ *  For the full copyright and license information, please view the LICENSE
+ *  file that was distributed with this source code.
  */
 
 namespace Fal\Stick\Test\Security\Event;
 
 use Fal\Stick\Core;
-use Fixture\SimpleUser;
 use Fal\Stick\Security\Auth;
-use PHPUnit\Framework\TestCase;
 use Fal\Stick\Security\Event\LoginEvent;
 use Fal\Stick\Security\InMemoryUserProvider;
 use Fal\Stick\Security\PlainPasswordEncoder;
+use Fixture\SimpleUser;
+use PHPUnit\Framework\TestCase;
 
 class LoginEventTest extends TestCase
 {

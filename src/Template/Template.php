@@ -1,14 +1,12 @@
 <?php
 
-/**
+/*
  * This file is part of the eghojansu/stick library.
  *
- * (c) Eko Kurniawan <ekokurniawanbs@gmail.com>
+ *  (c) Eko Kurniawan <ekokurniawanbs@gmail.com>
  *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- *
- * Created at Jan 13, 2019 10:11
+ *  For the full copyright and license information, please view the LICENSE
+ *  file that was distributed with this source code.
  */
 
 namespace Fal\Stick\Template;
@@ -19,9 +17,9 @@ class Template
 {
     protected $core;
 
-    protected $functions = array();
+    protected $functions = [];
 
-    protected $directories = array();
+    protected $directories = [];
 
     protected $extension;
 
@@ -50,7 +48,7 @@ class Template
 
     public function setDirectories(array $directories)
     {
-        $this->directories = array();
+        $this->directories = [];
 
         foreach ($directories as $directory) {
             $this->addDirectory($directory);
@@ -105,7 +103,7 @@ class Template
             $call = $this->functions[$method];
             array_unshift($arguments, $this->core);
         } elseif (method_exists($this->core, $method)) {
-            $call = array($this->core, $method);
+            $call = [$this->core, $method];
         } else {
             throw new \BadFunctionCallException(sprintf('Call to undefined function: %s', $method));
         }

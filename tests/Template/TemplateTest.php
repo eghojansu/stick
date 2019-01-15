@@ -1,21 +1,19 @@
 <?php
 
-/**
+/*
  * This file is part of the eghojansu/stick library.
  *
- * (c) Eko Kurniawan <ekokurniawanbs@gmail.com>
+ *  (c) Eko Kurniawan <ekokurniawanbs@gmail.com>
  *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- *
- * Created at Jan 13, 2019 11:48
+ *  For the full copyright and license information, please view the LICENSE
+ *  file that was distributed with this source code.
  */
 
 namespace Fal\Stick\Test\Template;
 
 use Fal\Stick\Core;
-use PHPUnit\Framework\TestCase;
 use Fal\Stick\Template\Template;
+use PHPUnit\Framework\TestCase;
 
 class TemplateTest extends TestCase
 {
@@ -29,7 +27,7 @@ class TemplateTest extends TestCase
 
     public function testGetDirectories()
     {
-        $this->assertEquals(array(), $this->template->getDirectories());
+        $this->assertEquals([], $this->template->getDirectories());
     }
 
     public function testAddDirectory()
@@ -37,12 +35,12 @@ class TemplateTest extends TestCase
         $this->template->addDirectory('foo');
         $this->template->addDirectory('bar', true);
 
-        $this->assertEquals(array('bar', 'foo'), $this->template->getDirectories());
+        $this->assertEquals(['bar', 'foo'], $this->template->getDirectories());
     }
 
     public function testSetDirectories()
     {
-        $this->assertEquals(array('foo'), $this->template->setDirectories(array('foo'))->getDirectories());
+        $this->assertEquals(['foo'], $this->template->setDirectories(['foo'])->getDirectories());
     }
 
     public function testGetExtension()
@@ -61,11 +59,11 @@ class TemplateTest extends TestCase
             return 'foo';
         });
         $this->template->addFunction('bar', function ($core, $bar) {
-            return array($core, $bar);
+            return [$core, $bar];
         });
 
         $this->assertEquals('foo', $this->template->foo());
-        $this->assertEquals(array($this->core, 'foo'), $this->template->bar('foo'));
+        $this->assertEquals([$this->core, 'foo'], $this->template->bar('foo'));
         $this->assertEquals('/path', $this->template->path('path'));
     }
 

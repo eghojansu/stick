@@ -1,21 +1,19 @@
 <?php
 
-/**
+/*
  * This file is part of the eghojansu/stick library.
  *
- * (c) Eko Kurniawan <ekokurniawanbs@gmail.com>
+ *  (c) Eko Kurniawan <ekokurniawanbs@gmail.com>
  *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- *
- * Created at Jan 15, 2019 10:34
+ *  For the full copyright and license information, please view the LICENSE
+ *  file that was distributed with this source code.
  */
 
 namespace Fal\Stick\Test\Database\Sql;
 
 use Fal\Stick\Core;
-use Fal\Stick\Database\Sql\Sql;
 use Fal\Stick\Database\Sql\Mapper;
+use Fal\Stick\Database\Sql\Sql;
 use PHPUnit\Framework\TestCase;
 
 class MapperTest extends TestCase
@@ -36,8 +34,8 @@ class MapperTest extends TestCase
 
     public function testKeys()
     {
-        $this->assertEquals(array('id' => null), $this->mapper->keys());
-        $this->assertEquals(array('id'), $this->mapper->keys(false));
+        $this->assertEquals(['id' => null], $this->mapper->keys());
+        $this->assertEquals(['id'], $this->mapper->keys(false));
     }
 
     public function testTable()
@@ -52,19 +50,19 @@ class MapperTest extends TestCase
 
     public function testFields()
     {
-        $this->assertEquals(array('id', 'username', 'password', 'active'), $this->mapper->fields());
+        $this->assertEquals(['id', 'username', 'password', 'active'], $this->mapper->fields());
     }
 
     public function testAdhoc()
     {
-        $this->assertEquals(array(), $this->mapper->adhoc());
+        $this->assertEquals([], $this->mapper->adhoc());
     }
 
     public function testSchema()
     {
         $schema = $this->mapper->schema();
 
-        $this->assertEquals(array('id', 'username', 'password', 'active'), array_keys($schema));
+        $this->assertEquals(['id', 'username', 'password', 'active'], array_keys($schema));
     }
 
     public function testDb()
@@ -163,21 +161,21 @@ class MapperTest extends TestCase
 
     public function testFromArray()
     {
-        $this->mapper->fromArray(array(
+        $this->mapper->fromArray([
             'id' => 1,
-        ));
+        ]);
 
         $this->assertEquals(1, $this->mapper->get('id'));
     }
 
     public function testToArray()
     {
-        $expected = array(
-            'id' => null,
+        $expected = [
+            'id'       => null,
             'username' => null,
             'password' => null,
-            'active' => 1,
-        );
+            'active'   => 1,
+        ];
 
         $this->assertEquals($expected, $this->mapper->toArray());
     }
@@ -259,7 +257,7 @@ class MapperTest extends TestCase
 
     public function testRows()
     {
-        $this->assertEquals(array(), $this->mapper->rows());
+        $this->assertEquals([], $this->mapper->rows());
         $this->assertCount(3, $this->mapper->load()->rows());
     }
 
@@ -324,7 +322,7 @@ class MapperTest extends TestCase
     public function testDelete($id, $filter, $hayati, $expected)
     {
         if ($id) {
-            $this->mapper = $this->mapper->load(array('id' => $id));
+            $this->mapper = $this->mapper->load(['id' => $id]);
         }
 
         $this->assertEquals($expected, $this->mapper->delete($filter, $hayati));
@@ -336,7 +334,7 @@ class MapperTest extends TestCase
             $event->stopPropagation();
         });
 
-        $this->assertEquals(0, $this->mapper->load(array('id' => 1))->delete());
+        $this->assertEquals(0, $this->mapper->load(['id' => 1])->delete());
     }
 
     /**
@@ -357,7 +355,7 @@ class MapperTest extends TestCase
         $this->core->on('mapper.insert', function ($event) {
             $event->stopPropagation();
         });
-        $this->mapper->fromArray(array('username' => 'foo'))->insert();
+        $this->mapper->fromArray(['username' => 'foo'])->insert();
 
         $this->assertFalse($this->mapper->valid());
         $this->assertEquals(0, $this->mapper->get('id'));
@@ -369,7 +367,7 @@ class MapperTest extends TestCase
     public function testUpdate($id, $data, $expected, $key)
     {
         if ($id) {
-            $this->mapper->load(array('id' => $id));
+            $this->mapper->load(['id' => $id]);
         }
 
         $this->mapper->fromArray($data)->update();
@@ -382,9 +380,9 @@ class MapperTest extends TestCase
         $this->core->on('mapper.update', function ($event) {
             $event->stopPropagation();
         });
-        $this->mapper->load(array('id' => 1));
-        $this->mapper->fromArray(array('username' => 'qux'))->update();
-        $this->mapper->load(array('id' => 1));
+        $this->mapper->load(['id' => 1]);
+        $this->mapper->fromArray(['username' => 'qux'])->update();
+        $this->mapper->load(['id' => 1]);
 
         $this->assertEquals('foo', $this->mapper->get('username'));
     }
@@ -392,11 +390,10 @@ class MapperTest extends TestCase
     public function testSave()
     {
         $this->mapper
-            ->fromArray(array('username' => 'qux'))
+            ->fromArray(['username' => 'qux'])
             ->save()
-            ->fromArray(array('username' => 'qux - bar'))
-            ->save()
-        ;
+            ->fromArray(['username' => 'qux - bar'])
+            ->save();
 
         $this->assertEquals('qux - bar', $this->mapper->get('username'));
     }
@@ -405,13 +402,13 @@ class MapperTest extends TestCase
     {
         $this->fillprofile();
 
-        $this->mapper->load(array('id' => 1));
+        $this->mapper->load(['id' => 1]);
         $relation = $this->mapper->hasMany('profile');
 
         $this->assertEquals('profile', $relation->table());
         $this->assertEquals(2, $relation->loaded());
 
-        $this->mapper->load(array('id' => 2));
+        $this->mapper->load(['id' => 2]);
         $relation = $this->mapper->hasMany('Fixture\\Mapper\\TProfile', 'user_id=id');
 
         $this->assertEquals('profile', $relation->table());
@@ -422,7 +419,7 @@ class MapperTest extends TestCase
     {
         $this->fillprofile();
 
-        $this->mapper->load(array('id' => 1));
+        $this->mapper->load(['id' => 1]);
         $relation = $this->mapper->hasOne('profile');
 
         $this->assertEquals('profile', $relation->table());
@@ -434,13 +431,13 @@ class MapperTest extends TestCase
         $this->build('profile');
         $this->fillprofile();
 
-        $this->mapper->load(array('id' => 1));
+        $this->mapper->load(['id' => 1]);
         $relation = $this->mapper->belongsTo('user');
 
         $this->assertEquals('user', $relation->table());
         $this->assertEquals(1, $relation->loaded());
 
-        $this->mapper->load(array('id' => 2));
+        $this->mapper->load(['id' => 2]);
         $relation2 = $this->mapper->belongsTo('Fixture\\Mapper\\TUser', 'user_id=id');
 
         $this->assertEquals($relation->table(), $relation2->table());
@@ -452,13 +449,13 @@ class MapperTest extends TestCase
         $this->build('ta');
         $this->fillta();
 
-        $this->mapper->load(array('id' => 1));
+        $this->mapper->load(['id' => 1]);
         $relation = $this->mapper->belongsToMany('tb', 'tc');
 
         $this->assertEquals('tb', $relation->table());
         $this->assertEquals(2, $relation->loaded());
 
-        $this->mapper->load(array('id' => 2));
+        $this->mapper->load(['id' => 2]);
         $relation = $this->mapper->belongsToMany('Fixture\\Mapper\\TTb', 'tc', 'tb_id=id', 'ta_id=id');
 
         $this->assertEquals('tb', $relation->table());
@@ -487,98 +484,98 @@ class MapperTest extends TestCase
 
     public function paginateProvider()
     {
-        return array(
-            array(array(
+        return [
+            [[
                 'total' => 3,
                 'count' => 3,
                 'pages' => 1,
-                'page' => 1,
+                'page'  => 1,
                 'start' => 1,
-                'end' => 3,
-            ), 1),
-            array(array(
+                'end'   => 3,
+            ], 1],
+            [[
                 'total' => 1,
                 'count' => 1,
                 'pages' => 1,
-                'page' => 1,
+                'page'  => 1,
                 'start' => 1,
-                'end' => 1,
-            ), 1, 'id = 1'),
-            array(array(
+                'end'   => 1,
+            ], 1, 'id = 1'],
+            [[
                 'total' => 3,
                 'count' => 1,
                 'pages' => 3,
-                'page' => 1,
+                'page'  => 1,
                 'start' => 1,
-                'end' => 1,
-            ), 1, null, array('perpage' => 1)),
-            array(array(
+                'end'   => 1,
+            ], 1, null, ['perpage' => 1]],
+            [[
                 'total' => 3,
                 'count' => 1,
                 'pages' => 3,
-                'page' => 2,
+                'page'  => 2,
                 'start' => 2,
-                'end' => 2,
-            ), 2, null, array('perpage' => 1)),
-            array(array(
+                'end'   => 2,
+            ], 2, null, ['perpage' => 1]],
+            [[
                 'total' => 3,
                 'count' => 0,
                 'pages' => 3,
-                'page' => 4,
+                'page'  => 4,
                 'start' => 4,
-                'end' => 3,
-            ), 4, null, array('perpage' => 1)),
-            array(array(
+                'end'   => 3,
+            ], 4, null, ['perpage' => 1]],
+            [[
                 'total' => 3,
                 'count' => 0,
                 'pages' => 1,
-                'page' => -1,
+                'page'  => -1,
                 'start' => 0,
-                'end' => 0,
-            ), -1),
-        );
+                'end'   => 0,
+            ], -1],
+        ];
     }
 
     public function deleteProvider()
     {
-        return array(
-            array(null, null, false, 0),
-            array(1, null, false, 1),
-            array(null, 'id is not null', false, 3),
-            array(null, 'id is not null', true, 3),
-            array(null, 'id = 1', false, 1),
-        );
+        return [
+            [null, null, false, 0],
+            [1, null, false, 1],
+            [null, 'id is not null', false, 3],
+            [null, 'id is not null', true, 3],
+            [null, 'id = 1', false, 1],
+        ];
     }
 
     public function insertProvider()
     {
-        return array(
-            array(array(), false, 0),
-            array(array('username' => 'qux'), true, 4),
-            array(array('name' => 'foo'), true, 'foo', 'name', 'nokey'),
-        );
+        return [
+            [[], false, 0],
+            [['username' => 'qux'], true, 4],
+            [['name' => 'foo'], true, 'foo', 'name', 'nokey'],
+        ];
     }
 
     public function updateProvider()
     {
-        return array(
-            array(null, array(), null, 'username'),
-            array(1, array('username' => 'qux'), 'qux', 'username'),
-        );
+        return [
+            [null, [], null, 'username'],
+            [1, ['username' => 'qux'], 'qux', 'username'],
+        ];
     }
 
     private function build($table = null, $mapper = null, $anon = false)
     {
         $core = new Core();
-        $db = new Sql($core, 'sqlite::memory:', null, null, array(
+        $db = new Sql($core, 'sqlite::memory:', null, null, [
             file_get_contents(TEST_FIXTURE.'/files/schema.sql'),
             'insert into user (username) values ("foo"), ("bar"), ("baz")',
-        ));
+        ]);
 
         if ($anon) {
             $this->mapper = new class($core, $db, $table ?: 'user') extends Mapper {
-                protected $props = array('one' => array('value' => 1, 'self' => false));
-                protected $adhoc = array('one_plus_one' => array('value' => null, 'expr' => '(1 + 1)'));
+                protected $props = ['one' => ['value' => 1, 'self' => false]];
+                protected $adhoc = ['one_plus_one' => ['value' => null, 'expr' => '(1 + 1)']];
 
                 public function obj()
                 {

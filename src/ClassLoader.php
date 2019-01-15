@@ -1,14 +1,12 @@
 <?php
 
-/**
+/*
  * This file is part of the eghojansu/stick library.
  *
- * (c) Eko Kurniawan <ekokurniawanbs@gmail.com>
+ *  (c) Eko Kurniawan <ekokurniawanbs@gmail.com>
  *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- *
- * Created at Jan 12, 2019 17:56
+ *  For the full copyright and license information, please view the LICENSE
+ *  file that was distributed with this source code.
  */
 
 namespace Fal\Stick;
@@ -25,12 +23,12 @@ class ClassLoader
     /**
      * @var array
      */
-    protected $fallback = array();
+    protected $fallback = [];
 
     /**
      * @var array
      */
-    protected $namespaces = array();
+    protected $namespaces = [];
 
     /**
      * @var string
@@ -40,7 +38,7 @@ class ClassLoader
     /**
      * @var array
      */
-    protected $missingClasses = array();
+    protected $missingClasses = [];
 
     public function __construct(array $namespaces = null, array $fallback = null, string $apcuPrefix = null)
     {
@@ -56,7 +54,7 @@ class ClassLoader
 
     public function setFallback(array $fallback)
     {
-        $this->fallback = array();
+        $this->fallback = [];
 
         foreach ($fallback as $directory) {
             $this->fallback[] = rtrim($directory, '\\/');
@@ -77,7 +75,7 @@ class ClassLoader
         }
 
         if (!isset($this->namespaces[$namespace])) {
-            $this->namespaces[$namespace] = array();
+            $this->namespaces[$namespace] = [];
         }
 
         if (is_array($directories)) {
@@ -93,7 +91,7 @@ class ClassLoader
 
     public function setNamespaces(array $namespaces)
     {
-        $this->namespaces = array();
+        $this->namespaces = [];
 
         foreach ($namespaces as $namespace => $directories) {
             $this->addNamespace($namespace, $directories);
@@ -133,7 +131,7 @@ class ClassLoader
      */
     public function register($prepend = false)
     {
-        spl_autoload_register(array($this, 'loadClass'), true, $prepend);
+        spl_autoload_register([$this, 'loadClass'], true, $prepend);
 
         return $this;
     }
@@ -145,7 +143,7 @@ class ClassLoader
      */
     public function unregister()
     {
-        spl_autoload_unregister(array($this, 'loadClass'));
+        spl_autoload_unregister([$this, 'loadClass']);
 
         return $this;
     }
@@ -160,7 +158,7 @@ class ClassLoader
     public function findClass($class)
     {
         if (isset($this->missingClasses[$class])) {
-            return null;
+            return;
         }
 
         if (null !== $this->apcuPrefix && ($file = apcu_fetch($this->apcuPrefix.$class, $hit)) && $hit) {
@@ -238,7 +236,5 @@ class ClassLoader
                 return $file;
             }
         }
-
-        return null;
     }
 }

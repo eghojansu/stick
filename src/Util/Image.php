@@ -1,14 +1,12 @@
 <?php
 
-/**
+/*
  * This file is part of the eghojansu/stick library.
  *
- * (c) Eko Kurniawan <ekokurniawanbs@gmail.com>
+ *  (c) Eko Kurniawan <ekokurniawanbs@gmail.com>
  *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- *
- * Created at Jan 13, 2019 00:12
+ *  For the full copyright and license information, please view the LICENSE
+ *  file that was distributed with this source code.
  */
 
 namespace Fal\Stick\Util;
@@ -119,8 +117,8 @@ class Image
 
         $differentPixels = 0;
 
-        for ($x = 0; $x < $xA; ++$x) {
-            for ($y = 0; $y < $yA; ++$y) {
+        for ($x = 0; $x < $xA; $x++) {
+            for ($y = 0; $y < $yA; $y++) {
                 $rgbA = imagecolorat($resA, $x, $y);
                 $pixA = imagecolorsforindex($resA, $rgbA);
 
@@ -169,7 +167,7 @@ class Image
             throw new \LogicException(sprintf('Invalid color specified: 0x%s', $hex));
         }
 
-        $result = array();
+        $result = [];
         $repeat = 6 / $len;
 
         foreach (str_split($hex, $len / 3) as $hue) {
@@ -218,9 +216,9 @@ class Image
      *
      * @param string $file
      *
-     * @return Image
-     *
      * @throws LogicException if file not exists
+     *
+     * @return Image
      */
     public function loadFile($file)
     {
@@ -287,7 +285,7 @@ class Image
         }
 
         ob_start();
-        call_user_func_array($formatter, array_merge(array($this->data, null), (array) $arguments));
+        call_user_func_array($formatter, array_merge([$this->data, null], (array) $arguments));
 
         return ob_get_clean();
     }
@@ -304,10 +302,10 @@ class Image
 
         $this->core->status(200);
         $this->core->set('OUTPUT', $content);
-        $this->core->set('RESPONSE', array(
-            'Content-Type' => 'image/'.$format,
+        $this->core->set('RESPONSE', [
+            'Content-Type'   => 'image/'.$format,
             'Content-Length' => strlen($content),
-        ));
+        ]);
         $this->core->send();
     }
 
@@ -676,7 +674,7 @@ class Image
      *
      * @return Image
      */
-    public function overlay(Image $img, $align = null, $alpha = 100)
+    public function overlay(self $img, $align = null, $alpha = 100)
     {
         $this->check();
 
@@ -754,24 +752,24 @@ class Image
      */
     public function identicon($str, $size = 64, $blocks = 4)
     {
-        $sprites = array(
-            array(.5, 1, 1, 0, 1, 1),
-            array(.5, 0, 1, 0, .5, 1, 0, 1),
-            array(.5, 0, 1, 0, 1, 1, .5, 1, 1, .5),
-            array(0, .5, .5, 0, 1, .5, .5, 1, .5, .5),
-            array(0, .5, 1, 0, 1, 1, 0, 1, 1, .5),
-            array(1, 0, 1, 1, .5, 1, 1, .5, .5, .5),
-            array(0, 0, 1, 0, 1, .5, 0, 0, .5, 1, 0, 1),
-            array(0, 0, .5, 0, 1, .5, .5, 1, 0, 1, .5, .5),
-            array(.5, 0, .5, .5, 1, .5, 1, 1, .5, 1, .5, .5, 0, .5),
-            array(0, 0, 1, 0, .5, .5, 1, .5, .5, 1, .5, .5, 0, 1),
-            array(0, .5, .5, 1, 1, .5, .5, 0, 1, 0, 1, 1, 0, 1),
-            array(.5, 0, 1, 0, 1, 1, .5, 1, 1, .75, .5, .5, 1, .25),
-            array(0, .5, .5, 0, .5, .5, 1, 0, 1, .5, .5, 1, .5, .5, 0, 1),
-            array(0, 0, 1, 0, 1, 1, 0, 1, 1, .5, .5, .25, .5, .75, 0, .5, .5, .25),
-            array(0, .5, .5, .5, .5, 0, 1, 0, .5, .5, 1, .5, .5, 1, .5, .5, 0, 1),
-            array(0, 0, 1, 0, .5, .5, .5, 0, 0, .5, 1, .5, .5, 1, .5, .5, 0, 1),
-        );
+        $sprites = [
+            [.5, 1, 1, 0, 1, 1],
+            [.5, 0, 1, 0, .5, 1, 0, 1],
+            [.5, 0, 1, 0, 1, 1, .5, 1, 1, .5],
+            [0, .5, .5, 0, 1, .5, .5, 1, .5, .5],
+            [0, .5, 1, 0, 1, 1, 0, 1, 1, .5],
+            [1, 0, 1, 1, .5, 1, 1, .5, .5, .5],
+            [0, 0, 1, 0, 1, .5, 0, 0, .5, 1, 0, 1],
+            [0, 0, .5, 0, 1, .5, .5, 1, 0, 1, .5, .5],
+            [.5, 0, .5, .5, 1, .5, 1, 1, .5, 1, .5, .5, 0, .5],
+            [0, 0, 1, 0, .5, .5, 1, .5, .5, 1, .5, .5, 0, 1],
+            [0, .5, .5, 1, 1, .5, .5, 0, 1, 0, 1, 1, 0, 1],
+            [.5, 0, 1, 0, 1, 1, .5, 1, 1, .75, .5, .5, 1, .25],
+            [0, .5, .5, 0, .5, .5, 1, 0, 1, .5, .5, 1, .5, .5, 0, 1],
+            [0, 0, 1, 0, 1, 1, 0, 1, 1, .5, .5, .25, .5, .75, 0, .5, .5, .25],
+            [0, .5, .5, .5, .5, 0, 1, 0, .5, .5, 1, .5, .5, 1, .5, .5, 0, 1],
+            [0, 0, 1, 0, .5, .5, .5, 0, 0, .5, 1, .5, .5, 1, .5, .5, 0, 1],
+        ];
         $hash = sha1($str);
 
         $image = $this->create();
@@ -783,21 +781,21 @@ class Image
 
         imagefill($image->data, 0, 0, IMG_COLOR_TRANSPARENT);
 
-        for ($j = 0,$y = ceil($blocks / 2); $j < $y; ++$j) {
-            for ($i = $j,$x = $blocks - 1 - $j; $i < $x; ++$i) {
+        for ($j = 0,$y = ceil($blocks / 2); $j < $y; $j++) {
+            for ($i = $j,$x = $blocks - 1 - $j; $i < $x; $i++) {
                 $mDim = intval($dim);
                 $sprite = imagecreatetruecolor($mDim, $mDim);
                 $block = $sprites[hexdec($hash[($j * $blocks + $i) * 2]) % $ctr];
 
                 imagefill($sprite, 0, 0, IMG_COLOR_TRANSPARENT);
 
-                for ($k = 0,$pts = count($block); $k < $pts; ++$k) {
+                for ($k = 0,$pts = count($block); $k < $pts; $k++) {
                     $block[$k] *= $dim;
                 }
 
                 imagefilledpolygon($sprite, $block, intval($pts / 2), $fg);
 
-                for ($k = 0; $k < 4; ++$k) {
+                for ($k = 0; $k < 4; $k++) {
                     imagecopyresampled($image->data, $sprite, intval($i * $dim / 2), intval($j * $dim / 2), 0, 0, intval($dim / 2), intval($dim / 2), $mDim, $mDim);
                     $image->data = imagerotate($image->data, 90, imagecolorallocatealpha($image->data, 0, 0, 0, 127));
                 }
@@ -823,9 +821,9 @@ class Image
      * @param int         $bg
      * @param bool        $test
      *
-     * @return Image
-     *
      * @throws LogicException If captcha length invalid or no support to truetype
+     *
+     * @return Image
      */
     public function captcha(&$seed, $font, $path, $len = 5, $size = 24, $fg = 0xFFFFFF, $bg = 0x000000, $test = null)
     {
@@ -841,9 +839,9 @@ class Image
             if (is_file($path = $dir.$font)) {
                 $seed = strtoupper(substr($ssl ? bin2hex(openssl_random_pseudo_bytes($len)) : uniqid(), -$len));
                 $block = $size * 3;
-                $tmp = array();
+                $tmp = [];
 
-                for ($i = 0,$width = 0,$height = 0; $i < $len; ++$i) {
+                for ($i = 0,$width = 0,$height = 0; $i < $len; $i++) {
                     // Process at 2x magnification
                     $box = imagettfbbox($size * 2, 0, $path, $seed[$i]);
                     $char = imagecreatetruecolor($block, $block);
@@ -867,7 +865,7 @@ class Image
                 $image->data = imagecreatetruecolor(intval($width), intval($height));
                 imagefill($image->data, 0, 0, IMG_COLOR_TRANSPARENT);
 
-                for ($i = 0; $i < $len; ++$i) {
+                for ($i = 0; $i < $len; $i++) {
                     imagecopy($image->data, $tmp[$i], $i * $block / 2, intval(($height - imagesy($tmp[$i])) / 2), 0, 0, imagesx($tmp[$i]), imagesy($tmp[$i]));
                     imagedestroy($tmp[$i]);
                 }

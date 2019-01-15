@@ -1,14 +1,12 @@
 <?php
 
-/**
+/*
  * This file is part of the eghojansu/stick library.
  *
- * (c) Eko Kurniawan <ekokurniawanbs@gmail.com>
+ *  (c) Eko Kurniawan <ekokurniawanbs@gmail.com>
  *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- *
- * Created at Jan 14, 2019 06:17
+ *  For the full copyright and license information, please view the LICENSE
+ *  file that was distributed with this source code.
  */
 
 namespace Fal\Stick\Validation;
@@ -343,8 +341,7 @@ class CommonValidator implements ValidatorInterface
             preg_match('/^([0-9]{4})-([0-9]{2})-([0-9]{2})$/', $val, $match) &&
             $match[1] > 1900 &&
             $match[2] > 0 && $match[2] < 13 &&
-            $match[3] > 0 && $match[3] <= date('j', mktime(0, 0, 0, $match[2] + 1, 0, $match[1] + 0))
-        ;
+            $match[3] > 0 && $match[3] <= date('j', mktime(0, 0, 0, $match[2] + 1, 0, $match[1] + 0));
     }
 
     /**
@@ -365,8 +362,7 @@ class CommonValidator implements ValidatorInterface
             $match[3] > 0 && $match[3] <= date('j', mktime(0, 0, 0, $match[2] + 1, 0, $match[1] + 0)) &&
             $match[4] >= 0 && $match[4] < 24 &&
             $match[5] >= 0 && $match[5] <= 60 &&
-            $match[6] >= 0 && $match[6] <= 60
-        ;
+            $match[6] >= 0 && $match[6] <= 60;
     }
 
     /**
@@ -381,7 +377,7 @@ class CommonValidator implements ValidatorInterface
     {
         $quote = $pattern[0];
 
-        if (in_array($quote, array("'", '"')) && substr($pattern, -1) === $quote) {
+        if (in_array($quote, ["'", '"']) && substr($pattern, -1) === $quote) {
             $pattern = substr($pattern, 1, -1);
         }
 

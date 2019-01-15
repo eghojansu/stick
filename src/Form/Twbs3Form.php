@@ -1,14 +1,12 @@
 <?php
 
-/**
+/*
  * This file is part of the eghojansu/stick library.
  *
- * (c) Eko Kurniawan <ekokurniawanbs@gmail.com>
+ *  (c) Eko Kurniawan <ekokurniawanbs@gmail.com>
  *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- *
- * Created at Jan 14, 2019 19:47
+ *  For the full copyright and license information, please view the LICENSE
+ *  file that was distributed with this source code.
  */
 
 namespace Fal\Stick\Form;
@@ -27,19 +25,19 @@ class Twbs3Form extends Form
     /**
      * @var array
      */
-    protected $_options = array(
-        'left' => 'col-sm-2',
-        'right' => 'col-sm-10',
+    protected $_options = [
+        'left'   => 'col-sm-2',
+        'right'  => 'col-sm-10',
         'offset' => 'col-sm-offset-2',
-        'mark' => self::MARK_ERROR,
-    );
+        'mark'   => self::MARK_ERROR,
+    ];
 
     /**
      * {@inheritdoc}
      */
     public function addField($name, $type = null, array $options = null, array $attr = null)
     {
-        if (!isset($attr['class']) && (!$type || !in_array($type, array('radio', 'checkbox', 'hidden', 'choice')) || ('choice' === $type && !isset($options['expanded'])))) {
+        if (!isset($attr['class']) && (!$type || !in_array($type, ['radio', 'checkbox', 'hidden', 'choice']) || ('choice' === $type && !isset($options['expanded'])))) {
             $attr['class'] = 'form-control';
         }
 
@@ -75,8 +73,8 @@ class Twbs3Form extends Form
      */
     protected function inputRadio($field, $value, array $attr, array $options)
     {
-        $wrapperAttr = isset($options['wrapper_attr']) ? $options['wrapper_attr'] : array();
-        $default = array('class' => 'radio');
+        $wrapperAttr = isset($options['wrapper_attr']) ? $options['wrapper_attr'] : [];
+        $default = ['class' => 'radio'];
 
         return $this->_html->tag('div', $wrapperAttr + $default, true, parent::inputRadio($field, $value, $attr, $options));
     }
@@ -86,8 +84,8 @@ class Twbs3Form extends Form
      */
     protected function inputCheckbox($field, $value, array $attr, array $options)
     {
-        $wrapperAttr = isset($options['wrapper_attr']) ? $options['wrapper_attr'] : array();
-        $default = array('class' => 'checkbox');
+        $wrapperAttr = isset($options['wrapper_attr']) ? $options['wrapper_attr'] : [];
+        $default = ['class' => 'checkbox'];
 
         return $this->_html->tag('div', $wrapperAttr + $default, true, parent::inputCheckbox($field, $value, $attr, $options));
     }
@@ -111,7 +109,7 @@ class Twbs3Form extends Form
                 PHP_EOL;
         }
 
-        $errorAttr = array('class' => 'help-block');
+        $errorAttr = ['class' => 'help-block'];
         $errors = isset($this->_errors[$name]) ? $this->_html->tag('span', $errorAttr, true, implode(', ', $this->_errors[$name])) : '';
         $wrapperClass = 'form-group';
 
@@ -123,14 +121,14 @@ class Twbs3Form extends Form
             }
         }
 
-        if (in_array($type, array('checkbox', 'radio'))) {
+        if (in_array($type, ['checkbox', 'radio'])) {
             return
                 '<div class="'.$wrapperClass.'"><div class="'.$rightOffset.'">'.
                 $input.$errors.
                 '</div></div>'.PHP_EOL;
         }
 
-        $labelAttr = $options['label_attr'] + array('class' => 'control-label '.$this->_options['left']);
+        $labelAttr = $options['label_attr'] + ['class' => 'control-label '.$this->_options['left']];
         $label = $this->_html->tag('label', $labelAttr, true, $options['label']);
 
         return

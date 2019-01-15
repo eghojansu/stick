@@ -1,14 +1,12 @@
 <?php
 
-/**
+/*
  * This file is part of the eghojansu/stick library.
  *
- * (c) Eko Kurniawan <ekokurniawanbs@gmail.com>
+ *  (c) Eko Kurniawan <ekokurniawanbs@gmail.com>
  *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- *
- * Created at Jan 15, 2019 10:37
+ *  For the full copyright and license information, please view the LICENSE
+ *  file that was distributed with this source code.
  */
 
 namespace Fal\Stick\Database\Sql;
@@ -21,26 +19,26 @@ namespace Fal\Stick\Database\Sql;
 class QueryBuilder
 {
     const FILTER_OPERATOR_MASK = '=<>&|^!~@[] ';
-    public static $filterOperatorMap = array(
-        '=' => '=',
-        '>' => '>',
-        '<' => '<',
-        '>=' => '>=',
-        '<=' => '<=',
-        '<>' => '<>',
-        '!=' => '!=',
-        '&' => 'AND',
-        '|' => 'OR',
-        '^' => 'XOR',
-        '!' => 'NOT',
-        '~' => 'LIKE',
-        '!~' => 'NOT LIKE',
-        '@' => 'SOUNDS LIKE',
-        '[]' => 'IN',
+    public static $filterOperatorMap = [
+        '='   => '=',
+        '>'   => '>',
+        '<'   => '<',
+        '>='  => '>=',
+        '<='  => '<=',
+        '<>'  => '<>',
+        '!='  => '!=',
+        '&'   => 'AND',
+        '|'   => 'OR',
+        '^'   => 'XOR',
+        '!'   => 'NOT',
+        '~'   => 'LIKE',
+        '!~'  => 'NOT LIKE',
+        '@'   => 'SOUNDS LIKE',
+        '[]'  => 'IN',
         '![]' => 'NOT IN',
-        '><' => 'BETWEEN',
+        '><'  => 'BETWEEN',
         '!><' => 'NOT BETWEEN',
-    );
+    ];
 
     /**
      * @var Mapper
@@ -73,17 +71,17 @@ class QueryBuilder
     public function count($filter = null, array $options = null)
     {
         $db = $this->mapper->db();
-        $prefix = in_array($db->getDriverName(), array(
+        $prefix = in_array($db->getDriverName(), [
             Sql::DB_MSSQL,
             Sql::DB_DBLIB,
             Sql::DB_SQLSRV,
-        )) ? 'TOP 100 PERCENT ' : '';
+        ]) ? 'TOP 100 PERCENT ' : '';
         list($sub, $args) = $this->select($prefix.'*', $filter, $options);
 
         $sql = 'SELECT COUNT(*) AS '.$db->key('_rows').
                ' FROM ('.$sub.') AS '.$db->key('_temp');
 
-        return array($sql, $args);
+        return [$sql, $args];
     }
 
     /**
@@ -100,7 +98,7 @@ class QueryBuilder
         list($criteria, $args) = $this->resolveCriteria($filter, $options);
         $sql = sprintf('SELECT %s FROM %s%s', $fields ?: $this->fields(), $this->mapper->map(), $criteria);
 
-        return array($sql, $args);
+        return [$sql, $args];
     }
 
     /**
@@ -110,13 +108,13 @@ class QueryBuilder
      */
     public function insert()
     {
-        $args = array();
+        $args = [];
         $ctr = 0;
         $sql = '';
         $fields = '';
         $values = '';
-        $ckeys = array();
-        $schema = array();
+        $ckeys = [];
+        $schema = [];
         $inc = null;
         $db = $this->mapper->db();
         $keys = $this->mapper->keys(false);
@@ -131,7 +129,7 @@ class QueryBuilder
             if ($field['changed'] && $key !== $inc) {
                 $fields .= ','.$db->key($key);
                 $values .= ',?';
-                $args[++$ctr] = array($field['value'], $field['pdo_type']);
+                $args[++$ctr] = [$field['value'], $field['pdo_type']];
                 $ckeys[] = $key;
             }
 
@@ -142,16 +140,16 @@ class QueryBuilder
 
         if ($fields) {
             $driver = $db->getDriverName();
-            $prefix = in_array($driver, array(
+            $prefix = in_array($driver, [
                 Sql::DB_MSSQL,
                 Sql::DB_DBLIB,
                 Sql::DB_SQLSRV,
-            )) && array_intersect($keys, $ckeys) ? 'SET IDENTITY_INSERT '.$map.' ON;' : '';
+            ]) && array_intersect($keys, $ckeys) ? 'SET IDENTITY_INSERT '.$map.' ON;' : '';
             $suffix = Sql::DB_PGSQL === $driver ? ' RETURNING '.$db->key(reset($keys)) : '';
             $sql = sprintf('%sINSERT INTO %s (%s) VALUES (%s)%s', $prefix, $map, ltrim($fields, ','), ltrim($values, ','), $suffix);
         }
 
-        return array($sql, $args, $inc, $schema);
+        return [$sql, $args, $inc, $schema];
     }
 
     /**
@@ -165,15 +163,15 @@ class QueryBuilder
         $sql = '';
         $pairs = '';
         $filter = '';
-        $args = array();
-        $schema = array();
-        $initial = array();
+        $args = [];
+        $schema = [];
+        $initial = [];
         $db = $this->mapper->db();
 
         foreach ($this->mapper->schema() as $key => $field) {
             if ($field['changed']) {
                 $pairs .= ','.$db->key($key).'=?';
-                $args[++$ctr] = array($field['value'], $field['pdo_type']);
+                $args[++$ctr] = [$field['value'], $field['pdo_type']];
             }
 
             $schema[$key] = $field;
@@ -185,7 +183,7 @@ class QueryBuilder
         foreach ($this->mapper->keys(false) as $key) {
             if (isset($schema[$key]) && $initial[$key]) {
                 $filter .= ' AND '.$db->key($key).'=?';
-                $args[++$ctr] = array($initial[$key], $schema[$key]['pdo_type']);
+                $args[++$ctr] = [$initial[$key], $schema[$key]['pdo_type']];
             }
         }
 
@@ -193,7 +191,7 @@ class QueryBuilder
             $sql = 'UPDATE '.$this->mapper->map().' SET '.ltrim($pairs, ',').' WHERE'.substr($filter, 4);
         }
 
-        return array($sql, $args, $schema);
+        return [$sql, $args, $schema];
     }
 
     /**
@@ -204,7 +202,7 @@ class QueryBuilder
     public function delete()
     {
         $filter = '';
-        $args = array();
+        $args = [];
         $ctr = 0;
         $sql = 'DELETE FROM '.$this->mapper->map();
         $db = $this->mapper->db();
@@ -212,13 +210,13 @@ class QueryBuilder
         foreach ($this->mapper->schema() as $key => $field) {
             if ($field['pkey']) {
                 $filter .= ' AND '.$db->key($key).'=?';
-                $args[++$ctr] = array($field['initial'], $field['pdo_type']);
+                $args[++$ctr] = [$field['initial'], $field['pdo_type']];
             }
         }
 
         $sql .= ' WHERE'.substr($filter, 4);
 
-        return array($sql, $args);
+        return [$sql, $args];
     }
 
     /**
@@ -234,7 +232,7 @@ class QueryBuilder
         $args = $this->filter($filter);
         $criteria = $args ? ' WHERE '.array_shift($args) : '';
 
-        return array($sql.$criteria, $args);
+        return [$sql.$criteria, $args];
     }
 
     /**
@@ -269,18 +267,18 @@ class QueryBuilder
      */
     public function resolveCriteria($filter = null, array $options = null)
     {
-        $default = array(
-            'group' => null,
+        $default = [
+            'group'  => null,
             'having' => null,
-            'order' => null,
-            'join' => null,
-            'limit' => 0,
+            'order'  => null,
+            'join'   => null,
+            'limit'  => 0,
             'offset' => 0,
-        );
+        ];
         $use = ((array) $options) + $default;
         $order = '';
         $sql = rtrim(' '.$use['join']);
-        $args = array();
+        $args = [];
         $sqlServer = false;
         $keys = $this->mapper->keys(false);
         $db = $this->mapper->db();
@@ -312,14 +310,14 @@ class QueryBuilder
         // SQL Server fixes
         // We skip this part to test
         // @codeCoverageIgnoreStart
-        $fix = in_array($db->getDriverName(), array(Sql::DB_MSSQL, Sql::DB_SQLSRV, Sql::DB_ODBC)) && ($use['limit'] || $use['offset']);
+        $fix = in_array($db->getDriverName(), [Sql::DB_MSSQL, Sql::DB_SQLSRV, Sql::DB_ODBC]) && ($use['limit'] || $use['offset']);
 
         if ($fix) {
             $sqlServer = true;
 
             // order by pkey when no ordering option was given
             if (!$use['order'] && $keys) {
-                $order = ' ORDER BY '.implode(',', array_map(array($db, 'key'), $keys));
+                $order = ' ORDER BY '.implode(',', array_map([$db, 'key'], $keys));
             }
 
             $ofs = (int) $use['offset'];
@@ -360,7 +358,7 @@ class QueryBuilder
             }
         }
 
-        return array($sql, $args);
+        return [$sql, $args];
     }
 
     /**
@@ -402,12 +400,12 @@ class QueryBuilder
     public function filter($filter, array $lookup = null)
     {
         if (!$filter) {
-            return array();
+            return [];
         }
 
         $ctr = 0;
         $str = '';
-        $result = array();
+        $result = [];
         $mLookup = (array) $lookup;
         $map = self::$filterOperatorMap;
         $db = $this->mapper->db();
@@ -483,7 +481,7 @@ class QueryBuilder
                         $k = ':'.$kcol.$i;
                         $str .= $k.', ';
                         $result[$k] = $val;
-                        ++$i;
+                        $i++;
                     }
 
                     $str = rtrim($str, ', ').')';
@@ -503,7 +501,7 @@ class QueryBuilder
                 }
             }
 
-            ++$ctr;
+            $ctr++;
         }
 
         array_unshift($result, trim($str));
@@ -525,7 +523,7 @@ class QueryBuilder
             $seq = 2;
 
             while (preg_grep('/^'.$key.'__'.$seq.'$/', $keys)) {
-                ++$seq;
+                $seq++;
             }
 
             return $key.'__'.$seq;

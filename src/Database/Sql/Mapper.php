@@ -1,14 +1,12 @@
 <?php
 
-/**
+/*
  * This file is part of the eghojansu/stick library.
  *
- * (c) Eko Kurniawan <ekokurniawanbs@gmail.com>
+ *  (c) Eko Kurniawan <ekokurniawanbs@gmail.com>
  *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- *
- * Created at Jan 15, 2019 10:27
+ *  For the full copyright and license information, please view the LICENSE
+ *  file that was distributed with this source code.
  */
 
 namespace Fal\Stick\Database\Sql;
@@ -79,19 +77,19 @@ class Mapper implements \ArrayAccess
     /**
      * @var array
      */
-    protected $adhoc = array();
+    protected $adhoc = [];
 
     /**
      * @var array
      */
-    protected $props = array();
+    protected $props = [];
 
     /**
      * Loaded rows.
      *
      * @var array
      */
-    protected $rows = array();
+    protected $rows = [];
 
     /**
      * Row position.
@@ -139,7 +137,7 @@ class Mapper implements \ArrayAccess
             return $this->core->service($table, false);
         }
 
-        return $this->core->createInstance(static::class, array('arguments' => compact('table', 'fields', 'ttl')));
+        return $this->core->createInstance(static::class, ['arguments' => compact('table', 'fields', 'ttl')]);
     }
 
     /**
@@ -154,7 +152,7 @@ class Mapper implements \ArrayAccess
      */
     public function hasOne($target, $relation = null, array $filter = null, array $options = null)
     {
-        return $this->hasMany($target, $relation, $filter, array('limit' => 1) + (array) $options);
+        return $this->hasMany($target, $relation, $filter, ['limit' => 1] + (array) $options);
     }
 
     /**
@@ -169,7 +167,7 @@ class Mapper implements \ArrayAccess
      */
     public function hasMany($target, $relation = null, array $filter = null, array $options = null)
     {
-        list($fk, $pk) = $this->core->split($relation, '=') + array($this->table.'_id', 'id');
+        list($fk, $pk) = $this->core->split($relation, '=') + [$this->table.'_id', 'id'];
 
         $filter[$fk] = $this->get($pk);
 
@@ -190,7 +188,7 @@ class Mapper implements \ArrayAccess
     {
         $mapper = $this->create($target);
 
-        list($fk, $pk) = $this->core->split($relation, '=') + array($mapper->table.'_id', 'id');
+        list($fk, $pk) = $this->core->split($relation, '=') + [$mapper->table.'_id', 'id'];
 
         $filter[$pk] = $this->get($fk);
 
@@ -214,8 +212,8 @@ class Mapper implements \ArrayAccess
         $targetMapper = $this->create($target);
         $bridgeMapper = $this->create($bridge);
 
-        list($targetFK, $targetPK) = $this->core->split($targetRelation, '=') + array($targetMapper->table.'_id', 'id');
-        list($bridgeFK, $bridgePK) = $this->core->split($bridgeRelation, '=') + array($this->table.'_id', 'id');
+        list($targetFK, $targetPK) = $this->core->split($targetRelation, '=') + [$targetMapper->table.'_id', 'id'];
+        list($bridgeFK, $bridgePK) = $this->core->split($bridgeRelation, '=') + [$this->table.'_id', 'id'];
 
         $filter[$bridgeMapper->table.'.'.$bridgeFK] = $this->get($targetPK);
 
@@ -230,7 +228,7 @@ class Mapper implements \ArrayAccess
                 $this->map.'.'.$this->db->key($targetPK).
             $criteria;
 
-        $targetMapper->rows = array_map(array($this, 'factory'), $this->db->exec($sql, $args));
+        $targetMapper->rows = array_map([$this, 'factory'], $this->db->exec($sql, $args));
         $targetMapper->skip(0);
 
         return $targetMapper;
@@ -313,9 +311,9 @@ class Mapper implements \ArrayAccess
      *
      * @param string $key
      *
-     * @return mixed
-     *
      * @throws LogicException If given key is undefined
+     *
+     * @return mixed
      */
     public function &get($key)
     {
@@ -364,9 +362,9 @@ class Mapper implements \ArrayAccess
             $this->adhoc[$key]['value'] = $val;
         } elseif (is_scalar($val)) {
             // Parenthesize expression in case it's a subquery
-            $this->adhoc[$key] = array('expr' => '('.$val.')', 'value' => null, 'name' => $key);
+            $this->adhoc[$key] = ['expr' => '('.$val.')', 'value' => null, 'name' => $key];
         } else {
-            $this->props[$key] = array('self' => false, 'value' => $val, 'name' => $key);
+            $this->props[$key] = ['self' => false, 'value' => $val, 'name' => $key];
         }
 
         return $this;
@@ -415,7 +413,7 @@ class Mapper implements \ArrayAccess
             }
         }
 
-        $this->rows = array();
+        $this->rows = [];
         $this->ptr = 0;
 
         return $this;
@@ -459,7 +457,7 @@ class Mapper implements \ArrayAccess
     public function keys($withValue = true)
     {
         if ($withValue) {
-            $result = array();
+            $result = [];
 
             foreach ($this->keys as $key) {
                 $result[$key] = $this->schema[$key]['initial'];
@@ -522,7 +520,7 @@ class Mapper implements \ArrayAccess
         $limit = isset($use['perpage']) ? $use['perpage'] : static::PAGINATION;
         $total = $this->count($filter, $options, $ttl);
         $pages = (int) ceil($total / $limit);
-        $subset = array();
+        $subset = [];
         $count = 0;
         $start = 0;
         $end = 0;
@@ -561,9 +559,9 @@ class Mapper implements \ArrayAccess
      *
      * @param mixed $ids
      *
-     * @return Mapper|null
-     *
      * @throws LogicException If given argument count is not match with primary keys count
+     *
+     * @return Mapper|null
      */
     public function find($ids = null)
     {
@@ -607,7 +605,7 @@ class Mapper implements \ArrayAccess
      */
     public function findOne($filter = null, array $options = null, $ttl = 0)
     {
-        $rows = $this->findAll($filter, array('limit' => 1) + (array) $options, $ttl);
+        $rows = $this->findAll($filter, ['limit' => 1] + (array) $options, $ttl);
 
         return array_shift($rows);
     }
@@ -625,7 +623,7 @@ class Mapper implements \ArrayAccess
     {
         list($sql, $args) = QueryBuilder::create($this)->select(null, $filter, $options);
 
-        return array_map(array($this, 'factory'), $this->db->exec($sql, $args, $ttl));
+        return array_map([$this, 'factory'], $this->db->exec($sql, $args, $ttl));
     }
 
     /**
@@ -665,11 +663,11 @@ class Mapper implements \ArrayAccess
             $pgSqlId = Sql::DB_PGSQL === $this->db->getDriverName() && $lID;
             $id = $pgSqlId ? $lID[0][reset($this->keys)] : $this->db->getPdo()->lastInsertId();
 
-            $this->load(array($inc => $this->db->phpValue($id, $this->schema[$inc]['pdo_type'])));
+            $this->load([$inc => $this->db->phpValue($id, $this->schema[$inc]['pdo_type'])]);
         } else {
             // Load manually
             $this->schema = $changes;
-            $this->rows = array(clone $this);
+            $this->rows = [clone $this];
             $this->skip(0);
         }
 
@@ -883,7 +881,7 @@ class Mapper implements \ArrayAccess
             }
         }
 
-        $mapper->rows = array(clone $mapper);
+        $mapper->rows = [clone $mapper];
 
         $event = new MapperEvent($mapper);
         $this->core->dispatch(static::ON_LOAD, $event);
@@ -950,9 +948,9 @@ class Mapper implements \ArrayAccess
      * @param string $method
      * @param array  $args
      *
-     * @return mixed
-     *
      * @throws BadMethodCallException If method call cannot be resolved
+     *
+     * @return mixed
      */
     public function __call($method, $args)
     {
@@ -965,13 +963,13 @@ class Mapper implements \ArrayAccess
             $arg = $this->core->snakeCase(substr($method, 3));
             $call = 'get';
         } elseif ('loadby' === substr($lmethod, 0, 6)) {
-            $arg = array($this->core->snakeCase(substr($method, 6)) => array_shift($mArgs));
+            $arg = [$this->core->snakeCase(substr($method, 6)) => array_shift($mArgs)];
             $call = 'load';
         } elseif ('findby' === substr($lmethod, 0, 6)) {
-            $arg = array($this->core->snakeCase(substr($method, 6)) => array_shift($mArgs));
+            $arg = [$this->core->snakeCase(substr($method, 6)) => array_shift($mArgs)];
             $call = 'findall';
         } elseif ('findoneby' === substr($lmethod, 0, 9)) {
-            $arg = array($this->core->snakeCase(substr($method, 9)) => array_shift($mArgs));
+            $arg = [$this->core->snakeCase(substr($method, 9)) => array_shift($mArgs)];
             $call = 'findone';
         } else {
             throw new \BadMethodCallException(sprintf('Call to undefined method %s::%s.', static::class, $method));
@@ -979,6 +977,6 @@ class Mapper implements \ArrayAccess
 
         array_unshift($mArgs, $arg);
 
-        return call_user_func_array(array($this, $call), $mArgs);
+        return call_user_func_array([$this, $call], $mArgs);
     }
 }

@@ -1,21 +1,19 @@
 <?php
 
-/**
+/*
  * This file is part of the eghojansu/stick library.
  *
- * (c) Eko Kurniawan <ekokurniawanbs@gmail.com>
+ *  (c) Eko Kurniawan <ekokurniawanbs@gmail.com>
  *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- *
- * Created at Jan 14, 2019 19:48
+ *  For the full copyright and license information, please view the LICENSE
+ *  file that was distributed with this source code.
  */
 
 namespace Fal\Stick\Test\Form;
 
 use Fal\Stick\Core;
-use Fal\Stick\Util\Html;
 use Fal\Stick\Form\Twbs3Form;
+use Fal\Stick\Util\Html;
 use Fal\Stick\Validation\CommonValidator;
 use Fal\Stick\Validation\Validator;
 use PHPUnit\Framework\TestCase;
@@ -37,27 +35,27 @@ class Twbs3FormTest extends TestCase
         $type = null;
         $options = null;
         $attr = null;
-        $expected = array(
-            'foo' => array(
-                'type' => 'text',
-                'options' => array(
-                    'label' => 'Foo',
-                    'label_attr' => array('for' => 'twbs3_form_foo'),
-                    'constraints' => null,
-                    'messages' => array(),
-                    'transformer' => null,
+        $expected = [
+            'foo' => [
+                'type'    => 'text',
+                'options' => [
+                    'label'               => 'Foo',
+                    'label_attr'          => ['for' => 'twbs3_form_foo'],
+                    'constraints'         => null,
+                    'messages'            => [],
+                    'transformer'         => null,
                     'reverse_transformer' => null,
-                ),
-                'attr' => array(
-                    'class' => 'form-control',
-                    'name' => 'twbs3_form[foo]',
-                    'type' => 'text',
-                    'id' => 'twbs3_form_foo',
+                ],
+                'attr' => [
+                    'class'       => 'form-control',
+                    'name'        => 'twbs3_form[foo]',
+                    'type'        => 'text',
+                    'id'          => 'twbs3_form_foo',
                     'placeholder' => 'Foo',
-                ),
+                ],
                 'rendered' => false,
-            ),
-        );
+            ],
+        ];
 
         $this->assertEquals($expected, $this->form->addField($name, $type, $options, $attr)->getFields());
     }
@@ -68,17 +66,17 @@ class Twbs3FormTest extends TestCase
         $type = null;
         $label = null;
         $attr = null;
-        $expected = array(
-            'foo' => array(
+        $expected = [
+            'foo' => [
                 'type' => 'button',
-                'attr' => array(
+                'attr' => [
                     'class' => 'btn btn-primary',
-                    'name' => 'twbs3_form[foo]',
-                    'id' => 'twbs3_form_foo',
-                ),
+                    'name'  => 'twbs3_form[foo]',
+                    'id'    => 'twbs3_form_foo',
+                ],
                 'label' => 'Foo',
-            ),
-        );
+            ],
+        ];
 
         $this->assertEquals($expected, $this->form->addButton($name, $type, $label, $attr)->getButtons());
     }
@@ -99,30 +97,30 @@ class Twbs3FormTest extends TestCase
         $this->form->addField('checkbox', 'checkbox');
         $this->form->addField('radio', 'radio');
         $this->form->addField('textarea', 'textarea');
-        $this->form->addField('choice', 'choice', array(
-            'items' => array(
+        $this->form->addField('choice', 'choice', [
+            'items' => [
                 'One' => 1,
                 'Two' => 2,
-            ),
-        ));
-        $this->form->addField('choice2', 'choice', array(
+            ],
+        ]);
+        $this->form->addField('choice2', 'choice', [
             'expanded' => true,
-            'items' => array(
+            'items'    => [
                 'Three' => 3,
-                'Four' => 4,
-            ),
-        ));
-        $this->form->addField('choice3', 'choice', array(
+                'Four'  => 4,
+            ],
+        ]);
+        $this->form->addField('choice3', 'choice', [
             'expanded' => true,
             'multiple' => true,
-            'items' => function () {
-                return array(
+            'items'    => function () {
+                return [
                     'Five' => 5,
-                    'Six' => 6,
-                );
+                    'Six'  => 6,
+                ];
             },
-        ));
-        $expected = <<<TXT
+        ]);
+        $expected = <<<'TXT'
 <form class="form-horizontal" name="twbs3_form" method="POST">
 <input type="hidden" name="twbs3_form[_form]" value="twbs3_form">
 <input type="hidden" name="twbs3_form[hidden]" id="twbs3_form_hidden">
@@ -146,35 +144,35 @@ TXT;
     public function testRenderSubmitted()
     {
         $this->form->addField('hidden', 'hidden');
-        $this->form->addField('text', 'text', array('constraints' => 'required'));
-        $this->form->addField('password', 'password', array('constraints' => 'required'));
+        $this->form->addField('text', 'text', ['constraints' => 'required']);
+        $this->form->addField('password', 'password', ['constraints' => 'required']);
         $this->form->addField('checkbox', 'checkbox');
         $this->form->addField('radio', 'radio');
         $this->form->addField('textarea', 'textarea');
-        $this->form->addField('choice', 'choice', array(
-            'items' => array(
+        $this->form->addField('choice', 'choice', [
+            'items' => [
                 'One' => 1,
                 'Two' => 2,
-            ),
-        ));
-        $this->form->addField('choice2', 'choice', array(
+            ],
+        ]);
+        $this->form->addField('choice2', 'choice', [
             'expanded' => true,
-            'items' => array(
+            'items'    => [
                 'Three' => 3,
-                'Four' => 4,
-            ),
-        ));
-        $this->form->addField('choice3', 'choice', array(
+                'Four'  => 4,
+            ],
+        ]);
+        $this->form->addField('choice3', 'choice', [
             'expanded' => true,
             'multiple' => true,
-            'items' => function () {
-                return array(
+            'items'    => function () {
+                return [
                     'Five' => 5,
-                    'Six' => 6,
-                );
+                    'Six'  => 6,
+                ];
             },
-        ));
-        $expected = <<<TXT
+        ]);
+        $expected = <<<'TXT'
 <form class="form-horizontal" name="twbs3_form" method="POST">
 <input type="hidden" name="twbs3_form[_form]" value="twbs3_form">
 <input type="hidden" name="twbs3_form[hidden]" id="twbs3_form_hidden" value="hidden">
@@ -192,22 +190,22 @@ TXT;
 </form>
 TXT;
 
-        $data = array(
-            'hidden' => 'hidden',
+        $data = [
+            'hidden'   => 'hidden',
             'password' => 'password',
             // 'text' => 'text',
             'checkbox' => 'on',
-            'radio' => 'on',
+            'radio'    => 'on',
             'textarea' => 'textarea',
-            'choice' => 1,
-            'choice2' => 3,
-            'choice3' => 5,
-        );
+            'choice'   => 1,
+            'choice2'  => 3,
+            'choice3'  => 5,
+        ];
         $this->core->set('VERB', 'POST');
-        $this->core->set('REQUEST.twbs3_form', array('_form' => 'twbs3_form') + $data);
+        $this->core->set('REQUEST.twbs3_form', ['_form' => 'twbs3_form'] + $data);
 
         $this->validator->add(new CommonValidator());
-        $this->form->setOptions(array('mark' => 1 | 2));
+        $this->form->setOptions(['mark' => 1 | 2]);
 
         $this->assertTrue($this->form->isSubmitted());
         $this->assertFalse($this->form->valid());

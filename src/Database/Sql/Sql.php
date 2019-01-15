@@ -1,20 +1,18 @@
 <?php
 
-/**
+/*
  * This file is part of the eghojansu/stick library.
  *
- * (c) Eko Kurniawan <ekokurniawanbs@gmail.com>
+ *  (c) Eko Kurniawan <ekokurniawanbs@gmail.com>
  *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- *
- * Created at Jan 15, 2019 09:21
+ *  For the full copyright and license information, please view the LICENSE
+ *  file that was distributed with this source code.
  */
 
 namespace Fal\Stick\Database\Sql;
 
-use Fal\Stick\Core;
 use Fal\Stick\CacheItem;
+use Fal\Stick\Core;
 
 class Sql
 {
@@ -74,7 +72,7 @@ class Sql
     /**
      * @var array
      */
-    protected $attributes = array();
+    protected $attributes = [];
 
     /**
      * @var bool
@@ -230,7 +228,7 @@ class Sql
             return $cache->getValue();
         }
 
-        $schema = array();
+        $schema = [];
         $db = $this->getDbName();
         $mTable = $table;
         $mFields = $this->core->split($fields);
@@ -247,14 +245,14 @@ class Sql
             $name = $row[$fName];
 
             if (!$mFields || in_array($name, $mFields)) {
-                $schema[$name] = array(
-                    'type' => $row[$fType],
+                $schema[$name] = [
+                    'type'     => $row[$fType],
                     'pdo_type' => $this->pdoType(null, $row[$fType]),
-                    'default' => $this->resolveSchemaDefaultValue($row[$fDefault]),
+                    'default'  => $this->resolveSchemaDefaultValue($row[$fDefault]),
                     'nullable' => $row[$fNull] == $nullCompare,
-                    'pkey' => $row[$fKey] == $keyCompare,
-                    'name' => $name,
-                );
+                    'pkey'     => $row[$fKey] == $keyCompare,
+                    'name'     => $name,
+                ];
             }
         }
 
@@ -278,7 +276,7 @@ class Sql
      */
     public function execAll(array $cmds, $ttl = 0)
     {
-        $result = array();
+        $result = [];
         $autoCommit = !$this->trans;
 
         $this->begin();
@@ -377,10 +375,10 @@ class Sql
             }
 
             foreach ($args as $key => $arg) {
-                $valueType = is_array($arg) ? array_values($arg) : array($arg);
+                $valueType = is_array($arg) ? array_values($arg) : [$arg];
                 array_unshift($valueType, $key);
 
-                call_user_func_array(array($query, 'bindValue'), $valueType);
+                call_user_func_array([$query, 'bindValue'], $valueType);
             }
         }
 
@@ -448,18 +446,18 @@ class Sql
      */
     public function key($key)
     {
-        $quotes = array(
-            self::DB_SQLITE => '``',
+        $quotes = [
+            self::DB_SQLITE  => '``',
             self::DB_SQLITE2 => '``',
-            self::DB_MYSQL => '``',
-            self::DB_PGSQL => '""',
-            self::DB_OCI => '""',
-            self::DB_MSSQL => '[]',
-            self::DB_SQLSRV => '[]',
-            self::DB_ODBC => '[]',
-            self::DB_SYBASE => '[]',
-            self::DB_DBLIB => '[]',
-        );
+            self::DB_MYSQL   => '``',
+            self::DB_PGSQL   => '""',
+            self::DB_OCI     => '""',
+            self::DB_MSSQL   => '[]',
+            self::DB_SQLSRV  => '[]',
+            self::DB_ODBC    => '[]',
+            self::DB_SYBASE  => '[]',
+            self::DB_DBLIB   => '[]',
+        ];
 
         if ($key && isset($quotes[$driver = $this->getDriverName()])) {
             $lft = $quotes[$driver][0];
@@ -482,24 +480,24 @@ class Sql
      */
     public function pdoType($val, $type = null, $realType = false)
     {
-        $types = array(
-            'null' => \PDO::PARAM_NULL,
+        $types = [
+            'null'     => \PDO::PARAM_NULL,
             'resource' => \PDO::PARAM_LOB,
-            'int' => \PDO::PARAM_INT,
-            'integer' => \PDO::PARAM_INT,
-            'bool' => \PDO::PARAM_BOOL,
-            'boolean' => \PDO::PARAM_BOOL,
-            'blob' => \PDO::PARAM_LOB,
-            'bytea' => \PDO::PARAM_LOB,
-            'image' => \PDO::PARAM_LOB,
-            'binary' => \PDO::PARAM_LOB,
-            'float' => self::PARAM_FLOAT,
-            'real' => self::PARAM_FLOAT,
-            'double' => self::PARAM_FLOAT,
-            'decimal' => self::PARAM_FLOAT,
-            'numeric' => self::PARAM_FLOAT,
-            'default' => \PDO::PARAM_STR,
-        );
+            'int'      => \PDO::PARAM_INT,
+            'integer'  => \PDO::PARAM_INT,
+            'bool'     => \PDO::PARAM_BOOL,
+            'boolean'  => \PDO::PARAM_BOOL,
+            'blob'     => \PDO::PARAM_LOB,
+            'bytea'    => \PDO::PARAM_LOB,
+            'image'    => \PDO::PARAM_LOB,
+            'binary'   => \PDO::PARAM_LOB,
+            'float'    => self::PARAM_FLOAT,
+            'real'     => self::PARAM_FLOAT,
+            'double'   => self::PARAM_FLOAT,
+            'decimal'  => self::PARAM_FLOAT,
+            'numeric'  => self::PARAM_FLOAT,
+            'default'  => \PDO::PARAM_STR,
+        ];
         $use = strtolower(null === $type ? gettype($val) : $type);
         $code = isset($types[$use]) ? $types[$use] : $types['default'];
 
@@ -519,7 +517,7 @@ class Sql
         $mType = null === $type ? $this->pdoType($val, null, true) : $type;
 
         if (\PDO::PARAM_NULL === $mType) {
-            return null;
+            return;
         }
 
         if (\PDO::PARAM_INT === $mType) {
@@ -596,12 +594,12 @@ class Sql
      */
     protected function buildQuery($cmd, array $args = null)
     {
-        $keys = $vals = array();
+        $keys = $vals = [];
 
         foreach ((array) $args as $key => $val) {
-            $val = is_array($val) ? array_values($val) : array($val);
+            $val = is_array($val) ? array_values($val) : [$val];
 
-            $vals[] = var_export(call_user_func_array(array($this, 'phpValue'), $val), true);
+            $vals[] = var_export(call_user_func_array([$this, 'phpValue'], $val), true);
             $keys[] = '/'.preg_quote(is_numeric($key) ? chr(0).'?' : $key, '/').'/';
         }
 
@@ -631,28 +629,28 @@ class Sql
      */
     protected function getSchemaCommand($db, $table, $driver)
     {
-        $engines = array(
-            self::DB_SQLITE => 1,
+        $engines = [
+            self::DB_SQLITE  => 1,
             self::DB_SQLITE2 => 1,
-            self::DB_MYSQL => 2,
-            self::DB_MSSQL => 3,
-            self::DB_SQLSRV => 3,
-            self::DB_SYBASE => 3,
-            self::DB_DBLIB => 3,
-            self::DB_PGSQL => 3,
-            self::DB_ODBC => 3,
-            self::DB_OCI => 4,
-        );
-        $commands = array(
-            1 => array(
+            self::DB_MYSQL   => 2,
+            self::DB_MSSQL   => 3,
+            self::DB_SQLSRV  => 3,
+            self::DB_SYBASE  => 3,
+            self::DB_DBLIB   => 3,
+            self::DB_PGSQL   => 3,
+            self::DB_ODBC    => 3,
+            self::DB_OCI     => 4,
+        ];
+        $commands = [
+            1 => [
                 'PRAGMA table_info('.$table.')',
                 'name', 'type', 'dflt_value', 'notnull', 0, 'pk', true,
-            ),
-            array(
+            ],
+            [
                 'SHOW columns FROM '.$db.'.'.$table,
                 'Field', 'Type', 'Default', 'Null', 'YES', 'Key', 'PRI',
-            ),
-            array(
+            ],
+            [
                 'SELECT '.
                     'C.COLUMN_NAME AS field,'.
                     'C.DATA_TYPE AS type,'.
@@ -677,8 +675,8 @@ class Sql
                     'C.TABLE_NAME='.$table.
                     ($db ? ' AND C.TABLE_CATALOG='.$table : ''),
                 'field', 'type', 'defval', 'nullable', 'YES', 'pkey', 'PRIMARY KEY',
-            ),
-            array(
+            ],
+            [
                 'SELECT c.column_name AS field, '.
                     'c.data_type AS type, '.
                     'c.data_default AS defval, '.
@@ -693,8 +691,8 @@ class Sql
                 'FROM all_tab_cols c '.
                 'WHERE c.table_name='.$table,
                 'FIELD', 'TYPE', 'DEFVAL', 'NULLABLE', 'Y', 'PKEY', 'P',
-            ),
-        );
+            ],
+        ];
 
         if (isset($engines[$driver]) && isset($commands[$engines[$driver]])) {
             return $commands[$engines[$driver]];

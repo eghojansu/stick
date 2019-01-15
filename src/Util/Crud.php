@@ -1,22 +1,20 @@
 <?php
 
-/**
+/*
  * This file is part of the eghojansu/stick library.
  *
- * (c) Eko Kurniawan <ekokurniawanbs@gmail.com>
+ *  (c) Eko Kurniawan <ekokurniawanbs@gmail.com>
  *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- *
- * Created at Jan 15, 2019 11:38
+ *  For the full copyright and license information, please view the LICENSE
+ *  file that was distributed with this source code.
  */
 
 namespace Fal\Stick\Util;
 
 use Fal\Stick\Core;
+use Fal\Stick\Database\Sql\Mapper;
 use Fal\Stick\Form\Form;
 use Fal\Stick\Security\Auth;
-use Fal\Stick\Database\Sql\Mapper;
 use Fal\Stick\Template\Template;
 
 /**
@@ -51,71 +49,71 @@ class Crud
     /**
      * @var array
      */
-    protected $_data = array(
-        'state' => null,
-        'route' => null,
-        'page' => null,
-        'keyword' => null,
-        'fields' => array(),
-        'segments' => array(),
-        'form' => null,
-        'mapper' => null,
-    );
+    protected $_data = [
+        'state'    => null,
+        'route'    => null,
+        'page'     => null,
+        'keyword'  => null,
+        'fields'   => [],
+        'segments' => [],
+        'form'     => null,
+        'mapper'   => null,
+    ];
 
     /**
      * @var array
      */
-    protected $_options = array(
-        'title' => null,
-        'subtitle' => null,
-        'form' => null,
-        'form_options' => null,
-        'on_form_build' => null,
-        'field_orders' => null,
-        'field_labels' => null,
-        'mapper' => null,
-        'state' => null,
-        'filters' => array(),
-        'listing_options' => null,
-        'searchable' => null,
-        'segments' => null,
-        'sid_start' => 1,
-        'sid_end' => 1,
-        'page' => null,
-        'page_query_name' => 'page',
-        'keyword' => null,
-        'keyword_query_name' => 'keyword',
-        'route' => null,
-        'route_args' => null,
-        'created_message' => 'Data has been created.',
-        'updated_message' => 'Data has been updated.',
-        'deleted_message' => 'Data has been deleted.',
-        'created_message_key' => 'SESSION.alerts.success',
-        'updated_message_key' => 'SESSION.alerts.info',
-        'deleted_message_key' => 'SESSION.alerts.warning',
-        'varname' => 'crud',
-        'on_init' => null,
-        'on_prepare_data' => null,
-        'on_load' => null,
-        'before_create' => null,
-        'after_create' => null,
-        'before_update' => null,
-        'after_update' => null,
-        'before_delete' => null,
-        'after_delete' => null,
-        'states' => null,
-        'views' => null,
-        'fields' => null,
-        'roles' => null,
-        'create_new' => false,
-        'create_new_label' => null,
+    protected $_options = [
+        'title'                  => null,
+        'subtitle'               => null,
+        'form'                   => null,
+        'form_options'           => null,
+        'on_form_build'          => null,
+        'field_orders'           => null,
+        'field_labels'           => null,
+        'mapper'                 => null,
+        'state'                  => null,
+        'filters'                => [],
+        'listing_options'        => null,
+        'searchable'             => null,
+        'segments'               => null,
+        'sid_start'              => 1,
+        'sid_end'                => 1,
+        'page'                   => null,
+        'page_query_name'        => 'page',
+        'keyword'                => null,
+        'keyword_query_name'     => 'keyword',
+        'route'                  => null,
+        'route_args'             => null,
+        'created_message'        => 'Data has been created.',
+        'updated_message'        => 'Data has been updated.',
+        'deleted_message'        => 'Data has been deleted.',
+        'created_message_key'    => 'SESSION.alerts.success',
+        'updated_message_key'    => 'SESSION.alerts.info',
+        'deleted_message_key'    => 'SESSION.alerts.warning',
+        'varname'                => 'crud',
+        'on_init'                => null,
+        'on_prepare_data'        => null,
+        'on_load'                => null,
+        'before_create'          => null,
+        'after_create'           => null,
+        'before_update'          => null,
+        'after_update'           => null,
+        'before_delete'          => null,
+        'after_delete'           => null,
+        'states'                 => null,
+        'views'                  => null,
+        'fields'                 => null,
+        'roles'                  => null,
+        'create_new'             => false,
+        'create_new_label'       => null,
         'create_new_session_key' => 'SESSION.crud_create_new',
-    );
+    ];
 
     /**
      * @var array
      */
-    protected $_functions = array();
+    protected $_functions = [];
 
     /**
      * Class constructor.
@@ -126,13 +124,13 @@ class Crud
      */
     public function __construct(Core $fw, Template $template, array $views = null)
     {
-        $states = array(
+        $states = [
             static::STATE_LISTING,
             static::STATE_VIEW,
             static::STATE_CREATE,
             static::STATE_UPDATE,
             static::STATE_DELETE,
-        );
+        ];
         $nullStates = array_fill_keys($states, null);
 
         $this->_core = $fw;
@@ -217,9 +215,9 @@ class Crud
     /**
      * Get auth instance.
      *
-     * @return Auth
-     *
      * @throws LogicException if auth instance not registered yet
+     *
+     * @return Auth
      */
     public function getAuth()
     {
@@ -444,7 +442,7 @@ class Crud
             throw new \LogicException(sprintf('No view for state: "%s".', $state));
         }
 
-        return $out ? $this->_template->render($view, array($var => $this)) : null;
+        return $out ? $this->_template->render($view, [$var => $this]) : null;
     }
 
     /**
@@ -465,7 +463,7 @@ class Crud
         $this->loadMapper();
         $this->loadForm();
 
-        $segments = $this->_core->split(isset($this->_options['segments']) ? $this->_options['segments'] : array(), '/');
+        $segments = $this->_core->split(isset($this->_options['segments']) ? $this->_options['segments'] : [], '/');
 
         if (empty($segments) || 'index' === $segments[0]) {
             $state = self::STATE_LISTING;
@@ -506,24 +504,24 @@ class Crud
     {
         $var = $this->_options[$key];
         $createNewKey = $this->_options['create_new_session_key'];
-        $message = strtr(isset($this->_options[$messageKey.'_message']) ? $this->_options[$messageKey.'_message'] : '', array(
+        $message = strtr(isset($this->_options[$messageKey.'_message']) ? $this->_options[$messageKey.'_message'] : '', [
             '%table%' => $this->_data['mapper']->table(),
-            '%id%' => implode(', ', $this->_data['mapper']->keys()),
-        ));
+            '%id%'    => implode(', ', $this->_data['mapper']->keys()),
+        ]);
 
         if ($this->_options['create_new'] && $this->_data['form']->create_new && 'create' === $this->_data['state']) {
             $createNew = true;
             $target = null;
         } else {
             $createNew = false;
-            $target = array(
+            $target = [
                 $this->_data['route'],
-                array_merge((array) $this->_options['route_args'], array('index')),
-                array_filter(array(
-                    $this->_options['page_query_name'] => $this->_data['page'],
+                array_merge((array) $this->_options['route_args'], ['index']),
+                array_filter([
+                    $this->_options['page_query_name']    => $this->_data['page'],
                     $this->_options['keyword_query_name'] => $this->_data['keyword'],
-                ), 'is_scalar'),
-            );
+                ], 'is_scalar'),
+            ];
         }
 
         $this->_core->set($var, $message);
@@ -545,7 +543,7 @@ class Crud
         } elseif (class_exists($map)) {
             $this->_data['mapper'] = $this->_core->service($map);
         } else {
-            $this->_data['mapper'] = $this->_core->createInstance(Mapper::class, array('arguments' => array($map)));
+            $this->_data['mapper'] = $this->_core->createInstance(Mapper::class, ['arguments' => [$map]]);
         }
     }
 
@@ -562,7 +560,7 @@ class Crud
             $this->_data['form'] = $this->_core->service($form);
         } else {
             $this->_data['form'] = $this->_core->createInstance(Form::class);
-            $this->trigger('on_form_build', array($this->_data['form']));
+            $this->trigger('on_form_build', [$this->_data['form']]);
         }
     }
 
@@ -595,13 +593,13 @@ class Crud
 
         $orders = $this->_core->split($this->_options['field_orders']);
         $keys = array_unique(array_merge($orders, array_keys($fields)));
-        $this->_data['fields'] = array_fill_keys($keys, array());
+        $this->_data['fields'] = array_fill_keys($keys, []);
 
         foreach ($fields as $name => $field) {
-            $default = array(
-                'name' => $name,
+            $default = [
+                'name'  => $name,
                 'label' => $this->_core->trans($name, null, $this->titleize($name)),
-            );
+            ];
             $this->_data['fields'][$name] = ((array) $field) + $default;
         }
     }
@@ -617,7 +615,7 @@ class Crud
         $filters = $this->_options['filters'];
         $search = &$filters[];
 
-        foreach ($keyword ? $this->_core->split($this->_options['searchable'], ',') : array() as $field) {
+        foreach ($keyword ? $this->_core->split($this->_options['searchable'], ',') : [] as $field) {
             $search[$field] = '~' === substr($field, -1) ? '%'.$keyword.'%' : $keyword;
         }
 
@@ -677,11 +675,11 @@ class Crud
         $this->_data['form']->setData($data)->prepare((array) $options);
 
         if ($this->_options['create_new'] && 'create' === $this->_data['state'] && !$this->_data['form']->getField('create_new')) {
-            $this->_data['form']->addField('create_new', 'checkbox', array(
+            $this->_data['form']->addField('create_new', 'checkbox', [
                 'checked' => $this->_core->get('SESSION.'.$this->_options['create_new_session_key']),
-            ), array(
+            ], [
                 'label' => $this->_options['create_new_label'],
-            ));
+            ]);
         }
 
         return $this->_data['form'];

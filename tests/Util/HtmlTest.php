@@ -1,14 +1,12 @@
 <?php
 
-/**
+/*
  * This file is part of the eghojansu/stick library.
  *
- * (c) Eko Kurniawan <ekokurniawanbs@gmail.com>
+ *  (c) Eko Kurniawan <ekokurniawanbs@gmail.com>
  *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- *
- * Created at Jan 13, 2019 01:34
+ *  For the full copyright and license information, please view the LICENSE
+ *  file that was distributed with this source code.
  */
 
 namespace Fal\Stick\Test\Util;
@@ -29,13 +27,13 @@ class HtmlTest extends TestCase
 
     public function testAttr()
     {
-        $attr = array(
+        $attr = [
             'foo' => 'bar',
             'bar' => null,
             'baz' => false,
             'qux' => true,
             'quux',
-        );
+        ];
         $expected = ' foo="bar" qux quux';
 
         $this->assertEquals($expected, $this->html->attr($attr));
@@ -58,8 +56,7 @@ class HtmlTest extends TestCase
             ->route('GET foo /', 'foo')
             ->route('GET bar /bar/@bar', 'bar')
             ->route('GET baz /baz/@baz*', 'baz')
-            ->route('GET qux /qux/@qux/@quux*', 'qux')
-        ;
+            ->route('GET qux /qux/@qux/@quux*', 'qux');
         $this->core->set('ALIAS', $alias);
         $this->core->set('GET', $query);
 
@@ -77,41 +74,40 @@ class HtmlTest extends TestCase
             ->route('GET foo /foo', 'foo')
             ->route('GET bar /bar/@bar', 'foo')
             ->route('GET baz /baz/@bar*', 'foo')
-            ->route('GET qux /qux/@qux/@quux*', 'foo')
-        ;
+            ->route('GET qux /qux/@qux/@quux*', 'foo');
 
         $this->assertEquals($expected, $this->html->ulinks($items, $activeRoute, $config));
     }
 
     public function tagProvider()
     {
-        return array(
-            array('<form>', 'form'),
-            array('<form method="post">', 'form', array('method' => 'post')),
-            array('<div>text</div>', 'div', null, true, 'text'),
-        );
+        return [
+            ['<form>', 'form'],
+            ['<form method="post">', 'form', ['method' => 'post']],
+            ['<div>text</div>', 'div', null, true, 'text'],
+        ];
     }
 
     public function paginationProvider()
     {
-        return array(
-            array('foo', 1, 0, null, ''),
-            array('foo', 0, 1, null, ''),
-            array('foo', 1, 1, null, '<li class="active"><a href="/?page=1">1</a></li>'),
-            array('foo', 2, 1, null, '<li><a href="/?page=1">1</a></li>'),
-            array('foo', 1, 2, null,
+        return [
+            ['foo', 1, 0, null, ''],
+            ['foo', 0, 1, null, ''],
+            ['foo', 1, 1, null, '<li class="active"><a href="/?page=1">1</a></li>'],
+            ['foo', 2, 1, null, '<li><a href="/?page=1">1</a></li>'],
+            ['foo', 1, 2, null,
                 '<li class="active"><a href="/?page=1">1</a></li>'.
                 '<li><a href="/?page=2">2</a></li>',
-            ),
-            array('foo', 2, 3, null,
+            ],
+            ['foo', 2, 3, null,
                 '<li><a href="/?page=1">1</a></li>'.
                 '<li class="active"><a href="/?page=2">2</a></li>'.
                 '<li><a href="/?page=3">3</a></li>',
-            ),
-            array('foo', 1, 1, array('route_query' => array('bar' => 'baz')),
+            ],
+            ['foo', 1, 1, ['route_query' => ['bar' => 'baz']],
                 '<li class="active"><a href="/?page=1&bar=baz">1</a></li>',
-            ),
-            array('foo', 5, 9, null,
+            ],
+            ['foo', 5, 9, null,
                 '<li><a href="/?page=4">Prev</a></li>'.
                 '<li><a href="/?page=1">1</a></li>'.
                 '<li class="gap"><span>&hellip;</span></li>'.
@@ -123,37 +119,37 @@ class HtmlTest extends TestCase
                 '<li class="gap"><span>&hellip;</span></li>'.
                 '<li><a href="/?page=9">9</a></li>'.
                 '<li><a href="/?page=6">Next</a></li>',
-            ),
-            array('bar', 1, 1, array('route_data' => array('bar' => 'baz')),
+            ],
+            ['bar', 1, 1, ['route_data' => ['bar' => 'baz']],
                 '<li class="active"><a href="/bar/baz?page=1">1</a></li>',
-            ),
-            array('baz', 1, 1, array('route_data' => array('bar', 'baz')),
+            ],
+            ['baz', 1, 1, ['route_data' => ['bar', 'baz']],
                 '<li class="active"><a href="/baz/bar/baz?page=1">1</a></li>',
-            ),
-            array('qux', 1, 1, array('route_data' => array('qux' => 'qux', 'bar', 'baz')),
+            ],
+            ['qux', 1, 1, ['route_data' => ['qux' => 'qux', 'bar', 'baz']],
                 '<li class="active"><a href="/qux/qux/bar/baz?page=1">1</a></li>',
-            ),
-        );
+            ],
+        ];
     }
 
     public function ulinksProvider()
     {
-        return array(
-            array(array(), null, null, ''),
-            array(array(
+        return [
+            [[], null, null, ''],
+            [[
                 'Foo' => 'foo',
-            ), null, null, '<ul>'.
+            ], null, null, '<ul>'.
                 '<li><a href="/foo">Foo</a></li>'.
                 '</ul>',
-            ),
-            array(array(
+            ],
+            [[
                 'Foo' => 'foo',
-                'Bar' => array(
-                    'items' => array(
+                'Bar' => [
+                    'items' => [
                         'Bar 1' => 'foo',
-                    ),
-                ),
-            ), 'foo', array('parent_wrapper_attr' => array('class' => 'foo')), '<ul>'.
+                    ],
+                ],
+            ], 'foo', ['parent_wrapper_attr' => ['class' => 'foo']], '<ul>'.
                 '<li class="active"><a href="/foo">Foo</a></li>'.
                 '<li class="active">'.
                     '<a href="#">Bar</a>'.
@@ -162,46 +158,46 @@ class HtmlTest extends TestCase
                     '</ul>'.
                     '</li>'.
                 '</ul>',
-            ),
-            array(array(
+            ],
+            [[
                 'Foo' => 'foo',
-                'Bar' => array(
-                    'items' => array(
-                        'Bar 1' => array(
+                'Bar' => [
+                    'items' => [
+                        'Bar 1' => [
                             'route' => 'bar',
-                            'args' => array('bar' => 1),
-                        ),
-                        'Bar 2' => array(
+                            'args'  => ['bar' => 1],
+                        ],
+                        'Bar 2' => [
                             'route' => 'bar',
-                            'args' => array('bar' => 2),
-                        ),
-                    ),
-                ),
-                'Baz' => array(
-                    'items' => array(
-                        'Baz 1' => array(
+                            'args'  => ['bar' => 2],
+                        ],
+                    ],
+                ],
+                'Baz' => [
+                    'items' => [
+                        'Baz 1' => [
                             'route' => 'baz',
-                            'args' => array(1),
-                        ),
-                        'Baz 234' => array(
+                            'args'  => [1],
+                        ],
+                        'Baz 234' => [
                             'route' => 'baz',
-                            'args' => array(2, 3, 4),
-                        ),
-                    ),
-                ),
-                'Qux' => array(
-                    'items' => array(
-                        'Qux 1 1' => array(
+                            'args'  => [2, 3, 4],
+                        ],
+                    ],
+                ],
+                'Qux' => [
+                    'items' => [
+                        'Qux 1 1' => [
                             'route' => 'qux',
-                            'args' => array('qux' => 1, 1),
-                        ),
-                        'Qux 1 234' => array(
+                            'args'  => ['qux' => 1, 1],
+                        ],
+                        'Qux 1 234' => [
                             'route' => 'qux',
-                            'args' => array('qux' => 1, 2, 3, 4),
-                        ),
-                    ),
-                ),
-            ), null, null, '<ul>'.
+                            'args'  => ['qux' => 1, 2, 3, 4],
+                        ],
+                    ],
+                ],
+            ], null, null, '<ul>'.
                 '<li><a href="/foo">Foo</a></li>'.
                 '<li><a href="#">Bar</a>'.
                     '<ul>'.
@@ -222,7 +218,7 @@ class HtmlTest extends TestCase
                     '</ul>'.
                     '</li>'.
                 '</ul>',
-            ),
-        );
+            ],
+        ];
     }
 }

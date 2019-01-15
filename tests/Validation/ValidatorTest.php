@@ -1,22 +1,20 @@
 <?php
 
-/**
+/*
  * This file is part of the eghojansu/stick library.
  *
- * (c) Eko Kurniawan <ekokurniawanbs@gmail.com>
+ *  (c) Eko Kurniawan <ekokurniawanbs@gmail.com>
  *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- *
- * Created at Jan 14, 2019 08:30
+ *  For the full copyright and license information, please view the LICENSE
+ *  file that was distributed with this source code.
  */
 
 namespace Fal\Stick\Test\Validation;
 
 use Fal\Stick\Core;
-use PHPUnit\Framework\TestCase;
-use Fal\Stick\Validation\Validator;
 use Fal\Stick\Validation\CommonValidator;
+use Fal\Stick\Validation\Validator;
+use PHPUnit\Framework\TestCase;
 
 class ValidatorTest extends TestCase
 {
@@ -24,10 +22,10 @@ class ValidatorTest extends TestCase
 
     public function setUp()
     {
-        $this->validator = new Validator(new Core(), array(
+        $this->validator = new Validator(new Core(), [
             'Fal\Stick\Validation\CommonValidator',
             'Fal\Stick\Validation\UrlValidator',
-        ));
+        ]);
     }
 
     public function testAdd()
@@ -38,7 +36,7 @@ class ValidatorTest extends TestCase
     /**
      * @dataProvider validateProvider
      */
-    public function testValidate($rules, $trueData, $data, $falseData, $expected, $messages = array())
+    public function testValidate($rules, $trueData, $data, $falseData, $expected, $messages = [])
     {
         $first = $this->validator->validate($trueData, $rules);
         $this->assertTrue($first->isValid());
@@ -66,12 +64,12 @@ class ValidatorTest extends TestCase
         $this->expectException('DomainException');
         $this->expectExceptionMessage('Rule "foo" not exists');
 
-        $this->validator->validate(array('foo' => 'foo'), array('foo' => 'foo'));
+        $this->validator->validate(['foo' => 'foo'], ['foo' => 'foo']);
     }
 
     public function testValidateCustomMessage()
     {
-        $res = $this->validator->validate(array(), array('foo' => 'required'), array('foo.required' => 'Required'));
+        $res = $this->validator->validate([], ['foo' => 'required'], ['foo.required' => 'Required']);
         $this->assertFalse($res->isValid());
         $this->assertEquals('Required', $res->errors['foo'][0]);
     }
@@ -86,290 +84,290 @@ class ValidatorTest extends TestCase
 
     public function validateProvider()
     {
-        return array(
-            array(
-                array('foo' => 'required'),
-                array('foo' => 'bar'),
+        return [
+            [
+                ['foo' => 'required'],
+                ['foo' => 'bar'],
                 null,
-                array('foo' => null),
-                array('foo' => array('This value should not be blank')),
-            ),
-            array(
-                array('foo' => 'required'),
-                array('foo' => 'bar'),
+                ['foo' => null],
+                ['foo' => ['This value should not be blank']],
+            ],
+            [
+                ['foo' => 'required'],
+                ['foo' => 'bar'],
                 null,
-                array(),
-                array('foo' => array('This value should not be blank')),
-            ),
-            array(
-                array('foo' => 'type:integer'),
-                array('foo' => 1),
+                [],
+                ['foo' => ['This value should not be blank']],
+            ],
+            [
+                ['foo' => 'type:integer'],
+                ['foo' => 1],
                 null,
-                array('foo' => 'str'),
-                array('foo' => array('This value should be of type integer')),
-            ),
-            array(
-                array('foo' => 'min:1'),
-                array('foo' => 1),
+                ['foo' => 'str'],
+                ['foo' => ['This value should be of type integer']],
+            ],
+            [
+                ['foo' => 'min:1'],
+                ['foo' => 1],
                 null,
-                array('foo' => 0),
-                array('foo' => array('This value should be 1 or more')),
-            ),
-            array(
-                array('foo' => 'max:1'),
-                array('foo' => 0),
+                ['foo' => 0],
+                ['foo' => ['This value should be 1 or more']],
+            ],
+            [
+                ['foo' => 'max:1'],
+                ['foo' => 0],
                 null,
-                array('foo' => 2),
-                array('foo' => array('This value should be 1 or less')),
-            ),
-            array(
-                array('foo' => 'lt:1'),
-                array('foo' => 0),
+                ['foo' => 2],
+                ['foo' => ['This value should be 1 or less']],
+            ],
+            [
+                ['foo' => 'lt:1'],
+                ['foo' => 0],
                 null,
-                array('foo' => 1),
-                array('foo' => array('This value should be less than 1')),
-            ),
-            array(
-                array('foo' => 'gt:1'),
-                array('foo' => 2),
+                ['foo' => 1],
+                ['foo' => ['This value should be less than 1']],
+            ],
+            [
+                ['foo' => 'gt:1'],
+                ['foo' => 2],
                 null,
-                array('foo' => 1),
-                array('foo' => array('This value should be greater than 1')),
-            ),
-            array(
-                array('foo' => 'lte:1'),
-                array('foo' => 1),
+                ['foo' => 1],
+                ['foo' => ['This value should be greater than 1']],
+            ],
+            [
+                ['foo' => 'lte:1'],
+                ['foo' => 1],
                 null,
-                array('foo' => 2),
-                array('foo' => array('This value should be less than or equal to 1')),
-            ),
-            array(
-                array('foo' => 'gte:1'),
-                array('foo' => 1),
+                ['foo' => 2],
+                ['foo' => ['This value should be less than or equal to 1']],
+            ],
+            [
+                ['foo' => 'gte:1'],
+                ['foo' => 1],
                 null,
-                array('foo' => 0),
-                array('foo' => array('This value should be greater than or equal to 1')),
-            ),
-            array(
-                array('foo' => 'equalfield:bar'),
-                array('foo' => 'baz', 'bar' => 'baz'),
-                array('foo' => 'baz'),
-                array('foo' => 'bar', 'bar' => 'baz'),
-                array('foo' => array('This value should be equal to value of bar')),
-            ),
-            array(
-                array('foo' => 'notequalfield:bar'),
-                array('foo' => 'bar', 'bar' => 'baz'),
-                array('foo' => 'bar'),
-                array('foo' => 'baz', 'bar' => 'baz'),
-                array('foo' => array('This value should not be equal to value of bar')),
-            ),
-            array(
-                array('foo' => 'equal:bar'),
-                array('foo' => 'bar'),
+                ['foo' => 0],
+                ['foo' => ['This value should be greater than or equal to 1']],
+            ],
+            [
+                ['foo' => 'equalfield:bar'],
+                ['foo' => 'baz', 'bar' => 'baz'],
+                ['foo' => 'baz'],
+                ['foo' => 'bar', 'bar' => 'baz'],
+                ['foo' => ['This value should be equal to value of bar']],
+            ],
+            [
+                ['foo' => 'notequalfield:bar'],
+                ['foo' => 'bar', 'bar' => 'baz'],
+                ['foo' => 'bar'],
+                ['foo' => 'baz', 'bar' => 'baz'],
+                ['foo' => ['This value should not be equal to value of bar']],
+            ],
+            [
+                ['foo' => 'equal:bar'],
+                ['foo' => 'bar'],
                 null,
-                array('foo' => 'baz'),
-                array('foo' => array('This value should be equal to bar')),
-            ),
-            array(
-                array('foo' => 'notequal:bar'),
-                array('foo' => 'baz'),
+                ['foo' => 'baz'],
+                ['foo' => ['This value should be equal to bar']],
+            ],
+            [
+                ['foo' => 'notequal:bar'],
+                ['foo' => 'baz'],
                 null,
-                array('foo' => 'bar'),
-                array('foo' => array('This value should not be equal to bar')),
-            ),
-            array(
-                array('foo' => 'identical:bar,string'),
-                array('foo' => 'bar'),
+                ['foo' => 'bar'],
+                ['foo' => ['This value should not be equal to bar']],
+            ],
+            [
+                ['foo' => 'identical:bar,string'],
+                ['foo' => 'bar'],
                 null,
-                array('foo' => 'baz'),
-                array('foo' => array('This value should be identical to string bar')),
-            ),
-            array(
-                array('foo' => 'notidentical:bar,string'),
-                array('foo' => 'baz'),
+                ['foo' => 'baz'],
+                ['foo' => ['This value should be identical to string bar']],
+            ],
+            [
+                ['foo' => 'notidentical:bar,string'],
+                ['foo' => 'baz'],
                 null,
-                array('foo' => 'bar'),
-                array('foo' => array('This value should not be identical to string bar')),
-            ),
-            array(
-                array('foo' => 'len:3'),
-                array('foo' => 'bar'),
+                ['foo' => 'bar'],
+                ['foo' => ['This value should not be identical to string bar']],
+            ],
+            [
+                ['foo' => 'len:3'],
+                ['foo' => 'bar'],
                 null,
-                array('foo' => 'ba'),
-                array('foo' => array('This value is not valid. It should have exactly 3 characters')),
-            ),
-            array(
-                array('foo' => 'lenmin:3'),
-                array('foo' => 'bar'),
+                ['foo' => 'ba'],
+                ['foo' => ['This value is not valid. It should have exactly 3 characters']],
+            ],
+            [
+                ['foo' => 'lenmin:3'],
+                ['foo' => 'bar'],
                 null,
-                array('foo' => 'ba'),
-                array('foo' => array('This value is too short. It should have 3 characters or more')),
-            ),
-            array(
-                array('foo' => 'lenmax:3'),
-                array('foo' => 'bar'),
+                ['foo' => 'ba'],
+                ['foo' => ['This value is too short. It should have 3 characters or more']],
+            ],
+            [
+                ['foo' => 'lenmax:3'],
+                ['foo' => 'bar'],
                 null,
-                array('foo' => 'barbaz'),
-                array('foo' => array('This value is too long. It should have 3 characters or less')),
-            ),
-            array(
-                array('foo' => 'count:1'),
-                array('foo' => array(1)),
+                ['foo' => 'barbaz'],
+                ['foo' => ['This value is too long. It should have 3 characters or less']],
+            ],
+            [
+                ['foo' => 'count:1'],
+                ['foo' => [1]],
                 null,
-                array('foo' => array(1, 2)),
-                array('foo' => array('This collection should contain exactly 1 elements')),
-            ),
-            array(
-                array('foo' => 'countmin:1'),
-                array('foo' => array(1)),
+                ['foo' => [1, 2]],
+                ['foo' => ['This collection should contain exactly 1 elements']],
+            ],
+            [
+                ['foo' => 'countmin:1'],
+                ['foo' => [1]],
                 null,
-                array('foo' => array()),
-                array('foo' => array('This collection should contain 1 elements or more')),
-            ),
-            array(
-                array('foo' => 'countmax:1'),
-                array('foo' => array(1)),
+                ['foo' => []],
+                ['foo' => ['This collection should contain 1 elements or more']],
+            ],
+            [
+                ['foo' => 'countmax:1'],
+                ['foo' => [1]],
                 null,
-                array('foo' => array(1, 2)),
-                array('foo' => array('This collection should contain 1 elements or less')),
-            ),
-            array(
-                array('foo' => 'regex:"/^foo$/"'),
-                array('foo' => 'foo'),
+                ['foo' => [1, 2]],
+                ['foo' => ['This collection should contain 1 elements or less']],
+            ],
+            [
+                ['foo' => 'regex:"/^foo$/"'],
+                ['foo' => 'foo'],
                 null,
-                array('foo' => 'bar'),
-                array('foo' => array('This value is not valid')),
-            ),
-            array(
-                array('foo' => 'choice:[1,2]'),
-                array('foo' => 1),
+                ['foo' => 'bar'],
+                ['foo' => ['This value is not valid']],
+            ],
+            [
+                ['foo' => 'choice:[1,2]'],
+                ['foo' => 1],
                 null,
-                array('foo' => 3),
-                array('foo' => array('The value you selected is not a valid choice')),
-            ),
-            array(
-                array('foo' => 'choices:[1,2,3]'),
-                array('foo' => array(1, 2)),
+                ['foo' => 3],
+                ['foo' => ['The value you selected is not a valid choice']],
+            ],
+            [
+                ['foo' => 'choices:[1,2,3]'],
+                ['foo' => [1, 2]],
                 null,
-                array('foo' => array(1, 4)),
-                array('foo' => array('One or more of the given values is invalid')),
-            ),
-            array(
-                array('foo' => 'date'),
-                array('foo' => '2010-10-10'),
+                ['foo' => [1, 4]],
+                ['foo' => ['One or more of the given values is invalid']],
+            ],
+            [
+                ['foo' => 'date'],
+                ['foo' => '2010-10-10'],
                 null,
-                array('foo' => '2010-10'),
-                array('foo' => array('This value is not a valid date')),
-            ),
-            array(
-                array('foo' => 'datetime'),
-                array('foo' => '2010-10-10 10:10:10'),
+                ['foo' => '2010-10'],
+                ['foo' => ['This value is not a valid date']],
+            ],
+            [
+                ['foo' => 'datetime'],
+                ['foo' => '2010-10-10 10:10:10'],
                 null,
-                array('foo' => '2010-10 10:10:10'),
-                array('foo' => array('This value is not a valid datetime')),
-            ),
-            array(
-                array('foo' => 'email'),
-                array('foo' => 'bar@mail.com'),
+                ['foo' => '2010-10 10:10:10'],
+                ['foo' => ['This value is not a valid datetime']],
+            ],
+            [
+                ['foo' => 'email'],
+                ['foo' => 'bar@mail.com'],
                 null,
-                array('foo' => 'bar@mail'),
-                array('foo' => array('This value is not a valid email address')),
-            ),
-            array(
-                array('foo' => 'url'),
-                array('foo' => 'http://foo.com'),
+                ['foo' => 'bar@mail'],
+                ['foo' => ['This value is not a valid email address']],
+            ],
+            [
+                ['foo' => 'url'],
+                ['foo' => 'http://foo.com'],
                 null,
-                array('foo' => 'foo'),
-                array('foo' => array('This value is not a valid url')),
-            ),
-            array(
-                array('foo' => 'ipv4'),
-                array('foo' => '30.88.29.1'),
+                ['foo' => 'foo'],
+                ['foo' => ['This value is not a valid url']],
+            ],
+            [
+                ['foo' => 'ipv4'],
+                ['foo' => '30.88.29.1'],
                 null,
-                array('foo' => '172.300.256.100'),
-                array('foo' => array('This value is not a valid ipv4 address')),
-            ),
-            array(
-                array('foo' => 'ipv6'),
-                array('foo' => '2001:DB8:0:0:8:800:200C:417A'),
+                ['foo' => '172.300.256.100'],
+                ['foo' => ['This value is not a valid ipv4 address']],
+            ],
+            [
+                ['foo' => 'ipv6'],
+                ['foo' => '2001:DB8:0:0:8:800:200C:417A'],
                 null,
-                array('foo' => 'FF02:0000:0000:0000:0000:0000:0000:0000:0001'),
-                array('foo' => array('This value is not a valid ipv6 address')),
-            ),
-            array(
-                array('foo' => 'isprivate'),
-                array('foo' => '10.10.10.10'),
+                ['foo' => 'FF02:0000:0000:0000:0000:0000:0000:0000:0001'],
+                ['foo' => ['This value is not a valid ipv6 address']],
+            ],
+            [
+                ['foo' => 'isprivate'],
+                ['foo' => '10.10.10.10'],
                 null,
-                array('foo' => '201.176.14.4'),
-                array('foo' => array('This value is not a private ip address')),
-            ),
-            array(
-                array('foo' => 'isreserved'),
-                array('foo' => '240.241.242.243'),
+                ['foo' => '201.176.14.4'],
+                ['foo' => ['This value is not a private ip address']],
+            ],
+            [
+                ['foo' => 'isreserved'],
+                ['foo' => '240.241.242.243'],
                 null,
-                array('foo' => '193.194.195.196'),
-                array('foo' => array('This value is not a reserved ip address')),
-            ),
-            array(
-                array('foo' => 'ispublic'),
-                array('foo' => '180.1.1.0'),
+                ['foo' => '193.194.195.196'],
+                ['foo' => ['This value is not a reserved ip address']],
+            ],
+            [
+                ['foo' => 'ispublic'],
+                ['foo' => '180.1.1.0'],
                 null,
-                array('foo' => '10.10.10.10'),
-                array('foo' => array('This value is not a public ip address')),
-            ),
-        );
+                ['foo' => '10.10.10.10'],
+                ['foo' => ['This value is not a public ip address']],
+            ],
+        ];
     }
 
     public function validateMutateProvider()
     {
-        return array(
-            array(
-                array('foo' => 'todate:d-m-Y'),
-                array('foo' => '2010-10-10'),
-                array('foo' => '10-10-2010'),
-                array('foo' => '2010-13-10'),
-            ),
-            array(
-                array('foo' => 'trim'),
-                array('foo' => ' foo '),
-                array('foo' => 'foo'),
-                array('foo' => ' foo, '),
-                array('foo' => 'foo,'),
-            ),
-        );
+        return [
+            [
+                ['foo' => 'todate:d-m-Y'],
+                ['foo' => '2010-10-10'],
+                ['foo' => '10-10-2010'],
+                ['foo' => '2010-13-10'],
+            ],
+            [
+                ['foo' => 'trim'],
+                ['foo' => ' foo '],
+                ['foo' => 'foo'],
+                ['foo' => ' foo, '],
+                ['foo' => 'foo,'],
+            ],
+        ];
     }
 
     public function parseExprProvider()
     {
-        return array(
-            array(
+        return [
+            [
                 '',
-                array(),
-            ),
-            array(
+                [],
+            ],
+            [
                 'foo',
-                array(
-                    'foo' => array(),
-                ),
-            ),
-            array(
+                [
+                    'foo' => [],
+                ],
+            ],
+            [
                 'foo|bar',
-                array(
-                    'foo' => array(),
-                    'bar' => array(),
-                ),
-            ),
-            array(
+                [
+                    'foo' => [],
+                    'bar' => [],
+                ],
+            ],
+            [
                 'foo:1|bar:arg|baz:[0,1,2]|qux:{"foo":"bar"}|quux:1,arg,[0,1,2],{"foo":"bar"}',
-                array(
-                    'foo' => array(1),
-                    'bar' => array('arg'),
-                    'baz' => array(array(0, 1, 2)),
-                    'qux' => array(array('foo' => 'bar')),
-                    'quux' => array(1, 'arg', array(0, 1, 2), array('foo' => 'bar')),
-                ),
-            ),
-        );
+                [
+                    'foo'  => [1],
+                    'bar'  => ['arg'],
+                    'baz'  => [[0, 1, 2]],
+                    'qux'  => [['foo' => 'bar']],
+                    'quux' => [1, 'arg', [0, 1, 2], ['foo' => 'bar']],
+                ],
+            ],
+        ];
     }
 }

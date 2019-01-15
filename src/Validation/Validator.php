@@ -1,14 +1,12 @@
 <?php
 
-/**
+/*
  * This file is part of the eghojansu/stick library.
  *
- * (c) Eko Kurniawan <ekokurniawanbs@gmail.com>
+ *  (c) Eko Kurniawan <ekokurniawanbs@gmail.com>
  *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- *
- * Created at Jan 14, 2019 06:22
+ *  For the full copyright and license information, please view the LICENSE
+ *  file that was distributed with this source code.
  */
 
 namespace Fal\Stick\Validation;
@@ -30,7 +28,7 @@ class Validator
     /**
      * @var array
      */
-    protected $validators = array();
+    protected $validators = [];
 
     /**
      * Class constructor.
@@ -60,15 +58,15 @@ class Validator
     public function parseExpr($expr)
     {
         $len = strlen($expr);
-        $res = array();
+        $res = [];
         $tmp = '';
         $process = false;
-        $args = array();
+        $args = [];
         $quote = null;
         $astate = 0;
         $jstate = 0;
 
-        for ($ptr = 0; $ptr < $len; ++$ptr) {
+        for ($ptr = 0; $ptr < $len; $ptr++) {
             $char = $expr[$ptr];
             $prev = isset($expr[$ptr - 1]) ? $expr[$ptr - 1] : null;
 
@@ -129,7 +127,7 @@ class Validator
             if ($process) {
                 if ($args) {
                     $res[array_shift($args)] = $args;
-                    $args = array();
+                    $args = [];
                 }
                 $process = false;
             }
@@ -193,9 +191,9 @@ class Validator
      *
      * @param string $rule
      *
-     * @return ValidatorInterface
-     *
      * @throws DomainException If no validator supports the rule
+     *
+     * @return ValidatorInterface
      */
     protected function findValidator($rule)
     {
@@ -218,18 +216,18 @@ class Validator
      *
      * @return string
      */
-    protected function message($rule, $value = null, array $arguments, $field)
+    protected function message($rule, $value, array $arguments, $field)
     {
-        $data = array();
+        $data = [];
 
         foreach (compact('field', 'rule', 'value') + $arguments as $k => $v) {
             $data['{'.$k.'}'] = is_array($v) ? implode(',', $v) : (string) $v;
         }
 
-        return $this->core->transAlt(array(
+        return $this->core->transAlt([
             'validation.'.strtolower($rule),
             'validation.default',
             'This value is not valid',
-        ), $data);
+        ], $data);
     }
 }

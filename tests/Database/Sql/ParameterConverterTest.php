@@ -1,26 +1,24 @@
 <?php
 
-/**
+/*
  * This file is part of the eghojansu/stick library.
  *
- * (c) Eko Kurniawan <ekokurniawanbs@gmail.com>
+ *  (c) Eko Kurniawan <ekokurniawanbs@gmail.com>
  *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- *
- * Created at Jan 15, 2019 11:27
+ *  For the full copyright and license information, please view the LICENSE
+ *  file that was distributed with this source code.
  */
 
 namespace Fal\Stick\Test\Database\Sql;
 
 use Fal\Stick\Core;
-use Fixture\Mapper\TUser;
-use Fixture\Mapper\TFriends;
-use Fal\Stick\Database\Sql\Sql;
-use PHPUnit\Framework\TestCase;
 use Fal\Stick\Database\Sql\Mapper;
 use Fal\Stick\Database\Sql\ParameterConverter;
+use Fal\Stick\Database\Sql\Sql;
 use Fal\Stick\Event\GetControllerArgumentsEvent;
+use Fixture\Mapper\TFriends;
+use Fixture\Mapper\TUser;
+use PHPUnit\Framework\TestCase;
 
 class ParameterConverterTest extends TestCase
 {
@@ -30,7 +28,7 @@ class ParameterConverterTest extends TestCase
     private function prepare($handler, array $params)
     {
         $this->core = new Core();
-        $conn = new Sql($this->core, 'sqlite::memory:', null, null, array(file_get_contents(TEST_FIXTURE.'/files/schema.sql')));
+        $conn = new Sql($this->core, 'sqlite::memory:', null, null, [file_get_contents(TEST_FIXTURE.'/files/schema.sql')]);
 
         $conn->getPdo()->exec('insert into user (username) values ("foo"), ("bar"), ("baz")');
         $conn->getPdo()->exec('insert into friends (user_id, friend_id, level) values (1, 2, 3), (2, 3, 4)');
@@ -42,7 +40,8 @@ class ParameterConverterTest extends TestCase
 
     public function testFromEvent()
     {
-        $event = new GetControllerArgumentsEvent(new Core(), function () {}, array());
+        $event = new GetControllerArgumentsEvent(new Core(), function () {
+        }, []);
 
         $this->assertInstanceOf('Fal\\Stick\\Database\\Sql\\ParameterConverter', ParameterConverter::fromEvent($event));
     }
@@ -59,8 +58,9 @@ class ParameterConverterTest extends TestCase
 
     public function testResolveMapper()
     {
-        $handler = function (TUser $foo) {};
-        $params = array('foo' => 1);
+        $handler = function (TUser $foo) {
+        };
+        $params = ['foo' => 1];
         $this->prepare($handler, $params);
 
         $args = $this->converter->resolve();
@@ -72,8 +72,9 @@ class ParameterConverterTest extends TestCase
 
     public function testResolveMapperComposit()
     {
-        $handler = function (TFriends $foo) {};
-        $params = array('foo' => 1, 'bar' => 2);
+        $handler = function (TFriends $foo) {
+        };
+        $params = ['foo' => 1, 'bar' => 2];
         $this->prepare($handler, $params);
 
         $args = $this->converter->resolve();
@@ -85,8 +86,9 @@ class ParameterConverterTest extends TestCase
 
     public function testResolveMapperOverflowParams()
     {
-        $handler = function (TUser $foo) {};
-        $params = array('foo' => 1, 2 /* overflow */);
+        $handler = function (TUser $foo) {
+        };
+        $params = ['foo' => 1, 2 /* overflow */];
         $this->prepare($handler, $params);
 
         $args = $this->converter->resolve();
@@ -101,8 +103,9 @@ class ParameterConverterTest extends TestCase
         $this->expectException('RuntimeException');
         $this->expectExceptionMessage('Record is not found: "TUser"');
 
-        $handler = function (TUser $foo) {};
-        $params = array('foo' => 4);
+        $handler = function (TUser $foo) {
+        };
+        $params = ['foo' => 4];
         $this->prepare($handler, $params);
 
         $this->converter->resolve();
@@ -110,11 +113,15 @@ class ParameterConverterTest extends TestCase
 
     public function resolveProvider()
     {
-        return array(
-            array(array(), function () {}, array()),
-            array(array('foo' => 'bar'), function ($foo) {}, array('foo' => 'bar')),
-            array(array('foo' => 'bar', 'bar' => 'baz'), function ($foo, $bar) {}, array('foo' => 'bar', 'bar' => 'baz')),
-            array(array('foo' => 'bar'), function ($foo, $bar) {}, array('foo' => 'bar')),
-        );
+        return [
+            [[], function () {
+            }, []],
+            [['foo' => 'bar'], function ($foo) {
+            }, ['foo' => 'bar']],
+            [['foo' => 'bar', 'bar' => 'baz'], function ($foo, $bar) {
+            }, ['foo' => 'bar', 'bar' => 'baz']],
+            [['foo' => 'bar'], function ($foo, $bar) {
+            }, ['foo' => 'bar']],
+        ];
     }
 }
