@@ -109,6 +109,7 @@ class KernelTest extends TestCase
         $this->assertEquals('baz', $container->getParameter('bar'));
         $this->assertEquals('bar', $container->getParameter('my_section.sub.foo'));
         $this->assertEquals('foo', $container->getParameter('subconfig'));
+        $this->assertEquals(array('arr1', 'arr2'), $container->getParameter('arr'));
 
         // router
         $router = $container->get('router');
