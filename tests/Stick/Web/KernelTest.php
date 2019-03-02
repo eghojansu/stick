@@ -162,6 +162,11 @@ class KernelTest extends TestCase
         $this->kernel->config(TEST_FIXTURE.'config/invalid-controller.ini');
     }
 
+    public function testCreate()
+    {
+        $this->assertInstanceOf('Fal\\Stick\\Web\\Kernel', Kernel::create());
+    }
+
     public function handleProvider()
     {
         $error = function ($code, $message, $trace = null) {

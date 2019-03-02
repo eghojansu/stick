@@ -60,6 +60,19 @@ class Kernel implements KernelInterface
     protected $debug;
 
     /**
+     * Create kernel instance.
+     *
+     * @param string $environment
+     * @param bool   $debug
+     *
+     * @return Kernel
+     */
+    public static function create(string $environment = 'prod', bool $debug = false): Kernel
+    {
+        return new static($environment, $debug);
+    }
+
+    /**
      * Class constructor.
      *
      * @param string $environment
