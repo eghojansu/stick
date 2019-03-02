@@ -91,22 +91,22 @@ class EventDispatcher implements EventDispatcherInterface
             return $this;
         }
 
-        $dispatch = $this->events[$eventName];
+        $dispatcher = $this->events[$eventName];
         $once = $this->eventsOnce[$eventName] ?? false;
 
         if ($off || $once) {
             $this->off($eventName);
         }
 
-        if (is_string($dispatch)) {
-            $dispatch = $this->container->grab($dispatch);
+        if (is_string($dispatcher)) {
+            $dispatcher = $this->container->grab($dispatcher);
         }
 
-        if (!is_callable($dispatch)) {
+        if (!is_callable($dispatcher)) {
             throw new \LogicException(sprintf('Handler is not callable: "%s".', $eventName));
         }
 
-        $dispatch($event);
+        $this->container->call($dispatcher, array($event));
 
         return $this;
     }
