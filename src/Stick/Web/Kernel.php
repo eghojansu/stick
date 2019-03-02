@@ -62,27 +62,29 @@ class Kernel implements KernelInterface
     /**
      * Create kernel instance.
      *
-     * @param string $environment
-     * @param bool   $debug
+     * @param string     $environment
+     * @param bool       $debug
+     * @param array|null $parameters
      *
      * @return Kernel
      */
-    public static function create(string $environment = 'prod', bool $debug = false): Kernel
+    public static function create(string $environment = 'prod', bool $debug = false, array $parameters = null): Kernel
     {
-        return new static($environment, $debug);
+        return new static($environment, $debug, $parameters);
     }
 
     /**
      * Class constructor.
      *
-     * @param string $environment
-     * @param bool   $debug
+     * @param string     $environment
+     * @param bool       $debug
+     * @param array|null $parameters
      */
-    public function __construct(string $environment = 'prod', bool $debug = false)
+    public function __construct(string $environment = 'prod', bool $debug = false, array $parameters = null)
     {
         $this->environment = $environment;
         $this->debug = $debug;
-        $this->container = $this->initializeContainer();
+        $this->container = $this->initializeContainer($parameters ?? array());
     }
 
     /**
@@ -251,8 +253,10 @@ class Kernel implements KernelInterface
 
     /**
      * Initialize container.
+     *
+     * @param array $parameters
      */
-    protected function initializeContainer(): ContainerInterface
+    protected function initializeContainer(array $parameters): ContainerInterface
     {
         return new Container(array(
             'kernel' => new Definition('Fal\\Stick\\Web\\KernelInterface', $this),
@@ -281,7 +285,7 @@ class Kernel implements KernelInterface
                     'fallback' => '%translator_fallback%',
                 ),
             )),
-        ), array(
+        ), $parameters + array(
             'quiet' => false,
             'auto_prepare' => true,
             'auth_options' => null,
