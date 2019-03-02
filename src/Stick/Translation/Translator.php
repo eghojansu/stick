@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace Fal\Stick\Translation;
 
+use Fal\Stick\Util;
+
 /**
  * Translator utility.
  *
@@ -43,16 +45,15 @@ class Translator implements TranslatorInterface
     /**
      * Class constructor.
      *
-     * @param array|null  $locales
+     * @param mixed       $locales
      * @param string|null $language
      * @param string      $fallback
      */
-    public function __construct(array $locales = null, string $language = null, string $fallback = 'en')
+    public function __construct($locales = null, string $language = null, string $fallback = 'en')
     {
-        $this->locales = $locales ?? array();
         $this->language = $language ?? '';
         $this->fallback = $fallback;
-        $this->load();
+        $this->setLocales(Util::split($locales));
     }
 
     /**
