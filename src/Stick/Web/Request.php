@@ -668,7 +668,7 @@ class Request
     public function getBase(): string
     {
         if (null === $this->base) {
-            $this->base = dirname($this->getScript());
+            $this->base = rtrim(dirname($this->getScript()), '/');
         }
 
         return $this->base;
