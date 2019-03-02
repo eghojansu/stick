@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 namespace Fal\Stick\EventDispatcher;
 
-use Fal\Stick\Container\Container;
+use Fal\Stick\Container\ContainerInterface;
 
 /**
  * Event dispatcher.
@@ -23,7 +23,7 @@ use Fal\Stick\Container\Container;
 class EventDispatcher implements EventDispatcherInterface
 {
     /**
-     * @var Container
+     * @var ContainerInterface
      */
     protected $container;
 
@@ -40,10 +40,10 @@ class EventDispatcher implements EventDispatcherInterface
     /**
      * Class constructor.
      *
-     * @param Container  $container
-     * @param array|null $events
+     * @param ContainerInterface $container
+     * @param array|null         $events
      */
-    public function __construct(Container $container, array $events = null)
+    public function __construct(ContainerInterface $container, array $events = null)
     {
         $this->container = $container;
 
