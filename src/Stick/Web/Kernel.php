@@ -285,6 +285,13 @@ class Kernel implements KernelInterface
                     'fallback' => '%translator_fallback%',
                 ),
             )),
+            'template' => new Definition('Fal\\Stick\\Template\\TemplateInterface', array(
+                'use' => 'Fal\\Stick\\Template\\Template',
+                'arguments' => array(
+                    'directories' => '%template_directories%',
+                    'extension' => '%template_extension%',
+                ),
+            )),
         ), $parameters + array(
             'quiet' => false,
             'auto_prepare' => true,
@@ -294,6 +301,8 @@ class Kernel implements KernelInterface
             'translator_locales' => null,
             'translator_language' => null,
             'translator_fallback' => 'en',
+            'template_directories' => null,
+            'template_extension' => '.php',
         ));
     }
 
