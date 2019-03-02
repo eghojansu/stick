@@ -1,7 +1,11 @@
 # Stick-PHP
 
-A collection of helper to build your website.
+A symfony-like php framework.
+Some of its component taken directly from Symfony and Fatfree framework's source code.
 
+We do this because we love Symfony and Fatfree so much.
+But Symfony development is too fast for us. API changes make us frustate sometimes.
+And Fatfree has feature missing that we almost needed in web development.
 
 ## Installation
 
@@ -12,14 +16,24 @@ A collection of helper to build your website.
 Example usage.
 
 ```php
+use Fal\Stick\Web\Kernel;
+use Fal\Stick\Web\Response;
+
 require __DIR__.'vendor/autoload.php';
 
-Fal\Stick\Fw::createFromGlobals()
+$kernel = new Kernel();
+$kernel->getContainer()->get('router')
     ->route('GET home /', function() {
-        return 'Welcome home, Vanilla lover!';
+        // Yes!
+        // Each controller should returns instance of Response,
+        // and a controller can be any callable expression
+        // including string expression like below:
+        // - 'MyController->method' <= converted into => array(/* instance of MyController */, 'method')
+        // - 'MyController::method' <= converted into => array('MyController', 'method')
+        return Response::create('Welcome home, Vanilla lover!');
     })
-    ->run()
 ;
+$kernel->run();
 
 ```
 
@@ -27,60 +41,13 @@ Fal\Stick\Fw::createFromGlobals()
 
 - Dependency injection.
 - Event listener and dispatcher.
-- Simple routing.
+- Router.
 - Logger.
-- Sql connection and mapper.
 - Cache.
 - Validation.
 - Security.
+- Database connection and mapper.
+- Translation.
 - PHP template engine.
-- Translator.
-
-> Logger, Translator, Dependency Injection, Event listeners, Routing and Cache utils is bundled in main App class.
-
-## Apache .htaccess example
-
-```sh
-# You should avoid using this file completely
-# if you have access to httpd main server config file.
-# Using this file slows down your Apache http server.
-# Any directive that you can include in this file is better set in *Directory* block,
-# as it will have the *same effect with better performance*.
-#
-# (A suggestion from apache.)
-
-# Disable directory index?
-#
-# Options -Indexes
-
-# Override entry file
-#
-DirectoryIndex index.php
-
-# Enable rewrite engine and route requests to framework
-#
-RewriteEngine On
-
-# Some servers require you to specify the `RewriteBase` directive
-# In such cases, it should be the path (relative to the document root)
-# containing this .htaccess file
-#
-# RewriteBase /
-
-# Prevent access to these directory or files
-# It is just an example, use it wise.
-#
-# RewriteRule ^(app|var|vendor)\/|\.env.php$ - [R=404]
-
-# If you have problem with default configuration,
-# uncomment three line below to allow request methods below.
-#
-# <Limit GET HEAD POST PUT DELETE OPTIONS>
-#   Require all granted
-# </Limit>
-
-RewriteCond %{REQUEST_FILENAME} !-l
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteCond %{REQUEST_FILENAME} !-d
-RewriteRule .* index.php [L,QSA]
-RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization},L]
+- Form helper.
+- CRUD, Cli, Html, Image helper.

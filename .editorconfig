@@ -10,9 +10,6 @@ trim_trailing_whitespace = true
 [*.php]
 insert_final_newline = true
 
-[*.{yml,html}]
-indent_size = 2
-
-[tests/fixture/template/**/*.php]
+[tests/_fixture/{views,crud}/*]
 indent_size = 2
 insert_final_newline = false

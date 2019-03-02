@@ -1,17 +1,14 @@
 <?php
 
-
-$finder = PhpCsFixer\Finder::create()
-    ->in(__DIR__.'/src')
-    ->in(__DIR__.'/tests/src')
-    ->name('*.php')
-;
-
 return PhpCsFixer\Config::create()
     ->setRules(array(
         '@PSR2' => true,
         '@Symfony' => true,
         'array_syntax' => array('syntax' => 'long'),
     ))
-    ->setFinder($finder)
+    ->setFinder(
+        PhpCsFixer\Finder::create()
+            ->in(__DIR__.'/src')
+            ->in(__DIR__.'/tests/Stick')
+    )
 ;

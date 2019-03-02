@@ -1,17 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<phpunit bootstrap="tests/bootstrap.php" colors="true" verbose="true" stderr="true">
+<phpunit bootstrap="tests/_bootstrap.php" colors="true" verbose="true" stderr="true">
   <testsuite name="Stick Framework Test Unit">
-    <directory>tests</directory>
-    <exclude>fixture</exclude>
+    <directory>tests/Stick</directory>
   </testsuite>
 
   <filter>
     <whitelist processUncoveredFilesFromWhitelist="true">
       <directory suffix=".php">src</directory>
-      <exclude>
-        <file>src/autoload.php</file>
-        <directory suffix=".php">src/Validation/dict</directory>
-      </exclude>
     </whitelist>
   </filter>
 
@@ -19,4 +14,12 @@
     <log type="coverage-html" target="coverage-html" />
     <log type="coverage-text" target="php://stdout" showUncoveredFiles="true" />
   </logging>
+
+  <php>
+    <const name="TEST_MYSQL_HOST" value="localhost" />
+    <const name="TEST_MYSQL_PORT" value="3306" />
+    <const name="TEST_MYSQL_USER" value="root" />
+    <const name="TEST_MYSQL_PASS" value="root" />
+    <const name="TEST_MYSQL_DBNAME" value="test_stick" />
+  </php>
 </phpunit>
