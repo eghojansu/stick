@@ -51,3 +51,7 @@ $kernel->run();
 - PHP template engine.
 - Form helper.
 - CRUD, Cli, Html, Image helper.
+
+## Acknowledge
+
+This framework still lacks of documentation but we still working on it.
