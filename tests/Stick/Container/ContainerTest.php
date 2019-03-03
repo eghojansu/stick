@@ -214,6 +214,14 @@ class ContainerTest extends TestCase
             array('success', function ($foo) {
                 return 'success';
             }, array('bar' => 'foo')),
+            //  need only foo
+            array('success', function ($foo) {
+                return 'bar' === $foo ? 'success' : 'error';
+            }, array('foo' => '%foo%')),
+            //  no need any arguments
+            array('success', function () {
+                return 'success';
+            }),
             // access std_service's foo property
             array('success', function ($foo) {
                 return 'bar' === $foo ? 'success' : 'error';

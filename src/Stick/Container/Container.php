@@ -279,17 +279,24 @@ class Container implements ContainerInterface
             $reflection = new \ReflectionFunction($callable);
         }
 
+        if (0 === $reflection->getNumberOfParameters()) {
+            return array();
+        }
+
+        if (null === $arguments) {
+            $arguments = array();
+        }
+
         $resolved = array();
-        $mArguments = (array) $arguments;
 
         foreach ($reflection->getParameters() as $parameter) {
             $value = null;
 
-            if (null !== ($key = key($mArguments))) {
+            if (null !== ($key = key($arguments))) {
                 if (is_string($key) && $key !== $parameter->name) {
                     $key = null;
                 } else {
-                    $value = $mArguments[$key];
+                    $value = $arguments[$key];
                 }
             }
 
@@ -315,10 +322,10 @@ class Container implements ContainerInterface
                 $resolved[] = $value;
             }
 
-            unset($mArguments[$key]);
+            unset($arguments[$key]);
         }
 
-        foreach ($mArguments as $value) {
+        foreach ($arguments as $value) {
             $resolved[] = $value;
         }
 
@@ -348,8 +355,8 @@ class Container implements ContainerInterface
                 return $this->get($match[2]);
             }
 
-            if (is_scalar($result) && (isset($match[1]) || isset($match[2]))) {
-                return ($match[1] ?? '').$result.($match[3] ?? '');
+            if (is_scalar($result) && (($prefix = $match[1] ?? '') | ($suffix = $match[3] ?? ''))) {
+                return $prefix.$result.$suffix;
             }
 
             return $result;
