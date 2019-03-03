@@ -266,8 +266,6 @@ class Kernel implements KernelInterface
             'url_generator' => new Definition('Fal\\Stick\\Web\\UrlGeneratorInterface', 'Fal\\Stick\\Web\\UrlGenerator'),
             'auth' => new Definition('Fal\\Stick\\Web\\Security\\Auth', array(
                 'arguments' => array(
-                    'provider' => '%auth_provider%',
-                    'encoder' => '%auth_encoder%',
                     'options' => '%auth_options%',
                 ),
             )),
@@ -297,8 +295,6 @@ class Kernel implements KernelInterface
         ), $parameters + array(
             'quiet' => false,
             'auto_prepare' => true,
-            'auth_provider' => null,
-            'auth_encoder' => null,
             'auth_options' => null,
             'log_directory' => null,
             'log_threshold' => null,
