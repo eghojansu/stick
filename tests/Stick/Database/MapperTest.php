@@ -132,7 +132,7 @@ class MapperTest extends TestCase
 
     public function testLoad()
     {
-        $this->buildSchema()->initUser();
+        $this->initUser();
 
         $this->assertCount(3, $this->mapper->load());
 
@@ -167,7 +167,7 @@ class MapperTest extends TestCase
 
     public function testFirst()
     {
-        $this->buildSchema()->initUser();
+        $this->initUser();
 
         $this->assertCount(1, $this->mapper->first());
         $this->assertCount(0, $this->mapper->first(array('id' => 4)));
@@ -175,7 +175,7 @@ class MapperTest extends TestCase
 
     public function testCountRows()
     {
-        $this->buildSchema()->initUser();
+        $this->initUser();
 
         $this->assertEquals(3, $this->mapper->countRows());
     }
@@ -185,7 +185,7 @@ class MapperTest extends TestCase
      */
     public function testPaginate($expected, $page, $clause = null, $options = null)
     {
-        $this->buildSchema()->initUser();
+        $this->initUser();
 
         $actual = $this->mapper->paginate($page, $clause, $options);
         $actualExpected = array_intersect_key($actual, $expected);
@@ -196,12 +196,12 @@ class MapperTest extends TestCase
 
     public function testDelete()
     {
+        $this->initUser();
+
         // just once
         $this->container->get('eventDispatcher')->one('mapper.beforedelete', function ($event) {
             $event->stopPropagation();
         });
-
-        $this->buildSchema()->initUser();
 
         $this->mapper->load();
 
@@ -233,8 +233,6 @@ class MapperTest extends TestCase
 
     public function testSave()
     {
-        $this->buildSchema();
-
         // not inserted, mapper is empty
         $this->assertFalse($this->mapper->save());
 
@@ -291,7 +289,7 @@ class MapperTest extends TestCase
 
     public function testFind()
     {
-        $this->buildSchema()->initUser();
+        $this->initUser();
 
         $this->assertNull($this->mapper->get('username'));
 
@@ -315,7 +313,7 @@ class MapperTest extends TestCase
 
     public function testClone()
     {
-        $this->buildSchema()->initUser();
+        $this->initUser();
 
         $clone = clone $this->mapper;
 
@@ -326,6 +324,23 @@ class MapperTest extends TestCase
 
         $clone2 = clone $this->mapper;
         $this->assertCount(3, $clone2);
+    }
+
+    public function testCallMagic()
+    {
+        $this->initUser();
+
+        $this->mapper->loadByUsername('bar');
+        $this->assertCount(1, $this->mapper);
+        $this->assertEquals('bar', $this->mapper->getUsername());
+
+        $this->mapper->findByUsername('foo');
+        $this->assertCount(1, $this->mapper);
+        $this->assertEquals('foo', $this->mapper->getUsername());
+
+        $this->expectException('LogicException');
+        $this->expectExceptionMessage('Call to undefined method Fal\\Stick\\Database\\Mapper::callFoo');
+        $this->mapper->callFoo();
     }
 
     public function paginateProvider()

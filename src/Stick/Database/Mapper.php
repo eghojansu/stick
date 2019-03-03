@@ -97,7 +97,7 @@ class Mapper implements \ArrayAccess, \Iterator, \Countable
     }
 
     /**
-     * Clone schema.
+     * {inheritdoc}.
      */
     public function __clone()
     {
@@ -109,6 +109,35 @@ class Mapper implements \ArrayAccess, \Iterator, \Countable
         } else {
             $this->row = clone $this->row;
         }
+    }
+
+    /**
+     * Handle custom method call.
+     *
+     * get{FieldName}
+     * loadBy{FieldName} => load
+     * findBy{FieldName} => first
+     */
+    public function __call($method, $arguments)
+    {
+        $call = null;
+        $argument = null;
+        $lmethod = strtolower($method);
+
+        if ('get' === substr($lmethod, 0, 3)) {
+            $call = 'get';
+            $argument = Util::snakeCase(substr($method, 3));
+        } elseif ('loadby' === substr($lmethod, 0, 6)) {
+            $call = 'load';
+            $argument = array(Util::snakeCase(substr($method, 6)) => array_shift($arguments));
+        } elseif ('findby' === substr($lmethod, 0, 6)) {
+            $call = 'first';
+            $argument = array(Util::snakeCase(substr($method, 6)) => array_shift($arguments));
+        } else {
+            throw new \BadMethodCallException(sprintf('Call to undefined method %s::%s.', static::class, $method));
+        }
+
+        return $this->$call($argument, ...$arguments);
     }
 
     /**
