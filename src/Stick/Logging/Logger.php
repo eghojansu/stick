@@ -83,7 +83,7 @@ class Logger implements LoggerInterface
         $this->directory = $directory;
 
         if ($directory && !is_dir($directory)) {
-            mkdir($directory);
+            mkdir($directory, 0755, true);
         }
 
         return $this;
@@ -169,6 +169,6 @@ class Logger implements LoggerInterface
      */
     protected function isLoggable(int $level): bool
     {
-        return $this->directory && is_dir($this->directory) && $level <= $this->logLevelThreshold;
+        return $this->directory && $level <= $this->logLevelThreshold;
     }
 }
