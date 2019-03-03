@@ -27,6 +27,16 @@ class DivFormBuilderTest extends TestCase
         $this->builder = new DivFormBuilder();
     }
 
+    public function testGetOptions()
+    {
+        $this->assertEquals(array(), $this->builder->getOptions());
+    }
+
+    public function testSetOptions()
+    {
+        $this->assertEquals(array('foo'), $this->builder->setOptions(array('foo'))->getOptions());
+    }
+
     public function testOpen()
     {
         $this->assertEquals('<form type="post">', $this->builder->open(array('type' => 'post')));

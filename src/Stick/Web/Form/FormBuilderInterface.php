@@ -21,6 +21,22 @@ namespace Fal\Stick\Web\Form;
 interface FormBuilderInterface
 {
     /**
+     * Returns options.
+     *
+     * @return array
+     */
+    public function getOptions(): array;
+
+    /**
+     * Sets options.
+     *
+     * @param array $options
+     *
+     * @return FormBuilderInterface
+     */
+    public function setOptions(array $options): FormBuilderInterface;
+
+    /**
      * Returns form open tag.
      *
      * @param array $attr

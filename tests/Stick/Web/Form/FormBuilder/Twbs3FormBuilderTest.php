@@ -24,9 +24,7 @@ class Twbs3FormBuilderTest extends TestCase
 
     public function setup()
     {
-        $this->builder = new Twbs3FormBuilder(array(
-            'mark' => 1 | 2, // success and error
-        ));
+        $this->builder = new Twbs3FormBuilder();
     }
 
     public function testOpen()
@@ -47,6 +45,10 @@ class Twbs3FormBuilderTest extends TestCase
 
             return;
         }
+
+        $this->builder->setOptions(array(
+            'mark' => 1 | 2, // success and error
+        ));
 
         $this->assertEquals($expected, $this->builder->renderField($field));
     }

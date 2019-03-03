@@ -31,13 +31,21 @@ class DivFormBuilder implements FormBuilderInterface
     protected $options = array();
 
     /**
-     * Class constructor.
-     *
-     * @param Html $html
+     * {@inheritdoc}
      */
-    public function __construct(array $options = null)
+    public function getOptions(): array
     {
-        $this->options = ($options ?? array()) + $this->options;
+        return $this->options;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setOptions(array $options): FormBuilderInterface
+    {
+        $this->options = $options + $this->options;
+
+        return $this;
     }
 
     /**
