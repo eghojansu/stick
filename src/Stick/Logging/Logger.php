@@ -169,6 +169,6 @@ class Logger implements LoggerInterface
      */
     protected function isLoggable(int $level): bool
     {
-        return $this->directory && $level <= $this->logLevelThreshold;
+        return $this->directory && is_dir($this->directory) && $level <= $this->logLevelThreshold;
     }
 }
