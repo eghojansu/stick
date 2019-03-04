@@ -54,8 +54,8 @@ class Container implements ContainerInterface
             $this->set($key, $value);
         }
 
-        if ($parameters) {
-            $this->parameters = $parameters;
+        foreach ($parameters ?? array() as $key => $value) {
+            $this->setParameter($key, $value);
         }
     }
 
