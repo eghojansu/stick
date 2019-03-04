@@ -28,7 +28,7 @@ class FormTest extends TestCase
     public function setup()
     {
         $translator = new Translator();
-        $validator = new Validator($translator, null, array(
+        $validator = new Validator($translator, array(
             new CommonRule(),
         ));
         $formBuilder = new DivFormBuilder();

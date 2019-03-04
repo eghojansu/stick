@@ -13,7 +13,6 @@ declare(strict_types=1);
 
 namespace Fal\Stick\Validation;
 
-use Fal\Stick\Container\ContainerInterface;
 use Fal\Stick\Translation\TranslatorInterface;
 use Fal\Stick\Util;
 
@@ -37,19 +36,14 @@ class Validator
     /**
      * Class constructor.
      *
-     * @param TranslatorInterface $translator
-     * @param ContainerInterface  $container
-     * @param array               $rules
+     * @param TranslatorInterface  $translator
+     * @param RuleInterface[]|null $rules
      */
-    public function __construct(TranslatorInterface $translator, ContainerInterface $container = null, array $rules = null)
+    public function __construct(TranslatorInterface $translator, array $rules = null)
     {
         $this->translator = $translator->addLocale(__DIR__.'/dict/');
 
         foreach ($rules ?? array() as $rule) {
-            if (is_string($rule) && $container) {
-                $rule = $container->get($rule);
-            }
-
             $this->addRule($rule);
         }
     }

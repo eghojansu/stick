@@ -223,9 +223,9 @@ class Container implements ContainerInterface
     /**
      * Returns parameters reference.
      *
-     * @param string    $key
-     * @param bool      $add
-     * @param bool|null &$found
+     * @param string     $key
+     * @param bool       $add
+     * @param bool|null  &$found
      * @param array|null &$var
      *
      * @return mixed
@@ -407,7 +407,7 @@ class Container implements ContainerInterface
     /**
      * Ensure array arguments get resolved properly.
      *
-     * @param  array  $arguments
+     * @param array $arguments
      *
      * @return array
      */

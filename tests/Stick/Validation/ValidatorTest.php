@@ -13,9 +13,9 @@
 
 namespace Fal\Stick\Test\Validation;
 
-use Fal\Stick\Container\Container;
 use Fal\Stick\Translation\Translator;
 use Fal\Stick\Validation\Rules\CommonRule;
+use Fal\Stick\Validation\Rules\UrlRule;
 use Fal\Stick\Validation\Validator;
 use PHPUnit\Framework\TestCase;
 
@@ -25,9 +25,9 @@ class ValidatorTest extends TestCase
 
     public function setUp()
     {
-        $this->validator = new Validator(new Translator(), new Container(), array(
-            'Fal\\Stick\\Validation\\Rules\\CommonRule',
-            'Fal\\Stick\\Validation\\Rules\\UrlRule',
+        $this->validator = new Validator(new Translator(), array(
+            new CommonRule(),
+            new UrlRule(),
         ));
     }
 
