@@ -51,7 +51,7 @@ class FieldTest extends TestCase
     {
         $this->assertNull($this->field->transform(null));
 
-        $this->field->transform = function ($foo) {
+        $this->field->transformer = function ($foo) {
             return $foo.'bar';
         };
 
@@ -62,7 +62,7 @@ class FieldTest extends TestCase
     {
         $this->assertNull($this->field->reverseTransform(null));
 
-        $this->field->reverse_transform = function ($foo) {
+        $this->field->reverse_transformer = function ($foo) {
             return $foo.'bar';
         };
         $this->assertEquals('foobar', $this->field->reverseTransform('foo'));

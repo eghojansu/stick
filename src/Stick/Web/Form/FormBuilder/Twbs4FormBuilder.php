@@ -68,17 +68,13 @@ class Twbs4FormBuilder extends Twbs3FormBuilder
         $wrapperAttr = $field->wrapper_attr ?? array();
         $wrapperDefault = array('class' => 'form-check');
         $labelAttr = array('class' => 'form-check-label', 'for' => $field->attr['id'] ?? $field->id);
-        $value = $field->attr['value'] ?? null;
 
         $field->attr['class'] = 'form-check-input'.$this->validationClass($field);
         $field->attr['type'] = 'radio';
 
         if (!array_key_exists('checked', $field->attr)) {
-            $field->attr['checked'] = null === $value ? 'on' === $field->value : $field->value == $value;
+            $field->attr['checked'] = isset($field->attr['value']) ? $field->attr['value'] == $field->value : 'on' === $field->value;
         }
-
-        // update value?
-        $field->value = $value;
 
         $radio = $this->inputInput($field);
         $label = Util::tag('label', $labelAttr, true, $field->label);
@@ -94,17 +90,13 @@ class Twbs4FormBuilder extends Twbs3FormBuilder
         $wrapperAttr = $field->wrapper_attr ?? array();
         $wrapperDefault = array('class' => 'form-check');
         $labelAttr = array('class' => 'form-check-label', 'for' => $field->attr['id'] ?? $field->id);
-        $value = $field->attr['value'] ?? null;
 
         $field->attr['class'] = 'form-check-input'.$this->validationClass($field);
         $field->attr['type'] = 'checkbox';
 
         if (!array_key_exists('checked', $field->attr)) {
-            $field->attr['checked'] = null === $value ? 'on' === $field->value : $field->value == $value;
+            $field->attr['checked'] = isset($field->attr['value']) ? $field->attr['value'] == $field->value : 'on' === $field->value;
         }
-
-        // update value?
-        $field->value = $value;
 
         $checkbox = $this->inputInput($field);
         $label = Util::tag('label', $labelAttr, true, $field->label);

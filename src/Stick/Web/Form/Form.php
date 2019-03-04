@@ -245,6 +245,10 @@ class Form implements \ArrayAccess
      */
     public function setData(array $initialData): Form
     {
+        foreach (array_intersect_key($initialData, $this->fields) as $key => $value) {
+            $initialData[$key] = $this->fields[$key]->transform($value);
+        }
+
         $this->initialData = $initialData;
 
         return $this;
@@ -295,11 +299,12 @@ class Form implements \ArrayAccess
     {
         $this->request = $request;
 
-        if ($data) {
-            $this->setData($data);
+        if (null === $data) {
+            $data = array();
         }
 
-        $this->build($options ?? array());
+        $this->build($options ?? array(), $data);
+        $this->setData($data);
 
         return $this;
     }
@@ -520,8 +525,9 @@ class Form implements \ArrayAccess
      * Allow children to add fields etc.
      *
      * @param array $options
+     * @param array $data
      */
-    protected function build(array $options)
+    protected function build(array $options, array $data)
     {
         // override to add fields and button
     }

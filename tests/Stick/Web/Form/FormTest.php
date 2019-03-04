@@ -120,7 +120,13 @@ class FormTest extends TestCase
 
     public function testSetData()
     {
-        $this->assertEquals(array('foo'), $this->form->setData(array('foo'))->getData());
+        $this->form->addField('foo', 'text', array(
+            'transformer' => function($val) {
+                return explode(',', $val);
+            },
+        ));
+
+        $this->assertEquals(array('foo' => array('bar')), $this->form->setData(array('foo' => 'bar'))->getData());
     }
 
     public function testGetValidatedData()
@@ -259,10 +265,10 @@ class FormTest extends TestCase
         $this->form->addField('foo', 'text', array(
             'constraints' => 'equalto:foobar',
             'messages' => array('equalto' => 'foo'),
-            'reverse_transform' => function ($val) {
+            'reverse_transformer' => function ($val) {
                 return $val.'baz';
             },
-            'transform' => function ($val) {
+            'transformer' => function ($val) {
                 return $val.'bar';
             },
         ));

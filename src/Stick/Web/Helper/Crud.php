@@ -873,7 +873,7 @@ class Crud
 
         if ($this->data['form']->isSubmitted() && $this->data['form']->valid()) {
             $data = (array) $this->trigger('before_create');
-            $this->data['mapper']->getSchema()->fromArray($data + $this->data['form']->getData());
+            $this->data['mapper']->getSchema()->fromArray($data + $this->data['form']->getValidatedData());
             $this->data['mapper']->save();
             $this->trigger('after_create');
 
@@ -895,7 +895,7 @@ class Crud
 
         if ($this->data['form']->isSubmitted() && $this->data['form']->valid()) {
             $data = (array) $this->trigger('before_update');
-            $this->data['mapper']->getSchema()->fromArray($data + $this->data['form']->getData());
+            $this->data['mapper']->getSchema()->fromArray($data + $this->data['form']->getValidatedData());
             $this->data['mapper']->save();
             $this->trigger('after_update');
 

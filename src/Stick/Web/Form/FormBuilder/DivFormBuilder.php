@@ -274,8 +274,6 @@ class DivFormBuilder implements FormBuilderInterface
             $attr['checked'] = isset($attr['value']) ? $field->value == $attr['value'] : 'on' === $field->value;
         }
 
-        $attr['value'] = $field->value;
-
         $input = Util::tag('input', $attr);
 
         return Util::tag('label', null, true, $input.' '.$field->label);
@@ -297,8 +295,6 @@ class DivFormBuilder implements FormBuilderInterface
         if (!array_key_exists('checked', $attr)) {
             $attr['checked'] = isset($attr['value']) ? $field->value == $attr['value'] : 'on' === $field->value;
         }
-
-        $attr['value'] = $field->value;
 
         $input = Util::tag('input', $attr);
 

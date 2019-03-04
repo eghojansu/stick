@@ -118,12 +118,12 @@ class Field
     /**
      * @var callable
      */
-    public $transform;
+    public $transformer;
 
     /**
      * @var callable
      */
-    public $reverse_transform;
+    public $reverse_transformer;
 
     /**
      * Class constructor.
@@ -188,7 +188,7 @@ class Field
      */
     public function transform($data)
     {
-        if ($this->transform && is_callable($transform = $this->transform)) {
+        if ($this->transformer && is_callable($transform = $this->transformer)) {
             return $transform($data);
         }
 
@@ -204,7 +204,7 @@ class Field
      */
     public function reverseTransform($data)
     {
-        if ($this->reverse_transform && is_callable($transform = $this->reverse_transform)) {
+        if ($this->reverse_transformer && is_callable($transform = $this->reverse_transformer)) {
             return $transform($data);
         }
 
