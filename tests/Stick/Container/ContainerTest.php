@@ -162,6 +162,23 @@ class ContainerTest extends TestCase
         $this->assertTrue($found);
     }
 
+    public function testReferenceVar()
+    {
+        $var = array(
+            'foo' => 'bar',
+        );
+        $ref = &$this->container->reference('foo', true, $found, $var);
+        $ref = 'baz';
+
+        $this->assertEquals(array('foo' => 'baz'), $var);
+
+        $ref = &$this->container->reference('bar.baz', true, $found, $var);
+        $ref = 'qux';
+        $ref = &$this->container->reference('bar.qux', true, $found, $var);
+        $ref = 'quux';
+        $this->assertEquals(array('foo' => 'baz', 'bar' => array('baz' => 'qux', 'qux' => 'quux')), $var);
+    }
+
     public function testConstruct()
     {
         $container = new Container(array(

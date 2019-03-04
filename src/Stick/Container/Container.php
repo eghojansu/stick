@@ -226,15 +226,18 @@ class Container implements ContainerInterface
      * @param string    $key
      * @param bool      $add
      * @param bool|null &$found
+     * @param array|null &$var
      *
      * @return mixed
      */
-    public function &reference(string $key, bool $add = true, bool &$found = null)
+    public function &reference(string $key, bool $add = true, bool &$found = null, array &$var = null)
     {
-        if ($add) {
-            $var = &$this->parameters;
-        } else {
-            $var = $this->parameters;
+        if (null === $var) {
+            if ($add) {
+                $var = &$this->parameters;
+            } else {
+                $var = $this->parameters;
+            }
         }
 
         foreach (Util::split($key, '.') as $part) {
