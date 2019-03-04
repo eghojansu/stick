@@ -338,6 +338,8 @@ class Container implements ContainerInterface
     /**
      * Resolve argument value.
      *
+     * This method can *TRIGGER ENDLESS LOOPING* if parameter not configured properly
+     *
      * @param string $value
      * @param bool   $resolveClass
      *
@@ -349,20 +351,32 @@ class Container implements ContainerInterface
             return $this->get($value);
         }
 
-        if (preg_match('/^(.+)?%([.\w\\\\]+)%(.+)?$/', $value, $match)) {
-            if ($this->hasParameter($match[2])) {
-                $result = $this->getParameter($match[2]);
-            } elseif (count($parts = Util::split($match[2], '.')) > 1 && is_object($obj = $this->get($prev = array_shift($parts)))) {
-                $result = $this->resolveObjectExpression($obj, $parts, $prev);
+        $match = $this->resolveArgumentExpression($value);
+
+        while ($match) {
+            list($value, $prefix, $suffix) = $match;
+
+            if ($this->hasParameter($value)) {
+                $value = $this->getParameter($value);
+            } elseif (count($parts = Util::split($value, '.')) > 1 && is_object($obj = $this->get($prev = array_shift($parts)))) {
+                $value = $this->resolveObjectExpression($obj, $parts, $prev);
             } else {
-                return $this->get($match[2]);
+                return $this->get($value);
             }
 
-            if (is_scalar($result) && (($prefix = $match[1] ?? '') | ($suffix = $match[3] ?? ''))) {
-                return $prefix.$result.$suffix;
+            if (is_string($value) && $match = $this->resolveArgumentExpression($value)) {
+                continue;
             }
 
-            return is_array($result) ? $this->resolveArgumentRecursive($result) : $result;
+            if (is_array($value)) {
+                return $this->resolveArgumentRecursive($value);
+            }
+
+            if (is_scalar($value) && ($prefix || $suffix)) {
+                return $prefix.$value.$suffix;
+            }
+
+            return $value;
         }
 
         return $value;
@@ -418,5 +432,25 @@ class Container implements ContainerInterface
         }
 
         return $arguments;
+    }
+
+    /**
+     * Resolve argument string expression.
+     *
+     * @param string $expression
+     *
+     * @return array|null
+     */
+    protected function resolveArgumentExpression(string $expression): ?array
+    {
+        if (preg_match('/^(.+)?%([.\w\\\\]+)%(.+)?$/', $expression, $match)) {
+            return array(
+                $match[2],
+                $match[1] ?? null,
+                $match[3] ?? null,
+            );
+        }
+
+        return null;
     }
 }

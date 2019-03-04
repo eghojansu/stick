@@ -46,6 +46,11 @@ class ContainerTest extends TestCase
         $std->foo = 'bar';
         $this->container->set('std_service', new Definition('stdClass', $std));
         $this->container->setParameter('foo', 'bar');
+        $this->container->setParameter('bar', '%foo%');
+        $this->container->setParameter('arr', array(
+            '%foo%',
+            'baz',
+        ));
 
         if ($exception) {
             $this->expectException($exception);
@@ -235,6 +240,14 @@ class ContainerTest extends TestCase
             array('success', function ($foo) {
                 return 'bar' === $foo ? 'success' : 'error';
             }, array('foo' => '%foo%')),
+            // parse array arguments
+            array('success', function ($foo) {
+                return array('bar', 'baz') === $foo ? 'success' : 'error';
+            }, array('foo' => '%arr%')),
+            // parse reference points to another arguments
+            array('success', function ($foo) {
+                return 'bar' === $foo ? 'success' : 'error';
+            }, array('foo' => '%bar%')),
             //  no need any arguments
             array('success', function () {
                 return 'success';

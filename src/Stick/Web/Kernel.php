@@ -267,6 +267,7 @@ class Kernel implements KernelInterface
             'url_generator' => new Definition('Fal\\Stick\\Web\\UrlGeneratorInterface', 'Fal\\Stick\\Web\\UrlGenerator'),
             'auth' => new Definition('Fal\\Stick\\Web\\Security\\Auth', array(
                 'arguments' => array(
+                    'encoder' => '%auth_encoder%',
                     'options' => '%auth_options%',
                 ),
             )),
@@ -293,10 +294,16 @@ class Kernel implements KernelInterface
                     'extension' => '%template_extension%',
                 ),
             )),
+            'validator' => new Definition('Fal\\Stick\\Validation\\Validator', array(
+                'arguments' => array(
+                    'rules' => '%validator_rules%',
+                ),
+            )),
         ), $parameters + array(
             'quiet' => false,
             'auto_prepare' => true,
             'auth_options' => null,
+            'auth_encoder' => '%Fal\\Stick\\Web\\Security\\BcryptPasswordEncoder%',
             'log_directory' => null,
             'log_threshold' => null,
             'translator_locales' => null,
@@ -304,6 +311,7 @@ class Kernel implements KernelInterface
             'translator_fallback' => 'en',
             'template_directories' => null,
             'template_extension' => '.php',
+            'validator_rules' => null,
         ));
     }
 
