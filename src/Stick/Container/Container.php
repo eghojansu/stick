@@ -202,6 +202,10 @@ class Container implements ContainerInterface
         }
 
         if ($factory = $definition->getFactory()) {
+            if (is_string($factory)) {
+                $factory = $this->grab($factory);
+            }
+
             $instance = $this->call($factory, array($arguments));
 
             if (!$instance instanceof $ref->name) {
@@ -214,6 +218,10 @@ class Container implements ContainerInterface
         }
 
         if ($boot = $definition->getBoot()) {
+            if (is_string($boot)) {
+                $boot = $this->grab($boot);
+            }
+
             $this->call($boot, array($instance, $this));
         }
 

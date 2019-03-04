@@ -311,6 +311,18 @@ class ContainerTest extends TestCase
                 }),
             ),
             array(
+                'stdClass',
+                new Definition('stdClass', array(
+                    'boot' => 'Fixture\\ClassCreator->bootStd',
+                )),
+            ),
+            array(
+                'stdClass',
+                new Definition('stdClass', array(
+                    'factory' => 'Fixture\\ClassCreator->createStd',
+                )),
+            ),
+            array(
                 'Factory should return instance of Fixture\\FooService (Fixture\\FooService)',
                 new Definition('Fixture\\FooService', function () {
                     return new \DateTime();

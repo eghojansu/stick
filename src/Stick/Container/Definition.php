@@ -46,12 +46,12 @@ class Definition
     protected $arguments = array();
 
     /**
-     * @var callable
+     * @var callable|mixed
      */
     protected $factory;
 
     /**
-     * @var callable
+     * @var callable|mixed
      */
     protected $boot;
 
@@ -206,9 +206,9 @@ class Definition
     /**
      * Returns factory.
      *
-     * @return callable|null
+     * @return callable|mixed
      */
-    public function getFactory(): ?callable
+    public function getFactory()
     {
         return $this->factory;
     }
@@ -216,11 +216,11 @@ class Definition
     /**
      * Sets factory.
      *
-     * @param callable $factory
+     * @param callable|mixed $factory
      *
      * @return Definition
      */
-    public function setFactory(callable $factory): Definition
+    public function setFactory($factory): Definition
     {
         $this->factory = $factory;
 
@@ -230,9 +230,9 @@ class Definition
     /**
      * Returns boot.
      *
-     * @return callable|null
+     * @return callable|mixed
      */
-    public function getBoot(): ?callable
+    public function getBoot()
     {
         return $this->boot;
     }
@@ -240,11 +240,11 @@ class Definition
     /**
      * Sets boot.
      *
-     * @param callable $boot
+     * @param callable|mixed $boot
      *
      * @return Definition
      */
-    public function setBoot(callable $boot): Definition
+    public function setBoot($boot): Definition
     {
         $this->boot = $boot;
 
