@@ -322,7 +322,7 @@ class Container implements ContainerInterface
 
                 continue;
             } else {
-                $resolved[] = $value;
+                $resolved[] = is_array($value) ? $this->resolveArgumentRecursive($value) : $value;
             }
 
             unset($arguments[$key]);
@@ -362,7 +362,7 @@ class Container implements ContainerInterface
                 return $prefix.$result.$suffix;
             }
 
-            return $result;
+            return is_array($result) ? $this->resolveArgumentRecursive($result) : $result;
         }
 
         return $value;
@@ -402,5 +402,21 @@ class Container implements ContainerInterface
         }
 
         return $object;
+    }
+
+    /**
+     * Ensure array arguments get resolved properly.
+     *
+     * @param  array  $arguments
+     *
+     * @return array
+     */
+    protected function resolveArgumentRecursive(array $arguments): array
+    {
+        foreach ($arguments as $key => $value) {
+            $arguments[$key] = is_string($value) ? $this->resolveArgument($value) : $value;
+        }
+
+        return $arguments;
     }
 }
