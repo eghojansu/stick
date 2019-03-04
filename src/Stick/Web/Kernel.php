@@ -325,7 +325,10 @@ class Kernel implements KernelInterface
      */
     protected function handleRaw(Request $request, int $requestType): Response
     {
-        $this->container->set('currentRequest', new Definition('currentRequest', $request))->get('requestStack')->push($request);
+        $this->container
+            ->set('currentRequest', new Definition('Fal\\Stick\\Web\\Request', $request))
+            ->get('requestStack')
+                ->push($request);
 
         $dispatcher = $this->container->get('eventDispatcher');
 
