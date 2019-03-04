@@ -60,19 +60,19 @@ class KernelTest extends TestCase
 
         switch ($request->getPath()) {
             case '/intercept-request':
-                $this->kernel->getContainer()->get('event_dispatcher')
+                $this->kernel->getContainer()->get('eventDispatcher')
                     ->on('kernel.request', function ($event) {
                         $event->setResponse(Response::create('request intercepted'));
                     });
                 break;
             case '/split/abcde':
-                $this->kernel->getContainer()->get('event_dispatcher')
+                $this->kernel->getContainer()->get('eventDispatcher')
                     ->on('kernel.view', function ($event) {
                         $event->setResponse(JsonResponse::create($event->getResult()));
                     });
                 break;
             case '/exception-make-error':
-                $this->kernel->getContainer()->get('event_dispatcher')
+                $this->kernel->getContainer()->get('eventDispatcher')
                     ->on('kernel.exception', function ($event) {
                         throw new \LogicException('I am throwing another exception.');
                     });
@@ -150,7 +150,7 @@ class KernelTest extends TestCase
         $this->assertEquals($expectedAliases, $router->getAliases());
 
         // events
-        $this->assertCount(2, $container->get('event_dispatcher')->getEvents());
+        $this->assertCount(2, $container->get('eventDispatcher')->getEvents());
 
         // services
         $this->assertInstanceOf('stdClass', $container->get('foo'));

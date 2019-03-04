@@ -263,8 +263,8 @@ class Kernel implements KernelInterface
             'kernel' => new Definition('Fal\\Stick\\Web\\KernelInterface', $this),
             'session' => new Definition('Fal\\Stick\\Web\\Session\\SessionInterface', 'Fal\\Stick\\Web\\Session\\Session'),
             'router' => new Definition('Fal\\Stick\\Web\\Router\\RouterInterface', 'Fal\\Stick\\Web\\Router\\Router'),
-            'request_stack' => new Definition('Fal\\Stick\\Web\\RequestStackInterface', 'Fal\\Stick\\Web\\RequestStack'),
-            'url_generator' => new Definition('Fal\\Stick\\Web\\UrlGeneratorInterface', 'Fal\\Stick\\Web\\UrlGenerator'),
+            'requestStack' => new Definition('Fal\\Stick\\Web\\RequestStackInterface', 'Fal\\Stick\\Web\\RequestStack'),
+            'urlGenerator' => new Definition('Fal\\Stick\\Web\\UrlGeneratorInterface', 'Fal\\Stick\\Web\\UrlGenerator'),
             'auth' => new Definition('Fal\\Stick\\Web\\Security\\Auth', array(
                 'arguments' => array(
                     'encoder' => '%auth_encoder%',
@@ -278,7 +278,7 @@ class Kernel implements KernelInterface
                     'logLevelThreshold' => '%log_threshold%',
                 ),
             )),
-            'event_dispatcher' => new Definition('Fal\\Stick\\EventDispatcher\\EventDispatcherInterface', 'Fal\\Stick\\EventDispatcher\\EventDispatcher'),
+            'eventDispatcher' => new Definition('Fal\\Stick\\EventDispatcher\\EventDispatcherInterface', 'Fal\\Stick\\EventDispatcher\\EventDispatcher'),
             'translator' => new Definition('Fal\\Stick\\Translation\\TranslatorInterface', array(
                 'use' => 'Fal\\Stick\\Translation\\Translator',
                 'arguments' => array(
@@ -325,9 +325,9 @@ class Kernel implements KernelInterface
      */
     protected function handleRaw(Request $request, int $requestType): Response
     {
-        $this->container->set('current_request', new Definition('current_request', $request))->get('request_stack')->push($request);
+        $this->container->set('currentRequest', new Definition('currentRequest', $request))->get('requestStack')->push($request);
 
-        $dispatcher = $this->container->get('event_dispatcher');
+        $dispatcher = $this->container->get('eventDispatcher');
 
         $event = new GetResponseEvent($this, $request, $requestType);
         $dispatcher->dispatch(self::ON_REQUEST, $event);
@@ -397,7 +397,7 @@ class Kernel implements KernelInterface
         $this->container->get('logger')->log(LogLevel::ERROR, $message);
 
         $event = new GetResponseForExceptionEvent($this, $request, $requestType, $exception);
-        $this->container->get('event_dispatcher')->dispatch(self::ON_EXCEPTION, $event, true);
+        $this->container->get('eventDispatcher')->dispatch(self::ON_EXCEPTION, $event, true);
 
         $response = $event->getResponse() ?? $this->createExceptionResponse($exception, $request);
 
@@ -416,7 +416,7 @@ class Kernel implements KernelInterface
     protected function filterResponse(Response $response, Request $request, int $requestType): Response
     {
         $event = new FilterResponseEvent($this, $request, $requestType, $response);
-        $this->container->get('event_dispatcher')->dispatch(self::ON_RESPONSE, $event);
+        $this->container->get('eventDispatcher')->dispatch(self::ON_RESPONSE, $event);
 
         $this->finishRequest($request, $requestType);
 
@@ -432,7 +432,7 @@ class Kernel implements KernelInterface
     protected function finishRequest(Request $request, int $requestType): void
     {
         $event = new FinishRequestEvent($this, $request, $requestType);
-        $this->container->get('event_dispatcher')->dispatch(self::ON_FINISH_REQUEST, $event);
+        $this->container->get('eventDispatcher')->dispatch(self::ON_FINISH_REQUEST, $event);
     }
 
     /**
@@ -443,7 +443,7 @@ class Kernel implements KernelInterface
     protected function createRequest(): Request
     {
         $event = new GetRequestEvent($this);
-        $this->container->get('event_dispatcher')->dispatch(self::ON_PREPARE, $event);
+        $this->container->get('eventDispatcher')->dispatch(self::ON_PREPARE, $event);
 
         return $event->getRequest() ?? Request::createFromGlobals();
     }
@@ -532,7 +532,7 @@ class Kernel implements KernelInterface
 
             $this->container->set($class, new Definition($class, $definition));
         } elseif ('event' === $command) {
-            $this->container->get('event_dispatcher')->on(...$arguments);
+            $this->container->get('eventDispatcher')->on(...$arguments);
         } elseif (in_array($command, array('route', 'controller', 'rest'))) {
             $this->container->get('router')->$command(...$arguments);
         }
