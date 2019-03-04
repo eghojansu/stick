@@ -204,7 +204,8 @@ class Kernel implements KernelInterface
                         }
 
                         $row = $this->configArguments($matches[$j]['lval'], $matches[$j]['rval'], $parse);
-                        $pair[array_shift($row)] = 1 === count($row) ? reset($row) : $row;
+                        $ref = &$this->container->reference(array_shift($row), true, $found, $pair);
+                        $ref = 1 === count($row) ? reset($row) : $row;
                         $i = $j;
                     }
 
