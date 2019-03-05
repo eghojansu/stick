@@ -121,7 +121,7 @@ class FormTest extends TestCase
     public function testSetData()
     {
         $this->form->addField('foo', 'text', array(
-            'transformer' => function($val) {
+            'transformer' => function ($val) {
                 return explode(',', $val);
             },
         ));

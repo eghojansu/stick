@@ -264,7 +264,14 @@ class Kernel implements KernelInterface
             'session' => new Definition('Fal\\Stick\\Web\\Session\\SessionInterface', 'Fal\\Stick\\Web\\Session\\Session'),
             'router' => new Definition('Fal\\Stick\\Web\\Router\\RouterInterface', 'Fal\\Stick\\Web\\Router\\Router'),
             'requestStack' => new Definition('Fal\\Stick\\Web\\RequestStackInterface', 'Fal\\Stick\\Web\\RequestStack'),
-            'urlGenerator' => new Definition('Fal\\Stick\\Web\\UrlGeneratorInterface', 'Fal\\Stick\\Web\\UrlGenerator'),
+            'urlGenerator' => new Definition('Fal\\Stick\\Web\\UrlGeneratorInterface', array(
+                'use' => 'Fal\\Stick\\Web\\UrlGenerator',
+                'arguments' => array(
+                    'front' => '%url_generator_front%',
+                    'assetVersion' => '%url_generator_version%',
+                    'assets' => '%url_generator_assets%',
+                ),
+            )),
             'auth' => new Definition('Fal\\Stick\\Web\\Security\\Auth', array(
                 'arguments' => array(
                     'encoder' => '%auth_encoder%',
@@ -312,6 +319,9 @@ class Kernel implements KernelInterface
             'template_directories' => null,
             'template_extension' => '.php',
             'validator_rules' => null,
+            'url_generator_front' => true,
+            'url_generator_version' => null,
+            'url_generator_assets' => null,
         ));
     }
 
