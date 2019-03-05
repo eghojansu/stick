@@ -208,7 +208,7 @@ class Auth
     public function isGranted($roles, $data = null): bool
     {
         $attributes = $this->getUserRoles();
-        $granted = (bool) array_intersect(Util::split($roles), $attributes);
+        $granted = (bool) array_intersect(array_map('strtolower', Util::split($roles)), array_map('strtolower', $attributes));
 
         $event = new VoteEvent($this, $granted, $data, $attributes);
         $this->eventDispatcher->dispatch(static::ON_VOTE, $event);
