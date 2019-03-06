@@ -289,7 +289,7 @@ class Auth
         $this->userRoles = null;
         $this->user = null;
         $this->extraRoles = null;
-        $this->session->clear(static::SESSION_KEY);
+        $this->session->destroy();
 
         $response = new Response('OK', 200);
         $response->headers->clearCookie(static::SESSION_KEY);
