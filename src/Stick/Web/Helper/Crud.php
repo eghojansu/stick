@@ -102,6 +102,8 @@ class Crud
         'keyword' => null,
         'fields' => array(),
         'segments' => array(),
+        'segment_start' => null,
+        'path_segments' => null,
         'form' => null,
         'mapper' => null,
     );
@@ -123,8 +125,8 @@ class Crud
         'listing_options' => null,
         'searchable' => null,
         'segments' => null,
-        'sid_start' => 1,
-        'sid_end' => 1,
+        'segment_start' => 0,
+        'sid_count' => 1,
         'page' => null,
         'page_query_name' => 'page',
         'keyword' => null,
@@ -143,12 +145,12 @@ class Crud
         'on_prepare_data' => null,
         'on_load' => null,
         'on_response' => null,
-        'before_create' => null,
-        'after_create' => null,
-        'before_update' => null,
-        'after_update' => null,
-        'before_delete' => null,
-        'after_delete' => null,
+        'on_before_create' => null,
+        'on_after_create' => null,
+        'on_before_update' => null,
+        'on_after_update' => null,
+        'on_before_delete' => null,
+        'on_after_delete' => null,
         'states' => null,
         'views' => null,
         'fields' => null,
@@ -495,8 +497,12 @@ class Crud
             throw new \LogicException('Please call render first!');
         }
 
+        if (!$this->data['path_segments']) {
+            $this->data['path_segments'] = array_slice($this->data['segments'], 1, $this->data['segment_start'] + 1);
+        }
+
         $parameters = $this->options['route_args'];
-        $parameters[$this->options['route_param_name']] = Util::split($path ?? array('index'), '/');
+        $parameters[$this->options['route_param_name']] = array_merge($this->data['path_segments'], Util::split($path ?? array('index'), '/'));
 
         if ($query) {
             if (is_string($query)) {
@@ -541,6 +547,7 @@ class Crud
 
         $match = $this->router->getRouteMatch();
         $route = $this->options['route'];
+        $start = $this->options['segment_start'];
 
         if (empty($route) && $match) {
             $route = $match->getAlias();
@@ -564,10 +571,10 @@ class Crud
             throw new \LogicException('Segments is not provided.');
         }
 
-        if (empty($segments) || 'index' === $segments[0]) {
+        if (empty($segments) || 'index' === $segments[$start]) {
             $state = static::STATE_LISTING;
         } else {
-            $state = $segments[0];
+            $state = $segments[$start];
         }
 
         // parameter name
@@ -591,6 +598,7 @@ class Crud
         $this->data['state'] = $state;
         $this->data['route'] = $route;
         $this->data['segments'] = $segments;
+        $this->data['segment_start'] = $start;
         $this->data['keyword'] = $this->options['keyword'] ?? $this->request->query->get($this->options['keyword_query_name']);
         $this->data['page'] = (int) ($this->options['page'] ?? $this->request->query->get($this->options['page_query_name']) ?? 1);
         $this->data['searchable'] = $this->options['searchable'];
@@ -777,7 +785,7 @@ class Crud
      */
     protected function prepareItemFilters(): array
     {
-        $ids = array_slice($this->data['segments'], $this->options['sid_start'], $this->options['sid_end']);
+        $ids = array_slice($this->data['segments'], $this->options['segment_start'] + 1, $this->options['sid_count']);
         $keys = $this->data['mapper']->getSchema()->getKeys();
 
         if (count($ids) !== count($keys)) {
@@ -823,7 +831,7 @@ class Crud
             $this->data['form']->addField('create_new', 'checkbox', array(
                 'label' => $this->options['create_new_label'],
                 'attr' => array(
-                    'checked' => $this->session->get($this->options['create_new_session_key']),
+                    'checked' => $this->session->get($this->options['create_new_session_key']) ?? true,
                 ),
             ));
         }
@@ -875,10 +883,10 @@ class Crud
         $this->loadForm();
 
         if ($this->data['form']->isSubmitted() && $this->data['form']->valid()) {
-            $data = (array) $this->trigger('before_create');
+            $data = (array) $this->trigger('on_before_create');
             $this->data['mapper']->getSchema()->fromArray($data + $this->data['form']->getValidatedData());
             $this->data['mapper']->save();
-            $this->trigger('after_create');
+            $this->trigger('on_after_create');
 
             return $this->goBack('created_message_key', 'created');
         }
@@ -897,10 +905,10 @@ class Crud
         $this->loadForm();
 
         if ($this->data['form']->isSubmitted() && $this->data['form']->valid()) {
-            $data = (array) $this->trigger('before_update');
+            $data = (array) $this->trigger('on_before_update');
             $this->data['mapper']->getSchema()->fromArray($data + $this->data['form']->getValidatedData());
             $this->data['mapper']->save();
-            $this->trigger('after_update');
+            $this->trigger('on_after_update');
 
             return $this->goBack('updated_message_key', 'updated');
         }
@@ -918,9 +926,9 @@ class Crud
         $this->loadMapper();
 
         if ($this->request->isMethod('POST')) {
-            $this->trigger('before_delete');
+            $this->trigger('on_before_delete');
             $this->data['mapper']->delete();
-            $this->trigger('after_delete');
+            $this->trigger('on_after_delete');
 
             return $this->goBack('deleted_message_key', 'deleted');
         }

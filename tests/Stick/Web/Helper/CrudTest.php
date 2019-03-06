@@ -75,7 +75,7 @@ class CrudTest extends TestCase
 
     public function testData()
     {
-        $this->assertCount(8, $this->crud->data());
+        $this->assertCount(10, $this->crud->data());
     }
 
     public function testAddFunction()
@@ -232,6 +232,23 @@ class CrudTest extends TestCase
         $this->assertEquals($expected, $response->getContent());
     }
 
+    public function testRenderSegmentStart()
+    {
+        $this->requestStack->push($request = Request::create('/bar/baz/qux/view/1'));
+        $this->router->route('GET|POST foo /bar/@segments*', 'foo');
+        $this->router->handle($request);
+
+        $response = $this->crud
+            ->mapper('user')
+            ->view('view', 'view')
+            ->field('listing', 'id,username,active')
+            ->segmentStart(2)
+            ->render()
+        ;
+
+        $this->assertEquals(file_get_contents(TEST_FIXTURE.'crud/view.html'), $response->getContent());
+    }
+
     public function testRenderException()
     {
         $this->expectException('LogicException');
@@ -347,7 +364,7 @@ class CrudTest extends TestCase
                 )),
             ),
             array(
-                file_get_contents(TEST_FIXTURE.'crud/update.html'),
+                $read('update'),
                 Request::create('/bar/update/1'),
             ),
             array(
@@ -358,7 +375,7 @@ class CrudTest extends TestCase
                 )),
             ),
             array(
-                file_get_contents(TEST_FIXTURE.'crud/delete.html'),
+                $read('delete'),
                 Request::create('/bar/delete/1'),
             ),
             array(
@@ -366,11 +383,11 @@ class CrudTest extends TestCase
                 Request::create('/bar/delete/1', 'POST'),
             ),
             array(
-                file_get_contents(TEST_FIXTURE.'crud/forbidden.html'),
+                $read('forbidden'),
                 Request::create('/bar/foo'),
             ),
             array(
-                file_get_contents(TEST_FIXTURE.'crud/view.html'),
+                $read('view'),
                 Request::create('/bar/view/1'),
             ),
         );
