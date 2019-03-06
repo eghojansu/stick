@@ -807,10 +807,13 @@ class Crud
      */
     protected function loadForm(): void
     {
-        $data = $this->data['mapper']->getSchema()->toArray() + (array) $this->trigger('on_prepare_data');
-        $options = $this->options['form_options'];
+        $data = $this->data['mapper']->getSchema()->toArray();
 
-        if (is_callable($options)) {
+        if (is_array($update = $this->trigger('on_prepare_data', array($data)))) {
+            $data = $update;
+        }
+
+        if (is_callable($options = $this->options['form_options'])) {
             $options = $this->container->call($options);
         }
 

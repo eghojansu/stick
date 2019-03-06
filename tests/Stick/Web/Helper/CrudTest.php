@@ -222,6 +222,9 @@ class CrudTest extends TestCase
             ->field('listing', 'id,username,active')
             ->searchable('username')
             ->formOptions(function () {})
+            ->onPrepareData(function ($data) {
+                return $data;
+            })
             ->createNew(true)
             ->render()
         ;
