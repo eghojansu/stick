@@ -573,7 +573,7 @@ class Crud
         // parameter name
         if (empty($this->options['route_param_name']) && $match) {
             $arguments = $match->getArguments();
-            $segments = end($arguments);
+            end($arguments);
 
             $this->options['route_param_name'] = key($arguments);
         }
