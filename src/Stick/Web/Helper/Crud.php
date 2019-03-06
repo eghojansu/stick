@@ -103,7 +103,7 @@ class Crud
         'fields' => array(),
         'segments' => array(),
         'segment_start' => null,
-        'path_segments' => null,
+        'segments_prefix' => null,
         'form' => null,
         'mapper' => null,
     );
@@ -486,33 +486,18 @@ class Crud
     /**
      * Returns crud link.
      *
-     * @param mixed $path
+     * @param mixed $segments
      * @param mixed $query
      *
      * @return string
      */
-    public function path($path = null, $query = null): string
+    public function path($segments = null, $query = null): string
     {
         if ($this->dry) {
             throw new \LogicException('Please call render first!');
         }
 
-        if (!$this->data['path_segments']) {
-            $this->data['path_segments'] = array_slice($this->data['segments'], 1, $this->data['segment_start'] + 1);
-        }
-
-        $parameters = $this->options['route_args'];
-        $parameters[$this->options['route_param_name']] = array_merge($this->data['path_segments'], Util::split($path ?? array('index'), '/'));
-
-        if ($query) {
-            if (is_string($query)) {
-                parse_str($query, $query);
-            }
-
-            $parameters += $query;
-        }
-
-        return $this->urlGenerator->generate($this->data['route'], $parameters);
+        return $this->urlGenerator->generate(...$this->prepareRoute(Util::split($segments ?? array('index'), '/'), $query));
     }
 
     /**
@@ -571,7 +556,7 @@ class Crud
             throw new \LogicException('Segments is not provided.');
         }
 
-        if (empty($segments) || 'index' === $segments[$start]) {
+        if (empty($segments) || !isset($segments[$start]) || 'index' === $segments[$start]) {
             $state = static::STATE_LISTING;
         } else {
             $state = $segments[$start];
@@ -599,6 +584,7 @@ class Crud
         $this->data['route'] = $route;
         $this->data['segments'] = $segments;
         $this->data['segment_start'] = $start;
+        $this->data['segments_prefix'] = array_slice($segments, 0, $start);
         $this->data['keyword'] = $this->options['keyword'] ?? $this->request->query->get($this->options['keyword_query_name']);
         $this->data['page'] = (int) ($this->options['page'] ?? $this->request->query->get($this->options['page_query_name']) ?? 1);
         $this->data['searchable'] = $this->options['searchable'];
@@ -692,6 +678,35 @@ class Crud
     }
 
     /**
+     * Returns route arguments.
+     *
+     * @param  array  $segments
+     * @param  mixed $query
+     *
+     * @return array
+     */
+    protected function prepareRoute(array $segments, $query = null): array
+    {
+        $parameters = $this->options['route_args'];
+        $parameters[$this->options['route_param_name']] = array_merge($this->data['segments_prefix'], $segments);
+
+        $parameters += array_filter(array(
+            $this->options['page_query_name'] => $this->data['page'],
+            $this->options['keyword_query_name'] => $this->data['keyword'],
+        ), 'is_scalar');
+
+        if ($query) {
+            if (is_string($query)) {
+                parse_str($query, $query);
+            }
+
+            $parameters += $query;
+        }
+
+        return array($this->data['route'], $parameters);
+    }
+
+    /**
      * Create response for state.
      *
      * @param string $state
@@ -736,14 +751,7 @@ class Crud
         if ($createNew) {
             $target = $this->request->getUri();
         } else {
-            $parameters = $this->options['route_args'];
-            $parameters[$this->options['route_param_name']] = array('index');
-            $parameters += array_filter(array(
-                $this->options['page_query_name'] => $this->data['page'],
-                $this->options['keyword_query_name'] => $this->data['keyword'],
-            ), 'is_scalar');
-
-            $target = array($this->data['route'], $parameters);
+            $target = $this->prepareRoute(array('index'));
         }
 
         if (isset($this->options[$mkey = $messageKey.'_message'])) {
