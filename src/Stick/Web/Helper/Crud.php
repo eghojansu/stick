@@ -495,12 +495,8 @@ class Crud
             throw new \LogicException('Please call render first!');
         }
 
-        if (null === $path) {
-            $path = array('index');
-        }
-
         $parameters = $this->options['route_args'];
-        $parameters[$this->options['route_param_name']] = is_string($path) ? explode('/', $path) : $path;
+        $parameters[$this->options['route_param_name']] = Util::split($path ?? array('index'), '/');
 
         if ($query) {
             if (is_string($query)) {
