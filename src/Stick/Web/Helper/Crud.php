@@ -489,10 +489,14 @@ class Crud
      *
      * @return string
      */
-    public function path($path = 'index', $query = null): string
+    public function path($path = null, $query = null): string
     {
         if ($this->dry) {
             throw new \LogicException('Please call render first!');
+        }
+
+        if (null === $path) {
+            $path = array('index');
         }
 
         $parameters = $this->options['route_args'];

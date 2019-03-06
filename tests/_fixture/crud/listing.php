@@ -1,6 +1,8 @@
 <?php $this->extend('layout') ?>
 
 <?php $this->start('content') ?>
+Home link: <?= $crud->path() ?>
+
 Create link: <?= $crud->path('create', 'action=create') ?>
 
 <table>
