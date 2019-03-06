@@ -723,7 +723,7 @@ class Crud
      */
     protected function goBack(string $key, string $messageKey): Response
     {
-        $createNew = $this->options['create_new'] && $this->data['form']->hasField('create_new') && 'create' === $this->data['state'];
+        $createNew = $this->options['create_new'] && $this->data['form']->hasField('create_new') && 'create' === $this->data['state'] && $this->data['form']['create_new'];
 
         if ($createNew) {
             $target = $this->request->getUri();

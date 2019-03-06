@@ -340,6 +340,7 @@ class CrudTest extends TestCase
                 Request::create('/bar/create', 'POST', array(
                     'username' => 'qux',
                     '_form' => 'f_user_form',
+                    'create_new' => 'on',
                 )),
             ),
             array(
