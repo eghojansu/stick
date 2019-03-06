@@ -98,7 +98,7 @@ class CrudTest extends TestCase
 
     public function testOptions()
     {
-        $this->assertCount(46, $this->crud->options());
+        $this->assertCount(47, $this->crud->options());
     }
 
     public function testEnable()

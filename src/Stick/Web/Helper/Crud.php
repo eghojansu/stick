@@ -129,6 +129,7 @@ class Crud
         'sid_count' => 1,
         'page' => null,
         'page_query_name' => 'page',
+        'append_query' => false,
         'keyword' => null,
         'keyword_query_name' => 'keyword',
         'route' => null,
@@ -702,6 +703,8 @@ class Crud
 
             $parameters += $query;
         }
+
+        $parameters += $this->options['append_query'] ? $this->request->query->all() : array();
 
         return array($this->data['route'], $parameters);
     }
