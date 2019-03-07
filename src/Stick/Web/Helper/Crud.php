@@ -43,6 +43,58 @@ class Crud
     const STATE_FORBIDDEN = 'forbidden';
 
     /**
+     * @var array
+     */
+    protected static $optionsTypes = array(
+        'append_query' => 'boolean',
+        'create_new' => 'boolean',
+        'create_new_label' => 'string',
+        'create_new_session_key' => 'string',
+        'created_message' => 'string',
+        'created_message_key' => 'string',
+        'deleted_message' => 'string',
+        'deleted_message_key' => 'string',
+        'field_orders' => 'string|array',
+        'fields' => 'array',
+        'filters' => 'array',
+        'form' => 'string|object',
+        'form_options' => 'array',
+        'keyword' => 'string',
+        'keyword_name' => 'string',
+        'listing_options' => 'array',
+        'mapper' => 'string|object',
+        'on_after_create' => 'callable',
+        'on_after_delete' => 'callable',
+        'on_after_update' => 'callable',
+        'on_before_create' => 'callable',
+        'on_before_delete' => 'callable',
+        'on_before_update' => 'callable',
+        'on_form_build' => 'callable',
+        'on_init' => 'callable',
+        'on_load_form' => 'callable',
+        'on_load_mapper' => 'callable',
+        'on_response' => 'callable',
+        'page' => 'integer',
+        'page_name' => 'string',
+        'roles' => 'array',
+        'route_name' => 'string',
+        'route_params' => 'array',
+        'route_param_name' => 'string',
+        'searchable' => 'string|array',
+        'segment_start' => 'integer',
+        'segments' => 'string|array',
+        'sid_count' => 'integer',
+        'state' => 'string',
+        'states' => 'array',
+        'subtitle' => 'string',
+        'title' => 'string',
+        'updated_message' => 'string',
+        'updated_message_key' => 'string',
+        'var_name' => 'string',
+        'views' => 'array',
+    );
+
+    /**
      * @var ContainerInterface
      */
     protected $container;
@@ -96,69 +148,97 @@ class Crud
      * @var array
      */
     protected $data = array(
-        'state' => null,
-        'route' => null,
-        'page' => null,
-        'keyword' => null,
-        'fields' => array(),
-        'segments' => array(),
-        'segment_start' => null,
-        'segments_prefix' => null,
+        'fields' => null,
         'form' => null,
+        'keyword' => null,
+        'keyword_name' => null,
         'mapper' => null,
+        'page' => null,
+        'page_name' => null,
+        'route_name' => null,
+        'route_params' => null,
+        'route_param_name' => null,
+        'route_segment_prefix' => null,
+        'segments' => null,
+        'state' => null,
+        'subtitle' => null,
+        'title' => null,
     );
 
     /**
      * @var array
      */
     protected $options = array(
-        'title' => null,
-        'subtitle' => null,
-        'form' => null,
-        'form_options' => null,
-        'on_form_build' => null,
-        'field_orders' => null,
-        'field_labels' => null,
-        'mapper' => null,
-        'state' => null,
-        'filters' => array(),
-        'listing_options' => null,
-        'searchable' => null,
-        'segments' => null,
-        'segment_start' => 0,
-        'sid_count' => 1,
-        'page' => null,
-        'page_query_name' => 'page',
         'append_query' => false,
-        'keyword' => null,
-        'keyword_query_name' => 'keyword',
-        'route' => null,
-        'route_args' => null,
-        'route_param_name' => null,
-        'created_message' => 'Data has been created.',
-        'updated_message' => 'Data has been updated.',
-        'deleted_message' => 'Data has been deleted.',
-        'created_message_key' => 'alerts_success',
-        'updated_message_key' => 'alerts_info',
-        'deleted_message_key' => 'alerts_warning',
-        'varname' => 'crud',
-        'on_init' => null,
-        'on_prepare_data' => null,
-        'on_load' => null,
-        'on_response' => null,
-        'on_before_create' => null,
-        'on_after_create' => null,
-        'on_before_update' => null,
-        'on_after_update' => null,
-        'on_before_delete' => null,
-        'on_after_delete' => null,
-        'states' => null,
-        'views' => null,
-        'fields' => null,
-        'roles' => null,
         'create_new' => false,
         'create_new_label' => null,
         'create_new_session_key' => 'crud_create_new',
+        'created_message' => 'Data has been created.',
+        'created_message_key' => 'alerts_success',
+        'deleted_message' => 'Data has been deleted.',
+        'deleted_message_key' => 'alerts_warning',
+        'field_orders' => null,
+        'fields' => array(
+            self::STATE_LISTING => null,
+            self::STATE_VIEW => null,
+            self::STATE_CREATE => null,
+            self::STATE_UPDATE => null,
+            self::STATE_DELETE => null,
+        ),
+        'filters' => array(),
+        'form' => null,
+        'form_options' => array(),
+        'keyword' => null,
+        'keyword_name' => 'keyword',
+        'listing_options' => null,
+        'mapper' => null,
+        'on_after_create' => null,
+        'on_after_delete' => null,
+        'on_after_update' => null,
+        'on_before_create' => null,
+        'on_before_delete' => null,
+        'on_before_update' => null,
+        'on_form_build' => null,
+        'on_init' => null,
+        'on_load_form' => null,
+        'on_load_mapper' => null,
+        'on_response' => null,
+        'page' => null,
+        'page_name' => 'page',
+        'roles' => array(
+            self::STATE_LISTING => null,
+            self::STATE_VIEW => null,
+            self::STATE_CREATE => null,
+            self::STATE_UPDATE => null,
+            self::STATE_DELETE => null,
+        ),
+        'route_name' => null,
+        'route_params' => null,
+        'route_param_name' => null,
+        'searchable' => null,
+        'segment_start' => 0,
+        'segments' => null,
+        'sid_count' => 1,
+        'state' => null,
+        'states' => array(
+            self::STATE_LISTING => true,
+            self::STATE_VIEW => true,
+            self::STATE_CREATE => true,
+            self::STATE_UPDATE => true,
+            self::STATE_DELETE => true,
+        ),
+        'subtitle' => null,
+        'title' => null,
+        'updated_message' => 'Data has been updated.',
+        'updated_message_key' => 'alerts_info',
+        'var_name' => 'crud',
+        'views' => array(
+            self::STATE_LISTING => null,
+            self::STATE_VIEW => null,
+            self::STATE_CREATE => null,
+            self::STATE_UPDATE => null,
+            self::STATE_DELETE => null,
+        ),
     );
 
     /**
@@ -180,14 +260,6 @@ class Crud
      */
     public function __construct(ContainerInterface $container, SessionInterface $session, RequestStackInterface $requestStack, UrlGeneratorInterface $urlGenerator, RouterInterface $router, TranslatorInterface $translator, TemplateInterface $template, Auth $auth)
     {
-        $states = array(
-            static::STATE_LISTING,
-            static::STATE_VIEW,
-            static::STATE_CREATE,
-            static::STATE_UPDATE,
-            static::STATE_DELETE,
-        );
-
         $this->container = $container;
         $this->session = $session;
         $this->requestStack = $requestStack;
@@ -196,9 +268,6 @@ class Crud
         $this->translator = $translator;
         $this->template = $template;
         $this->auth = $auth;
-
-        $this->options['states'] = array_fill_keys($states, true);
-        $this->options['views'] = $this->options['fields'] = $this->options['roles'] = array_fill_keys($states, null);
     }
 
     /**
@@ -214,32 +283,132 @@ class Crud
     }
 
     /**
-     * Setting option via method call.
+     * Sets/gets option via method call.
      *
      * @param string $option
-     * @param array  $args
+     * @param array  $arguments
      *
      * @return mixed
      */
-    public function __call($option, $args)
+    public function __call($option, $arguments)
     {
-        if ($args) {
-            $name = Util::snakeCase($option);
+        $name = isset($this->options[$option]) ? $option : Util::snakeCase($option);
+        $types = static::$optionsTypes[$name] ?? null;
 
-            if (array_key_exists($name, $this->options)) {
-                $value = $args[0];
-
-                if (is_array($this->options[$name])) {
-                    if (!is_array($value)) {
-                        throw new \UnexpectedValueException(sprintf('Option "%s" expect array value.', $name));
-                    }
-
-                    $this->options[$name] = array_replace($this->options[$name], $value);
-                } else {
-                    $this->options[$name] = $value;
-                }
-            }
+        if (!$types) {
+            throw new \LogicException(sprintf('Option "%s" is not available.', $option));
         }
+
+        if (!$arguments) {
+            return $this->options[$name];
+        }
+
+        $value = $arguments[0];
+
+        if (false !== strpos($types, 'array') && is_array($value)) {
+            $this->options[$name] = $this->options[$name] ? array_replace($this->options[$name], $value) : $value;
+        } elseif (false !== strpos($types, 'string') && is_scalar($value)) {
+            $this->options[$name] = (string) $value;
+        } elseif (false !== strpos($types, 'integer') && is_scalar($value)) {
+            $this->options[$name] = (int) $value;
+        } elseif (false !== strpos($types, 'boolean') && is_bool($value)) {
+            $this->options[$name] = $value;
+        } elseif (false !== strpos($types, 'object') && is_object($value)) {
+            $this->options[$name] = $value;
+        } elseif (false !== strpos($types, 'callable') && (is_callable($value) || (is_string($value) && is_callable($tmp = $this->container->grab($value))))) {
+            $this->options[$name] = $tmp ?? $value;
+        } else {
+            throw new \UnexpectedValueException(sprintf('Option "%s" expect %s value, given %s type.', $name, str_replace('|', ' or ', $types), gettype($value)));
+        }
+
+        return $this;
+    }
+
+    /**
+     * Returns options.
+     *
+     * @return mixed
+     */
+    public function options()
+    {
+        return $this->options;
+    }
+
+    /**
+     * Enable state.
+     *
+     * @param string|array $states
+     *
+     * @return Crud
+     */
+    public function enable($states): Crud
+    {
+        foreach (Util::split($states) as $state) {
+            $this->options['states'][$state] = true;
+        }
+
+        return $this;
+    }
+
+    /**
+     * Disable state.
+     *
+     * @param string|array $states
+     *
+     * @return Crud
+     */
+    public function disable($states): Crud
+    {
+        foreach (Util::split($states) as $state) {
+            $this->options['states'][$state] = false;
+        }
+
+        return $this;
+    }
+
+    /**
+     * Sets fields for state.
+     *
+     * @param string|array $states
+     * @param mixed        $fields
+     *
+     * @return Crud
+     */
+    public function field($states, $fields): Crud
+    {
+        foreach (Util::split($states) as $state) {
+            $this->options['fields'][$state] = $fields;
+        }
+
+        return $this;
+    }
+
+    /**
+     * Sets view for state.
+     *
+     * @param string $state
+     * @param string $view
+     *
+     * @return Crud
+     */
+    public function view(string $state, string $view): Crud
+    {
+        $this->options['views'][$state] = $view;
+
+        return $this;
+    }
+
+    /**
+     * Sets roles for state.
+     *
+     * @param string $state
+     * @param string $roles
+     *
+     * @return Crud
+     */
+    public function role(string $state, string $roles): Crud
+    {
+        $this->options['roles'][$state] = $roles;
 
         return $this;
     }
@@ -326,133 +495,18 @@ class Crud
      * Call registered functions.
      *
      * @param string     $name
-     * @param array|null $args
+     * @param array|null $arguments
      * @param mixed      $default
      *
      * @return mixed
      */
-    public function call(string $name, array $args = null, $default = null)
+    public function call(string $name, array $arguments = null, $default = null)
     {
-        $cb = $this->functions[$name] ?? null;
-
-        return $cb ? $this->container->call($cb, $args) : $default;
-    }
-
-    /**
-     * Returns option value.
-     *
-     * @param string $name
-     *
-     * @return mixed
-     */
-    public function option(string $name)
-    {
-        return $this->options[$name] ?? null;
-    }
-
-    /**
-     * Returns options.
-     *
-     * @return array
-     */
-    public function options(): array
-    {
-        return $this->options;
-    }
-
-    /**
-     * Enable state.
-     *
-     * @param string|array $states
-     *
-     * @return Crud
-     */
-    public function enable($states): Crud
-    {
-        foreach (Util::split($states) as $state) {
-            $this->options['states'][$state] = true;
+        if (isset($this->functions[$name])) {
+            return $this->container->call($this->functions[$name], $arguments);
         }
 
-        return $this;
-    }
-
-    /**
-     * Disable state.
-     *
-     * @param string|array $states
-     *
-     * @return Crud
-     */
-    public function disable($states): Crud
-    {
-        foreach (Util::split($states) as $state) {
-            $this->options['states'][$state] = false;
-        }
-
-        return $this;
-    }
-
-    /**
-     * Sets fields for state.
-     *
-     * @param string|array $states
-     * @param mixed        $fields
-     *
-     * @return Crud
-     */
-    public function field($states, $fields): Crud
-    {
-        foreach (Util::split($states) as $state) {
-            $this->options['fields'][$state] = $fields;
-        }
-
-        return $this;
-    }
-
-    /**
-     * Sets view for state.
-     *
-     * @param string $state
-     * @param string $view
-     *
-     * @return Crud
-     */
-    public function view(string $state, string $view): Crud
-    {
-        $this->options['views'][$state] = $view;
-
-        return $this;
-    }
-
-    /**
-     * Sets roles for state.
-     *
-     * @param string $state
-     * @param string $roles
-     *
-     * @return Crud
-     */
-    public function role(string $state, string $roles): Crud
-    {
-        $this->options['roles'][$state] = $roles;
-
-        return $this;
-    }
-
-    /**
-     * Massive role sets.
-     *
-     * @param array $roles
-     *
-     * @return Crud
-     */
-    public function roles(array $roles): Crud
-    {
-        foreach ($roles as $state => $role) {
-            $this->role($state, $role);
-        }
-
-        return $this;
+        return $default;
     }
 
     /**
@@ -509,12 +563,12 @@ class Crud
     public function render(): Response
     {
         if ($this->dry) {
-            $this->init();
+            $this->initialize();
             $this->dry = false;
         }
 
         if ($this->isGranted($this->data['state'])) {
-            $handle = $this->prepareState();
+            $handle = 'state'.$this->data['state'];
 
             return $this->$handle();
         }
@@ -525,36 +579,43 @@ class Crud
     /**
      * Prepare crud.
      */
-    protected function init(): void
+    protected function initialize(): void
     {
         if (empty($this->options['mapper'])) {
             throw new \LogicException('Mapper is not provided.');
         }
 
-        $match = $this->router->getRouteMatch();
-        $route = $this->options['route'];
+        $route = null;
+        $segments = array();
+        $name = null;
         $start = $this->options['segment_start'];
 
-        if (empty($route) && $match) {
+        if ($match = $this->router->getRouteMatch()) {
+            $arguments = $match->getArguments();
+
             $route = $match->getAlias();
+            $segments = Util::split(end($arguments), '/');
+            $name = key($arguments);
+        }
+
+        if ($this->options['route_name']) {
+            $route = $this->options['route_name'];
+        }
+
+        if ($this->options['route_param_name']) {
+            $name = $this->options['route_param_name'];
+        }
+
+        if ($this->options['segments']) {
+            $segments = Util::split($this->options['segments'], '/');
         }
 
         if (empty($route)) {
             throw new \LogicException('Route is not defined.');
         }
 
-        if (isset($this->options['segments'])) {
-            $segments = Util::split($this->options['segments'], '/');
-        } elseif ($match) {
-            $arguments = $match->getArguments();
-            $segments = end($arguments);
-        } else {
-            $segments = array();
-        }
-
-        // invalid segments
-        if (!is_array($segments)) {
-            throw new \LogicException('Segments is not provided.');
+        if (empty($name)) {
+            throw new \LogicException('Route parameter name is not provided.');
         }
 
         if (empty($segments) || !isset($segments[$start]) || 'index' === $segments[$start]) {
@@ -563,37 +624,25 @@ class Crud
             $state = $segments[$start];
         }
 
-        // parameter name
-        if (empty($this->options['route_param_name']) && $match) {
-            $arguments = $match->getArguments();
-            end($arguments);
-
-            $this->options['route_param_name'] = key($arguments);
-        }
-
-        if (empty($this->options['route_param_name'])) {
-            throw new \LogicException('Route parameter name is not provided.');
-        }
-
         if (!$this->request) {
             $this->request = $this->requestStack->getCurrentRequest();
         }
 
-        $this->data['mapper'] = $this->prepareMapper();
-        $this->data['form'] = $this->prepareForm();
+        $this->data['mapper'] = $this->initializeMapper();
+        $this->data['form'] = $this->initializeForm();
         $this->data['state'] = $state;
-        $this->data['route'] = $route;
+        $this->data['route_name'] = $route;
+        $this->data['route_param_name'] = $name;
+        $this->data['route_params'] = $this->options['route_params'];
         $this->data['segments'] = $segments;
-        $this->data['segment_start'] = $start;
-        $this->data['segments_prefix'] = array_slice($segments, 0, $start);
-        $this->data['keyword'] = $this->options['keyword'] ?? $this->request->query->get($this->options['keyword_query_name']);
-        $this->data['page'] = (int) ($this->options['page'] ?? $this->request->query->get($this->options['page_query_name']) ?? 1);
-        $this->data['searchable'] = $this->options['searchable'];
-        $this->data['route_args'] = $this->options['route_args'];
-        $this->data['page_query_name'] = $this->options['page_query_name'];
-        $this->data['keyword_query_name'] = $this->options['keyword_query_name'];
+        $this->data['route_segment_prefix'] = array_slice($segments, 0, $start);
+        $this->data['keyword'] = $this->options['keyword'] ?? $this->request->query->get($this->options['keyword_name']);
+        $this->data['keyword_name'] = $this->options['keyword_name'];
+        $this->data['page'] = (int) ($this->options['page'] ?? $this->request->query->get($this->options['page_name']) ?? 1);
+        $this->data['page_name'] = $this->options['page_name'];
         $this->data['title'] = $this->options['title'];
         $this->data['subtitle'] = $this->options['subtitle'];
+        $this->data['fields'] = array();
 
         if (empty($this->data['title'])) {
             $this->data['title'] = 'Manage '.Util::titleCase($this->data['mapper']->getName());
@@ -602,47 +651,38 @@ class Crud
         if (empty($this->data['subtitle'])) {
             $this->data['subtitle'] = Util::titleCase($state);
         }
-    }
 
-    /**
-     * Prepare fields, ensure field has label and name member.
-     *
-     * @return string
-     */
-    protected function prepareState(): string
-    {
-        $state = $this->data['state'];
+        // fix fields
         $fields = $this->options['fields'][$state] ?? array_fill_keys(array_keys($this->data['mapper']->getSchema()->getFields()), null);
-        $orders = Util::split($this->options['field_orders']);
 
         if (is_string($fields)) {
             $fields = array_fill_keys(Util::split($fields), null);
         }
 
+        $orders = Util::split($this->options['field_orders']);
         $keys = array_unique(array_merge($orders, array_keys($fields)));
-        $this->data['fields'] = array_fill_keys($keys, array());
 
-        foreach ($this->data['fields'] as $name => &$field) {
+        foreach ($keys as $key) {
+            $field = $fields[$key] ?? null;
+
             if (!isset($field['name'])) {
-                $field['name'] = $name;
+                $field['name'] = $key;
             }
 
             if (!isset($field['label'])) {
-                $field['label'] = $this->translator->transAdv($name) ?? Util::titleCase($name);
+                $field['label'] = $this->translator->transAdv($key) ?? Util::titleCase($key);
             }
 
-            unset($field);
+            $this->data['fields'][$key] = $field;
         }
 
         $this->trigger('on_init');
-
-        return 'state'.$state;
     }
 
     /**
      * Load mapper.
      */
-    protected function prepareMapper(): Mapper
+    protected function initializeMapper(): Mapper
     {
         $map = $this->options['mapper'];
 
@@ -660,7 +700,7 @@ class Crud
     /**
      * Load form.
      */
-    protected function prepareForm(): Form
+    protected function initializeForm(): Form
     {
         $form = $this->options['form'];
 
@@ -679,37 +719,6 @@ class Crud
     }
 
     /**
-     * Returns route arguments.
-     *
-     * @param  array  $segments
-     * @param  mixed $query
-     *
-     * @return array
-     */
-    protected function prepareRoute(array $segments, $query = null): array
-    {
-        $parameters = $this->options['route_args'];
-        $parameters[$this->options['route_param_name']] = array_merge($this->data['segments_prefix'], $segments);
-
-        $parameters += array_filter(array(
-            $this->options['page_query_name'] => $this->data['page'],
-            $this->options['keyword_query_name'] => $this->data['keyword'],
-        ), 'is_scalar');
-
-        if ($query) {
-            if (is_string($query)) {
-                parse_str($query, $query);
-            }
-
-            $parameters += $query;
-        }
-
-        $parameters += $this->options['append_query'] ? $this->request->query->all() : array();
-
-        return array($this->data['route'], $parameters);
-    }
-
-    /**
      * Create response for state.
      *
      * @param string $state
@@ -724,9 +733,9 @@ class Crud
             throw new \LogicException(sprintf('No view for state: "%s".', $state));
         }
 
-        $content = $this->template->render($view, array($this->options['varname'] => $this));
+        $content = $this->template->render($view, array($this->options['var_name'] => $this));
 
-        if (isset($this->options['on_response'])) {
+        if ($this->options['on_response']) {
             $response = $this->trigger('on_response', array($content));
 
             if (!$response instanceof Response) {
@@ -743,13 +752,14 @@ class Crud
      * Do go back and set message.
      *
      * @param string $key
-     * @param string $messageKey
      *
      * @return Response
      */
-    protected function goBack(string $key, string $messageKey): Response
+    protected function goBack(string $key): Response
     {
-        $createNew = $this->options['create_new'] && $this->data['form']->hasField('create_new') && 'create' === $this->data['state'] && $this->data['form']['create_new'];
+        $messageKey = $key.'_message';
+        $sessionKey = $messageKey.'_key';
+        $createNew = 'create' === $this->data['state'] && $this->options['create_new'] && $this->data['form']->hasField('create_new') && $this->data['form']['create_new'];
 
         if ($createNew) {
             $target = $this->request->getUri();
@@ -757,16 +767,47 @@ class Crud
             $target = $this->prepareRoute(array('index'));
         }
 
-        if (isset($this->options[$mkey = $messageKey.'_message'])) {
-            $this->session->set($this->options[$key], strtr($this->options[$mkey], array(
+        $this->session->set($this->options['create_new_session_key'], $createNew);
+
+        if (isset($this->options[$messageKey])) {
+            $this->session->set($this->options[$sessionKey], strtr($this->options[$messageKey], array(
                 '%name%' => $this->data['mapper']->getName(),
                 '%id%' => implode(', ', $this->data['mapper']->getSchema()->getKeys()),
             )));
         }
 
-        $this->session->set($this->options['create_new_session_key'], $createNew);
-
         return $this->urlGenerator->redirect($target);
+    }
+
+    /**
+     * Returns route arguments.
+     *
+     * @param array $segments
+     * @param mixed $query
+     *
+     * @return array
+     */
+    protected function prepareRoute(array $segments, $query = null): array
+    {
+        $parameters = $this->data['route_params'];
+        $parameters[$this->data['route_param_name']] = array_merge($this->data['route_segment_prefix'], $segments);
+
+        $parameters += array_filter(array(
+            $this->data['page_name'] => $this->data['page'],
+            $this->data['keyword_name'] => $this->data['keyword'],
+        ), 'is_scalar');
+
+        if ($query) {
+            if (is_string($query)) {
+                parse_str($query, $query);
+            }
+
+            $parameters += $query;
+        }
+
+        $parameters += $this->options['append_query'] ? $this->request->query->all() : array();
+
+        return array($this->data['route_name'], $parameters);
     }
 
     /**
@@ -810,15 +851,17 @@ class Crud
      * Trigger internal event.
      *
      * @param string     $eventName
-     * @param array|null $args
+     * @param array|null $arguments
      *
      * @return mixed
      */
-    protected function trigger(string $eventName, array $args = null)
+    protected function trigger(string $eventName, array $arguments = null)
     {
-        $cb = $this->options[$eventName] ?? null;
+        if (isset($this->options[$eventName])) {
+            return $this->container->call($this->options[$eventName], $arguments);
+        }
 
-        return is_callable($cb) ? $this->container->call($cb, $args) : null;
+        return null;
     }
 
     /**
@@ -828,22 +871,16 @@ class Crud
     {
         $data = $this->data['mapper']->getSchema()->toArray();
 
-        if (is_array($update = $this->trigger('on_prepare_data', array($data)))) {
+        if (is_array($update = $this->trigger('on_load_form', array($data)))) {
             $data = $update;
         }
 
-        if (is_callable($options = $this->options['form_options'])) {
-            $options = $this->container->call($options);
-        }
+        $this->data['form']->handle($this->request, $data, $this->options['form_options']);
 
-        $this->data['form']->handle($this->request, $data, (array) $options);
-
-        if ($this->options['create_new'] && 'create' === $this->data['state'] && !$this->data['form']->hasField('create_new')) {
+        if ('create' === $this->data['state'] && $this->options['create_new'] && !$this->data['form']->hasField('create_new')) {
             $this->data['form']->addField('create_new', 'checkbox', array(
                 'label' => $this->options['create_new_label'],
-                'attr' => array(
-                    'checked' => $this->session->get($this->options['create_new_session_key']) ?? true,
-                ),
+                'attr' => array('checked' => $this->session->get($this->options['create_new_session_key']) ?? true),
             ));
         }
     }
@@ -853,7 +890,8 @@ class Crud
      */
     protected function loadMapper(): void
     {
-        $this->trigger('on_load', array($this->data['mapper']->load($this->prepareItemFilters())));
+        $this->data['mapper']->load($this->prepareItemFilters());
+        $this->trigger('on_load_mapper', array($this->data['mapper']));
 
         if (!$this->data['mapper']->valid()) {
             throw new NotFoundException();
@@ -899,7 +937,7 @@ class Crud
             $this->data['mapper']->save();
             $this->trigger('on_after_create');
 
-            return $this->goBack('created_message_key', 'created');
+            return $this->goBack('created');
         }
 
         return $this->createResponse(static::STATE_CREATE);
@@ -921,7 +959,7 @@ class Crud
             $this->data['mapper']->save();
             $this->trigger('on_after_update');
 
-            return $this->goBack('updated_message_key', 'updated');
+            return $this->goBack('updated');
         }
 
         return $this->createResponse(static::STATE_UPDATE);
@@ -941,7 +979,7 @@ class Crud
             $this->data['mapper']->delete();
             $this->trigger('on_after_delete');
 
-            return $this->goBack('deleted_message_key', 'deleted');
+            return $this->goBack('deleted');
         }
 
         return $this->createResponse(static::STATE_DELETE);

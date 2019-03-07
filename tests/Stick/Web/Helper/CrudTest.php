@@ -39,18 +39,28 @@ class CrudTest extends TestCase
         $this->assertNull($this->crud->foo);
     }
 
-    public function testCallMagic()
+    /**
+     * @dataProvider callMagicProvider
+     */
+    public function testCallMagic($expected, $option)
     {
-        $this->assertEquals('foo', $this->crud->route('foo')->option('route'));
-        $this->assertEquals(array('foo'), $this->crud->filters(array('foo'))->option('filters'));
+        $this->assertEquals($expected, $this->crud->$option($expected)->$option());
     }
 
     public function testCallMagicException()
     {
-        $this->expectException('UnexpectedValueException');
-        $this->expectExceptionMessage('Option "filters" expect array value.');
+        $this->expectException('LogicException');
+        $this->expectExceptionMessage('Option "foo" is not available.');
 
-        $this->crud->filters(null);
+        $this->crud->foo();
+    }
+
+    public function testCallMagicException2()
+    {
+        $this->expectException('UnexpectedValueException');
+        $this->expectExceptionMessage('Option "searchable" expect string or array value, given object type.');
+
+        $this->crud->searchable(new \stdClass());
     }
 
     public function testExists()
@@ -75,7 +85,7 @@ class CrudTest extends TestCase
 
     public function testData()
     {
-        $this->assertCount(10, $this->crud->data());
+        $this->assertCount(15, $this->crud->data());
     }
 
     public function testAddFunction()
@@ -91,14 +101,9 @@ class CrudTest extends TestCase
         $this->assertEquals('bar', $this->crud->call('bar', null, 'bar'));
     }
 
-    public function testOption()
-    {
-        $this->assertNull($this->crud->option('foo'));
-    }
-
     public function testOptions()
     {
-        $this->assertCount(47, $this->crud->options());
+        $this->assertCount(46, $this->crud->options());
     }
 
     public function testEnable()
@@ -113,7 +118,7 @@ class CrudTest extends TestCase
             'bar' => true,
         );
 
-        $this->assertEquals($expected, $this->crud->enable('foo,bar')->option('states'));
+        $this->assertEquals($expected, $this->crud->enable('foo,bar')->states());
     }
 
     public function testDisable()
@@ -126,7 +131,7 @@ class CrudTest extends TestCase
             'delete' => true,
         );
 
-        $this->assertEquals($expected, $this->crud->disable('view,update')->option('states'));
+        $this->assertEquals($expected, $this->crud->disable('view,update')->states());
     }
 
     public function testField()
@@ -139,7 +144,7 @@ class CrudTest extends TestCase
             'delete' => 'foo',
         );
 
-        $this->assertEquals($expected, $this->crud->field('create,delete', 'foo')->option('fields'));
+        $this->assertEquals($expected, $this->crud->field('create,delete', 'foo')->fields());
     }
 
     public function testView()
@@ -152,7 +157,7 @@ class CrudTest extends TestCase
             'delete' => 'foo',
         );
 
-        $this->assertEquals($expected, $this->crud->view('delete', 'foo')->option('views'));
+        $this->assertEquals($expected, $this->crud->view('delete', 'foo')->views());
     }
 
     public function testRole()
@@ -165,7 +170,7 @@ class CrudTest extends TestCase
             'delete' => 'foo',
         );
 
-        $this->assertEquals($expected, $this->crud->role('delete', 'foo')->option('roles'));
+        $this->assertEquals($expected, $this->crud->role('delete', 'foo')->roles());
     }
 
     public function testRoles()
@@ -178,7 +183,7 @@ class CrudTest extends TestCase
             'delete' => 'foo',
         );
 
-        $this->assertEquals($expected, $this->crud->roles(array('delete' => 'foo'))->option('roles'));
+        $this->assertEquals($expected, $this->crud->roles(array('delete' => 'foo'))->roles());
     }
 
     public function testIsGranted()
@@ -221,8 +226,7 @@ class CrudTest extends TestCase
             ->form('Fixture\\Form\\FUserForm')
             ->field('listing', 'id,username,active')
             ->searchable('username')
-            ->formOptions(function () {})
-            ->onPrepareData(function ($data) {
+            ->onLoadForm(function ($data) {
                 return $data;
             })
             ->createNew(true)
@@ -254,7 +258,7 @@ class CrudTest extends TestCase
         $this->expectException('LogicException');
         $this->expectExceptionMessage('Mapper is not provided.');
 
-        $this->crud->route('foo')->render();
+        $this->crud->render();
     }
 
     public function testRenderException2()
@@ -268,35 +272,24 @@ class CrudTest extends TestCase
     public function testRenderException3()
     {
         $this->expectException('LogicException');
-        $this->expectExceptionMessage('Insufficient primary keys!');
+        $this->expectExceptionMessage('Route parameter name is not provided.');
 
-        $this->crud->route('foo')->routeParamName('foo')->mapper('user')->view('update', 'update')->segments('update')->render();
+        $this->crud->mapper('user')->routeName('foo')->segments('foo')->render();
     }
 
     public function testRenderException4()
     {
-        $this->expectException('Fal\\Stick\\Web\\Exception\\NotFoundException');
+        $this->expectException('LogicException');
+        $this->expectExceptionMessage('Insufficient primary keys!');
 
-        $this->crud->route('foo')->routeParamName('foo')->mapper('user')->view('update', 'update')->segments('update/4')->render();
+        $this->crud->routeName('foo')->routeParamName('foo')->mapper('user')->view('update', 'update')->segments('update')->render();
     }
 
     public function testRenderException5()
     {
-        $this->expectException('LogicException');
-        $this->expectExceptionMessage('Segments is not provided.');
+        $this->expectException('Fal\\Stick\\Web\\Exception\\NotFoundException');
 
-        $this->router->route('GET foo /foo/@segments', 'foo');
-        $this->router->handle(Request::create('/foo/bar'));
-
-        $this->crud->mapper('user')->render();
-    }
-
-    public function testRenderException6()
-    {
-        $this->expectException('LogicException');
-        $this->expectExceptionMessage('Route parameter name is not provided.');
-
-        $this->crud->mapper('user')->route('foo')->segments('foo')->render();
+        $this->crud->routeName('foo')->routeParamName('foo')->mapper('user')->view('update', 'update')->segments('update/4')->render();
     }
 
     public function testCreateResponseException()
@@ -304,7 +297,7 @@ class CrudTest extends TestCase
         $this->expectException('LogicException');
         $this->expectExceptionMessage('No view for state: "listing".');
 
-        $this->crud->route('foo')->routeParamName('foo')->mapper('user')->render();
+        $this->crud->routeName('foo')->routeParamName('foo')->mapper('user')->render();
     }
 
     public function testCreateResponseException2()
@@ -312,7 +305,7 @@ class CrudTest extends TestCase
         $this->expectException('LogicException');
         $this->expectExceptionMessage('Response should be instance of Fal\\Stick\\Web\\Response.');
 
-        $this->crud->route('foo')->routeParamName('foo')->mapper('user')->view('listing', 'listing')->onResponse(function () {
+        $this->crud->routeName('foo')->routeParamName('foo')->mapper('user')->view('listing', 'listing')->onResponse(function () {
             return null;
         })->render();
     }
@@ -327,7 +320,7 @@ class CrudTest extends TestCase
         }
 
         $this->router->route('GET|POST foo /bar/@segments*', 'foo');
-        $this->crud->route('foo')->routeParamName('segments')->view('listing', 'listing');
+        $this->crud->routeName('foo')->routeParamName('segments')->view('listing', 'listing');
         $this->crud->mapper($mapper);
         // test form too
         $this->crud->form($this->container->get('Fixture\Form\\FUserForm'));
@@ -398,6 +391,18 @@ class CrudTest extends TestCase
         return array(
             array(),
             array('Fixture\\Mapper\\TUser'),
+        );
+    }
+
+    public function callMagicProvider()
+    {
+        return array(
+            array(true, 'appendQuery'),
+            array('foo', 'create_new_label'),
+            array(new \stdClass(), 'form'),
+            array(array('foo'), 'filters'),
+            array(1, 'page'),
+            array(function () {}, 'onInit'),
         );
     }
 }
