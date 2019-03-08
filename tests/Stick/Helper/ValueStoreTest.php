@@ -71,12 +71,19 @@ class ValueStoreTest extends TestCase
 
     public function testCommit()
     {
+        $this->store->setData(array('bar' => 'baz'));
         $this->store->commit();
 
         $this->assertFileExists($this->store->getSaveAs());
+        $this->assertEquals(array('foo' => 'bar'), $this->store->reload()->getData());
+
+        // second call, replace
+        $this->store->setData(array('bar' => 'baz'));
+        $this->store->commit(true);
+        $this->assertEquals(array('foo' => 'bar', 'bar' => 'baz'), $this->store->reload()->getData());
     }
 
-    public function testLoadData()
+    public function testReload()
     {
         $this->expectException('LogicException');
         $this->expectExceptionMessage('JSON error: Syntax error.');

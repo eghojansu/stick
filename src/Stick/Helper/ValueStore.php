@@ -33,6 +33,11 @@ class ValueStore implements \ArrayAccess
     /**
      * @var array
      */
+    protected $initial;
+
+    /**
+     * @var array
+     */
     protected $data;
 
     /**
@@ -46,7 +51,7 @@ class ValueStore implements \ArrayAccess
         $this->filename = $filename;
         $this->saveAs = $saveAs ?? $filename;
 
-        $this->loadData();
+        $this->reload();
     }
 
     /**
@@ -115,17 +120,14 @@ class ValueStore implements \ArrayAccess
      * Assign data.
      *
      * @param array $data
-     * @param bool  $merge
      *
      * @return ValueStore
      */
-    public function setData(array $data, bool $merge = true): ValueStore
+    public function setData(array $data): ValueStore
     {
-        if ($merge) {
-            $data = array_merge($this->data, $data);
+        foreach ($data as $key => $value) {
+            $this->data[$key] = $value;
         }
-
-        $this->data = $data;
 
         return $this;
     }
@@ -133,30 +135,42 @@ class ValueStore implements \ArrayAccess
     /**
      * Save data to file.
      *
+     * @param bool $replace
+     *
      * @return ValueStore
      */
-    public function commit(): ValueStore
+    public function commit(bool $replace = false): ValueStore
     {
-        file_put_contents($this->saveAs, json_encode($this->data));
+        if ($replace) {
+            $commit = $this->data;
+        } else {
+            $commit = array_intersect_key($this->data, $this->initial);
+        }
+
+        file_put_contents($this->saveAs, json_encode($commit));
 
         return $this;
     }
 
     /**
      * Load json data.
+     *
+     * @return ValueStore
      */
-    protected function loadData(): void
+    public function reload(): ValueStore
     {
-        $this->data = array();
+        $this->data = $this->initial = array();
 
         $content = file_exists($this->saveAs) ? file_get_contents($this->saveAs) : file_get_contents($this->filename);
 
         if ($content) {
-            $this->data = json_decode($content, true);
+            $this->data = $this->initial = json_decode($content, true);
 
             if (JSON_ERROR_NONE !== json_last_error()) {
                 throw new \LogicException(sprintf('JSON error: %s.', json_last_error_msg()));
             }
         }
+
+        return $this;
     }
 }
