@@ -199,18 +199,65 @@ class CrudTest extends TestCase
 
     public function testPath()
     {
-        $this->expectException('LogicException');
-        $this->expectExceptionMessage('Please call render first!');
+        $this->requestStack->push($request = Request::create('/bar/view/1'));
 
-        $this->crud->path();
+        $this->router->route('GET foo /bar/@segments*', 'foo');
+        $this->router->handle($request);
+
+        $response = $this->crud->mapper('user')->view('view', 'view')->render();
+
+        $this->assertEquals(file_get_contents(TEST_FIXTURE.'crud/view.html'), $response->getContent());
+        $this->assertEquals('/bar/index?page=1', $this->crud->path());
+        $this->assertEquals('/bar/index?page=1', $this->crud->path('index'));
+        $this->assertEquals('/bar/index?page=1&foo=bar', $this->crud->path('index', 'foo=bar'));
+        $this->assertEquals('/bar/index?page=1&foo=bar', $this->crud->path('index', array('foo' => 'bar')));
+        $this->assertEquals('/bar/create?page=1', $this->crud->path('create'));
+        $this->assertEquals('/bar/update/1?page=1', $this->crud->path('update/1'));
+        $this->assertEquals('/bar/delete/1?page=1', $this->crud->path(array('delete', 1)));
+    }
+
+    public function testBackPath()
+    {
+        $this->requestStack->push($request = Request::create('/bar/baz/qux/quux/view/1'));
+
+        $this->router->route('GET foo /bar/@segments*', 'foo');
+        $this->router->handle($request);
+
+        $response = $this->crud->segmentStart(3)->mapper('user')->view('view', 'view')->render();
+
+        $this->assertEquals(file_get_contents(TEST_FIXTURE.'crud/view.html'), $response->getContent());
+        $this->assertEquals('/bar/baz/qux/quux/index?page=1', $this->crud->backPath());
+        $this->assertEquals('/bar/baz/qux/index?page=1', $this->crud->backPath(1));
+        $this->assertEquals('/bar/baz/index?page=1', $this->crud->backPath(2));
+        $this->assertEquals('/bar/index?page=1', $this->crud->backPath(3));
+        $this->assertEquals('/bar/foo/bar/baz?page=1&foo=bar', $this->crud->backPath(3, 'foo/bar/baz', array('foo' => 'bar')));
+
+        $this->expectException('LogicException');
+        $this->expectExceptionMessage('Running out of segments.');
+
+        $this->crud->backPath(4);
     }
 
     public function testRedirect()
     {
+        $this->requestStack->push($request = Request::create('/bar/view/1'));
+
+        $this->router->route('GET foo /bar/@segments*', 'foo');
+        $this->router->handle($request);
+
+        $response = $this->crud->mapper('user')->view('view', 'view')->render();
+        $redirect = $this->crud->redirect('create');
+
+        $this->assertEquals(file_get_contents(TEST_FIXTURE.'crud/view.html'), $response->getContent());
+        $this->assertEquals('http://localhost/bar/create?page=1', $redirect->getTargetUrl());
+    }
+
+    public function testPrepareRouteException()
+    {
         $this->expectException('LogicException');
         $this->expectExceptionMessage('Please call render first!');
 
-        $this->crud->redirect();
+        $this->crud->path();
     }
 
     /**

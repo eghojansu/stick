@@ -548,11 +548,32 @@ class Crud
      */
     public function path($segments = null, $query = null): string
     {
-        if ($this->dry) {
-            throw new \LogicException('Please call render first!');
+        list($route, $parameters) = $this->prepareRoute(Util::split($segments ?? array('index'), '/'), $query);
+
+        return $this->urlGenerator->generate($route, $parameters);
+    }
+
+    /**
+     * Returns crud link (cut n-segments before inserted segments).
+     *
+     * @param int   $cut
+     * @param mixed $segments
+     * @param mixed $query
+     *
+     * @return string
+     */
+    public function backPath(int $cut = 0, $segments = null, $query = null): string
+    {
+        list($route, $parameters) = $this->prepareRoute(Util::split($segments ?? array('index'), '/'), $query);
+
+        if (0 > $start = $this->options['segment_start'] - abs($cut)) {
+            throw new \LogicException('Running out of segments.');
         }
 
-        return $this->urlGenerator->generate(...$this->prepareRoute(Util::split($segments ?? array('index'), '/'), $query));
+        $params = &$parameters[$this->data['route_param_name']];
+        $params = array_slice($params, 0, $start, true) + array_slice($params, $start + abs($cut), null, true);
+
+        return $this->urlGenerator->generate($route, $parameters);
     }
 
     /**
@@ -565,10 +586,6 @@ class Crud
      */
     public function redirect($segments = null, $query = null): Response
     {
-        if ($this->dry) {
-            throw new \LogicException('Please call render first!');
-        }
-
         return $this->urlGenerator->redirect($this->prepareRoute(Util::split($segments ?? array('index'), '/'), $query));
     }
 
@@ -799,6 +816,10 @@ class Crud
      */
     protected function prepareRoute(array $segments, $query = null): array
     {
+        if ($this->dry) {
+            throw new \LogicException('Please call render first!');
+        }
+
         $parameters = $this->data['route_params'];
         $parameters[$this->data['route_param_name']] = array_merge($this->data['route_segment_prefix'], $segments);
 
