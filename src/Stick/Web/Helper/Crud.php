@@ -582,6 +582,7 @@ class Crud
         if ($this->dry) {
             $this->initialize();
             $this->dry = false;
+            $this->trigger('on_init');
         }
 
         if ($this->isGranted($this->data['state'])) {
@@ -692,8 +693,6 @@ class Crud
 
             $this->data['fields'][$key] = $field;
         }
-
-        $this->trigger('on_init', array());
     }
 
     /**
@@ -866,7 +865,7 @@ class Crud
      *
      * @return mixed
      */
-    protected function trigger(string $eventName, array $arguments)
+    protected function trigger(string $eventName, array $arguments = array())
     {
         if (isset($this->options[$eventName])) {
             array_unshift($arguments, $this);
@@ -945,7 +944,7 @@ class Crud
         $this->loadForm();
 
         if ($this->data['form']->isSubmitted() && $this->data['form']->valid()) {
-            $data = (array) $this->trigger('on_before_create', array());
+            $data = (array) $this->trigger('on_before_create');
             $this->data['mapper']->getSchema()->fromArray($data + $this->data['form']->getValidatedData());
             $result = $this->data['mapper']->save();
             $response = $this->trigger('on_after_create', array($result));
@@ -967,7 +966,7 @@ class Crud
         $this->loadForm();
 
         if ($this->data['form']->isSubmitted() && $this->data['form']->valid()) {
-            $data = (array) $this->trigger('on_before_update', array());
+            $data = (array) $this->trigger('on_before_update');
             $this->data['mapper']->getSchema()->fromArray($data + $this->data['form']->getValidatedData());
             $result = $this->data['mapper']->save();
             $response = $this->trigger('on_after_update', array($result));
@@ -988,7 +987,7 @@ class Crud
         $this->loadMapper();
 
         if ($this->request->isMethod('POST')) {
-            $this->trigger('on_before_delete', array());
+            $this->trigger('on_before_delete');
             $result = $this->data['mapper']->delete();
             $response = $this->trigger('on_after_delete', array($result));
 
