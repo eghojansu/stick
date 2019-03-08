@@ -762,9 +762,9 @@ class Crud
         $createNew = 'create' === $this->data['state'] && $this->options['create_new'] && $this->data['form']->hasField('create_new') && $this->data['form']['create_new'];
 
         if ($createNew) {
-            $target = $this->request->getUri();
+            $target = 'create';
         } else {
-            $target = $this->prepareRoute(array('index'));
+            $target = 'index';
         }
 
         $this->session->set($this->options['create_new_session_key'], $createNew);
@@ -776,7 +776,7 @@ class Crud
             )));
         }
 
-        return $this->urlGenerator->redirect($target);
+        return $this->urlGenerator->redirect($this->prepareRoute(array($target)));
     }
 
     /**
@@ -935,9 +935,9 @@ class Crud
             $data = (array) $this->trigger('on_before_create');
             $this->data['mapper']->getSchema()->fromArray($data + $this->data['form']->getValidatedData());
             $this->data['mapper']->save();
-            $this->trigger('on_after_create');
+            $result = $this->trigger('on_after_create');
 
-            return $this->goBack('created');
+            return $result instanceof Response ? $result : $this->goBack('created');
         }
 
         return $this->createResponse(static::STATE_CREATE);
@@ -957,9 +957,9 @@ class Crud
             $data = (array) $this->trigger('on_before_update');
             $this->data['mapper']->getSchema()->fromArray($data + $this->data['form']->getValidatedData());
             $this->data['mapper']->save();
-            $this->trigger('on_after_update');
+            $result = $this->trigger('on_after_update');
 
-            return $this->goBack('updated');
+            return $result instanceof Response ? $result : $this->goBack('updated');
         }
 
         return $this->createResponse(static::STATE_UPDATE);
@@ -977,9 +977,9 @@ class Crud
         if ($this->request->isMethod('POST')) {
             $this->trigger('on_before_delete');
             $this->data['mapper']->delete();
-            $this->trigger('on_after_delete');
+            $result = $this->trigger('on_after_delete');
 
-            return $this->goBack('deleted');
+            return $result instanceof Response ? $result : $this->goBack('deleted');
         }
 
         return $this->createResponse(static::STATE_DELETE);

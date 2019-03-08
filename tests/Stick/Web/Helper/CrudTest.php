@@ -16,6 +16,7 @@ namespace Fal\Stick\Test\Helper;
 use Fal\Stick\Container\Definition;
 use Fal\Stick\TestSuite\TestCase;
 use Fal\Stick\Web\Request;
+use Fal\Stick\Web\Response;
 
 class CrudTest extends TestCase
 {
@@ -207,11 +208,15 @@ class CrudTest extends TestCase
     /**
      * @dataProvider renderProvider
      */
-    public function testRender($expected, $request)
+    public function testRender($expected, $request, $onEvent = null, $handler = null)
     {
         $this->requestStack->push($request);
         $this->router->route('GET|POST foo /bar/@segments*', 'foo');
         $this->router->handle($request);
+
+        if ($onEvent && $handler) {
+            $this->crud->$onEvent($handler);
+        }
 
         $response = $this->crud
             ->views(array(
@@ -349,12 +354,30 @@ class CrudTest extends TestCase
                 Request::create('/bar/create'),
             ),
             array(
-                $redirect('http://localhost/bar/create'),
+                $redirect('http://localhost/bar/create?page=1'),
                 Request::create('/bar/create', 'POST', array(
                     'username' => 'qux',
                     '_form' => 'f_user_form',
                     'create_new' => 'on',
                 )),
+            ),
+            array(
+                $redirect('http://localhost/bar/index?page=1'),
+                Request::create('/bar/create', 'POST', array(
+                    'username' => 'qux',
+                    '_form' => 'f_user_form',
+                )),
+            ),
+            array(
+                'created',
+                Request::create('/bar/create', 'POST', array(
+                    'username' => 'qux',
+                    '_form' => 'f_user_form',
+                )),
+                'on_after_create',
+                function () {
+                    return Response::create('created');
+                },
             ),
             array(
                 $read('update'),
@@ -368,12 +391,31 @@ class CrudTest extends TestCase
                 )),
             ),
             array(
+                'updated',
+                Request::create('/bar/update/1', 'POST', array(
+                    'username' => 'qux',
+                    '_form' => 'f_user_form',
+                )),
+                'on_after_update',
+                function () {
+                    return Response::create('updated');
+                },
+            ),
+            array(
                 $read('delete'),
                 Request::create('/bar/delete/1'),
             ),
             array(
                 $redirect('http://localhost/bar/index?page=1'),
                 Request::create('/bar/delete/1', 'POST'),
+            ),
+            array(
+                'deleted',
+                Request::create('/bar/delete/1', 'POST'),
+                'on_after_delete',
+                function () {
+                    return Response::create('deleted');
+                },
             ),
             array(
                 $read('forbidden'),
