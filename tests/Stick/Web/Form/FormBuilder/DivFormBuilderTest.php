@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Fal\Stick\Test\Web\Form\FormBuilder;
 
+use Fal\Stick\Container\Container;
 use Fal\Stick\Web\Form\Button;
 use Fal\Stick\Web\Form\Field;
 use Fal\Stick\Web\Form\FormBuilder\DivFormBuilder;
@@ -24,7 +25,7 @@ class DivFormBuilderTest extends TestCase
 
     public function setup()
     {
-        $this->builder = new DivFormBuilder();
+        $this->builder = new DivFormBuilder(new Container());
     }
 
     public function testGetOptions()
@@ -167,6 +168,15 @@ class DivFormBuilderTest extends TestCase
                     'items' => function () {
                         return 'foo';
                     },
+                )),
+                'LogicException',
+            ),
+            array(
+                'Choice items should be an array or a callable that returns array.',
+                new Field('lulusan', 'choice', array(
+                    'label' => 'Lulusan',
+                    'id' => 'form_lulusan',
+                    'items' => 'invalid_function',
                 )),
                 'LogicException',
             ),

@@ -13,12 +13,13 @@ declare(strict_types=1);
 
 namespace Fal\Stick\Test\Web\Form;
 
-use Fal\Stick\Web\Form\Form;
-use Fal\Stick\Web\Form\FormBuilder\DivFormBuilder;
-use Fal\Stick\Web\Request;
+use Fal\Stick\Container\Container;
 use Fal\Stick\Translation\Translator;
 use Fal\Stick\Validation\Rules\CommonRule;
 use Fal\Stick\Validation\Validator;
+use Fal\Stick\Web\Form\Form;
+use Fal\Stick\Web\Form\FormBuilder\DivFormBuilder;
+use Fal\Stick\Web\Request;
 use PHPUnit\Framework\TestCase;
 
 class FormTest extends TestCase
@@ -31,7 +32,7 @@ class FormTest extends TestCase
         $validator = new Validator($translator, array(
             new CommonRule(),
         ));
-        $formBuilder = new DivFormBuilder();
+        $formBuilder = new DivFormBuilder(new Container());
 
         $this->form = new Form($validator, $translator, $formBuilder);
     }

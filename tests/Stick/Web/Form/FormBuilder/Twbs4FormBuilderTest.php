@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Fal\Stick\Test\Web\Form\FormBuilder;
 
+use Fal\Stick\Container\Container;
 use Fal\Stick\Web\Form\Button;
 use Fal\Stick\Web\Form\Field;
 use Fal\Stick\Web\Form\FormBuilder\Twbs4FormBuilder;
@@ -24,9 +25,7 @@ class Twbs4FormBuilderTest extends TestCase
 
     public function setup()
     {
-        $this->builder = new Twbs4FormBuilder(array(
-            'mark' => 1 | 2, // success and error
-        ));
+        $this->builder = new Twbs4FormBuilder(new Container());
     }
 
     public function testOpen()

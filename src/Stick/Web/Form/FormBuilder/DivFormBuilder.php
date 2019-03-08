@@ -13,10 +13,11 @@ declare(strict_types=1);
 
 namespace Fal\Stick\Web\Form\FormBuilder;
 
+use Fal\Stick\Container\ContainerInterface;
+use Fal\Stick\Util;
 use Fal\Stick\Web\Form\Button;
 use Fal\Stick\Web\Form\Field;
 use Fal\Stick\Web\Form\FormBuilderInterface;
-use Fal\Stick\Util;
 
 /**
  * Basic form builder.
@@ -26,9 +27,26 @@ use Fal\Stick\Util;
 class DivFormBuilder implements FormBuilderInterface
 {
     /**
+     * @var ContainerInterface
+     */
+    protected $container;
+
+    /**
      * @var array
      */
     protected $options = array();
+
+    /**
+     * Class constructor.
+     *
+     * @param ContainerInterface $container
+     * @param array              $options
+     */
+    public function __construct(ContainerInterface $container, array $options = null)
+    {
+        $this->container = $container;
+        $this->setOptions($options ?? array());
+    }
 
     /**
      * {@inheritdoc}
@@ -412,8 +430,12 @@ class DivFormBuilder implements FormBuilderInterface
      */
     protected function choiceItem(Field $field): array
     {
-        if (is_callable($items = $field->items)) {
-            $items = $items($field);
+        if (is_string($items = $field->items)) {
+            $items = $this->container->grab($items);
+        }
+
+        if (is_callable($items)) {
+            $items = $this->container->call($items, array($field));
         }
 
         if ($items && !is_array($items)) {
