@@ -296,6 +296,16 @@ class FormTest extends TestCase
         $this->form->valid();
     }
 
+    public function testGetFields()
+    {
+        $this->assertCount(0, $this->form->getFields());
+    }
+
+    public function testGetButtons()
+    {
+        $this->assertCount(0, $this->form->getButtons());
+    }
+
     public function handleProvider()
     {
         return array(

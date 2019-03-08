@@ -385,6 +385,26 @@ class Form implements \ArrayAccess
     }
 
     /**
+     * Returns fields.
+     *
+     * @return array
+     */
+    public function getFields(): array
+    {
+        return $this->fields;
+    }
+
+    /**
+     * Returns buttons.
+     *
+     * @return array
+     */
+    public function getButtons(): array
+    {
+        return $this->buttons;
+    }
+
+    /**
      * Add form field.
      *
      * @param string     $name
