@@ -168,6 +168,18 @@ class Template implements TemplateInterface
     }
 
     /**
+     * Returns html escaped text.
+     *
+     * @param string $text
+     *
+     * @return string
+     */
+    public function escape(string $text): string
+    {
+        return htmlspecialchars($text);
+    }
+
+    /**
      * Forward method call to custom function.
      *
      * @param string $method

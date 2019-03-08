@@ -97,4 +97,9 @@ class TemplateTest extends TestCase
 
         $this->assertEquals('simple', $this->template->render('simple'));
     }
+
+    public function testEscape()
+    {
+        $this->assertEquals('foo&lt;br&gt;', $this->template->escape('foo<br>'));
+    }
 }
