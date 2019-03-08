@@ -932,8 +932,11 @@ abstract class AbstractPDOSqlDriver implements DriverInterface
 
             $subset = $this->find($row, $clause, $options, $ttl);
             $count = count($subset);
-            $start = $options['offset'] + 1;
-            $end = $options['offset'] + $count;
+
+            if ($count) {
+                $start = $options['offset'] + 1;
+                $end = $options['offset'] + $count;
+            }
         }
 
         return compact('subset', 'total', 'count', 'pages', 'page', 'start', 'end');
