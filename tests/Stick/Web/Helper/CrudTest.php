@@ -205,6 +205,14 @@ class CrudTest extends TestCase
         $this->crud->path();
     }
 
+    public function testRedirect()
+    {
+        $this->expectException('LogicException');
+        $this->expectExceptionMessage('Please call render first!');
+
+        $this->crud->redirect();
+    }
+
     /**
      * @dataProvider renderProvider
      */

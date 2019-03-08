@@ -556,6 +556,23 @@ class Crud
     }
 
     /**
+     * Returns redirect response.
+     *
+     * @param mixed $segments
+     * @param mixed $query
+     *
+     * @return Response
+     */
+    public function redirect($segments = null, $query = null): Response
+    {
+        if ($this->dry) {
+            throw new \LogicException('Please call render first!');
+        }
+
+        return $this->urlGenerator->redirect($this->prepareRoute(Util::split($segments ?? array('index'), '/'), $query));
+    }
+
+    /**
      * Do render.
      *
      * @return Response
@@ -761,12 +778,6 @@ class Crud
         $sessionKey = $messageKey.'_key';
         $createNew = 'create' === $this->data['state'] && $this->options['create_new'] && $this->data['form']->hasField('create_new') && $this->data['form']['create_new'];
 
-        if ($createNew) {
-            $target = 'create';
-        } else {
-            $target = 'index';
-        }
-
         $this->session->set($this->options['create_new_session_key'], $createNew);
 
         if (isset($this->options[$messageKey])) {
@@ -776,7 +787,7 @@ class Crud
             )));
         }
 
-        return $this->urlGenerator->redirect($this->prepareRoute(array($target)));
+        return $this->redirect($createNew ? 'create' : 'index');
     }
 
     /**
