@@ -239,7 +239,7 @@ class CrudTest extends TestCase
             ->form('Fixture\\Form\\FUserForm')
             ->field('listing', 'id,username,active')
             ->searchable('username')
-            ->onLoadForm(function ($data) {
+            ->onLoadForm(function ($crud, $data) {
                 return $data;
             })
             ->createNew(true)

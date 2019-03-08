@@ -693,7 +693,7 @@ class Crud
             $this->data['fields'][$key] = $field;
         }
 
-        $this->trigger('on_init');
+        $this->trigger('on_init', array());
     }
 
     /**
@@ -861,14 +861,16 @@ class Crud
     /**
      * Trigger internal event.
      *
-     * @param string     $eventName
-     * @param array|null $arguments
+     * @param string $eventName
+     * @param array  $arguments
      *
      * @return mixed
      */
-    protected function trigger(string $eventName, array $arguments = null)
+    protected function trigger(string $eventName, array $arguments)
     {
         if (isset($this->options[$eventName])) {
+            array_unshift($arguments, $this);
+
             return $this->container->call($this->options[$eventName], $arguments);
         }
 
@@ -943,12 +945,12 @@ class Crud
         $this->loadForm();
 
         if ($this->data['form']->isSubmitted() && $this->data['form']->valid()) {
-            $data = (array) $this->trigger('on_before_create');
+            $data = (array) $this->trigger('on_before_create', array());
             $this->data['mapper']->getSchema()->fromArray($data + $this->data['form']->getValidatedData());
-            $this->data['mapper']->save();
-            $result = $this->trigger('on_after_create');
+            $result = $this->data['mapper']->save();
+            $response = $this->trigger('on_after_create', array($result));
 
-            return $result instanceof Response ? $result : $this->goBack('created');
+            return $response instanceof Response ? $response : $this->goBack('created');
         }
 
         return $this->createResponse(static::STATE_CREATE);
@@ -965,12 +967,12 @@ class Crud
         $this->loadForm();
 
         if ($this->data['form']->isSubmitted() && $this->data['form']->valid()) {
-            $data = (array) $this->trigger('on_before_update');
+            $data = (array) $this->trigger('on_before_update', array());
             $this->data['mapper']->getSchema()->fromArray($data + $this->data['form']->getValidatedData());
-            $this->data['mapper']->save();
-            $result = $this->trigger('on_after_update');
+            $result = $this->data['mapper']->save();
+            $response = $this->trigger('on_after_update', array($result));
 
-            return $result instanceof Response ? $result : $this->goBack('updated');
+            return $response instanceof Response ? $response : $this->goBack('updated');
         }
 
         return $this->createResponse(static::STATE_UPDATE);
@@ -986,11 +988,11 @@ class Crud
         $this->loadMapper();
 
         if ($this->request->isMethod('POST')) {
-            $this->trigger('on_before_delete');
-            $this->data['mapper']->delete();
-            $result = $this->trigger('on_after_delete');
+            $this->trigger('on_before_delete', array());
+            $result = $this->data['mapper']->delete();
+            $response = $this->trigger('on_after_delete', array($result));
 
-            return $result instanceof Response ? $result : $this->goBack('deleted');
+            return $response instanceof Response ? $response : $this->goBack('deleted');
         }
 
         return $this->createResponse(static::STATE_DELETE);
