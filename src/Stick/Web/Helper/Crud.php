@@ -785,10 +785,11 @@ class Crud
      * Do go back and set message.
      *
      * @param string $key
+     * @param mixed  $response
      *
      * @return Response
      */
-    protected function goBack(string $key): Response
+    protected function goBack(string $key, $response = null): Response
     {
         $messageKey = $key.'_message';
         $sessionKey = $messageKey.'_key';
@@ -803,7 +804,7 @@ class Crud
             )));
         }
 
-        return $this->redirect($createNew ? 'create' : 'index');
+        return $response instanceof Response ? $response : $this->redirect($createNew ? 'create' : 'index');
     }
 
     /**
@@ -970,7 +971,7 @@ class Crud
             $result = $this->data['mapper']->save();
             $response = $this->trigger('on_after_create', array($result));
 
-            return $response instanceof Response ? $response : $this->goBack('created');
+            return $this->goBack('created', $response);
         }
 
         return $this->createResponse(static::STATE_CREATE);
@@ -992,7 +993,7 @@ class Crud
             $result = $this->data['mapper']->save();
             $response = $this->trigger('on_after_update', array($result));
 
-            return $response instanceof Response ? $response : $this->goBack('updated');
+            return $this->goBack('updated', $response);
         }
 
         return $this->createResponse(static::STATE_UPDATE);
@@ -1012,7 +1013,7 @@ class Crud
             $result = $this->data['mapper']->delete();
             $response = $this->trigger('on_after_delete', array($result));
 
-            return $response instanceof Response ? $response : $this->goBack('deleted');
+            return $this->goBack('deleted', $response);
         }
 
         return $this->createResponse(static::STATE_DELETE);

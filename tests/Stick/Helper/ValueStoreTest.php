@@ -25,6 +25,13 @@ class ValueStoreTest extends TestCase
         $this->store = new ValueStore(TEST_FIXTURE.'files/json_foo.json', TEST_TEMP.'value_store.json');
     }
 
+    public function teardown()
+    {
+        if (file_exists($file = TEST_TEMP.'value_store.json')) {
+            unlink($file);
+        }
+    }
+
     public function testOffsetExists()
     {
         $this->assertTrue(isset($this->store['foo']));
