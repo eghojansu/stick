@@ -43,7 +43,7 @@ class BinaryFileResponse extends ChunkedResponse
     {
         parent::__construct(null, $status, $headers);
 
-        $this->setFile($filename);
+        $this->setFile($filename, ResponseHeaderBag::DISPOSITION_ATTACHMENT);
     }
 
     /**
@@ -131,7 +131,7 @@ class BinaryFileResponse extends ChunkedResponse
         $mFile = $filename ?? basename($this->filename);
         $dispositionHeader = sprintf('%s; filename="%s"', $disposition, $mFile);
 
-        $this->headers->set('Content-Disposition', $dispositionHeader);
+        $this->headers->update('Content-Disposition', $dispositionHeader);
 
         return $this;
     }
