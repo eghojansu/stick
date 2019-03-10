@@ -62,6 +62,7 @@ class Util
         'txt' => 'text/plain',
         'wav' => 'audio/wav',
         'xls' => 'application/vnd.ms-excel',
+        'xlsx' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         'xml' => 'application/xml',
         'zip' => 'application/x-zip-compressed',
     );
