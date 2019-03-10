@@ -131,7 +131,7 @@ class BinaryFileResponse extends ChunkedResponse
         $mFile = $filename ?? basename($this->filename);
         $dispositionHeader = sprintf('%s; filename="%s"', $disposition, $mFile);
 
-        $this->headers->update('Content-Disposition', $dispositionHeader);
+        $this->headers->set('Content-Disposition', $dispositionHeader);
 
         return $this;
     }

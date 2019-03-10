@@ -53,6 +53,6 @@ class HeaderBagTest extends TestCase
     {
         $this->bag->set('Foo', 'bar');
 
-        $this->assertEquals(array('foo'), $this->bag->update('FOO', 'foo')->get('Foo'));
+        $this->assertEquals(array('bar', 'foo'), $this->bag->update('FOO', 'foo')->get('Foo'));
     }
 }

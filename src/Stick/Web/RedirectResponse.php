@@ -87,7 +87,7 @@ class RedirectResponse extends Response
   </body>
 </html>', htmlspecialchars($url, ENT_QUOTES, 'UTF-8')));
 
-        $this->headers->update('Location', $url);
+        $this->headers->set('Location', $url);
 
         return $this;
     }

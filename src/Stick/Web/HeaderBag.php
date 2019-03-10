@@ -37,17 +37,7 @@ class HeaderBag extends ParameterBag
      */
     public function set(string $key, $value): ParameterBag
     {
-        $mKey = $key === strtoupper($key) ? str_replace('_', '-', ucwords(strtolower($key), '_')) : $key;
-
-        if (empty($this->data[$mKey])) {
-            $this->data[$mKey] = array();
-        }
-
-        if (is_array($value)) {
-            array_push($this->data[$mKey], ...array_values($value));
-        } else {
-            $this->data[$mKey][] = $value;
-        }
+        $this->data[$this->fixKey($key)] = is_array($value) ? array_values($value) : array($value);
 
         return $this;
     }
@@ -62,9 +52,24 @@ class HeaderBag extends ParameterBag
      */
     public function update(string $key, $value): HeaderBag
     {
-        $mKey = $key === strtoupper($key) ? str_replace('_', '-', ucwords(strtolower($key), '_')) : $key;
-        $this->data[$mKey] = array();
+        $key = $this->fixKey($key);
 
-        return $this->set($mKey, $value);
+        foreach (is_array($value) ? $value : array($value) as $val) {
+            $this->data[$key][] = $val;
+        }
+
+        return $this;
+    }
+
+    /**
+     * Returns dash-cased text if key in uppercase.
+     *
+     * @param string $key
+     *
+     * @return string
+     */
+    protected function fixKey(string $key): string
+    {
+        return $key === strtoupper($key) ? str_replace('_', '-', ucwords(strtolower($key), '_')) : $key;
     }
 }

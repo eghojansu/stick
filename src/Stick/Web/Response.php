@@ -264,10 +264,10 @@ class Response
         } else {
             // Fix Content-Type
             if (!$headers->exists('Content-Type')) {
-                $headers->update('Content-Type', 'text/html; charset='.$this->charset);
+                $headers->set('Content-Type', 'text/html; charset='.$this->charset);
             } elseif (0 === stripos($headers->first('Content-Type'), 'text/') && false === stripos($headers->first('Content-Type'), 'charset')) {
                 // add the charset
-                $headers->update('Content-Type', $headers->first('Content-Type').'; charset='.$this->charset);
+                $headers->set('Content-Type', $headers->first('Content-Type').'; charset='.$this->charset);
             }
 
             // Fix Content-Length
@@ -281,7 +281,7 @@ class Response
                 $this->setContent(null);
 
                 if ($length) {
-                    $headers->update('Content-Length', $length);
+                    $headers->set('Content-Length', $length);
                 }
             }
         }
@@ -293,8 +293,8 @@ class Response
 
         // Check if we need to send extra expire info headers
         if ('1.0' == $this->getProtocolVersion() && false !== strpos($headers->first('Cache-Control'), 'no-cache')) {
-            $headers->update('Pragma', 'no-cache');
-            $headers->update('Expires', -1);
+            $headers->set('Pragma', 'no-cache');
+            $headers->set('Expires', -1);
         }
 
         if ($request->isSecure()) {
@@ -495,13 +495,13 @@ class Response
         if ($seconds) {
             $this->headers->clear('Pragma');
 
-            $this->headers->update('Cache-Control', 'max-age='.$seconds);
-            $this->headers->update('Expires', gmdate('r', time() + $seconds));
-            $this->headers->update('Last-Modified', gmdate('r'));
+            $this->headers->set('Cache-Control', 'max-age='.$seconds);
+            $this->headers->set('Expires', gmdate('r', time() + $seconds));
+            $this->headers->set('Last-Modified', gmdate('r'));
         } else {
-            $this->headers->update('Pragma', 'no-cache');
-            $this->headers->update('Cache-Control', 'no-cache, no-store, must-revalidate');
-            $this->headers->update('Expires', gmdate('r', 0));
+            $this->headers->set('Pragma', 'no-cache');
+            $this->headers->set('Cache-Control', 'no-cache, no-store, must-revalidate');
+            $this->headers->set('Expires', gmdate('r', 0));
         }
 
         return $this;
