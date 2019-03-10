@@ -17,6 +17,7 @@ use Fal\Stick\Web\JsonResponse;
 use Fal\Stick\Web\Kernel;
 use Fal\Stick\Web\Request;
 use Fal\Stick\Web\Response;
+use Fixture\ResponseSendException;
 use PHPUnit\Framework\TestCase;
 
 class KernelTest extends TestCase
@@ -94,6 +95,17 @@ class KernelTest extends TestCase
         $response = $this->kernel->run();
 
         $this->assertEquals('run ok', $response->getContent());
+    }
+
+    public function testRunException()
+    {
+        $this->expectOutputRegex('/I am an exception./');
+        $this->kernel->getContainer()->get('router')->route('GET /', function () {
+            return new ResponseSendException();
+        });
+        $response = $this->kernel->run();
+
+        $this->assertContains('I am an exception.', $response->getContent());
     }
 
     public function testConfig()

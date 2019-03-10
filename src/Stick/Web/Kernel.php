@@ -134,13 +134,19 @@ class Kernel implements KernelInterface
      */
     public function run(): Response
     {
-        $response = $this->handle($request = $this->createRequest());
+        $response = $this->handle($request = $this->createRequest(), $requestType = self::MASTER_REQUEST);
 
-        if ($this->container->getParameter('auto_prepare')) {
+        try {
+            if ($this->container->getParameter('auto_prepare')) {
+                $response->prepare($request);
+            }
+
+            if (!$this->container->getParameter('quiet')) {
+                $response->send();
+            }
+        } catch (\Throwable $exception) {
+            $response = $this->handleException($exception, $request, $requestType);
             $response->prepare($request);
-        }
-
-        if (!$this->container->getParameter('quiet')) {
             $response->send();
         }
 
