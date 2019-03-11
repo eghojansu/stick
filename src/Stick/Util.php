@@ -366,7 +366,7 @@ class Util
         }
 
         foreach ($trace as $row) {
-            $text .= PHP_EOL.'['.$row['file'].':'.$row['line'].']';
+            $text .= PHP_EOL.'['.($row['file'] ?? 'no_file').':'.($row['line'] ?? 'no_line').']';
 
             if (isset($row['function'])) {
                 $text .= ' ';
