@@ -1,0 +1,5 @@
+<extends href="layout.shtml" />
+
+<block name="content">
+{{ @crud->form->render() }}
+</block>

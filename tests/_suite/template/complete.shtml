@@ -1,0 +1,64 @@
+<extends href="layout.shtml" />
+
+<block name="title">Complete Title</block>
+
+<block name="override">
+  <parent />
+  <set foo="bar" bar="{{ 1 + 1 }}" />
+  <check if="{{ 'bar' === @foo }}">
+    <false>
+      Foo is not bar.
+    </false>
+    <true>
+      Foo is bar.
+
+      <check if="{{ true }}">
+        Always displayed.
+      </check>
+    </true>
+  </check>
+  <check if="{{ @bar == 1 }}">
+    <false>
+      bar is to much.
+    </false>
+    <true if="{{ @bar == 2 }}">
+      bar is two.
+    </true>
+    <true if="{{ @bar == 3 }}">
+      bar is three.
+    </true>
+    <true>
+      bar is one.
+    </true>
+  </check>
+  <switch expr="{{ @foo }}">
+    <case value="foo">
+      fook ok
+    </case>
+    <case value="{{ 1+1 }}">
+      foo two
+    </case>
+    <default>
+      on default
+    </default>
+  </switch>
+  <loop from="{{ @i = 0 }}" to="{{ @i < 10 }}" step="{{ @i++ }}">
+    I am {{ @i }}/10.
+  </loop>
+  <repeat group="{{ @items }}" value="{{ @item }}" key="{{ @key }}">
+    {{ @key }} - {{ @item }}
+  </repeat>
+  <ignore>
+    I am totally ignored from being rendered.
+    {{ @you.still.see.me.in.a.dot.style }}
+  </ignore>
+  While this line rendered nicely: {{ @you.see.me.as.array.access }}.
+  <exclude>
+    You will not see me anywhere!.
+  </exclude>
+  This is an filter example: {{ ' foo '|trim }}.
+  This is an filter example (by calling template method): {{ 'foo'|path }}.
+  <include if="{{ true }}" href="foo.shtml" with="pfoo='bar',foo=@foo" />
+
+  <include href="{{ 'foo.shtml' }}" />
+</block>

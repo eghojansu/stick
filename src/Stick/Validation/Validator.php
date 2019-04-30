@@ -13,157 +13,56 @@ declare(strict_types=1);
 
 namespace Fal\Stick\Validation;
 
-use Fal\Stick\Translation\TranslatorInterface;
-use Fal\Stick\Util;
+use Fal\Stick\Fw;
 
 /**
- * Validator wrapper.
+ * Data validator.
  *
  * @author Eko Kurniawan <ekokurniawanbs@gmail.com>
  */
-class Validator
+final class Validator
 {
     /**
-     * @var TranslatorInterface
+     * @var Fw
      */
-    protected $translator;
+    private $fw;
 
     /**
      * @var array
      */
-    protected $rules = array();
+    private $rules = array();
+
+    /**
+     * @var array
+     */
+    private $rulesCache = array();
 
     /**
      * Class constructor.
      *
-     * @param TranslatorInterface  $translator
-     * @param RuleInterface[]|null $rules
+     * @param Fw $fw
      */
-    public function __construct(TranslatorInterface $translator, array $rules = null)
+    public function __construct(Fw $fw)
     {
-        $this->translator = $translator->addLocale(__DIR__.'/dict/');
-
-        foreach ($rules ?? array() as $rule) {
-            $this->addRule($rule);
-        }
-    }
-
-    /**
-     * Returns parsed string expression.
-     *
-     * Example:
-     *
-     *     foo:arg,arg2|bar:arg|baz:["array arg"]|qux:{"arg":"foo"}
-     *
-     * @param string|null $expr
-     *
-     * @return array
-     */
-    public function parseExpr(string $expr = null): array
-    {
-        if ($expr) {
-            $expr = trim($expr);
-        }
-
-        if (!$expr) {
-            return array();
-        }
-
-        $len = strlen($expr);
-        $res = array();
-        $tmp = '';
-        $process = false;
-        $args = array();
-        $quote = null;
-        $astate = 0;
-        $jstate = 0;
-
-        for ($ptr = 0; $ptr < $len; ++$ptr) {
-            $char = $expr[$ptr];
-            $prev = $expr[$ptr - 1] ?? null;
-
-            if (('"' === $char || "'" === $char) && '\\' !== $prev) {
-                if ($quote) {
-                    $quote = $quote === $char ? null : $quote;
-                } else {
-                    $quote = $char;
-                }
-                $tmp .= $char;
-            } elseif (!$quote) {
-                if (':' === $char && 0 === $jstate) {
-                    // next chars is arg
-                    $args[] = Util::cast($tmp);
-                    $tmp = '';
-                } elseif (',' === $char && 0 === $astate && 0 === $jstate) {
-                    if ($tmp) {
-                        $args[] = Util::cast($tmp);
-                        $tmp = '';
-                    }
-                } elseif ('|' === $char) {
-                    $process = true;
-                    if ($tmp) {
-                        $args[] = Util::cast($tmp);
-                        $tmp = '';
-                    }
-                } elseif ('[' === $char) {
-                    $astate = 1;
-                    $tmp .= $char;
-                } elseif (']' === $char && 1 === $astate && 0 === $jstate) {
-                    $astate = 0;
-                    $args[] = json_decode($tmp.$char, true);
-                    $tmp = '';
-                } elseif ('{' === $char) {
-                    $jstate = 1;
-                    $tmp .= $char;
-                } elseif ('}' === $char && 1 === $jstate && 0 === $astate) {
-                    $jstate = 0;
-                    $args[] = json_decode($tmp.$char, true);
-                    $tmp = '';
-                } else {
-                    $tmp .= $char;
-                    $astate += '[' === $char ? 1 : (']' === $char ? -1 : 0);
-                    $jstate += '{' === $char ? 1 : ('}' === $char ? -1 : 0);
-                }
-            } else {
-                $tmp .= $char;
-            }
-
-            if (!$process && $ptr === $len - 1) {
-                $process = true;
-                if ('' !== $tmp) {
-                    $args[] = Util::cast($tmp);
-                    $tmp = '';
-                }
-            }
-
-            if ($process) {
-                if ($args) {
-                    $res[array_shift($args)] = $args;
-                    $args = array();
-                }
-                $process = false;
-            }
-        }
-
-        return $res;
+        $this->fw = $fw->prepend('LOCALES', __DIR__.'/dict/;');
     }
 
     /**
      * Add rule.
      *
-     * @param RuleInterface $rule
+     * @param RuleInterface ...$rules
      *
      * @return Validator
      */
-    public function addRule(RuleInterface $rule)
+    public function add(RuleInterface ...$rules): Validator
     {
-        $this->rules[] = $rule;
+        array_push($this->rules, ...$rules);
 
         return $this;
     }
 
     /**
-     * Validate data and returns validation result.
+     * Returns validation result.
      *
      * @param array $data
      * @param array $rules
@@ -173,73 +72,95 @@ class Validator
      */
     public function validate(array $data, array $rules, array $messages = null): Result
     {
-        $context = new Result($data);
+        $result = new Result(new Context($data));
 
-        foreach ($rules as $field => $fieldRules) {
-            foreach ($this->parseExpr($fieldRules) as $rule => $arguments) {
-                $value = $context->setCurrent($rule, $field)->value();
-                $result = $this->findRule($rule)->context($context)->validate($rule, $value, $arguments);
+        foreach ($rules as $field => $expression) {
+            $result->context->setField($field);
 
-                if (false === $result) {
-                    // validation fail
-                    $key = $field.'.'.$rule;
-                    $message = isset($messages[$key]) ? $messages[$key] : $this->message($rule, $value, $arguments, $field);
-                    $context->addError($field, $message);
+            foreach (RuleParser::parse($expression) as $rule => $arguments) {
+                $initial = $result->context->getValue();
+
+                // special rule
+                if ('optional' === $rule) {
+                    if (null === $initial || '' === $initial) {
+                        break;
+                    }
+
+                    $result->context->addValidated($field, $initial);
+                    continue;
+                }
+
+                $value = $this->findRule($rule)->validate($rule, $result->context->setArguments($arguments));
+
+                // validation fail?
+                if (false === $value) {
+                    if ($messages && isset($messages[$field.'.'.$rule])) {
+                        $result->addError($field, $messages[$field.'.'.$rule]);
+                    } else {
+                        $result->addError($field, $this->message($rule, $result->context));
+                    }
 
                     break;
-                } elseif (true === $result) {
-                    $context->addData($field, $value);
-                } else {
-                    $context->addData($field, $result);
                 }
+
+                $result->context->addValidated($field, true === $value ? $initial : $value);
             }
         }
 
-        return $context;
+        return $result;
     }
 
     /**
-     * Find validator for rule.
+     * Find validator rule.
      *
-     * @param string $rule
+     * @param string $name
      *
      * @return RuleInterface
      *
      * @throws DomainException If no validator supports the rule
      */
-    protected function findRule(string $ruleName): RuleInterface
+    private function findRule($name): RuleInterface
     {
-        foreach ($this->rules as $rule) {
-            if ($rule->has($ruleName)) {
+        if (isset($this->rulesCache[$name])) {
+            return $this->rules[$this->rulesCache[$name]];
+        }
+
+        foreach ($this->rules as $key => $rule) {
+            if ($rule->has($name)) {
+                $this->rulesCache[$name] = $key;
+
                 return $rule;
             }
         }
 
-        throw new \DomainException(sprintf('Rule "%s" not exists.', $ruleName));
+        throw new \DomainException(sprintf('Validation rule not exists: %s.', $name));
     }
 
     /**
      * Get message for rule.
      *
-     * @param string $rule
-     * @param mixed  $value
-     * @param array  $arguments
-     * @param string $field
+     * @param string  $rule
+     * @param Context $context
      *
      * @return string
      */
-    protected function message(string $rule, $value = null, array $arguments, string $field): string
+    private function message(string $rule, Context $context): string
     {
-        $data = array();
+        $params = array();
+        $data = array(
+            'rule' => $rule,
+            'field' => $context->getField(),
+            'value' => $context->getValue(),
+        ) + $context->getArguments();
 
-        foreach (compact('field', 'rule', 'value') + $arguments as $k => $v) {
-            $data['{'.$k.'}'] = is_array($v) ? implode(',', $v) : (string) $v;
+        foreach ($data as $key => $value) {
+            $params['%'.$key.'%'] = is_array($value) ? implode(',', $value) : (string) $value;
         }
 
-        return $this->translator->transAlt(array(
+        return $this->fw->transAlt(array(
             'validation.'.strtolower($rule),
             'validation.default',
             'This value is not valid',
-        ), $data);
+        ), $params);
     }
 }

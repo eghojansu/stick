@@ -9,6 +9,8 @@
  * file that was distributed with this source code.
  */
 
+declare(strict_types=1);
+
 namespace Fal\Stick\Validation;
 
 /**
@@ -19,9 +21,9 @@ namespace Fal\Stick\Validation;
 trait RuleTrait
 {
     /**
-     * Current rule data.
+     * Validation context.
      *
-     * @var Result
+     * @var Context
      */
     protected $context;
 
@@ -36,20 +38,10 @@ trait RuleTrait
     /**
      * {@inheritdoc}
      */
-    public function context(Result $context): RuleInterface
+    public function validate(string $rule, Context $value)
     {
-        $this->context = $context;
+        $this->context = $value;
 
-        return $this;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function validate(string $rule, $value, array $arguments)
-    {
-        array_unshift($arguments, $value);
-
-        return (array($this, '_'.$rule))(...$arguments);
+        return $this->{'_'.$rule}($value->getValue(), ...$value->getArguments());
     }
 }

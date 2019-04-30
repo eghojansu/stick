@@ -14,138 +14,59 @@ declare(strict_types=1);
 namespace Fal\Stick\Validation;
 
 /**
- * Validation result data.
+ * Validation result.
  *
  * @author Eko Kurniawan <ekokurniawanbs@gmail.com>
  */
 class Result
 {
     /**
-     * @var array
-     */
-    public $raw;
-
-    /**
-     * @var array
-     */
-    public $data = array();
-
-    /**
-     * @var array
-     */
-    public $errors = array();
-
-    /**
-     * Current field.
+     * Validation context.
      *
-     * @var string
+     * @var Context
      */
-    public $field;
+    public $context;
 
     /**
-     * Current rule.
+     * Error lists.
      *
-     * @var string
+     * @var array
      */
-    public $rule;
+    private $errors = array();
 
     /**
      * Class constructor.
      *
-     * @param array $raw
+     * @param Context $context
      */
-    public function __construct(array $raw)
+    public function __construct(Context $context)
     {
-        $this->raw = $raw;
+        $this->context = $context;
     }
 
     /**
-     * Set current rule and rule.
+     * Returns field error.
      *
-     * @param string $rule
      * @param string $field
+     *
+     * @return array
+     */
+    public function getError(string $field): array
+    {
+        return $this->errors[$field] ?? array();
+    }
+
+    /**
+     * Sets field errors.
+     *
+     * @param string $field
+     * @param array  $errors
      *
      * @return Result
      */
-    public function setCurrent(string $rule, string $field): Result
+    public function setError(string $field, array $errors): Result
     {
-        $this->rule = $rule;
-        $this->field = $field;
-
-        return $this;
-    }
-
-    /**
-     * Returns true if current result valid.
-     *
-     * @return bool
-     */
-    public function valid(): bool
-    {
-        return empty($this->errors);
-    }
-
-    /**
-     * Returns raw field value.
-     *
-     * @param string $field
-     *
-     * @return mixed
-     */
-    public function raw(string $field)
-    {
-        return array_key_exists($field, $this->raw) ? $this->raw[$field] : null;
-    }
-
-    /**
-     * Returns validated field value.
-     *
-     * @param string $field
-     *
-     * @return mixed
-     */
-    public function data(string $field)
-    {
-        return array_key_exists($field, $this->data) ? $this->data[$field] : null;
-    }
-
-    /**
-     * Returns current field value.
-     *
-     * @return mixed
-     */
-    public function value()
-    {
-        if (!$this->field) {
-            return null;
-        }
-
-        return array_key_exists($this->field, $this->data) ? $this->data[$this->field] : $this->raw($this->field);
-    }
-
-    /**
-     * Returns true if result has field error.
-     *
-     * @param string $field
-     *
-     * @return bool
-     */
-    public function hasError(string $field): bool
-    {
-        return isset($this->errors[$field]) && $this->errors[$field];
-    }
-
-    /**
-     * Add data.
-     *
-     * @param string $field
-     * @param mixed  $value
-     *
-     * @return Result
-     */
-    public function addData(string $field, $value): Result
-    {
-        $this->data[$field] = $value;
+        $this->errors[$field] = $errors;
 
         return $this;
     }
@@ -153,15 +74,53 @@ class Result
     /**
      * Add field error.
      *
-     * @param string $field
-     * @param string $message
+     * @param string       $field
+     * @param string|array $error
      *
      * @return Result
      */
-    public function addError(string $field, string $message): Result
+    public function addError(string $field, $error): Result
     {
-        $this->errors[$field][] = $message;
+        if (!isset($this->errors[$field])) {
+            $this->errors[$field] = array();
+        }
+
+        if (is_array($error)) {
+            array_push($this->errors[$field], ...array_values($error));
+        } else {
+            $this->errors[$field][] = $error;
+        }
 
         return $this;
+    }
+
+    /**
+     * Returns all errors.
+     *
+     * @return array
+     */
+    public function getErrors(): array
+    {
+        return $this->errors;
+    }
+
+    /**
+     * Returns true if no error.
+     *
+     * @return bool
+     */
+    public function isSuccess(): bool
+    {
+        return empty($this->errors);
+    }
+
+    /**
+     * Returns validated data.
+     *
+     * @return array
+     */
+    public function getData(): array
+    {
+        return $this->context->getValidated();
     }
 }

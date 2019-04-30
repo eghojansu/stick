@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title><block name="title">Layout Title</block></title>
+</head>
+<body>
+  <block name="override">
+    Can be override.
+  </block>
+
+  <block name="keep">
+    Layout content.
+  </block>
+</body>
+</html>

@@ -21,7 +21,7 @@ use Fal\Stick\Validation\RuleInterface;
  *
  * @author Eko Kurniawan <ekokurniawanbs@gmail.com>
  */
-class CommonRule implements RuleInterface
+final class CommonRule implements RuleInterface
 {
     use RuleTrait;
 
@@ -32,9 +32,33 @@ class CommonRule implements RuleInterface
      *
      * @return string
      */
-    protected function _trim($val)
+    protected function _trim($val): string
     {
         return trim((string) $val);
+    }
+
+    /**
+     * Proxy to ltrim, prevent trimming null value.
+     *
+     * @param mixed $val
+     *
+     * @return string
+     */
+    protected function _ltrim($val): string
+    {
+        return ltrim((string) $val);
+    }
+
+    /**
+     * Proxy to rtrim, prevent trimming null value.
+     *
+     * @param mixed $val
+     *
+     * @return string
+     */
+    protected function _rtrim($val): string
+    {
+        return rtrim((string) $val);
     }
 
     /**
@@ -44,7 +68,7 @@ class CommonRule implements RuleInterface
      *
      * @return bool
      */
-    protected function _required($val)
+    protected function _required($val): bool
     {
         return isset($val) && '' !== $val;
     }
@@ -57,7 +81,7 @@ class CommonRule implements RuleInterface
      *
      * @return bool
      */
-    protected function _type($val, $type)
+    protected function _type($val, string $type): bool
     {
         return gettype($val) === $type;
     }
@@ -70,17 +94,20 @@ class CommonRule implements RuleInterface
      *
      * @return bool
      */
-    protected function _equalToField($val, $compared)
+    protected function _equalToField($val, $compared): bool
     {
-        if ($this->context && null !== $compare = $this->context->data($compared)) {
-            return $compare === $val;
+        $raw = $this->context->getData();
+        $validated = $this->context->getValidated();
+
+        if (isset($validated[$compared])) {
+            $compare = $validated[$compared];
+        } elseif (isset($raw[$compared])) {
+            $compare = $raw[$compared];
+        } else {
+            return false;
         }
 
-        if ($this->context && null !== $compare = $this->context->raw($compared)) {
-            return $compare === $val;
-        }
-
-        return false;
+        return $compare === $val;
     }
 
     /**
@@ -91,17 +118,20 @@ class CommonRule implements RuleInterface
      *
      * @return bool
      */
-    protected function _notEqualToField($val, $compared)
+    protected function _notEqualToField($val, $compared): bool
     {
-        if ($this->context && null !== $compare = $this->context->data($compared)) {
-            return $compare !== $val;
+        $raw = $this->context->getData();
+        $validated = $this->context->getValidated();
+
+        if (isset($validated[$compared])) {
+            $compare = $validated[$compared];
+        } elseif (isset($raw[$compared])) {
+            $compare = $raw[$compared];
+        } else {
+            return true;
         }
 
-        if ($this->context && null !== $compare = $this->context->raw($compared)) {
-            return $compare !== $val;
-        }
-
-        return true;
+        return $compare !== $val;
     }
 
     /**
@@ -112,7 +142,7 @@ class CommonRule implements RuleInterface
      *
      * @return bool
      */
-    protected function _equalTo($val, $compared)
+    protected function _equalTo($val, $compared): bool
     {
         return $val == $compared;
     }
@@ -125,7 +155,7 @@ class CommonRule implements RuleInterface
      *
      * @return bool
      */
-    protected function _notEqualTo($val, $compared)
+    protected function _notEqualTo($val, $compared): bool
     {
         return $val != $compared;
     }
@@ -138,7 +168,7 @@ class CommonRule implements RuleInterface
      *
      * @return bool
      */
-    protected function _identicalTo($val, $compared)
+    protected function _identicalTo($val, $compared): bool
     {
         return $val === $compared;
     }
@@ -151,7 +181,7 @@ class CommonRule implements RuleInterface
      *
      * @return bool
      */
-    protected function _notIdenticalTo($val, $compared)
+    protected function _notIdenticalTo($val, $compared): bool
     {
         return $val !== $compared;
     }
@@ -164,7 +194,7 @@ class CommonRule implements RuleInterface
      *
      * @return bool
      */
-    protected function _lt($val, $min)
+    protected function _lt($val, $min): bool
     {
         return $val < $min;
     }
@@ -177,7 +207,7 @@ class CommonRule implements RuleInterface
      *
      * @return bool
      */
-    protected function _gt($val, $max)
+    protected function _gt($val, $max): bool
     {
         return $val > $max;
     }
@@ -190,7 +220,7 @@ class CommonRule implements RuleInterface
      *
      * @return bool
      */
-    protected function _lte($val, $min)
+    protected function _lte($val, $min): bool
     {
         return $val <= $min;
     }
@@ -203,7 +233,7 @@ class CommonRule implements RuleInterface
      *
      * @return bool
      */
-    protected function _gte($val, $max)
+    protected function _gte($val, $max): bool
     {
         return $val >= $max;
     }
@@ -216,7 +246,7 @@ class CommonRule implements RuleInterface
      *
      * @return bool
      */
-    protected function _min($val, $min)
+    protected function _min($val, $min): bool
     {
         return $val >= $min;
     }
@@ -229,7 +259,7 @@ class CommonRule implements RuleInterface
      *
      * @return bool
      */
-    protected function _max($val, $max)
+    protected function _max($val, $max): bool
     {
         return $val <= $max;
     }
@@ -242,7 +272,7 @@ class CommonRule implements RuleInterface
      *
      * @return bool
      */
-    protected function _len($val, $len)
+    protected function _len($val, int $len): bool
     {
         return !$this->_required($val) || strlen($val) === $len;
     }
@@ -255,7 +285,7 @@ class CommonRule implements RuleInterface
      *
      * @return bool
      */
-    protected function _lenMin($val, $min)
+    protected function _lenMin($val, int $min): bool
     {
         return !$this->_required($val) || strlen($val) >= $min;
     }
@@ -268,7 +298,7 @@ class CommonRule implements RuleInterface
      *
      * @return bool
      */
-    protected function _lenMax($val, $max)
+    protected function _lenMax($val, int $max): bool
     {
         return !$this->_required($val) || strlen($val) <= $max;
     }
@@ -281,7 +311,7 @@ class CommonRule implements RuleInterface
      *
      * @return bool
      */
-    protected function _count(array $val, $count)
+    protected function _count(array $val, int $count): bool
     {
         return count($val) === $count;
     }
@@ -294,7 +324,7 @@ class CommonRule implements RuleInterface
      *
      * @return bool
      */
-    protected function _countMin(array $val, $min)
+    protected function _countMin(array $val, int $min): bool
     {
         return count($val) >= $min;
     }
@@ -307,7 +337,7 @@ class CommonRule implements RuleInterface
      *
      * @return bool
      */
-    protected function _countMax(array $val, $max)
+    protected function _countMax(array $val, int $max): bool
     {
         return count($val) <= $max;
     }
@@ -320,7 +350,7 @@ class CommonRule implements RuleInterface
      *
      * @return string
      */
-    protected function _toDate($val, $format = 'Y-m-d')
+    protected function _toDate($val, string $format = 'Y-m-d'): string
     {
         try {
             $date = (new \DateTime($val))->format($format);
@@ -338,7 +368,7 @@ class CommonRule implements RuleInterface
      *
      * @return bool
      */
-    protected function _date($val)
+    protected function _date($val): bool
     {
         return
             $val &&
@@ -357,7 +387,7 @@ class CommonRule implements RuleInterface
      *
      * @return bool
      */
-    protected function _datetime($val)
+    protected function _datetime($val): bool
     {
         return
             $val &&
@@ -380,7 +410,7 @@ class CommonRule implements RuleInterface
      *
      * @return bool
      */
-    protected function _regex($val, $pattern)
+    protected function _regex($val, string $pattern): bool
     {
         $quote = $pattern[0];
 
@@ -399,7 +429,7 @@ class CommonRule implements RuleInterface
      *
      * @return bool
      */
-    protected function _choice($val, array $choices)
+    protected function _choice($val, array $choices): bool
     {
         return in_array($val, $choices);
     }
@@ -412,7 +442,7 @@ class CommonRule implements RuleInterface
      *
      * @return bool
      */
-    protected function _choices($val, array $choices)
+    protected function _choices($val, array $choices): bool
     {
         $vals = (array) $val;
         $intersection = array_intersect($vals, $choices);

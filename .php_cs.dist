@@ -8,7 +8,10 @@ return PhpCsFixer\Config::create()
     ))
     ->setFinder(
         PhpCsFixer\Finder::create()
-            ->in(__DIR__.'/src')
+            ->in(__DIR__.'/src/Stick')
             ->in(__DIR__.'/tests/Stick')
+            ->in(__DIR__.'/tests/_suite/Classes')
+            ->in(__DIR__.'/tests/_suite/Provider')
+            ->name('*.php')
     )
 ;

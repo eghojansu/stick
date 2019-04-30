@@ -1,0 +1,74 @@
+<set foo="bar" bar="1" baz="{{ array('foo' => 'bar') }}" />
+<include href="partial.shtml" />
+<include if="{{ isset(@partial) }}" href="{{ @partial }}" />
+
+--writing start--
+Foo value is: {{ @foo|raw }}.
+--writing end--
+--exclude start--
+<exclude>This text will not displayed</exclude>
+--exclude end--
+--ignore start--
+<ignore>
+  <set foo="1" bar="baz" baz="{{ array('foo' => 'bar') }}" />
+
+  <ignore escape="true">
+    Ignore inside ignore? It is ok!
+  </ignore>
+</ignore>
+--ignore end--
+--escape ignore start--
+<ignore escape="true">
+  <ignore-me>Yes</ignore-me>
+</ignore>
+--escape ignore end--
+<loop from="{{ @i = 1 }}" to="{{ @i < 5 }}" step="{{ @i++ }}">
+  Nth-{{ @i }}
+  <otherwise if="{{ @i < 4 }}">
+    Not complete?
+  </otherwise>
+</loop>
+<repeat group="{{ array('foo', 'bar') }}" key="{{ @key }}" value="{{ @value }}">
+  {{ @key }}-{{ @value }}
+  <otherwise>
+    Nothing to loop
+  </otherwise>
+</repeat>
+<check if="{{ @bar == 1 }}">
+  <true>
+    Bar is one.
+  </true>
+</check>
+<check if="{{ @bar == 1 }}">
+  <false>
+    Bar is not one.
+  </false>
+  <true>
+    Bar is one.
+  </true>
+</check>
+<check if="{{ @bar == 1 }}">
+  <false>
+    Bar is unknown.
+  </false>
+  <true if="{{ @bar == 2 }}">
+    Bar is two.
+  </true>
+  <true if="{{ @bar == 3 }}">
+    Bar is three.
+  </true>
+  <true>
+    Bar is one.
+  </true>
+</check>
+<switch expr="{{ @bar }}">
+  <case value="1" break="true">
+    Bar is one.
+  </case>
+  <case value="2" break="true">
+    Bar is two.
+  </case>
+  <default>
+    Bar is unknown.
+  </default>
+</switch>

@@ -13,174 +13,258 @@ declare(strict_types=1);
 
 namespace Fal\Stick\Template;
 
-use Fal\Stick\Container\ContainerInterface;
-use Fal\Stick\Util;
-
 /**
- * Template engine.
+ * Template file.
  *
  * @author Eko Kurniawan <ekokurniawanbs@gmail.com>
  */
-class Template implements TemplateInterface
+class Template
 {
     /**
-     * @var ContainerInterface
+     * @var Environment
      */
-    protected $container;
-
-    /**
-     * @var array
-     */
-    protected $functions = array();
-
-    /**
-     * @var array
-     */
-    protected $directories;
+    protected $env;
 
     /**
      * @var string
      */
-    protected $extension;
+    protected $templateName;
+
+    /**
+     * @var string
+     */
+    protected $sourcePath;
+
+    /**
+     * @var string
+     */
+    protected $compiledPath;
+
+    /**
+     * @var Template
+     */
+    protected $parent;
+
+    /**
+     * @var Template
+     */
+    protected $child;
+
+    /**
+     * @var array
+     */
+    protected $blocks = array();
+
+    /**
+     * @var array
+     */
+    protected $parentMarks = array();
 
     /**
      * Class constructor.
      *
-     * @param ContainerInterface $container
-     * @param mixed              $directories
-     * @param string             $extension
+     * @param Environment   $env
+     * @param string        $templateName
+     * @param string        $sourcePath
+     * @param string        $compiledPath
+     * @param Template|null $child
      */
-    public function __construct(ContainerInterface $container, $directories = null, string $extension = '.php')
+    public function __construct(Environment $env, string $templateName, string $sourcePath, string $compiledPath, Template $child = null)
     {
-        $this->container = $container;
-        $this->extension = $extension;
-        $this->setDirectories(Util::split($directories));
+        $this->env = $env;
+        $this->templateName = $templateName;
+        $this->sourcePath = $sourcePath;
+        $this->compiledPath = $compiledPath;
+        $this->child = $child;
     }
 
     /**
-     * {inheritdoc}.
+     * Returns template name.
+     *
+     * @return string
      */
-    public function findView(string $view): string
+    public function getTemplateName(): string
     {
-        foreach ($this->directories as $directory) {
-            if (file_exists($file = $directory.$view.$this->extension)) {
-                return $file;
+        return $this->templateName;
+    }
+
+    /**
+     * Returns template source filepath.
+     *
+     * @return string
+     */
+    public function getSourcePath(): string
+    {
+        return $this->sourcePath;
+    }
+
+    /**
+     * Returns compiled template filepath.
+     *
+     * @return string
+     */
+    public function getCompiledPath(): string
+    {
+        return $this->compiledPath;
+    }
+
+    /**
+     * Render template.
+     *
+     * @param array|null $context
+     *
+     * @return string
+     */
+    public function render(array $context = null): string
+    {
+        $content = $this->sandbox($context ?? array());
+
+        return $this->parent ? $this->parent->render($context) : $this->env->fw->trimTrailingSpace(rtrim($content));
+    }
+
+    /**
+     * Set parent template.
+     *
+     * @param string $templateName
+     */
+    protected function extend(string $templateName): void
+    {
+        $this->parent = $this->env->loadTemplate($templateName, $this);
+    }
+
+    /**
+     * Mark parent block.
+     *
+     * @param string|null $parentBlock
+     *
+     * @return string|null
+     */
+    protected function parent(string $parentBlock = null): ?string
+    {
+        if (!$block = $this->findOpenBlock()) {
+            return null;
+        }
+
+        if (!$parentBlock) {
+            $parentBlock = $block;
+        }
+
+        return $this->parentMarks[$block][$parentBlock][] = '%parent_'.microtime(true).'_parent%';
+    }
+
+    /**
+     * Returns block content.
+     *
+     * @param string $block
+     *
+     * @return string|null
+     */
+    protected function block(string $block): ?string
+    {
+        return $this->blocks[$block] ?? null;
+    }
+
+    /**
+     * Apply parent block if exists.
+     *
+     * @param string $block
+     * @param string $content
+     *
+     * @return string
+     */
+    protected function applyParentBlock(string $block, string $content): string
+    {
+        $subject = $this->blocks[$block] ?? $content;
+
+        if (isset($this->parentMarks[$block])) {
+            foreach ($this->parentMarks[$block] as $parentBlock => $search) {
+                if (null !== $replace = $this->parent->block($parentBlock)) {
+                    $subject = str_replace($search, $replace, $subject);
+                }
             }
         }
 
-        throw new \LogicException(sprintf('View not exists: "%s".', $view));
+        return $subject;
     }
 
     /**
-     * {inheritdoc}.
+     * Mark start block.
+     *
+     * @param string $block
      */
-    public function render(string $view, array $context = null): string
+    protected function start(string $block): void
     {
-        $template = new TemplateFile($this, $this->container, $view, $context);
-
-        return $template->render();
+        $this->blocks[$block] = null;
+        ob_start();
     }
 
     /**
-     * Returns template directories.
-     *
-     * @return array
+     * Stop block and output block content if needed.
      */
-    public function getDirectories(): array
+    protected function stop(): void
     {
-        return $this->directories;
-    }
-
-    /**
-     * Add directory.
-     *
-     * @param string $directory
-     * @param bool   $prepend
-     *
-     * @return Template
-     */
-    public function addDirectory(string $directory, bool $prepend = false): Template
-    {
-        if ($prepend) {
-            array_unshift($this->directories, $directory);
-        } else {
-            $this->directories[] = $directory;
+        if (!$block = $this->findOpenBlock()) {
+            return;
         }
 
-        return $this;
-    }
+        $this->blocks[$block] = ob_get_clean();
 
-    /**
-     * Assign template directories.
-     *
-     * @param array $directories
-     *
-     * @return Template
-     */
-    public function setDirectories(array $directories): Template
-    {
-        $this->directories = array();
-
-        foreach ($directories as $directory) {
-            $this->addDirectory($directory);
+        if ($this->child) {
+            $this->blocks[$block] = $this->child->applyParentBlock($block, $this->blocks[$block]);
         }
 
-        return $this;
+        if (!$this->parent) {
+            echo $this->blocks[$block];
+        }
     }
 
     /**
-     * Returns template extension.
+     * Returns latest open block.
+     *
+     * @return string|null
+     */
+    protected function findOpenBlock(): ?string
+    {
+        foreach (array_reverse($this->blocks) as $block => $content) {
+            if (null === $content) {
+                return $block;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Load view.
+     *
+     * @param array $__context
      *
      * @return string
      */
-    public function getExtension(): string
+    protected function sandbox(array $__context): string
     {
-        return $this->extension;
+        $level = ob_get_level();
+        ob_start();
+
+        try {
+            extract($__context);
+
+            $_ = $this->env->fw;
+
+            require $this->compiledPath;
+        } catch (\Throwable $e) {
+            while (ob_get_level() > $level) {
+                ob_end_clean();
+            }
+
+            throw new \RuntimeException(sprintf('An exception has been thrown during the rendering of a template: %s ("%s").', $this->templateName, $e->getMessage()), 0, $e);
+        }
+
+        return ob_get_clean();
     }
 
     /**
-     * Returns template extension.
-     *
-     * @param string $extension
-     *
-     * @return Template
-     */
-    public function setExtension(string $extension): Template
-    {
-        $this->extension = $extension;
-
-        return $this;
-    }
-
-    /**
-     * Add custom template function.
-     *
-     * @param string   $name
-     * @param callable $callback
-     *
-     * @return Template
-     */
-    public function addFunction(string $name, callable $callback): Template
-    {
-        $this->functions[$name] = $callback;
-
-        return $this;
-    }
-
-    /**
-     * Returns html escaped text.
-     *
-     * @param string $text
-     *
-     * @return string
-     */
-    public function escape(string $text): string
-    {
-        return htmlspecialchars($text);
-    }
-
-    /**
-     * Forward method call to custom function.
+     * Call env method.
      *
      * @param string $method
      * @param array  $arguments
@@ -189,10 +273,6 @@ class Template implements TemplateInterface
      */
     public function __call($method, $arguments)
     {
-        if (!isset($this->functions[$method])) {
-            throw new \BadFunctionCallException(sprintf('Call to undefined function: %s.', $method));
-        }
-
-        return ($this->functions[$method])(...$arguments);
+        return $this->env->$method(...$arguments);
     }
 }

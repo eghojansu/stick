@@ -1,105 +1,77 @@
 <?php
 
 /**
- * This file is part of the eghojansu/stick library.
+ * This template is part of the eghojansu/stick library.
  *
  * (c) Eko Kurniawan <ekokurniawanbs@gmail.com>
  *
  * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- *
- * Created at Jan 13, 2019 11:48
+ * template that was distributed with this source code.
  */
+
+declare(strict_types=1);
 
 namespace Fal\Stick\Test\Template;
 
-use Fal\Stick\Container\Container;
-use PHPUnit\Framework\TestCase;
-use Fal\Stick\Template\Template;
+use Fal\Stick\Fw;
+use Fal\Stick\Template\Environment;
+use Fal\Stick\TestSuite\MyTestCase;
 
-class TemplateTest extends TestCase
+class TemplateTest extends MyTestCase
 {
+    private $fw;
+    private $env;
     private $template;
-    private $container;
 
-    public function setup()
+    public function setup(): void
     {
-        $this->template = new Template($this->container = new Container());
+        $this->fw = new Fw(array(
+            'TEMP' => $this->tmp('/'),
+        ));
+        $this->env = new Environment($this->fw, $this->fixture('/template/'), null, true);
+        $this->template = $this->env->loadTemplate('foo.shtml');
     }
 
-    public function testGetDirectories()
+    public function teardown(): void
     {
-        $this->assertEquals(array(), $this->template->getDirectories());
+        $this->fw->creset();
     }
 
-    public function testAddDirectory()
+    public function testGetTemplateName()
     {
-        $this->template->addDirectory('foo');
-        $this->template->addDirectory('bar', true);
-
-        $this->assertEquals(array('bar', 'foo'), $this->template->getDirectories());
+        $this->assertEquals('foo.shtml', $this->template->getTemplateName());
     }
 
-    public function testSetDirectories()
+    public function testGetSourcePath()
     {
-        $this->assertEquals(array('foo'), $this->template->setDirectories(array('foo'))->getDirectories());
+        $this->assertEquals($this->fixture('/template/foo.shtml'), $this->template->getSourcePath());
     }
 
-    public function testGetExtension()
+    public function testGetCompiledPath()
     {
-        $this->assertEquals('.php', $this->template->getExtension());
+        $this->assertFileExists($this->template->getCompiledPath());
     }
 
-    public function testSetExtension()
+    /**
+     * @dataProvider Fal\Stick\TestSuite\Provider\Template\TemplateProvider::render
+     */
+    public function testRender($expected, $compiled, $view, $context = null, $hive = null)
     {
-        $this->assertEquals('foo', $this->template->setExtension('foo')->getExtension());
+        if ($hive) {
+            $this->fw->mset($hive);
+        }
+
+        $template = $this->env->loadTemplate($view);
+
+        $this->assertEquals($expected, $template->render($context));
+        $this->assertFileEquals($compiled, $template->getCompiledPath());
     }
 
-    public function testAddFunction()
+    public function testRenderException()
     {
-        $this->template->addFunction('foo', function () {
-            return 'foo';
-        });
-        $this->template->addFunction('bar', function ($bar) {
-            return array($bar);
-        });
+        $this->expectException('RuntimeException');
+        $this->expectExceptionMessage('An exception has been thrown during the rendering of a template: throw_error.shtml ("foo").');
 
-        $this->assertEquals('foo', $this->template->foo());
-        $this->assertEquals(array('foo'), $this->template->bar('foo'));
-    }
-
-    public function testCallException()
-    {
-        $this->expectException('BadFunctionCallException');
-        $this->expectExceptionMessage('Call to undefined function: foo');
-
-        $this->template->foo();
-    }
-
-    public function testFindView()
-    {
-        $this->template->addDirectory(TEST_FIXTURE.'views/');
-
-        $this->assertEquals(TEST_FIXTURE.'views/simple.php', $this->template->findView('simple'));
-    }
-
-    public function testFindViewException()
-    {
-        $this->expectException('LogicException');
-        $this->expectExceptionMessage('View not exists: "simple"');
-
-        $this->template->findView('simple');
-    }
-
-    public function testRender()
-    {
-        $this->template->addDirectory(TEST_FIXTURE.'views/');
-
-        $this->assertEquals('simple', $this->template->render('simple'));
-    }
-
-    public function testEscape()
-    {
-        $this->assertEquals('foo&lt;br&gt;', $this->template->escape('foo<br>'));
+        $this->env->loadTemplate('throw_error.shtml')->render();
     }
 }

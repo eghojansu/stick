@@ -1,0 +1,7 @@
+<extends href="layout.shtml" />
+
+<block name="content">
+  <include href="detail.shtml" />
+
+  Are you sure?
+</block>

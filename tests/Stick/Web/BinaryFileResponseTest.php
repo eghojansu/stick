@@ -7,131 +7,85 @@
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
- *
- * Created at Feb 02, 2019 07:31
  */
 
 declare(strict_types=1);
 
 namespace Fal\Stick\Test\Web;
 
-use Fal\Stick\Web\Request;
-use PHPUnit\Framework\TestCase;
+use Fal\Stick\Fw;
 use Fal\Stick\Web\BinaryFileResponse;
+use Fal\Stick\TestSuite\MyTestCase;
 
-class BinaryFileResponseTest extends TestCase
+class BinaryFileResponseTest extends MyTestCase
 {
-    private $response;
+    private $fw;
+    private $binaryFileResponse;
 
-    public function setup()
+    public function setup(): void
     {
-        $this->response = new BinaryFileResponse(TEST_FIXTURE.'files/foo.txt');
+        $this->fw = new Fw();
+        $this->binaryFileResponse = new BinaryFileResponse($this->fw);
     }
 
-    public function testSetFile()
+    public function testGetFilepath()
     {
-        $this->response->setFile($file = TEST_FIXTURE.'files/foo.txt', 'attachment', true, true);
-        $etag = base64_encode(hash_file('sha256', realpath($file), true));
-        $date = date('D, d M Y H:i:s', filemtime($file)).' GMT';
-        $disposition = 'attachment; filename="foo.txt"';
+        $this->assertNull($this->binaryFileResponse->getFilepath());
+    }
 
-        $this->assertEquals($file, $this->response->getFile());
-        $this->assertEquals('"'.$etag.'"', $this->response->headers->first('ETag'));
-        $this->assertEquals($date, $this->response->headers->first('Last-Modified'));
-        $this->assertEquals($disposition, $this->response->headers->first('Content-Disposition'));
+    public function testSetFilepath()
+    {
+        $foo = $this->fixture('/files/foo.txt');
 
-        // exception
+        $this->assertEquals($foo, $this->binaryFileResponse->setFilepath($foo)->getFilepath());
+
         $this->expectException('LogicException');
-        $this->expectExceptionMessage('File must be readable.');
-
-        $this->response->setFile('not-exists.txt');
+        $this->expectExceptionMessage('File not exists: foo.');
+        $this->binaryFileResponse->setFilepath('foo');
     }
 
-    public function testGetFile()
+    public function testGetContent()
     {
-        $this->assertEquals(TEST_FIXTURE.'files/foo.txt', $this->response->getFile());
-    }
-
-    public function testSetAutoLastModified()
-    {
-        $modified = date('D, d M Y H:i:s', filemtime(TEST_FIXTURE.'files/foo.txt')).' GMT';
-
-        $this->assertEquals($modified, $this->response->setAutoLastModified()->headers->first('Last-Modified'));
-    }
-
-    public function testSetAutoEtag()
-    {
-        $etag = base64_encode(hash_file('sha256', realpath(TEST_FIXTURE.'files/foo.txt'), true));
-
-        $this->assertEquals('"'.$etag.'"', $this->response->setAutoEtag()->headers->first('ETag'));
-    }
-
-    public function testSetContentDisposition()
-    {
-        $this->assertEquals('foo; filename="bar"', $this->response->setContentDisposition('foo', 'bar')->headers->first('Content-Disposition'));
-    }
-
-    public function testPrepare()
-    {
-        $file = TEST_FIXTURE.'files/foo.txt';
-        $expected = array(
-            'Content-Type' => array('text/plain'),
-            'Content-Length' => array(3),
-            'Last-Modified' => array(date('D, d M Y H:i:s', filemtime($file)).' GMT'),
-        );
-
-        $this->response->prepare(Request::create('/'));
-        $actual = array_intersect_key($expected, $this->response->headers->all());
-
-        $this->assertEquals($expected, $actual);
-    }
-
-    /**
-     * @dataProvider sendContentProvider
-     */
-    public function testSendContent($expected, $file, $status = null, $kbps = 0)
-    {
-        $this->expectOutputString($expected);
-
-        $tmp = TEST_TEMP.basename($file);
-
-        if (file_exists($file)) {
-            if (file_exists($tmp)) {
-                unlink($tmp);
-            }
-
-            copy($file, $tmp);
-        }
-
-        if ($status) {
-            $this->response->status($status);
-        }
-
-        $this->response->setKbps($kbps);
-        $this->response->setFile($tmp);
-        $this->response->deleteFileAfterSend();
-        $this->response->send();
+        $this->assertNull($this->binaryFileResponse->getContent());
     }
 
     public function testSetContent()
     {
+        $this->assertEquals('foo', $this->binaryFileResponse->setContent('foo')->getContent());
+    }
+
+    public function testSend()
+    {
+        $this->expectOutputString('foo');
+
+        $this->fw->hset('foo', 'bar');
+        $this->binaryFileResponse->setContent('foo');
+        $this->binaryFileResponse->send();
+
+        $this->assertCount(0, $this->fw->get('RESPONSE'));
+    }
+
+    public function testSendFile()
+    {
+        $this->expectOutputString('foo');
+
+        $this->binaryFileResponse->setFilepath($this->fixture('/files/foo.txt'));
+        $this->binaryFileResponse->send();
+    }
+
+    public function testSendException()
+    {
         $this->expectException('LogicException');
-        $this->expectExceptionMessage('The content cannot be set on a BinaryFileResponse instance.');
+        $this->expectExceptionMessage('Response has no content.');
 
-        $this->response->setContent('foo');
+        $this->binaryFileResponse->send();
     }
 
-    public function testDeleteFileAfterSend()
+    public function testObjectCall()
     {
-        $this->assertSame($this->response, $this->response->deleteFileAfterSend());
-    }
+        $this->expectOutputString('foo');
 
-    public function sendContentProvider()
-    {
-        return array(
-            array('', TEST_FIXTURE.'files/foo.txt', 404),
-            array('foo', TEST_FIXTURE.'files/foo.txt'),
-            array('foo', TEST_FIXTURE.'files/foo.txt', null, 1),
-        );
+        $this->binaryFileResponse->setContent('foo');
+        ($this->binaryFileResponse)();
     }
 }

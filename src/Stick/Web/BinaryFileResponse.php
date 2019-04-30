@@ -13,234 +13,162 @@ declare(strict_types=1);
 
 namespace Fal\Stick\Web;
 
-use Fal\Stick\Util;
+use Fal\Stick\Fw;
 
 /**
  * Binary file response.
  *
  * @author Eko Kurniawan <ekokurniawanbs@gmail.com>
  */
-class BinaryFileResponse extends ChunkedResponse
+class BinaryFileResponse
 {
+    /**
+     * @var Fw
+     */
+    protected $fw;
+
+    /**
+     * @var string
+     */
+    protected $mime;
+
+    /**
+     * @var bool
+     */
+    protected $inline;
+
     /**
      * @var string
      */
     protected $filename;
 
     /**
-     * @var bool
+     * @var string
      */
-    protected $deleteFileAfterSend = false;
+    protected $filepath;
+
+    /**
+     * @var string
+     */
+    protected $content;
+
+    /**
+     * @var int
+     */
+    protected $expire;
 
     /**
      * Class constructor.
      *
-     * @param string $filename The file to stream
-     * @param int    $status   The response status code
-     * @param array  $headers  An array of response headers
+     * @param Fw          $fw
+     * @param string|null $filename
+     * @param int         $expire
+     * @param string|null $mime
+     * @param bool        $inline
      */
-    public function __construct(string $filename, int $status = null, array $headers = null)
+    public function __construct(Fw $fw, string $filename = null, int $expire = 0, string $mime = null, bool $inline = false)
     {
-        parent::__construct(null, $status, $headers);
-
-        $this->setFile($filename, ResponseHeaderBag::DISPOSITION_ATTACHMENT);
-    }
-
-    /**
-     * Sets the file to stream.
-     *
-     * @param string $filename           The file to stream
-     * @param string $contentDisposition
-     * @param bool   $autoEtag
-     * @param bool   $autoLastModified
-     *
-     * @return BinaryFileResponse
-     *
-     * @throws LogicException
-     */
-    public function setFile(string $filename, string $contentDisposition = null, bool $autoEtag = false, bool $autoLastModified = true): BinaryFileResponse
-    {
-        if (!is_readable($filename)) {
-            throw new \LogicException('File must be readable.');
-        }
-
+        $this->fw = $fw;
         $this->filename = $filename;
-
-        if ($autoEtag) {
-            $this->setAutoEtag();
-        }
-
-        if ($autoLastModified) {
-            $this->setAutoLastModified();
-        }
-
-        if ($contentDisposition) {
-            $this->setContentDisposition($contentDisposition);
-        }
-
-        return $this;
+        $this->expire = $expire;
+        $this->mime = $mime;
+        $this->inline = $inline;
     }
 
     /**
-     * Gets the file.
+     * Allow call as function.
      *
-     * @return File The file to stream
+     * @return int
      */
-    public function getFile(): string
+    public function __invoke()
     {
-        return $this->filename;
+        return $this->send();
     }
 
     /**
-     * Automatically sets the Last-Modified header according the file modification date.
+     * Returns filepath to send.
      *
-     * @return BinaryFileResponse
+     * @return string|null
      */
-    public function setAutoLastModified(): BinaryFileResponse
+    public function getFilepath(): ?string
     {
-        $date = \DateTime::createFromFormat('U', ''.filemtime($this->filename), new \DateTimeZone('UTC'));
-
-        $this->headers->set('Last-Modified', $date->format('D, d M Y H:i:s').' GMT');
-
-        return $this;
+        return $this->filepath;
     }
 
     /**
-     * Automatically sets the ETag header according to the checksum of the file.
+     * Sets filepath to send.
+     *
+     * @param string $filepath
      *
      * @return BinaryFileResponse
      */
-    public function setAutoEtag(): BinaryFileResponse
+    public function setFilepath(string $filepath): BinaryFileResponse
     {
-        $etag = base64_encode(hash_file('sha256', realpath($this->filename), true));
-        $this->headers->set('ETag', '"'.$etag.'"');
+        if (!is_file($filepath)) {
+            throw new \LogicException(sprintf('File not exists: %s.', $filepath));
+        }
+
+        $this->filepath = $filepath;
 
         return $this;
     }
 
     /**
-     * Sets the Content-Disposition header with the given filename.
+     * Returns file content.
      *
-     * @param string $disposition ResponseHeaderBag::DISPOSITION_INLINE or ResponseHeaderBag::DISPOSITION_ATTACHMENT
-     * @param string $filename    Optionally use this UTF-8 encoded filename instead of the real name of the file
+     * @return string|null
+     */
+    public function getContent(): ?string
+    {
+        return $this->content;
+    }
+
+    /**
+     * Sets file content.
+     *
+     * @param string $content
      *
      * @return BinaryFileResponse
      */
-    public function setContentDisposition(string $disposition, string $filename = null): BinaryFileResponse
+    public function setContent(string $content): BinaryFileResponse
     {
-        $mFile = $filename ?? basename($this->filename);
-        $dispositionHeader = sprintf('%s; filename="%s"', $disposition, $mFile);
-
-        $this->headers->set('Content-Disposition', $dispositionHeader);
+        $this->content = $content;
 
         return $this;
     }
 
     /**
-     * {@inheritdoc}
+     * Send file.
+     *
+     * @return int
      */
-    public function prepare(Request $request): Response
+    public function send(): int
     {
-        if (!$this->headers->exists('Content-Type')) {
-            $this->headers->set('Content-Type', Util::mime($this->filename));
+        if (null === $this->content && null === $this->filepath) {
+            throw new \LogicException('Response has no content.');
         }
 
-        if ('HTTP/1.0' !== $request->server->get('SERVER_PROTOCOL')) {
-            $this->setProtocolVersion('1.1');
-        }
+        $name = $this->filename ?? basename($this->filepath ?? 'response.txt');
+        $mime = $this->mime ?? Mime::type($name);
+        $size = $this->content ? strlen($this->content) : filesize($this->filepath);
+        $disposition = $this->inline ? 'inline' : 'attachment';
 
-        if (false !== $fileSize = filesize($this->filename)) {
-            $this->headers->set('Content-Length', $fileSize);
-        }
+        $this->fw->expire($this->expire);
+        $this->fw->hset('Content-Disposition', $disposition.'; filename="'.$name.'"');
+        $this->fw->hset('Accept-Ranges', 'bytes');
+        $this->fw->hset('Content-Type', $mime);
+        $this->fw->hset('Content-Length', $size);
 
-        return $this;
-    }
+        $this->fw->sendHeaders();
 
-    /**
-     * {@inheritdoc}
-     */
-    public function sendContent(): Response
-    {
-        if (!$this->isSuccessful()) {
-            return parent::sendContent();
-        }
-
-        if (0 >= $this->kbps) {
-            $this->sendStream();
+        if ($this->content) {
+            echo $this->content;
         } else {
-            $this->sendChunked();
+            readfile($this->filepath);
         }
 
-        if ($this->deleteFileAfterSend && file_exists($this->filename)) {
-            unlink($this->filename);
-        }
+        $this->fw->rem('RESPONSE');
 
-        return $this;
-    }
-
-    /**
-     * {@inheritdoc}
-     *
-     * @throws \LogicException when the content is not null
-     */
-    public function setContent($content): Response
-    {
-        if (null !== $content) {
-            throw new \LogicException('The content cannot be set on a BinaryFileResponse instance.');
-        }
-
-        return $this;
-    }
-
-    /**
-     * If this is set to true, the file will be unlinked after the request is send
-     * Note: If the X-Sendfile header is used, the deleteFileAfterSend setting will not be used.
-     *
-     * @param bool $shouldDelete
-     *
-     * @return BinaryFileResponse
-     */
-    public function deleteFileAfterSend(bool $shouldDelete = true): BinaryFileResponse
-    {
-        $this->deleteFileAfterSend = $shouldDelete;
-
-        return $this;
-    }
-
-    /**
-     * Send file stream.
-     */
-    protected function sendStream(): void
-    {
-        $out = fopen('php://output', 'wb');
-        $file = fopen($this->filename, 'rb');
-
-        stream_copy_to_stream($file, $out);
-
-        fclose($out);
-        fclose($file);
-    }
-
-    /**
-     * Send file per kbps.
-     */
-    protected function sendChunked(): void
-    {
-        $ctr = 0;
-        $now = microtime(true);
-        $file = fopen($this->filename, 'rb');
-
-        while (false !== $part = fgets($file, 1024)) {
-            // Throttle output
-            ++$ctr;
-
-            if ($ctr / $this->kbps > ($elapsed = microtime(true) - $now) && !connection_aborted()) {
-                usleep(intval(1e6 * ($ctr / $this->kbps - $elapsed)));
-            }
-
-            echo $part;
-        }
-
-        fclose($file);
+        return $size;
     }
 }

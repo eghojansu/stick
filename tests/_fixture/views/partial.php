@@ -1,1 +1,0 @@
-I am freelancer with context: <?= $context ?>

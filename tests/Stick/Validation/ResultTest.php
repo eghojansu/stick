@@ -7,62 +7,52 @@
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
- *
- * Created at Jan 14, 2019 07:03
  */
+
+declare(strict_types=1);
 
 namespace Fal\Stick\Test\Validation;
 
-use PHPUnit\Framework\TestCase;
 use Fal\Stick\Validation\Result;
+use Fal\Stick\Validation\Context;
+use Fal\Stick\TestSuite\MyTestCase;
 
-class ResultTest extends TestCase
+class ResultTest extends MyTestCase
 {
-    private $result;
-
-    public function setup()
+    protected function createInstance()
     {
-        $this->result = new Result(array());
+        return new Result(new Context());
     }
 
-    public function testSetCurrent()
+    public function testGetError()
     {
-        $this->assertEquals('foo', $this->result->setCurrent('foo', 'bar')->rule);
+        $this->assertCount(0, $this->result->getError('foo'));
     }
 
-    public function testValid()
+    public function testSetError()
     {
-        $this->assertTrue($this->result->Valid());
-    }
-
-    public function testRaw()
-    {
-        $this->assertNull($this->result->raw('foo'));
-    }
-
-    public function testData()
-    {
-        $this->assertNull($this->result->data('foo'));
-    }
-
-    public function testValue()
-    {
-        $this->assertNull($this->result->value('foo'));
-    }
-
-    public function testAddData()
-    {
-        $this->assertEquals('foo', $this->result->addData('foo', 'foo')->data('foo'));
+        $this->assertEquals(array('foo'), $this->result->setError('foo', array('foo'))->getError('foo'));
     }
 
     public function testAddError()
     {
-        $this->assertEquals(array('foo' => array('bar')), $this->result->addError('foo', 'bar')->errors);
+        $this->assertEquals(array('foo'), $this->result->addError('foo', 'foo')->getError('foo'));
+        $this->assertEquals(array('foo', 'bar'), $this->result->addError('foo', array('bar'))->getError('foo'));
     }
 
-    public function testHasError()
+    public function testGetErrors()
     {
-        $this->assertFalse($this->result->hasError('foo'));
-        $this->assertTrue($this->result->addError('foo', 'bar')->hasError('foo'));
+        $this->assertCount(0, $this->result->getErrors());
+    }
+
+    public function testIsSuccess()
+    {
+        $this->assertTrue($this->result->isSuccess());
+        $this->assertFalse($this->result->setError('foo', array('bar'))->isSuccess());
+    }
+
+    public function testGetData()
+    {
+        $this->assertCount(0, $this->result->getData());
     }
 }

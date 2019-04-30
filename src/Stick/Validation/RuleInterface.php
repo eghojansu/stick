@@ -9,16 +9,18 @@
  * file that was distributed with this source code.
  */
 
+declare(strict_types=1);
+
 namespace Fal\Stick\Validation;
 
 /**
- * Rule interface.
+ * Validator rule interface.
  *
  * @author Eko Kurniawan <ekokurniawanbs@gmail.com>
  */
 interface RuleInterface
 {
-    /*
+    /**
      * Returns true if validator can handle the specified rule.
      *
      * @param string $rule
@@ -28,22 +30,12 @@ interface RuleInterface
     public function has(string $rule): bool;
 
     /**
-     * Set validation result.
-     *
-     * @param Result $context
-     *
-     * @return RuleInterface
-     */
-    public function context(Result $context): RuleInterface;
-
-    /**
      * Returns the return value of performed rule.
      *
-     * @param string $rule
-     * @param mixed  $value
-     * @param array  $arguments
+     * @param string  $rule
+     * @param Context $value
      *
      * @return mixed
      */
-    public function validate(string $rule, $value, array $arguments);
+    public function validate(string $rule, Context $value);
 }

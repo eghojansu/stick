@@ -1,0 +1,22 @@
+<extends href="layout.shtml" />
+
+<block name="content">
+<table>
+  <thead>
+    <tr>
+      <repeat group="{{ @crud->fields }}" value="{{ @field }}">
+        <th>{{ @field.label }}</th>
+      </repeat>
+    </tr>
+  </thead>
+  <tbody>
+    <repeat group="{{ @crud->data.subset }}" value="{{ @mapper }}">
+      <tr>
+        <repeat group="{{ @crud->fields }}" value="{{ @field }}">
+          <td>{{ @mapper[@field.name] }}</td>
+        </repeat>
+      </tr>
+    </repeat>
+  </tbody>
+</table>
+</block>
