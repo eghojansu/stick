@@ -619,7 +619,7 @@ final class Fw implements \ArrayAccess
         $host = $server['SERVER_NAME'] ?? 'localhost';
         $script = $server['SCRIPT_NAME'] ?? '';
         $script = $cli || !$script || false === strpos($script, '.') ? '' : str_replace('\\', '/', $script);
-        $base = dirname($script);
+        $base = rtrim(dirname($script), '/');
         $secure = 'on' === ($server['HTTPS'] ?? '') || 'https' === ($server['HTTP_X_FORWARDED_PROTO'] ?? '');
         $uri = $server['REQUEST_URI'] ?? '/';
         $url = parse_url($uri);
