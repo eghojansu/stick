@@ -495,6 +495,106 @@ class Environment
     }
 
     /**
+     * Csv expression to array expression.
+     *
+     * @param string $str
+     *
+     * @return string
+     */
+    public function contextify(string $str): string
+    {
+        if (preg_match_all('/(\w+)\h*=\h*(.+?)(?=,|$)/', $this->token($str), $pairs, PREG_SET_ORDER)) {
+            $arr = '';
+
+            foreach ($pairs as $pair) {
+                $arr .= ",'$pair[1]'=>";
+
+                if (preg_match("/^'.*'\$/", $pair[2]) || preg_match('/\$/', $pair[2])) {
+                    $arr .= $pair[2];
+                } else {
+                    $arr .= $this->fw->stringify($this->fw->cast($pair[2]));
+                }
+            }
+
+            return '['.ltrim($arr, ',').']';
+        }
+
+        return '[]';
+    }
+
+    /**
+     * Returns attrib and remove it from node.
+     *
+     * @param array &$node
+     * @param array $required
+     *
+     * @return array
+     */
+    public function attrib(array &$node, array $required): array
+    {
+        $attrib = array();
+
+        foreach ($required as $key => $value) {
+            $attrib[$key] = $node['@attrib'][$key] ?? $value;
+
+            if ('***required***' === $attrib[$key]) {
+                throw new \LogicException(sprintf('Missing property: %s.', $key));
+            }
+        }
+
+        unset($node['@attrib']);
+
+        return $attrib;
+    }
+
+    /**
+     * Remove empty nodes.
+     *
+     * @param array $nodes
+     *
+     * @return array
+     */
+    public function clearEmptyNode(array $nodes): array
+    {
+        $newNode = array();
+
+        foreach ($nodes as $pos => $node) {
+            if (!is_string($node) || preg_replace('/\s+/', '', $node)) {
+                $newNode[$pos] = $node;
+            }
+        }
+
+        return $newNode;
+    }
+
+    /**
+     * Parse otherwise tag.
+     *
+     * @param array       &$node
+     * @param string|null $default
+     *
+     * @return string
+     */
+    public function otherwise(array &$node, string $default = null): string
+    {
+        // Grab <otherwise> block
+        foreach ($node as $pos => $block) {
+            if (isset($block['otherwise'])) {
+                $otherwise = $block['otherwise'];
+                unset($node[$pos]);
+
+                if (!isset($otherwise['@attrib']['if'])) {
+                    $otherwise['@attrib']['if'] = $default;
+                }
+
+                return $this->_check($otherwise);
+            }
+        }
+
+        return '';
+    }
+
+    /**
      * Template -extends- tag handler.
      *
      * @param array $node
@@ -504,7 +604,7 @@ class Environment
     public function _extends(array $node): string
     {
         extract($this->attrib($node, array(
-            'href' => '***req***',
+            'href' => '***required***',
         )));
 
         return '<?php $this->extend('.$this->tokenize($href).') ?>';
@@ -521,7 +621,7 @@ class Environment
     {
         extract($this->attrib($node, array(
             'if' => '',
-            'href' => '***req***',
+            'href' => '***required***',
             'with' => '',
         )));
 
@@ -559,7 +659,7 @@ class Environment
     public function _block(array $node): string
     {
         extract($this->attrib($node, array(
-            'name' => '***req***',
+            'name' => '***required***',
         )));
 
         if (empty($node)) {
@@ -655,9 +755,9 @@ class Environment
     {
         extract($this->attrib($node, array(
             'counter' => '',
-            'group' => '***req***',
+            'group' => '***required***',
             'key' => '',
-            'value' => '***req***',
+            'value' => '***required***',
         )));
         $value = $this->token($value);
         $otherwise = $this->otherwise($node, '!isset('.$value.')');
@@ -680,14 +780,14 @@ class Environment
     public function _check(array $node): string
     {
         extract($this->attrib($node, array(
-            'if' => '***req***',
+            'if' => '***required***',
         )));
         $ifTrue = null;
         $ifFalse = null;
         $ifElse = array();
         $newNode = array();
 
-        foreach ($this->clearEmptyLines($node) as $pos => $block) {
+        foreach ($this->clearEmptyNode($node) as $pos => $block) {
             if (isset($block['false'])) {
                 $ifFalse = $block;
             } elseif (isset($block['true'])) {
@@ -765,9 +865,9 @@ class Environment
     public function _switch(array $node): string
     {
         extract($this->attrib($node, array(
-            'expr' => '***req***',
+            'expr' => '***required***',
         )));
-        $newNode = $this->clearEmptyLines($node);
+        $newNode = $this->clearEmptyNode($node);
 
         return
             '<?php switch ('.$this->token($expr).'): ?>'.
@@ -785,7 +885,7 @@ class Environment
     public function _case(array $node): string
     {
         extract($this->attrib($node, array(
-            'value' => '***req***',
+            'value' => '***required***',
             'break' => null,
         )));
 
@@ -810,105 +910,5 @@ class Environment
             '<?php default: ?>'.
                 $this->build($node).
             '<?php break ?>';
-    }
-
-    /**
-     * Csv expression to array expression.
-     *
-     * @param string $str
-     *
-     * @return string
-     */
-    protected function contextify(string $str): string
-    {
-        if (preg_match_all('/(\w+)\h*=\h*(.+?)(?=,|$)/', $this->token($str), $pairs, PREG_SET_ORDER)) {
-            $arr = '';
-
-            foreach ($pairs as $pair) {
-                $arr .= ",'$pair[1]'=>";
-
-                if (preg_match("/^'.*'\$/", $pair[2]) || preg_match('/\$/', $pair[2])) {
-                    $arr .= $pair[2];
-                } else {
-                    $arr .= $this->fw->stringify($this->fw->cast($pair[2]));
-                }
-            }
-
-            return '['.ltrim($arr, ',').']';
-        }
-
-        return '[]';
-    }
-
-    /**
-     * Returns attrib and remove it from node.
-     *
-     * @param array &$node
-     * @param array $required
-     *
-     * @return array
-     */
-    protected function attrib(array &$node, array $required): array
-    {
-        $attrib = array();
-
-        foreach ($required as $key => $value) {
-            $attrib[$key] = $node['@attrib'][$key] ?? $value;
-
-            if ('***req***' === $attrib[$key]) {
-                throw new \LogicException(sprintf('Missing property: %s.', $key));
-            }
-        }
-
-        unset($node['@attrib']);
-
-        return $attrib;
-    }
-
-    /**
-     * Remove empty line.
-     *
-     * @param array $node
-     *
-     * @return array
-     */
-    protected function clearEmptyLines(array $node): array
-    {
-        $newNode = array();
-
-        foreach ($node as $pos => $block) {
-            if (!is_string($block) || preg_replace('/\s+/', '', $block)) {
-                $newNode[$pos] = $block;
-            }
-        }
-
-        return $newNode;
-    }
-
-    /**
-     * Parse otherwise tag.
-     *
-     * @param array       &$node
-     * @param string|null $default
-     *
-     * @return string
-     */
-    protected function otherwise(array &$node, string $default = null): string
-    {
-        // Grab <otherwise> block
-        foreach ($node as $pos => $block) {
-            if (isset($block['otherwise'])) {
-                $otherwise = $block['otherwise'];
-                unset($node[$pos]);
-
-                if (!isset($otherwise['@attrib']['if'])) {
-                    $otherwise['@attrib']['if'] = $default;
-                }
-
-                return $this->_check($otherwise);
-            }
-        }
-
-        return '';
     }
 }

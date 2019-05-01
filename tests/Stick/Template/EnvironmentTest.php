@@ -527,10 +527,44 @@ HTML;
         $this->assertEquals($expected, $this->environment->_default($node));
     }
 
-    public function testRequiredAttrib()
+    /**
+     * @dataProvider Fal\Stick\TestSuite\Provider\Template\EnvironmentProvider::contextify
+     */
+    public function testContextify($expected, $str)
     {
-        $this->expectException('LogicException');
-        $this->expectExceptionMessage('Missing property: name.');
-        $this->environment->_block(array());
+        $this->assertEquals($expected, $this->environment->contextify($str));
+    }
+
+    /**
+     * @dataProvider Fal\Stick\TestSuite\Provider\Template\EnvironmentProvider::attrib
+     */
+    public function testAttrib($expected, $node, $required, $exception = null)
+    {
+        if ($exception) {
+            $this->expectException($exception);
+            $this->expectExceptionMessage($expected);
+
+            $this->environment->attrib($node, $required);
+
+            return;
+        }
+
+        $this->assertEquals($expected, $this->environment->attrib($node, $required));
+    }
+
+    /**
+     * @dataProvider Fal\Stick\TestSuite\Provider\Template\EnvironmentProvider::clearEmptyNode
+     */
+    public function testClearEmptyNode($expected, $nodes)
+    {
+        $this->assertEquals($expected, $this->environment->clearEmptyNode($nodes));
+    }
+
+    /**
+     * @dataProvider Fal\Stick\TestSuite\Provider\Template\EnvironmentProvider::otherwise
+     */
+    public function testOtherwise($expected, $node, $default = null)
+    {
+        $this->assertEquals($expected, $this->environment->otherwise($node, $default));
     }
 }

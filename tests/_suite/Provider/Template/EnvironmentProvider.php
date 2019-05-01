@@ -140,4 +140,69 @@ HTML
             ),
         );
     }
+
+    public function contextify()
+    {
+        return array(
+            array(
+                '[]',
+                'foo',
+            ),
+            array(
+                "['foo'=>1,'bar'=>'baz']",
+                "foo=1,bar='baz'",
+            ),
+        );
+    }
+
+    public function attrib()
+    {
+        return array(
+            array(
+                array('foo' => true),
+                array('@attrib' => array()),
+                array('foo' => true),
+            ),
+            array(
+                'Missing property: foo.',
+                array(),
+                array('foo' => '***required***'),
+                'LogicException',
+            ),
+        );
+    }
+
+    public function clearEmptyNode()
+    {
+        return array(
+            array(
+                array('foo'),
+                array(
+                    'foo',
+                    '   ',
+                ),
+            ),
+        );
+    }
+
+    public function otherwise()
+    {
+        return array(
+            array(
+                '',
+                array(),
+            ),
+            array(
+                '<?php if (true): ?>foo<?php endif ?>',
+                array(
+                    array(
+                        'otherwise' => array(
+                            'foo',
+                        ),
+                    ),
+                ),
+                'true',
+            ),
+        );
+    }
 }
