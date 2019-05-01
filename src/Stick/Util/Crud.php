@@ -44,12 +44,12 @@ class Crud
     /**
      * @var Environment
      */
-    protected $env;
+    public $env;
 
     /**
      * @var Auth
      */
-    protected $auth;
+    public $auth;
 
     /**
      * @var bool
