@@ -1498,12 +1498,17 @@ final class Fw implements \ArrayAccess
      *
      * @param string $key
      * @param mixed  $value
+     * @param bool   $force
      *
      * @return Fw
      */
-    public function prepend(string $key, $value): Fw
+    public function prepend(string $key, $value, bool $force = false): Fw
     {
         $var = $this->get($key);
+
+        if (null === $var && $force) {
+            $var = array();
+        }
 
         if (is_scalar($var)) {
             $var = $value.$var;
@@ -1521,12 +1526,17 @@ final class Fw implements \ArrayAccess
      *
      * @param string $key
      * @param mixed  $value
+     * @param bool   $force
      *
      * @return Fw
      */
-    public function append(string $key, $value): Fw
+    public function append(string $key, $value, bool $force = false): Fw
     {
         $var = $this->get($key);
+
+        if (null === $var && $force) {
+            $var = array();
+        }
 
         if (is_scalar($var)) {
             $var .= $value;

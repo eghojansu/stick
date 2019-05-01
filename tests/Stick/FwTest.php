@@ -589,6 +589,7 @@ class FwTest extends MyTestCase
         $this->assertEquals('foo', $this->fw->prepend('foo', 'foo')->get('foo'));
         $this->assertEquals('foobar', $this->fw->set('bar', 'bar')->prepend('bar', 'foo')->get('bar'));
         $this->assertEquals(array('foo', 'bar'), $this->fw->set('baz', array('bar'))->prepend('baz', 'foo')->get('baz'));
+        $this->assertEquals(array('foo'), $this->fw->prepend('qux', 'foo', true)->get('qux'));
     }
 
     public function testAppend()
@@ -596,6 +597,7 @@ class FwTest extends MyTestCase
         $this->assertEquals('foo', $this->fw->append('foo', 'foo')->get('foo'));
         $this->assertEquals('foobar', $this->fw->set('bar', 'foo')->append('bar', 'bar')->get('bar'));
         $this->assertEquals(array('foo', 'bar'), $this->fw->set('baz', array('foo'))->append('baz', 'bar')->get('baz'));
+        $this->assertEquals(array('foo'), $this->fw->append('qux', 'foo', true)->get('qux'));
     }
 
     public function testParse()
