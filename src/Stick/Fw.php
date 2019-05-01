@@ -1010,6 +1010,9 @@ final class Fw implements \ArrayAccess
         if ($error['type'] & error_reporting()) {
             $this->error(500, 'Fatal error: '.$error['message'], array($error));
 
+            // should be flush here
+            $continue || $this->send();
+
             // need to stop!
             $continue || die;
         }
