@@ -36,7 +36,7 @@ class Field extends Option
         $this
             ->add('attr', array())
             ->add('checkbox_id', null, 'string')
-            ->add('constraints', null, 'string')
+            ->add('constraints', null, 'string|null')
             ->add('errors', array())
             ->add('expanded', null, 'bool')
             ->add('id', null, 'string')
