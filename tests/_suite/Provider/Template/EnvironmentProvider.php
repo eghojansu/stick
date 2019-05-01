@@ -120,16 +120,20 @@ HTML
                 array(
                     "foo\n",
                     "{{ 'foo' }}\n",
-                    'set' => array(
-                        '@attrib' => array(
-                            'foo' => 'foo',
+                    array(
+                        'set' => array(
+                            '@attrib' => array(
+                                'foo' => 'foo',
+                            ),
                         ),
                     ),
                     array(
                         "{# comment #}\n{- foo -}\n{~ @foo = 'bar' ~}",
                         "\n",
-                        'footag' => array(
-                            'foo',
+                        array(
+                            'footag' => array(
+                                'foo',
+                            ),
                         ),
                     ),
                 ),
