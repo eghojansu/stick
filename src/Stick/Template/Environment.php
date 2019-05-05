@@ -70,10 +70,11 @@ class Environment
     public function __construct(Fw $fw, $directories = null, string $temp = null, bool $autoreload = false)
     {
         $this->fw = $fw;
-        $this->directories = $fw->split($directories);
-        $this->temp = $temp ?? $fw->get('TEMP').'template/';
         $this->tags .= str_replace('_', '|', implode('', preg_grep('/^_(?=[[:alpha:]])/', get_class_methods($this))));
-        $this->autoreload = $autoreload;
+
+        $this->setTemp($temp ?? $fw->get('TEMP').'template/');
+        $this->setAutoreload($autoreload);
+        $this->setDirectories($directories);
     }
 
     /**
@@ -91,6 +92,54 @@ class Environment
         }
 
         return $this->fw->$method(...$arguments);
+    }
+
+    /**
+     * Returns template directories.
+     *
+     * @return array
+     */
+    public function getDirectories(): array
+    {
+        return $this->directories;
+    }
+
+    /**
+     * Returns directories.
+     *
+     * @param string|array $directories
+     *
+     * @return Environment
+     */
+    public function setDirectories($directories): Environment
+    {
+        $this->directories = $this->fw->split($directories);
+
+        return $this;
+    }
+
+    /**
+     * Returns temporary directory.
+     *
+     * @return string
+     */
+    public function getTemp(): string
+    {
+        return $this->temp;
+    }
+
+    /**
+     * Sets temporary directory.
+     *
+     * @param string $temp
+     *
+     * @return Environment
+     */
+    public function setTemp(string $temp): Environment
+    {
+        $this->temp = $temp;
+
+        return $this;
     }
 
     /**
@@ -142,6 +191,8 @@ class Environment
      * @param Template|null $child
      *
      * @return Template
+     *
+     * @codeCoverageIgnore
      */
     public function loadTemplate(string $templateName, Template $child = null): Template
     {
@@ -153,8 +204,9 @@ class Environment
         if ($build) {
             $source = $this->fw->trimTrailingSpace(rtrim($this->build($this->parseXml($this->fw->read($file)))));
 
-            $this->fw->mkdir($this->temp);
-            $this->fw->write($temp, $source);
+            if (!$this->fw->mkdir($this->temp) || $this->fw->write($temp, $source) < 0) {
+                throw new \LogicException(sprintf('Unable to write compiled template: %s.', $templateName));
+            }
         }
 
         return new Template($this, $templateName, $file, $temp, $child);

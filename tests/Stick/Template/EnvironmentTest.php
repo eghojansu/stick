@@ -45,6 +45,26 @@ class EnvironmentTest extends MyTestCase
         $this->assertEquals('foo', $this->environment->foo());
     }
 
+    public function testGetDirectories()
+    {
+        $this->assertEquals(array($this->fixture('/template/')), $this->environment->getDirectories());
+    }
+
+    public function testSetDirectories()
+    {
+        $this->assertEquals(array('foo'), $this->environment->setDirectories('foo')->getDirectories());
+    }
+
+    public function testGetTemp()
+    {
+        $this->assertEquals($this->tmp('/template/'), $this->environment->getTemp());
+    }
+
+    public function testSetTemp()
+    {
+        $this->assertEquals('foo', $this->environment->setTemp('foo')->getTemp());
+    }
+
     public function testIsAutoreload()
     {
         $this->assertTrue($this->environment->isAutoreload());

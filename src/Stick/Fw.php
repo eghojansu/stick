@@ -982,39 +982,38 @@ final class Fw implements \ArrayAccess
      *
      * *to be used internally by php*
      *
-     * @param string     $cwd
-     * @param array|null $emulate
-     * @param bool       $continue
+     * @param string $cwd
+     *
+     * @codeCoverageIgnore
      */
-    public function unload(string $cwd, array $emulate = null, bool $continue = false): void
+    public function unload(string $cwd): void
     {
         chdir($cwd);
 
-        $error = $emulate ?? error_get_last();
+        $error = error_get_last();
 
-        // commit session if session active and no error
-        ($error || !$this->sessionActive()) || session_commit();
-
-        try {
-            $dispatch = $this->dispatchOnce(self::EVENT_SHUTDOWN, $this, $error);
-            $unhandled = $dispatch ? false === $dispatch[0] : true;
-        } catch (\Throwable $e) {
-            $this->handleException($e);
-            $unhandled = true;
+        if (null === $error && $this->sessionActive()) {
+            session_commit();
         }
 
-        // in case user forget to stop script execution cycle,
-        // we stop it manually
-        $unhandled || die;
+        try {
+            $this->dispatch(self::EVENT_SHUTDOWN, $this, $error);
+        } catch (\Throwable $e) {
+            $this->handleException($e);
+
+            $this->send();
+            die;
+        }
 
         if ($error['type'] & error_reporting()) {
-            $this->error(500, 'Fatal error: '.$error['message'], array($error));
+            // Clear any buffer
+            ob_end_clean();
 
-            // should be flush here
-            $continue || $this->send();
+            // show previous error only!
+            $this->hive['ERROR'] || $this->error(500, 'Fatal error: '.$error['message'], array($error));
 
-            // need to stop!
-            $continue || die;
+            $this->send();
+            die;
         }
     }
 
@@ -2595,9 +2594,9 @@ final class Fw implements \ArrayAccess
             'trace' => $trace,
         );
 
-        $this->log($this->logLevelHttpCode($code), $text.$eol.$debug);
-
         try {
+            $this->log($this->logLevelHttpCode($code), $text.$eol.$debug);
+
             $dispatch = $this->dispatchOnce(self::EVENT_ERROR, $this, $message);
 
             // output has been set?

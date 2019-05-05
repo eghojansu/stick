@@ -12,7 +12,7 @@ use Fal\Stick\Security\PlainPasswordEncoder;
  * This file is an entry point to see framework action in browser.
  *
  * Run this file (adjust directory):
- *   php -S localhost:2010 -t ../var _browser.php
+ *   php -S localhost:2010 _browser.php
  */
 
 require __DIR__.'/../vendor/autoload.php';
