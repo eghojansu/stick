@@ -134,6 +134,11 @@ class AuthTest extends MyTestCase
         $this->assertEquals($expected, $this->auth->isGranted($roles));
     }
 
+    public function testIsNotGranted()
+    {
+        $this->assertTrue($this->auth->isNotGranted('foo'));
+    }
+
     /**
      * @dataProvider Fal\Stick\TestSuite\Provider\Security\AuthProvider::login
      */
@@ -173,13 +178,6 @@ class AuthTest extends MyTestCase
 
         $this->assertEquals($expected, $this->auth->guard());
         $this->assertEquals($redirect, $this->fw->get('rerouted'));
-    }
-
-    public function testDenyAccessUnlessGranted()
-    {
-        $this->auth->denyAccessUnlessGranted('foo');
-
-        $this->assertEquals("HTTP 403 (GET /)\nAccess denied.\n", $this->fw->get('OUTPUT'));
     }
 
     /**

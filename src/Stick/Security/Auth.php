@@ -194,17 +194,6 @@ class Auth
     }
 
     /**
-     * Throw exception if not granted.
-     *
-     * @param mixed $roles
-     * @param mixed $data
-     */
-    public function denyAccessUnlessGranted($roles, $data = null): void
-    {
-        $this->isGranted($roles, $data) || $this->fw->error(403, 'Access denied.');
-    }
-
-    /**
      * Returns true if user has roles.
      *
      * @param mixed $roles
@@ -223,6 +212,19 @@ class Auth
         }
 
         return $granted;
+    }
+
+    /**
+     * Is granted complement.
+     *
+     * @param mixed $roles
+     * @param mixed $data
+     *
+     * @return bool
+     */
+    public function isNotGranted($roles, $data = null): bool
+    {
+        return !$this->isGranted($roles, $data);
     }
 
     /**
