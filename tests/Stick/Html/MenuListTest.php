@@ -15,17 +15,24 @@ namespace Fal\Stick\Test\Html;
 
 use Fal\Stick\Fw;
 use Fal\Stick\Html\MenuList;
+use Fal\Stick\Security\Auth;
+use Fal\Stick\Security\InMemoryUserProvider;
+use Fal\Stick\Security\PlainPasswordEncoder;
+use Fal\Stick\TestSuite\Classes\SimpleUser;
 use Fal\Stick\TestSuite\MyTestCase;
 
 class MenuListTest extends MyTestCase
 {
     private $list;
     private $fw;
+    private $auth;
 
     public function setup(): void
     {
         $this->fw = new Fw();
-        $this->list = new MenuList($this->fw);
+        $this->auth = new Auth($this->fw, new InMemoryUserProvider(), new PlainPasswordEncoder());
+        $this->auth->setUser(new SimpleUser('1', 'foo', 'bar', array('foo', 'bar')));
+        $this->list = new MenuList($this->fw, $this->auth);
     }
 
     /**

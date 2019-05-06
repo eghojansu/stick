@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Fal\Stick\Html;
 
 use Fal\Stick\Fw;
+use Fal\Stick\Security\Auth;
 
 /**
  * Menu list helper.
@@ -28,13 +29,20 @@ class MenuList
     protected $fw;
 
     /**
+     * @var Auth
+     */
+    protected $auth;
+
+    /**
      * Class constructor.
      *
-     * @param Fw $fw
+     * @param Fw        $fw
+     * @param Auth|null $auth
      */
-    public function __construct(Fw $fw)
+    public function __construct(Fw $fw, Auth $auth = null)
     {
         $this->fw = $fw;
+        $this->auth = $auth;
     }
 
     /**
@@ -70,6 +78,7 @@ class MenuList
             'item_attr' => null,
             'wrapper_attr' => null,
             'items' => null,
+            'roles' => null,
         );
         $aClass = array(null, $config['active_class']);
         $lists = '';
@@ -80,6 +89,10 @@ class MenuList
             $aAttr = (array) $mItem['attr'];
             $iAttr = (array) $mItem['item_attr'];
             $active = (int) ($mItem['route'] && ($mItem['route'] === $activeRoute));
+
+            if ($mItem['roles'] && $this->auth && !$this->auth->isGranted($mItem['roles'])) {
+                continue;
+            }
 
             if ($mItem['items']) {
                 $cAttr = array('root_attr' => (array) $mItem['wrapper_attr']) + $config;
@@ -102,6 +115,6 @@ class MenuList
             $lists .= Element::tag('li', $iAttr, true, $content.$child);
         }
 
-        return Element::tag('ul', $config['root_attr'], true, $lists);
+        return $lists ? Element::tag('ul', $config['root_attr'], true, $lists) : '';
     }
 }

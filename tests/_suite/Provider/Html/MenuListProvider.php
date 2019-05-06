@@ -53,6 +53,39 @@ class MenuListProvider
                     'parent_wrapper_attr' => array('class' => 'foo'),
                 ),
             ),
+            'with roles' => array(
+                '<ul>'.
+                '<li><a href="/foo">Foo</a></li>'.
+                '<li><a href="/foo">Foo Too</a></li>'.
+                '<li>'.
+                    '<a href="#">Bar</a>'.
+                    '<ul>'.
+                        '<li><a href="/bar/bar">Bar bar</a></li>'.
+                    '</ul>'.
+                    '</li>'.
+                '</ul>',
+                array(
+                    'Foo' => 'foo',
+                    'Foo Too' => array(
+                        'route' => 'foo',
+                        'roles' => 'foo',
+                    ),
+                    'Bar' => array(
+                        'items' => array(
+                            'Bar bar' => array(
+                                'route' => 'bar',
+                                'args' => 'bar=bar',
+                                'roles' => array('bar'),
+                            ),
+                            'Bar baz' => array(
+                                'route' => 'bar',
+                                'args' => 'bar=baz',
+                                'roles' => 'baz',
+                            ),
+                        ),
+                    ),
+                ),
+            ),
             array(
                 '<ul>'.
                 '<li><a href="/foo">Foo</a></li>'.
