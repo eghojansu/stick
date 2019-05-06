@@ -11,6 +11,7 @@
 
 namespace Fal\Stick\TestSuite\Provider;
 
+use Fal\Stick\HttpException;
 use Fal\Stick\TestSuite\MyTestCase;
 
 class FwProvider
@@ -539,6 +540,15 @@ class FwProvider
             'callable' => array(
                 'callable',
                 array('GET /' => function () { return function ($fw) { $fw->set('OUTPUT', 'callable'); }; }),
+            ),
+            'throw http exception' => array(
+                MyTestCase::response('error.txt', array(
+                    '%code%' => 500,
+                    '%verb%' => 'GET',
+                    '%path%' => '/',
+                    '%text%' => 'http exception',
+                )),
+                array('GET /' => function () { throw new HttpException('http exception'); }),
             ),
         );
     }

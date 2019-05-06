@@ -10,7 +10,8 @@
     "autoload": {
         "psr-4": {
             "Fal\\Stick\\": "src/Stick/"
-        }
+        },
+        "files": ["src/Stick/Fw.php"]
     },
     "autoload-dev": {
         "psr-4": {

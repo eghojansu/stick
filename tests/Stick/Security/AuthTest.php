@@ -134,9 +134,14 @@ class AuthTest extends MyTestCase
         $this->assertEquals($expected, $this->auth->isGranted($roles));
     }
 
-    public function testIsNotGranted()
+    public function testDenyAccessUnlessGranted()
     {
-        $this->assertTrue($this->auth->isNotGranted('foo'));
+        $this->assertNull($this->auth->setUser(new SimpleUser(1, 'foo', 'bar', array('foo')))->denyAccessUnlessGranted('foo'));
+
+        $this->expectException('Fal\\Stick\\HttpException');
+        $this->expectExceptionMessage('Access denied.');
+
+        $this->auth->denyAccessUnlessGranted('bar');
     }
 
     /**

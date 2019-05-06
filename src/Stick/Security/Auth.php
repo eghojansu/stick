@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Fal\Stick\Security;
 
 use Fal\Stick\Fw;
+use Fal\Stick\HttpException;
 use Fal\Stick\Util\Option;
 
 /**
@@ -215,16 +216,16 @@ class Auth
     }
 
     /**
-     * Is granted complement.
+     * Throw exception if not granted.
      *
      * @param mixed $roles
      * @param mixed $data
-     *
-     * @return bool
      */
-    public function isNotGranted($roles, $data = null): bool
+    public function denyAccessUnlessGranted($roles, $data = null)
     {
-        return !$this->isGranted($roles, $data);
+        if (false === $this->isGranted($roles, $data)) {
+            throw new HttpException('Access denied.', 403);
+        }
     }
 
     /**

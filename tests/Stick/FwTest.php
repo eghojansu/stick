@@ -516,6 +516,11 @@ class FwTest extends MyTestCase
         $this->assertCount(0, $this->fw->set('RESPONSE', null)->get('RESPONSE'));
     }
 
+    public function testReset()
+    {
+        $this->assertSame($this->fw, $this->fw->reset());
+    }
+
     public function testRem()
     {
         $this->assertNull($this->fw->set('COOKIE.foo', 'bar')->rem('COOKIE.foo')->get('COOKIE.foo'));
