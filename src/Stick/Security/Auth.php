@@ -31,6 +31,8 @@ class Auth
     const EVENT_LOGIN = 'auth.login';
     const EVENT_LOGOUT = 'auth.logout';
     const EVENT_LOADUSER = 'auth.loaduser';
+    const EVENT_IMPERSONATE_ON = 'auth.impersonate_on';
+    const EVENT_IMPERSONATE_OFF = 'auth.impersonate_off';
 
     /**
      * @var Fw
@@ -281,8 +283,8 @@ class Auth
             ));
         }
 
-        $this->setUser($user);
         $this->fw->dispatch(self::EVENT_LOGIN, $this, $user);
+        $this->setUser($user);
 
         return true;
     }
@@ -305,9 +307,59 @@ class Auth
         $this->user = null;
         $this->extraRoles = null;
         $this->fw->mrem(array(
+            'SESSION.impersonate_'.self::SESSION_KEY,
             'SESSION.'.self::SESSION_KEY,
             'COOKIE.'.self::SESSION_KEY,
         ));
+
+        return $this;
+    }
+
+    /**
+     * Impersonate as user.
+     *
+     * @param string $username
+     *
+     * @return bool
+     */
+    public function impersonateOn(string $username): bool
+    {
+        $user = $this->provider->findByUsername($username);
+
+        if (!$user) {
+            $this->error = 'User not found.';
+
+            return false;
+        }
+
+        if ($user->isCredentialsExpired()) {
+            $this->error = 'User credentials is expired.';
+
+            return false;
+        }
+
+        $this->fw->set('SESSION.impersonate_'.self::SESSION_KEY, $user->getId());
+
+        $this->fw->dispatch(self::EVENT_IMPERSONATE_ON, $this, $user);
+        $this->setUser($user);
+
+        return true;
+    }
+
+    /**
+     * Finish impersonating.
+     *
+     * @return Auth
+     */
+    public function impersonateOff(): Auth
+    {
+        $dispatch = $this->fw->dispatch(self::EVENT_IMPERSONATE_OFF, $this);
+
+        $this->userLoaded = false;
+        $this->userRoles = null;
+        $this->user = null;
+        $this->extraRoles = null;
+        $this->fw->rem('SESSION.impersonate_'.self::SESSION_KEY);
 
         return $this;
     }
@@ -327,7 +379,10 @@ class Auth
         $dispatch = $this->fw->dispatch(self::EVENT_LOADUSER, $this);
 
         if (($dispatch && false === $dispatch[0]) || !$this->user) {
-            if ($userId = $this->fw->get('COOKIE.'.self::SESSION_KEY)) {
+            if ($userId = $this->fw->get('SESSION.impersonate_'.self::SESSION_KEY)) {
+                $this->setUser($this->provider->findById($userId));
+                $this->extraRoles[] = 'ROLE_PREVIOUS_ADMIN';
+            } elseif ($userId = $this->fw->get('COOKIE.'.self::SESSION_KEY)) {
                 $this->setUser($this->provider->findById($userId));
                 $this->extraRoles[] = 'IS_AUTHENTICATED_REMEMBERED';
             } elseif ($userId = $this->fw->get('SESSION.'.self::SESSION_KEY)) {

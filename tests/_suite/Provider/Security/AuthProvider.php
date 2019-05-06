@@ -29,6 +29,9 @@ class AuthProvider
             array(new SimpleUser('1', 'foo', 'bar', array('foo')), array(
                 'SESSION.user_login_id' => '1',
             )),
+            array(new SimpleUser('1', 'foo', 'bar', array('foo')), array(
+                'SESSION.impersonate_user_login_id' => '1',
+            )),
         );
     }
 
@@ -162,6 +165,15 @@ class AuthProvider
                     'SERVER.PHP_AUTH_PW' => 'bar',
                 ),
             ),
+        );
+    }
+
+    public function impersonateOn()
+    {
+        return array(
+            array(true, null, 'foo'),
+            array(false, 'User not found.', 'unknown'),
+            array(false, 'User credentials is expired.', 'baz'),
         );
     }
 }

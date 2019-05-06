@@ -211,4 +211,23 @@ class AuthTest extends MyTestCase
         $this->assertFalse($this->auth->jwt($jwt, $toUser));
         $this->assertEquals('foo', $this->auth->getUser()->getUsername());
     }
+
+    /**
+     * @dataProvider Fal\Stick\TestSuite\Provider\Security\AuthProvider::impersonateOn
+     */
+    public function testImpersonateOn($expected, $message, $username)
+    {
+        $this->assertEquals($expected, $this->auth->impersonateOn($username));
+        $this->assertEquals($message, $this->auth->error());
+    }
+
+    public function testImpersonateOff()
+    {
+        $this->auth->impersonateOn('foo');
+
+        $this->assertEquals('foo', $this->auth->getUser()->getUsername());
+
+        $this->auth->impersonateOff();
+        $this->assertNull($this->auth->getUser());
+    }
 }
