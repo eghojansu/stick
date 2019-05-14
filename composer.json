@@ -25,5 +25,13 @@
     "require-dev": {
         "phpunit/phpunit": "^8.0",
         "friendsofphp/php-cs-fixer": "^2.14"
+    },
+    "suggest": {
+        "ext-apcu": "Needed to support apc/apcu cache engine",
+        "ext-curl": "Needed to support web request with cURL",
+        "ext-gd": "Needed to support image manipulation",
+        "ext-redis": "Needed to support redis cache engine",
+        "ext-memcache": "Needed to support memcache cache engine",
+        "ext-memcached": "Needed to support memcached cache engine"
     }
 }

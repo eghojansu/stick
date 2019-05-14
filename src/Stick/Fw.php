@@ -3003,7 +3003,7 @@ HTML;
             case 'memcached':
                 return false !== $this->hive['CACHE_REF']->get($ckey);
             case 'redis':
-                return 1 === $this->hive['CACHE_REF']->exists($ckey);
+                return (bool) $this->hive['CACHE_REF']->exists($ckey);
             default:
                 return false;
         }
@@ -3122,14 +3122,14 @@ HTML;
     /**
      * Reset cache.
      *
-     * @param string $suffix
+     * @param string|null $suffix
      *
      * @return int
      */
-    public function creset(string $suffix = ''): int
+    public function creset(string $suffix = null): int
     {
         $prefix = $this->hive['SEED'].'.';
-        $pattern = '/^'.preg_quote($prefix, '/').'.+'.preg_quote($suffix, '/').'$/';
+        $pattern = '/^'.preg_quote($prefix, '/').'.+'.preg_quote($suffix ?? '', '/').'$/';
         $delete = null;
         $items = array();
         $success = true;
@@ -3476,7 +3476,7 @@ HTML;
                 $this->hive['CACHE_REF'] = new \Redis();
                 $this->hive['CACHE_REF']->connect($parts[0], intval($parts[1] ?? 6379));
                 empty($parts[2]) || $this->hive['CACHE_REF']->select($parts[2]);
-            } catch (\RedisException $e) {
+            } catch (\Throwable $e) {
                 $this->cacheFallback(true);
             }
         } elseif (('memcache' === $engine || 'memcached' === $engine) && $reference && extension_loaded($engine)) {
