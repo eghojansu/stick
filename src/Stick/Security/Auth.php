@@ -175,13 +175,17 @@ class Auth
 
             $rule += array('login' => '/login', 'home' => '/');
 
-            if ($rule['login'] === $path && $this->isLogged()) {
-                // if not granted, logout automatically
-                $this->isGranted($rule['roles']) || $this->logout();
-                // reroute to home
-                $this->fw->reroute($rule['home']);
+            if ($rule['login'] === $path) {
+                if ($this->isLogged()) {
+                    // if not granted, logout automatically
+                    $this->isGranted($rule['roles']) || $this->logout();
+                    // reroute to home
+                    $this->fw->reroute($rule['home']);
 
-                return true;
+                    return true;
+                }
+
+                return false;
             }
 
             if (preg_match('#'.$check.'#', $path) && !$this->isGranted($rule['roles'])) {
