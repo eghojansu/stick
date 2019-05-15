@@ -665,7 +665,7 @@ class Form implements \ArrayAccess
         $data = array();
 
         foreach ($fields as $name => $field) {
-            $data[$name] = $field->transform(isset($formData[$name]) ? $formData[$name] : null);
+            $data[$name] = $field->transform($formData[$name] ?? null);
 
             if ($field->constraints) {
                 $rules[$name] = $field->constraints;

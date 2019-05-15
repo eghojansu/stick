@@ -46,7 +46,7 @@ final class RuleParser
 
         for ($ptr = 0; $ptr < $len; ++$ptr) {
             $char = $expr[$ptr];
-            $prev = isset($expr[$ptr - 1]) ? $expr[$ptr - 1] : null;
+            $prev = $expr[$ptr - 1] ?? null;
 
             if (('"' === $char || "'" === $char) && '\\' !== $prev) {
                 if ($quote) {

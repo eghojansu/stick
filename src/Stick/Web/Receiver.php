@@ -48,7 +48,7 @@ class Receiver
 
         foreach (explode(',', str_replace(' ', '', $this->fw->get('REQUEST.Accept', ''))) as $mime) {
             if (preg_match('/(.+?)(?:;q=([\d\.]+)|$)/', $mime, $parts)) {
-                $accept[$parts[1]] = isset($parts[2]) ? $parts[2] : 1;
+                $accept[$parts[1]] = $parts[2] ?? 1;
             }
         }
 

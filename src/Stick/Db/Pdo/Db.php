@@ -436,9 +436,8 @@ final class Db
             $fields = array_fill_keys($this->fw->split($fields), true);
 
             foreach ($schema->getFields() as $field) {
-                if (!isset($fields[$field])) {
-                    $schema->rem($field);
-                }
+                // remove if field not expected
+                isset($fields[$field]) || $schema->rem($field);
             }
         }
 

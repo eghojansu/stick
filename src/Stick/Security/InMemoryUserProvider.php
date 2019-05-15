@@ -50,7 +50,7 @@ class InMemoryUserProvider implements UserProviderInterface
      */
     public function findByUsername($username): ?UserInterface
     {
-        return isset($this->users[$username]) ? $this->users[$username] : null;
+        return $this->users[$username] ?? null;
     }
 
     /**
@@ -58,8 +58,6 @@ class InMemoryUserProvider implements UserProviderInterface
      */
     public function findById($id): ?UserInterface
     {
-        $key = isset($this->mapId[$id]) ? $this->mapId[$id] : 'none';
-
-        return isset($this->users[$key]) ? $this->users[$key] : null;
+        return $this->users[$this->mapId[$id] ?? 'none'] ?? null;
     }
 }

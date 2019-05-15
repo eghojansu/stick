@@ -573,7 +573,7 @@ class Mapper extends Magic implements \Iterator, \Countable
      */
     public function paginate(int $page = 1, $filter = null, array $options = null, int $ttl = 0): array
     {
-        $limit = isset($options['limit']) ? $options['limit'] : self::PAGINATION_LIMIT;
+        $limit = $options['limit'] ?? self::PAGINATION_LIMIT;
         unset($options['limit']);
 
         $subset = clone $this;
@@ -615,7 +615,7 @@ class Mapper extends Magic implements \Iterator, \Countable
             list($sql, $arguments) = $this->db->driver->sqlUpdate($this->table, $this->schema, $this->changes[$this->ptr], $this->keys()) + $null;
             $result = 0 < $this->db->exec($sql, $arguments);
         } else {
-            $data = isset($this->changes[$this->ptr]) ? $this->changes[$this->ptr] : array();
+            $data = $this->changes[$this->ptr] ?? array();
             list($sql, $arguments, $inc) = $this->db->driver->sqlInsert($this->table, $this->schema, $data) + $null;
             $result = 0 < $this->db->exec($sql, $arguments);
 
