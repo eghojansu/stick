@@ -42,7 +42,7 @@ class Mapper extends Magic implements \Iterator, \Countable
     /**
      * @var Db
      */
-    protected $db;
+    public $db;
 
     /**
      * @var string
