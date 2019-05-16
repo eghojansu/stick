@@ -76,11 +76,6 @@ class MapperTest extends MyTestCase
         $this->assertEquals(0, $this->mapper->count());
     }
 
-    public function testFound()
-    {
-        $this->assertFalse($this->mapper->found());
-    }
-
     public function testDry()
     {
         $this->assertTrue($this->mapper->dry());
@@ -232,7 +227,7 @@ class MapperTest extends MyTestCase
         $this->assertEquals(array('id' => 1), $this->mapper->keys());
 
         $this->expectException('LogicException');
-        $this->expectExceptionMessage('Mapper empty!');
+        $this->expectExceptionMessage('Invalid operation on an empty mapper.');
         $this->mapper->reset()->keys();
     }
 
@@ -370,27 +365,29 @@ class MapperTest extends MyTestCase
         $this->assertFalse($this->mapper->save());
     }
 
+    public function testSaveNothing()
+    {
+        $this->assertFalse($this->mapper->save());
+    }
+
     public function testDelete()
     {
-        $this->assertTrue($this->mapper->find()->delete());
-        $this->assertCount(2, $this->mapper);
-        $this->assertEquals(2, $this->mapper->get('id'));
-
         // no key
         $this->mapper->switchTable('nokey');
         $this->assertFalse($this->mapper->find()->delete());
+        $this->assertCount(2, $this->mapper);
+
+        // switch table
+        $this->mapper->switchTable('user');
+        $this->assertTrue($this->mapper->find()->delete());
+        $this->assertCount(2, $this->mapper);
+        $this->assertEquals(2, $this->mapper->get('id'));
 
         // add event
         $this->fw->on('mapper.delete', function () {
             return false;
         });
         $this->assertFalse($this->mapper->delete());
-
-        // throw event
-        $this->expectException('LogicException');
-        $this->expectExceptionMessage('Empty mapper!');
-        $this->mapper->switchTable('user');
-        $this->mapper->delete();
     }
 
     public function testDeleteAll()
@@ -457,5 +454,10 @@ class MapperTest extends MyTestCase
         );
 
         $this->assertEquals(array($expected), $this->mapper->rows());
+    }
+
+    public function testHasChanges()
+    {
+        $this->assertFalse($this->mapper->hasChanges());
     }
 }

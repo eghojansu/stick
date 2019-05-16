@@ -721,7 +721,7 @@ class Crud
         $this->data['mapper']->findOne($this->prepareItemFilters());
         $this->dispatch('load_mapper', array($this->data['mapper']));
 
-        if (!$this->data['mapper']->valid()) {
+        if ($this->data['mapper']->dry()) {
             $this->fw->error(404);
 
             return false;

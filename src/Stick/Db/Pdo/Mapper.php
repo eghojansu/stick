@@ -69,14 +69,7 @@ class Mapper extends Magic implements \Iterator, \Countable
     /**
      * @var bool
      */
-    protected $found = false;
-
-    /**
-     * Loaded triggered rows.
-     *
-     * @var array
-     */
-    protected $loaded = array();
+    protected $loaded = false;
 
     /**
      * @var array
@@ -140,8 +133,7 @@ class Mapper extends Magic implements \Iterator, \Countable
      */
     public function current()
     {
-        if ($this->found && empty($this->loaded[$this->ptr])) {
-            $this->loaded[$this->ptr] = true;
+        if ($this->loaded) {
             $this->db->fw->dispatch(self::EVENT_LOAD, $this);
         }
 
@@ -177,7 +169,7 @@ class Mapper extends Magic implements \Iterator, \Countable
      */
     public function valid()
     {
-        return $this->found && isset($this->hive[$this->ptr]);
+        return $this->loaded && isset($this->hive[$this->ptr]);
     }
 
     /**
@@ -189,23 +181,13 @@ class Mapper extends Magic implements \Iterator, \Countable
     }
 
     /**
-     * Returns true if mapper is loaded.
-     *
-     * @return bool
-     */
-    public function found(): bool
-    {
-        return $this->found;
-    }
-
-    /**
      * Returns true if mapper is new.
      *
      * @return bool
      */
     public function dry(): bool
     {
-        return !$this->found;
+        return !$this->valid();
     }
 
     /**
@@ -321,6 +303,7 @@ class Mapper extends Magic implements \Iterator, \Countable
                 'expr' => $value,
             );
         } else {
+            // set as raw adhoc
             $this->hive[$this->ptr][$field] = $value;
         }
 
@@ -336,13 +319,7 @@ class Mapper extends Magic implements \Iterator, \Countable
      */
     public function rem(string $field): Magic
     {
-        if (isset($this->schema[$field])) {
-            unset($this->changes[$this->ptr][$field]);
-        } elseif (isset($this->adhoc[$field])) {
-            unset($this->adhoc[$field]);
-        } else {
-            unset($this->hive[$this->ptr][$field]);
-        }
+        unset($this->changes[$this->ptr][$field], $this->hive[$this->ptr][$field], $this->adhoc[$field]);
 
         return $this;
     }
@@ -356,11 +333,20 @@ class Mapper extends Magic implements \Iterator, \Countable
     {
         $this->hive = array();
         $this->changes = array();
-        $this->loaded = array();
-        $this->found = false;
+        $this->loaded = false;
         $this->ptr = 0;
 
         return $this;
+    }
+
+    /**
+     * Returns true if mapper has changes.
+     *
+     * @return bool
+     */
+    public function hasChanges(): bool
+    {
+        return isset($this->changes[$this->ptr]);
     }
 
     /**
@@ -401,15 +387,10 @@ class Mapper extends Magic implements \Iterator, \Countable
     public function toArray(bool $withAdhoc = false): array
     {
         $result = array();
+        $adhocs = $withAdhoc ? $this->adhoc : array();
 
-        foreach ($this->schema->getFields() as $key) {
+        foreach ($this->schema->getSchema() + $adhocs as $key => $value) {
             $result[$key] = $this->get($key);
-        }
-
-        if ($withAdhoc) {
-            foreach ($this->adhoc as $key => $value) {
-                $result[$key] = $this->get($key);
-            }
         }
 
         return $result;
@@ -443,8 +424,8 @@ class Mapper extends Magic implements \Iterator, \Countable
      */
     public function keys(): array
     {
-        if (!$this->found) {
-            throw new \LogicException('Mapper empty!');
+        if (!$this->loaded) {
+            throw new \LogicException('Invalid operation on an empty mapper.');
         }
 
         return array_intersect_key($this->hive[$this->ptr], array_fill_keys($this->schema->getKeys(), null));
@@ -493,11 +474,10 @@ class Mapper extends Magic implements \Iterator, \Countable
     {
         $this->reset();
 
-        $fields = $this->fields().$this->adhocs();
-        list($sql, $values) = $this->db->driver->sqlSelect($fields, $this->table, $this->alias, $filter, $options);
+        $cmd = $this->db->driver->sqlSelect($this->fields().$this->adhocs(), $this->table, $this->alias, $filter, $options);
 
-        $this->hive = $this->db->exec($sql, $values, $ttl);
-        $this->found = (bool) $this->hive;
+        $this->hive = $this->db->exec($cmd[0], $cmd[1], $ttl);
+        $this->loaded = (bool) $this->hive;
 
         return $this;
     }
@@ -603,27 +583,28 @@ class Mapper extends Magic implements \Iterator, \Countable
      */
     public function save(): bool
     {
-        $dispatch = $this->db->fw->dispatch(self::EVENT_SAVE, $this);
+        $changes = $this->changes[$this->ptr] ?? array();
+        $dispatch = $this->db->fw->dispatch(self::EVENT_SAVE, $this, $changes);
 
-        if ($dispatch && false === $dispatch[0]) {
+        if (empty($changes) || ($dispatch && false === $dispatch[0])) {
             return false;
         }
 
-        $null = array(null, null, null);
-
-        if ($this->found) {
-            list($sql, $arguments) = $this->db->driver->sqlUpdate($this->table, $this->schema, $this->changes[$this->ptr], $this->keys()) + $null;
+        if ($this->loaded) {
+            list($sql, $arguments) = $this->db->driver->sqlUpdate($this->table, $this->schema, $changes, $this->keys());
             $result = 0 < $this->db->exec($sql, $arguments);
         } else {
-            $data = $this->changes[$this->ptr] ?? array();
-            list($sql, $arguments, $inc) = $this->db->driver->sqlInsert($this->table, $this->schema, $data) + $null;
+            list($sql, $arguments, $inc) = $this->db->driver->sqlInsert($this->table, $this->schema, $changes);
             $result = 0 < $this->db->exec($sql, $arguments);
 
             if ($result) {
-                $this->found = true;
-
                 if ($inc) {
                     $this->findOne(array($inc => $this->db->pdo()->lastInsertId()));
+                } else {
+                    // swap changes, add current adhoc if exists
+                    $this->hive[$this->ptr] = $changes + ($this->hive[$this->ptr] ?? array());
+                    $this->changes = array();
+                    $this->loaded = true;
                 }
             }
         }
@@ -640,17 +621,10 @@ class Mapper extends Magic implements \Iterator, \Countable
      */
     public function delete(): bool
     {
-        if (!$this->found) {
-            throw new \LogicException('Empty mapper!');
-        }
+        $keys = $this->keys();
+        $dispatch = $this->db->fw->dispatch(self::EVENT_DELETE, $this, $keys);
 
-        $dispatch = $this->db->fw->dispatch(self::EVENT_DELETE, $this);
-
-        if ($dispatch && false === $dispatch[0]) {
-            return false;
-        }
-
-        if (!$keys = $this->keys()) {
+        if (empty($keys) || ($dispatch && false === $dispatch[0])) {
             return false;
         }
 
@@ -658,15 +632,12 @@ class Mapper extends Magic implements \Iterator, \Countable
         $result = 0 < $this->db->exec($sql, $arguments);
 
         if ($result) {
-            foreach (array('hive', 'changes', 'loaded') as $prop) {
-                $this->$prop = array_slice($this->$prop, 0, $this->ptr, true) + array_slice($this->$prop, $this->ptr + 1, null, true);
-            }
+            unset($this->hive[$this->ptr], $this->changes[$this->ptr]);
 
+            // update loaded and load next map
+            $this->loaded = (bool) $this->hive;
             $this->next();
-
-            if ($this->valid()) {
-                $this->current();
-            }
+            $this->dry() || $this->current();
         }
 
         $this->db->fw->dispatch(self::EVENT_AFTER_DELETE, $this, $result);
