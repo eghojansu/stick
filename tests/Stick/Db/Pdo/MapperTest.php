@@ -456,8 +456,10 @@ class MapperTest extends MyTestCase
         $this->assertEquals(array($expected), $this->mapper->rows());
     }
 
-    public function testHasChanges()
+    public function testChanges()
     {
-        $this->assertFalse($this->mapper->hasChanges());
+        $this->mapper->findOne()->set('username', 'foo')->set('active', 0);
+
+        $this->assertEquals(array('active' => 0), $this->mapper->changes());
     }
 }

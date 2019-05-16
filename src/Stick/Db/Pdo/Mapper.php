@@ -340,13 +340,21 @@ class Mapper extends Magic implements \Iterator, \Countable
     }
 
     /**
-     * Returns true if mapper has changes.
+     * Mapper changes.
      *
-     * @return bool
+     * @return array
      */
-    public function hasChanges(): bool
+    public function changes(): array
     {
-        return isset($this->changes[$this->ptr]);
+        $changes = $this->changes[$this->ptr] ?? array();
+
+        foreach ($this->hive[$this->ptr] ?? array() as $key => $value) {
+            if (array_key_exists($key, $changes) && $changes[$key] === $value) {
+                unset($changes[$key]);
+            }
+        }
+
+        return $changes;
     }
 
     /**
@@ -583,7 +591,7 @@ class Mapper extends Magic implements \Iterator, \Countable
      */
     public function save(): bool
     {
-        $changes = $this->changes[$this->ptr] ?? array();
+        $changes = $this->changes();
         $dispatch = $this->db->fw->dispatch(self::EVENT_SAVE, $this, $changes);
 
         if (empty($changes) || ($dispatch && false === $dispatch[0])) {
