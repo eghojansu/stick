@@ -340,6 +340,16 @@ class Mapper extends Magic implements \Iterator, \Countable
     }
 
     /**
+     * Mapper initial.
+     *
+     * @return array
+     */
+    public function initial(): array
+    {
+        return $this->hive[$this->ptr] ?? array();
+    }
+
+    /**
      * Mapper changes.
      *
      * @return array
@@ -348,7 +358,7 @@ class Mapper extends Magic implements \Iterator, \Countable
     {
         $changes = $this->changes[$this->ptr] ?? array();
 
-        foreach ($this->hive[$this->ptr] ?? array() as $key => $value) {
+        foreach ($this->initial() as $key => $value) {
             if (array_key_exists($key, $changes) && $changes[$key] === $value) {
                 unset($changes[$key]);
             }
@@ -610,7 +620,7 @@ class Mapper extends Magic implements \Iterator, \Countable
                     $this->findOne(array($inc => $this->db->pdo()->lastInsertId()));
                 } else {
                     // swap changes, add current adhoc if exists
-                    $this->hive[$this->ptr] = $changes + ($this->hive[$this->ptr] ?? array());
+                    $this->hive[$this->ptr] = $changes + $this->initial();
                     $this->changes = array();
                     $this->loaded = true;
                 }

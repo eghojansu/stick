@@ -462,4 +462,9 @@ class MapperTest extends MyTestCase
 
         $this->assertEquals(array('active' => 0), $this->mapper->changes());
     }
+
+    public function testInitial()
+    {
+        $this->assertEquals(array(), $this->mapper->initial());
+    }
 }
