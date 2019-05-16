@@ -411,7 +411,7 @@ class Form implements \ArrayAccess
     }
 
     /**
-     * Set form field.
+     * Add form field.
      *
      * @param string     $name
      * @param string     $type
@@ -419,7 +419,7 @@ class Form implements \ArrayAccess
      *
      * @return Form
      */
-    public function set(string $name, string $type = 'text', array $options = null): Form
+    public function add(string $name, string $type = 'text', array $options = null): Form
     {
         $field = $this->createField($name, $type, $options);
 
@@ -433,7 +433,7 @@ class Form implements \ArrayAccess
     }
 
     /**
-     * An alias for set.
+     * An alias for add.
      *
      * @param string     $name
      * @param string     $type
@@ -441,9 +441,9 @@ class Form implements \ArrayAccess
      *
      * @return Form
      */
-    public function add(string $name, string $type = 'text', array $options = null): Form
+    public function set(string $name, string $type = 'text', array $options = null): Form
     {
-        return $this->set($name, $type, $options);
+        return $this->add($name, $type, $options);
     }
 
     /**
