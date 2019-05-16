@@ -72,6 +72,34 @@ class ValueStore extends Magic
     }
 
     /**
+     * Merge data.
+     *
+     * @param array $data
+     *
+     * @return ValueStore
+     */
+    public function merge(array $data): ValueStore
+    {
+        $this->hive = array_replace_recursive($this->hive, $data);
+
+        return $this;
+    }
+
+    /**
+     * Replace data.
+     *
+     * @param array $data
+     *
+     * @return ValueStore
+     */
+    public function replace(array $data): ValueStore
+    {
+        $this->hive = $data;
+
+        return $this;
+    }
+
+    /**
      * Save data to file.
      *
      * @param bool $replace

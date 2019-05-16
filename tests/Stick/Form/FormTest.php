@@ -190,6 +190,15 @@ class FormTest extends MyTestCase
         $this->assertTrue($this->form->has('bar'));
     }
 
+    public function testAdd()
+    {
+        $this->form->add('foo');
+        $this->form->add('bar', 'button');
+
+        $this->assertTrue($this->form->has('foo'));
+        $this->assertTrue($this->form->has('bar'));
+    }
+
     public function testRem()
     {
         $this->form->set('foo');

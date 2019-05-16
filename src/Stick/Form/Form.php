@@ -340,9 +340,9 @@ class Form implements \ArrayAccess
     public function isSubmitted(): bool
     {
         if (null === $this->submitted) {
-            $options = new Option();
-            $this->configureOptions($options);
-            $this->build($options->resolve($this->options));
+            $option = new Option();
+            $this->configureOption($option);
+            $this->build($option->resolve($this->options));
             $this->prepareData();
 
             $this->submitted = $this->method === $this->fw->get('VERB');
@@ -430,6 +430,20 @@ class Form implements \ArrayAccess
         }
 
         return $this;
+    }
+
+    /**
+     * An alias for set.
+     *
+     * @param string     $name
+     * @param string     $type
+     * @param array|null $options
+     *
+     * @return Form
+     */
+    public function add(string $name, string $type = 'text', array $options = null): Form
+    {
+        return $this->set($name, $type, $options);
     }
 
     /**
@@ -578,21 +592,21 @@ class Form implements \ArrayAccess
     /**
      * Allow children to add fields etc.
      *
-     * @param Option $options
+     * @param Option $option
      */
-    protected function build(Option $options)
+    protected function build(Option $option)
     {
         // override to add fields and button
     }
 
     /**
-     * Allow children to configure options.
+     * Allow children to configure option.
      *
-     * @param Option $options
+     * @param Option $option
      */
-    protected function configureOptions(Option $options)
+    protected function configureOption(Option $option)
     {
-        // override to configure defaults options
+        // override to configure defaults option
     }
 
     /**

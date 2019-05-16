@@ -61,4 +61,14 @@ class ValueStoreTest extends MyTestCase
 
         new ValueStore($this->fixture('/files/json_invalid.json'));
     }
+
+    public function testMerge()
+    {
+        $this->assertEquals('baz', $this->store->merge(array('bar' => 'baz'))->get('bar'));
+    }
+
+    public function testReplace()
+    {
+        $this->assertNull($this->store->replace(array('bar' => 'baz'))->get('foo'));
+    }
 }
