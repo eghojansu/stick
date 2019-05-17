@@ -601,8 +601,9 @@ class Mapper extends Magic implements \Iterator, \Countable
      */
     public function save(): bool
     {
+        $dispatch = $this->db->fw->dispatch(self::EVENT_SAVE, $this);
+        // changes after dispatching
         $changes = $this->changes();
-        $dispatch = $this->db->fw->dispatch(self::EVENT_SAVE, $this, $changes);
 
         if (empty($changes) || ($dispatch && false === $dispatch[0])) {
             return false;
@@ -627,7 +628,7 @@ class Mapper extends Magic implements \Iterator, \Countable
             }
         }
 
-        $this->db->fw->dispatch(self::EVENT_AFTER_SAVE, $this, $result);
+        $this->db->fw->dispatch(self::EVENT_AFTER_SAVE, $this, $result, $changes);
 
         return $result;
     }
@@ -647,6 +648,7 @@ class Mapper extends Magic implements \Iterator, \Countable
         }
 
         list($sql, $arguments) = $this->db->driver->sqlDelete($this->table, $this->schema, $keys);
+        $initial = $this->initial();
         $result = 0 < $this->db->exec($sql, $arguments);
 
         if ($result) {
@@ -658,7 +660,7 @@ class Mapper extends Magic implements \Iterator, \Countable
             $this->dry() || $this->current();
         }
 
-        $this->db->fw->dispatch(self::EVENT_AFTER_DELETE, $this, $result);
+        $this->db->fw->dispatch(self::EVENT_AFTER_DELETE, $this, $result, $initial, $keys);
 
         return $result;
     }

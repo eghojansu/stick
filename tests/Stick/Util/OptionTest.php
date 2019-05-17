@@ -169,6 +169,18 @@ class OptionTest extends MyTestCase
         $this->expectException('LogicException');
         $this->expectExceptionMessage('Option required: foo.');
         $this->option->setRequired('foo');
-        $this->option->resolve(array());
+        $this->option->resolve(array('foo' => null));
+    }
+
+    public function testResolveNotOption()
+    {
+        $this->option->setDefaults(array(
+            'bar' => 'baz',
+            'foo' => null,
+        ));
+
+        $this->expectException('LogicException');
+        $this->expectExceptionMessage('Not an option: baz.');
+        $this->option->resolve(array('baz' => null));
     }
 }

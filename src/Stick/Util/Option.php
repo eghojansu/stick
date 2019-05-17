@@ -312,11 +312,15 @@ class Option extends Magic implements \Countable, \IteratorAggregate
      */
     public function resolve(array $options): Option
     {
-        foreach ($this->defaults as $option => $value) {
-            if (array_key_exists($option, $options)) {
-                $this->set($option, $options[$option]);
-            } elseif (null === $value && ($this->required[$option] ?? false)) {
-                throw new \LogicException(sprintf(sprintf('Option required: %s.', $option)));
+        foreach ($options as $option => $value) {
+            if (array_key_exists($option, $this->defaults)) {
+                if (null === $value && ($this->required[$option] ?? false)) {
+                    throw new \LogicException(sprintf(sprintf('Option required: %s.', $option)));
+                }
+
+                $this->set($option, $value);
+            } else {
+                throw new \LogicException(sprintf('Not an option: %s.', $option));
             }
         }
 
