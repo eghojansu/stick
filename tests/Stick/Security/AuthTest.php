@@ -213,6 +213,11 @@ class AuthTest extends MyTestCase
 
         $this->assertFalse($this->auth->jwt($jwt, $toUser));
         $this->assertEquals('foo', $this->auth->getUser()->getUsername());
+
+        $this->expectException('Fal\Stick\HttpException');
+        $this->expectExceptionCode(203);
+        $this->fw->set('HEADERS.Authorization', 'Nothing '.$token);
+        $this->auth->jwt($jwt, $toUser);
     }
 
     /**

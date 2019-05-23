@@ -133,17 +133,20 @@ class Auth
     /**
      * Guard with JWT Token.
      *
-     * @param Jwt     $jwt
-     * @param Closure $toUser
+     * @param Jwt      $jwt
+     * @param callable $toUser
      *
      * @return bool
      */
-    public function jwt(Jwt $jwt, \Closure $toUser): bool
+    public function jwt(Jwt $jwt, callable $toUser): bool
     {
         if ($header = $this->fw->get('HEADERS.Authorization') ?? $this->fw->get('SERVER.REDIRECT_HTTP_AUTHORIZATION')) {
-            $token = substr($header, 7);
-            $user = $toUser($jwt->decode($token));
-            $this->user || $this->setUser($user);
+            if (sscanf($header, 'Bearer %s', $token) < 1) {
+                throw new HttpException('', 203);
+            }
+
+            $user = $toUser($jwt->decode($token), $this->fw);
+            $this->user || (empty($user) || $this->setUser($user));
         }
 
         return $this->guard();
