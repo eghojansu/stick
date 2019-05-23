@@ -1780,16 +1780,16 @@ final class Fw extends Magic
     }
 
     /**
-     * Returns true if compared method equals to current request method.
+     * Returns true if compared verbs equals to current http verb.
      *
-     * @param string ...$methods
+     * @param string ...$verbs
      *
      * @return bool
      */
-    public function isMethod(string ...$methods): bool
+    public function isVerb(string ...$verbs): bool
     {
-        foreach ($methods as $method) {
-            if (0 === strcasecmp($this->hive['VERB'], $method)) {
+        foreach ($verbs as $verb) {
+            if (0 === strcasecmp($this->hive['VERB'], $verb)) {
                 return true;
             }
         }
@@ -3555,7 +3555,7 @@ HTML;
         $this->hive['PARAMS'] = $arguments;
 
         // trying to resolve browser and local cache
-        if ($ttl && $this->isMethod('GET', 'HEAD')) {
+        if ($ttl && $this->isVerb('GET', 'HEAD')) {
             // Only GET and HEAD requests are cacheable
             $hash = self::hash($this->hive['VERB'].' '.$this->hive['URI'], '.url');
             $cache = $this->cget($hash, $info);

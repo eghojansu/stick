@@ -1258,12 +1258,12 @@ class FwTest extends MyTestCase
         $this->fw->bar();
     }
 
-    public function testIsMethod()
+    public function testIsVerb()
     {
-        $this->assertTrue($this->fw->isMethod('get'));
-        $this->assertTrue($this->fw->isMethod('GET', 'post'));
-        $this->assertTrue($this->fw->isMethod('post', 'get'));
-        $this->assertFalse($this->fw->isMethod('post', 'put'));
+        $this->assertTrue($this->fw->isVerb('get'));
+        $this->assertTrue($this->fw->isVerb('GET', 'post'));
+        $this->assertTrue($this->fw->isVerb('post', 'get'));
+        $this->assertFalse($this->fw->isVerb('post', 'put'));
     }
 
     public function testCsrfRegister()

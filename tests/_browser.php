@@ -118,7 +118,7 @@ Fw::createFromGlobals()
             return false;
         }
 
-        if ($fw->auth->login($fw->isMethod('post'))) {
+        if ($fw->auth->login($fw->isVerb('post'))) {
             return $fw->reroute();
         }
 
@@ -164,7 +164,7 @@ Fw::createFromGlobals()
         // auto-protected with jwt guard
         $fw->auth->options->remember_session = false;
 
-        if ($fw->auth->login($fw->isMethod('post'))) {
+        if ($fw->auth->login($fw->isVerb('post'))) {
             $user = $fw->auth->getUser();
             $token = $fw->jwt->encode(array(
                 'id' => $user->getId(),
@@ -227,7 +227,7 @@ Fw::createFromGlobals()
             echo $eol.'redirected';
         }
 
-        if ($fw->isMethod('post')) {
+        if ($fw->isVerb('post')) {
             echo $eol.'Post:';
 
             foreach ($fw['POST'] as $key => $value) {
