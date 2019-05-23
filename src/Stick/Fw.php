@@ -2922,9 +2922,7 @@ HTML;
             $this->hive['SERVER'] = $server + (array) $this->hive['SERVER'];
         }
 
-        $this->status(200);
-
-        return $this->run();
+        return $this->status(200)->doRun();
     }
 
     /**
