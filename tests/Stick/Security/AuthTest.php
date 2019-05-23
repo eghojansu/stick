@@ -209,14 +209,14 @@ class AuthTest extends MyTestCase
             'expired' => false,
         );
         $token = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpZCI6IjEiLCJ1c2VybmFtZSI6ImZvbyIsInJvbGVzIjpbImFkbWluIl0sImV4cGlyZWQiOmZhbHNlfQ.q_g29MKCotCDEUaGGmwqcRzu8uXdmCKU8RWTCc60hxY';
-        $this->fw->set('HEADERS.Authorization', 'Bearer '.$token);
+        $this->fw->set('REQUEST.Authorization', 'Bearer '.$token);
 
         $this->assertFalse($this->auth->jwt($jwt, $toUser));
         $this->assertEquals('foo', $this->auth->getUser()->getUsername());
 
         $this->expectException('Fal\Stick\HttpException');
         $this->expectExceptionCode(203);
-        $this->fw->set('HEADERS.Authorization', 'Nothing '.$token);
+        $this->fw->set('REQUEST.Authorization', 'Nothing '.$token);
         $this->auth->jwt($jwt, $toUser);
     }
 

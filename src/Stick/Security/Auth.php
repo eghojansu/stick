@@ -116,7 +116,7 @@ class Auth
         $username = 'SERVER.PHP_AUTH_USER';
         $password = 'SERVER.PHP_AUTH_PW';
 
-        if ($header = $this->fw->get('HEADERS.Authorization') ?? $this->fw->get('SERVER.REDIRECT_HTTP_AUTHORIZATION')) {
+        if ($header = $this->fw->get('REQUEST.Authorization') ?? $this->fw->get('SERVER.REDIRECT_HTTP_AUTHORIZATION')) {
             list($this->fw->$username, $this->fw->$password) = explode(':', base64_decode(substr($header, 6)));
         }
 
@@ -140,7 +140,7 @@ class Auth
      */
     public function jwt(Jwt $jwt, callable $toUser): bool
     {
-        if ($header = $this->fw->get('HEADERS.Authorization') ?? $this->fw->get('SERVER.REDIRECT_HTTP_AUTHORIZATION')) {
+        if ($header = $this->fw->get('REQUEST.Authorization') ?? $this->fw->get('SERVER.REDIRECT_HTTP_AUTHORIZATION')) {
             if (sscanf($header, 'Bearer %s', $token) < 1) {
                 throw new HttpException('', 203);
             }

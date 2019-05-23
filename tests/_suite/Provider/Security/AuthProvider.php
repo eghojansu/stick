@@ -154,7 +154,7 @@ class AuthProvider
                 false,
                 '',
                 array(
-                    'HEADERS.Authorization' => 'realm='.base64_encode('foo:bar'),
+                    'REQUEST.Authorization' => 'realm='.base64_encode('foo:bar'),
                 ),
             ),
             array(
