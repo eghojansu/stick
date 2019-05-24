@@ -93,6 +93,11 @@ class Console
     );
 
     /**
+     * @var Fw
+     */
+    public $fw;
+
+    /**
      * @var Option
      */
     public $app;
@@ -103,6 +108,11 @@ class Console
     protected $commands = array();
 
     /**
+     * @var array
+     */
+    protected $routes = array();
+
+    /**
      * @var bool
      */
     protected $dry = true;
@@ -110,60 +120,74 @@ class Console
     /**
      * Class constructor.
      *
+     * @param Fw         $fw
      * @param array|null $app
      */
-    public function __construct(array $app = null)
+    public function __construct(Fw $fw, array $app = null)
     {
+        $this->fw = $fw;
         $this->app = (new Option())
             ->add('name', Fw::PACKAGE, 'string', true)
             ->add('version', Fw::VERSION, 'string', true)
-            ->add('prefix', 'console', 'string', true)
             ->add('default_command', 'help', 'string', true)
-            ->add('cli_only', true, 'bool', true)
             ->resolve($app ?? array());
     }
 
     /**
-     * Register its self to framework routes.
+     * Run console.
      *
-     * @param Fw $$fw
-     *
-     * @return Console
+     * @return int
      */
-    public function register(Fw $fw): Console
+    public function run(): int
     {
-        $pattern = 'GET /'.trim($this->app->prefix, '/');
-        $pattern2 = rtrim($pattern, '/').'/@commands*';
+        $found = $this->findCommand($this->app->default_command);
+        $options = $this->fw->get('GET') ?? array();
+        $arguments = $found['arguments'];
+        $name = $found['command'];
+        $command = $this->getCommand($name);
+        $input = (new Input())->resolve($command, $arguments, $options);
 
-        if ($this->app->cli_only) {
-            $pattern .= ' cli';
-            $pattern2 .= ' cli';
+        if ($input->hasOption('v', 'version')) {
+            $this->writeln(sprintf('<info>%s</> <comment>%s</>', $this->app->name, $this->app->version));
+
+            return 0;
         }
 
-        $fw->route($pattern, array($this, 'handleDefault'));
-        $fw->route($pattern2, array($this, 'handleCommand'));
+        if ('help' !== $name && $input->hasOption('h', 'help') && $this->hasCommand('help')) {
+            $command = $this->commands['help'];
+            $input->resolve($command, array($name), array());
+        }
 
-        return $this;
+        try {
+            return $command->run($this, $input);
+        } catch (\Throwable $e) {
+            $this->writeln('<error>An error occured</>');
+            $this->writeln();
+            $this->writeln(sprintf('  <comment>%s</>', get_class($e)));
+            $this->writeln(sprintf('  <info>%s</>', wordwrap($e->getMessage(), $this->getWidth() - 5)));
+
+            return 1;
+        }
     }
 
     /**
-     * Handle default command.
+     * Returns registered command routes.
      *
-     * @param Fw    $fw
-     * @param array $params
+     * @return array
      */
-    public function handleDefault(Fw $fw, array $params): void
+    public function getRoutes(): array
     {
-        $this->handleCommand($fw, array('commands' => array($this->app->default_command)));
+        return $this->routes;
     }
 
     /**
-     * Commands controller.
+     * Find command from fw path.
      *
-     * @param Fw    $fw
-     * @param array $params
+     * @param string|null $default
+     *
+     * @return array|null
      */
-    public function handleCommand(Fw $fw, array $params): void
+    public function findCommand(string $default = null): ?array
     {
         if ($this->dry) {
             $this->dry = false;
@@ -171,24 +195,18 @@ class Console
             $this->addCommands($this->getDefaultCommands());
         }
 
-        $options = $fw->get('GET', array());
-        $arguments = $params['commands'];
-        $name = array_shift($arguments);
-        $command = $this->getCommand($name);
-        $input = (new Input())->resolve($command, $arguments, $options);
+        $path = $this->fw->get('PATH');
 
-        if ($input->hasOption('v', 'version')) {
-            $this->writeln(sprintf('<info>%s</info> <comment>%s</comment>', $this->app->name, $this->app->version));
-
-            return;
+        foreach ($this->routes as $pattern => $command) {
+            if (null !== $arguments = $this->fw->routeMatch($path, $pattern)) {
+                return compact('command', 'arguments');
+            }
         }
 
-        if ('help' !== $name && $input->hasOption('h', 'help')) {
-            $command = $this->commands['help'];
-            $input->resolve($command, array($name), array());
-        }
-
-        $command->run($this, $input, $fw);
+        return $default ? array(
+            'command' => $default,
+            'arguments' => array(),
+        ) : null;
     }
 
     /**
@@ -200,7 +218,11 @@ class Console
      */
     public function add(Command $command): Console
     {
-        $this->commands[$command->getName()] = $command;
+        $name = $command->getName();
+        $path = '/'.$name.rtrim('/@'.implode('/@', array_keys($command->getArguments())), '/@');
+
+        $this->routes[$path] = $name;
+        $this->commands[$name] = $command;
 
         return $this;
     }

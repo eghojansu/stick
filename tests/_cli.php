@@ -10,37 +10,27 @@ use Fal\Stick\Cli\Console;
 
 require __DIR__.'/../vendor/autoload.php';
 
-Fw::createFromGlobals()
-    ->emulateCliRequest()
-    ->mset(array(
-        'DEBUG' => 1,
-        'TEMP' => dirname(__DIR__).'/var/',
-        'TRACE_CLEAR' => dirname(__DIR__).'/',
-        'SERVICES' => array(
-            'console' => function() {
-                return (new Console(array(
-                    'prefix' => '',
-                )))->add(Command::create('welcome')->setCode(function(Console $console) {
-                    $console
-                        ->writeln('Welcome')
-                        ->writeln()
-                        ->writeln('<info>Info: You are seing this line in green</info>')
-                        ->writeln('<error>Error: You are seing this line in red block</error>')
-                        ->writeln('<comment>Comment: You are seing this line in yellow</comment>')
-                        ->writeln('<question>Question: You are seing this line in cyan block</question>')
-                    ;
-                }))->add(Command::create('dimension')->setCode(function(Console $console) {
-                    $console
-                        ->writeln('Width: <comment>'.$console->getWidth().'</comment>')
-                        ->writeln('Height: <comment>'.$console->getHeight().'</comment>')
-                        ->writeln()
-                        ->writeln('Try to resize then run this command again!');
-                    ;
-                }));
-            },
-        ),
-        'EVENTS.fw.boot' => function(Fw $fw) {
-            $fw->console->register($fw);
-        },
-    ))
-    ->run();
+(new Console(Fw::createFromGlobals(array(
+    'DEBUG' => 1,
+    'TEMP' => dirname(__DIR__).'/var/',
+    'TRACE_CLEAR' => dirname(__DIR__).'/',
+))->emulateCliRequest()))
+    ->add(Command::create('welcome', function(Console $console) {
+        $console
+            ->writeln('Welcome')
+            ->writeln()
+            ->writeln('<info>Info: You are seing this line in green</>')
+            ->writeln('<error>Error: You are seing this line in red block</>')
+            ->writeln('<comment>Comment: You are seing this line in yellow</>')
+            ->writeln('<question>Question: You are seing this line in cyan block</>')
+        ;
+    }))->add(Command::create('dimension', function(Console $console) {
+        $console
+            ->writeln('Width: <comment>'.$console->getWidth().'</>')
+            ->writeln('Height: <comment>'.$console->getHeight().'</>')
+            ->writeln()
+            ->writeln('Try to resize then run this command again!');
+        ;
+    }))
+    ->run()
+;

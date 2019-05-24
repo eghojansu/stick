@@ -55,13 +55,14 @@ class Command
     /**
      * Create command.
      *
-     * @param string|null $name
+     * @param string   $name
+     * @param callable $name
      *
      * @return Command
      */
-    public static function create(string $name = null): Command
+    public static function create(string $name, callable $code): Command
     {
-        return new static($name);
+        return (new static($name))->setCode($code);
     }
 
     /**
@@ -118,10 +119,6 @@ class Command
      */
     public function setCode(callable $code): Command
     {
-        if ($code instanceof \Closure) {
-            $code = (new \ReflectionFunction($code))->getClosureThis() ? $code : \Closure::bind($code, $this);
-        }
-
         $this->code = $code;
 
         return $this;
@@ -149,6 +146,10 @@ class Command
      */
     public function addArgument(string $name, string $description = null, $defaultValue = null, bool $required = false): Command
     {
+        if (!preg_match('/^\w+$/', $name)) {
+            throw new \LogicException(sprintf('Invalid argument name: %s.', $name));
+        }
+
         $this->arguments[$name] = array($description, $defaultValue, $required);
 
         return $this;
@@ -235,13 +236,12 @@ class Command
      *
      * @param Console $console
      * @param Input   $input
-     * @param Fw      $fw
      *
      * @return int
      */
-    public function run(Console $console, Input $input, Fw $fw): int
+    public function run(Console $console, Input $input): int
     {
-        $statusCode = $this->code ? ($this->code)($console, $input, $fw) : $this->execute($console, $input, $fw);
+        $statusCode = $this->code ? ($this->code)($console, $input, $this) : $this->execute($console, $input);
 
         return is_numeric($statusCode) ? (int) $statusCode : 0;
     }
@@ -258,11 +258,10 @@ class Command
      *
      * @param Console $console
      * @param Input   $input
-     * @param Fw      $fw
      *
      * @return mixed
      */
-    protected function execute(Console $console, Input $input, Fw $fw)
+    protected function execute(Console $console, Input $input)
     {
         throw new \LogicException('You must override the execute() method in the concrete command class.');
     }

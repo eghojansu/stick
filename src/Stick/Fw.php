@@ -3176,6 +3176,47 @@ HTML;
     }
 
     /**
+     * Returns arguments if route match else returns null.
+     *
+     * @param string      $path
+     * @param string      $pattern
+     * @param string|null $modifier
+     *
+     * @return array|null
+     */
+    public function routeMatch(string $path, string $pattern, string $modifier = null): ?array
+    {
+        $last = null;
+
+        if (false !== strpos($pattern, '@')) {
+            $pattern = preg_replace_callback(self::ROUTE_PARAMS, function ($match) use (&$last) {
+                $name = $match[1];
+                $matchAll = $match[3] ?? false;
+                $pattern = $match[4] ?? '[^/]+';
+
+                if ($matchAll) {
+                    $pattern = '.+';
+                    $last = $name;
+                }
+
+                return '(?<'.$name.'>'.$pattern.')';
+            }, $pattern);
+        }
+
+        if (preg_match('~^'.$pattern.'$~'.$modifier, $path, $match)) {
+            $parameters = array_filter($match, 'is_string', ARRAY_FILTER_USE_KEY);
+
+            if ($last) {
+                $parameters[$last] = explode('/', $parameters[$last]);
+            }
+
+            return $parameters;
+        }
+
+        return null;
+    }
+
+    /**
      * Find match route.
      *
      * @return array|null
@@ -3249,47 +3290,6 @@ HTML;
             }
 
             return array(function ($fw) { $fw->error(405); }, null, null, '/', array());
-        }
-
-        return null;
-    }
-
-    /**
-     * Returns arguments if route match else returns null.
-     *
-     * @param string $path
-     * @param string $pattern
-     * @param string $modifier
-     *
-     * @return array|null
-     */
-    private function routeMatch(string $path, string $pattern, string $modifier): ?array
-    {
-        $last = null;
-
-        if (false !== strpos($pattern, '@')) {
-            $pattern = preg_replace_callback(self::ROUTE_PARAMS, function ($match) use (&$last) {
-                $name = $match[1];
-                $matchAll = $match[3] ?? false;
-                $pattern = $match[4] ?? '[^/]+';
-
-                if ($matchAll) {
-                    $pattern = '.+';
-                    $last = $name;
-                }
-
-                return '(?<'.$name.'>'.$pattern.')';
-            }, $pattern);
-        }
-
-        if (preg_match('~^'.$pattern.'$~'.$modifier, $path, $match)) {
-            $parameters = array_filter($match, 'is_string', ARRAY_FILTER_USE_KEY);
-
-            if ($last) {
-                $parameters[$last] = explode('/', $parameters[$last]);
-            }
-
-            return $parameters;
         }
 
         return null;

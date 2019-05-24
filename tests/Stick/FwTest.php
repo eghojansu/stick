@@ -1398,4 +1398,12 @@ class FwTest extends MyTestCase
 
         $this->fw->send();
     }
+
+    public function testRouteMatch()
+    {
+        $this->assertNull($this->fw->routeMatch('/foo', '/bar'));
+        $this->assertNull($this->fw->routeMatch('/foo/11', '/foo/@bar([\\d])'));
+        $this->assertEquals(array('bar' => 1), $this->fw->routeMatch('/foo/1', '/foo/@bar([\\d])'));
+        $this->assertEquals(array('foo' => 'bar', 'bar' => array('baz', 'qux')), $this->fw->routeMatch('/foo/bar/baz/qux', '/foo/@foo/@bar*'));
+    }
 }

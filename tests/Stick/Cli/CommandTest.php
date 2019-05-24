@@ -23,7 +23,7 @@ class CommandTest extends MyTestCase
 {
     public function testCreate()
     {
-        $this->assertEquals('command', Command::create()->getName());
+        $this->assertEquals('foo', Command::create('foo', function () {})->getName());
     }
 
     public function testGetName()
@@ -54,6 +54,11 @@ class CommandTest extends MyTestCase
     public function testAddArgument()
     {
         $this->assertCount(1, $this->command->addArgument('foo')->getArguments());
+
+        $this->expectException('LogicException');
+        $this->expectExceptionMessage('Invalid argument name: foo-bar.');
+
+        $this->command->addArgument('foo-bar');
     }
 
     public function testGetOptions()
@@ -88,13 +93,9 @@ class CommandTest extends MyTestCase
 
     public function testRun()
     {
-        $console = new Console();
-        $input = new Input();
-        $fw = new Fw();
-
         $this->command->setCode(function () {});
 
-        $this->assertEquals(0, $this->command->run($console, $input, $fw));
+        $this->assertEquals(0, $this->command->run(new Console(new Fw()), new Input()));
     }
 
     public function testRunExecute()
@@ -102,10 +103,6 @@ class CommandTest extends MyTestCase
         $this->expectException('LogicException');
         $this->expectExceptionMessage('You must override the execute() method in the concrete command class.');
 
-        $console = new Console();
-        $input = new Input();
-        $fw = new Fw();
-
-        $this->assertEquals(0, $this->command->run($console, $input, $fw));
+        $this->assertEquals(0, $this->command->run(new Console(new Fw()), new Input()));
     }
 }

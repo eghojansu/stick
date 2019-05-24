@@ -70,6 +70,7 @@ class InputTest extends MyTestCase
         $this->assertEquals('bar', $this->input->getArgument('foo'));
         $this->assertFalse($this->input->hasArgument('bar'));
         $this->assertEquals('qux', $this->input->getOption('baz'));
+        $this->assertTrue($this->input->hasOption('baz'));
         $this->assertFalse($this->input->hasOption('qux'));
     }
 

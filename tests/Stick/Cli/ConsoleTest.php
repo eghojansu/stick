@@ -13,12 +13,20 @@ declare(strict_types=1);
 
 namespace Fal\Stick\Test\Cli;
 
-use Fal\Stick\Fw;
 use Fal\Stick\Cli\Command;
+use Fal\Stick\Cli\Console;
+use Fal\Stick\Fw;
 use Fal\Stick\TestSuite\MyTestCase;
 
 class ConsoleTest extends MyTestCase
 {
+    private $console;
+
+    protected function setUp(): void
+    {
+        $this->console = new Console(new Fw());
+    }
+
     public function testGetStyle()
     {
         $this->assertEquals(array('white', 'red', null), $this->console->getStyle('error'));
@@ -55,13 +63,6 @@ class ConsoleTest extends MyTestCase
         $this->assertEquals($clear, $clearText);
     }
 
-    public function testRegister()
-    {
-        $this->console->register($fw = new Fw());
-
-        $this->assertCount(2, $fw->get('ROUTES'));
-    }
-
     public function testHasCommand()
     {
         $this->assertFalse($this->console->hasCommand('foo'));
@@ -90,35 +91,6 @@ class ConsoleTest extends MyTestCase
         $this->assertCount(1, $this->console->addCommands(array(new Command('foo')))->getCommands());
     }
 
-    public function testHandleDefault()
-    {
-        $fw = new Fw();
-        $fw->set('GET', array('v' => ''));
-
-        $expected = "\033[32meghojansu/stick\033[39m \033[33mv0.1.0-beta\033[39m\n";
-
-        $this->expectOutputString($expected);
-
-        $this->console->handleDefault($fw, array());
-    }
-
-    public function testHandleCommand()
-    {
-        $fw = new Fw();
-        $fw->set('GET', array('h' => ''));
-
-        $expected = "List available commands\n\n".
-                    "\033[33mUsage:\033[39m\n".
-                    "  list [options]\n\n".
-                    "\033[33mOptions:\033[39m\n".
-                    "  \033[32m-h, --help   \033[39m Display command help\n".
-                    "  \033[32m-v, --version\033[39m Display application version\n";
-
-        $this->expectOutputString($expected);
-
-        $this->console->handleCommand($fw, array('commands' => array('list')));
-    }
-
     public function testGetWidth()
     {
         $this->assertGreaterThan(0, $this->console->getWidth());
@@ -127,5 +99,43 @@ class ConsoleTest extends MyTestCase
     public function testGetHeight()
     {
         $this->assertGreaterThan(0, $this->console->getHeight());
+    }
+
+    public function testGetRoutes()
+    {
+        $this->assertCount(0, $this->console->getRoutes());
+    }
+
+    public function testFindCommand()
+    {
+        // no command
+        $this->assertNull($this->console->findCommand());
+
+        // default command
+        $this->assertEquals(array(
+            'command' => 'default',
+            'arguments' => array(),
+        ), $this->console->findCommand('default'));
+
+        // command with argument
+        $this->console->fw->set('PATH', '/help/foo');
+        $this->assertEquals(array(
+            'command' => 'help',
+            'arguments' => array('command_name' => 'foo'),
+        ), $this->console->findCommand());
+    }
+
+    /**
+     * @dataProvider Fal\Stick\TestSuite\Provider\Cli\ConsoleProvider::run
+     */
+    public function testRun($expected, $hive)
+    {
+        $this->console->add(Command::create('show:error', function () {
+            throw new \LogicException('I am an exception.');
+        }));
+        $this->console->fw->mset($hive);
+
+        $this->expectOutputString($expected);
+        $this->console->run();
     }
 }

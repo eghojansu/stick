@@ -13,7 +13,6 @@ declare(strict_types=1);
 
 namespace Fal\Stick\Cli\Commands;
 
-use Fal\Stick\Fw;
 use Fal\Stick\Cli\Input;
 use Fal\Stick\Cli\Command;
 use Fal\Stick\Cli\Console;
@@ -36,20 +35,20 @@ class ListCommand extends Command
     /**
      * {@inheritdoc}
      */
-    protected function execute(Console $console, Input $input, Fw $fw)
+    protected function execute(Console $console, Input $input)
     {
         $commands = $console->getCommands();
 
         if ($commands) {
             $max = max(array_map('strlen', array_keys($commands)));
 
-            $console->writeln('<comment>Commands list:</comment>');
+            $console->writeln('<comment>Commands list:</>');
 
             foreach ($commands as $name => $command) {
-                $console->writeln(sprintf('  <info>%-'.$max.'s</info> %s', $name, $command->getDescription()));
+                $console->writeln(sprintf('  <info>%-'.$max.'s</> %s', $name, $command->getDescription()));
             }
         } else {
-            $console->writeln('<comment>No command</comment>');
+            $console->writeln('<comment>No command available</>');
         }
     }
 }

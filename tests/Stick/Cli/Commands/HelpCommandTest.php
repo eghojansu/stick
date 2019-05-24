@@ -21,17 +21,25 @@ use Fal\Stick\Cli\Commands\HelpCommand;
 
 class HelpCommandTest extends MyTestCase
 {
+    private $console;
+    private $input;
+    private $command;
+
+    protected function setUp(): void
+    {
+        $this->console = new Console(new Fw());
+        $this->input = new Input();
+        $this->command = new HelpCommand();
+    }
+
     public function testRun()
     {
-        $console = new Console();
-        $input = new Input();
-        $fw = new Fw();
-        $command = new HelpCommand();
-        $command->setHelp('foo');
-        $command->addOption('opt', 'option', null, 'foo');
-        $input->resolve($command, array('help'), array());
+        $this->command->setHelp('foo');
+        $this->command->addOption('opt', 'option', null, 'foo');
+        $this->input->resolve($this->command, array('help'), array());
 
-        $console->add($command);
+        $this->console->add($this->command);
+
         $expected = "Display \033[32mhelp\033[39m for a given command\n\n".
                     "\033[33mUsage:\033[39m\n".
                     "  help [options] [--] [arguments]\n\n".
@@ -45,6 +53,6 @@ class HelpCommandTest extends MyTestCase
                     "  foo\n";
 
         $this->expectOutputString($expected);
-        $command->run($console, $input, $fw);
+        $this->command->run($this->console, $this->input);
     }
 }
