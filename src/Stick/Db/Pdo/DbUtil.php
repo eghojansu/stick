@@ -37,6 +37,28 @@ final class DbUtil
     }
 
     /**
+     * Extract column definition.
+     *
+     * @param string $type
+     *
+     * @return array
+     */
+    public static function extractType(string $type): array
+    {
+        if (preg_match('/^([^\(]+)\((.+)\)$/', $type, $match)) {
+            return array(
+                'data_type' => $match[1],
+                'constraint' => $match[2],
+            );
+        }
+
+        return array(
+            'data_type' => $type,
+            'constraint' => null,
+        );
+    }
+
+    /**
      * Returns variable's pdo type.
      *
      * @param mixed       $val
@@ -55,7 +77,7 @@ final class DbUtil
             'bool' => \PDO::PARAM_BOOL,
             'null' => \PDO::PARAM_NULL,
             'int\b|integer' => \PDO::PARAM_INT,
-            'blob|bytea|image|binary' => \PDO::PARAM_LOB,
+            'blob|byte|image|binary' => \PDO::PARAM_LOB,
             'float|real|double|decimal|numeric' => $hybrid ? self::PARAM_FLOAT : \PDO::PARAM_STR,
         );
 

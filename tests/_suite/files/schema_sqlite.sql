@@ -41,3 +41,8 @@ CREATE TABLE session (
     agent TEXT NOT NULL,
     stamp INTEGER NOT NULL
 );
+CREATE TABLE types_check (
+    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    name VARCHAR(32) NULL,
+    last_check DATE NOT NULL
+);

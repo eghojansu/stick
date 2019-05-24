@@ -297,7 +297,7 @@ class MysqlDriver implements DriverInterface
                 'pkey' => false !== strpos($field['Key'], 'PRI'),
                 'type' => $field['Type'],
                 'pdo_type' => DbUtil::type(null, $field['Type']),
-            ));
+            ) + DbUtil::extractType($field['Type']));
         }
 
         return $schema;

@@ -54,6 +54,8 @@ class SqliteDriverTest extends MyTestCase
                 'pkey' => true,
                 'type' => 'TEXT',
                 'pdo_type' => \PDO::PARAM_STR,
+                'data_type' => 'TEXT',
+                'constraint' => null,
             ),
             'bar' => array(
                 'default' => 1,
@@ -61,6 +63,8 @@ class SqliteDriverTest extends MyTestCase
                 'pkey' => false,
                 'type' => 'INTEGER',
                 'pdo_type' => \PDO::PARAM_INT,
+                'data_type' => 'INTEGER',
+                'constraint' => null,
             ),
         );
 

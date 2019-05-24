@@ -203,6 +203,8 @@ OUTPUT
                 'pkey' => true,
                 'type' => 'INTEGER',
                 'pdo_type' => \PDO::PARAM_INT,
+                'data_type' => 'INTEGER',
+                'constraint' => null,
             ),
             'username' => array(
                 'default' => null,
@@ -210,6 +212,8 @@ OUTPUT
                 'pkey' => false,
                 'type' => 'TEXT',
                 'pdo_type' => \PDO::PARAM_STR,
+                'data_type' => 'TEXT',
+                'constraint' => null,
             ),
             'active' => array(
                 'default' => 1,
@@ -217,6 +221,8 @@ OUTPUT
                 'pkey' => false,
                 'type' => 'INTEGER',
                 'pdo_type' => \PDO::PARAM_INT,
+                'data_type' => 'INTEGER',
+                'constraint' => null,
             ),
         );
         $result1 = $this->db->schema('user', 'id,username,active', 1);

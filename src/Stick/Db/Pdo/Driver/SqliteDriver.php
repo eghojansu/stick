@@ -53,7 +53,7 @@ class SqliteDriver extends MysqlDriver
                 'pkey' => 0 < intval($field['pk']),
                 'type' => $field['type'],
                 'pdo_type' => DbUtil::type(null, $field['type']),
-            ));
+            ) + DbUtil::extractType($field['type']));
         }
 
         return $schema;

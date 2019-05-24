@@ -53,6 +53,8 @@ class SchemaTest extends MyTestCase
             'pkey' => false,
             'type' => 'string',
             'pdo_type' => \PDO::PARAM_STR,
+            'data_type' => null,
+            'constraint' => null,
         ), $this->schema->get('foo'));
 
         $this->expectException('LogicException');
@@ -68,6 +70,8 @@ class SchemaTest extends MyTestCase
             'pkey' => false,
             'type' => 'string',
             'pdo_type' => \PDO::PARAM_STR,
+            'data_type' => null,
+            'constraint' => null,
         ), $this->schema->set('foo', null)->get('foo'));
     }
 
@@ -94,6 +98,8 @@ class SchemaTest extends MyTestCase
             'pkey' => false,
             'type' => 'string',
             'pdo_type' => \PDO::PARAM_STR,
+            'data_type' => null,
+            'constraint' => null,
         ), $this->schema->get('foo'));
         $this->assertEquals(array(
             'default' => 'baz',
@@ -101,6 +107,8 @@ class SchemaTest extends MyTestCase
             'pkey' => true,
             'type' => 'int',
             'pdo_type' => \PDO::PARAM_INT,
+            'data_type' => null,
+            'constraint' => null,
         ), $this->schema->get('bar'));
         $this->assertEquals(array('bar'), $this->schema->getKeys());
     }

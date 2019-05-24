@@ -53,4 +53,45 @@ class DbUtilProvider
             'default' => array('1', '1', -10),
         );
     }
+
+    public function extractType()
+    {
+        return array(
+            array(
+                array(
+                    'data_type' => 'date',
+                    'constraint' => null,
+                ),
+                'date',
+            ),
+            array(
+                array(
+                    'data_type' => 'varchar',
+                    'constraint' => '10',
+                ),
+                'varchar(10)',
+            ),
+            array(
+                array(
+                    'data_type' => 'ENUM',
+                    'constraint' => '"foo","bar"',
+                ),
+                'ENUM("foo","bar")',
+            ),
+            array(
+                array(
+                    'data_type' => 'SET',
+                    'constraint' => '"foo()","bar()"',
+                ),
+                'SET("foo()","bar()")',
+            ),
+            array(
+                array(
+                    'data_type' => 'decimal',
+                    'constraint' => '10,2',
+                ),
+                'decimal(10,2)',
+            ),
+        );
+    }
 }

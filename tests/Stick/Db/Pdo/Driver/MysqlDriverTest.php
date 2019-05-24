@@ -106,7 +106,7 @@ class MysqlDriverTest extends MyTestCase
                 'Field' => 'foo',
                 'Default' => 'NULL',
                 'Key' => 'PRI',
-                'Type' => 'VARCHAR',
+                'Type' => 'VARCHAR(20)',
                 'Null' => 'YES',
             ),
             array(
@@ -123,8 +123,10 @@ class MysqlDriverTest extends MyTestCase
                 'default' => null,
                 'nullable' => true,
                 'pkey' => true,
-                'type' => 'VARCHAR',
+                'type' => 'VARCHAR(20)',
                 'pdo_type' => \PDO::PARAM_STR,
+                'data_type' => 'VARCHAR',
+                'constraint' => '20',
             ),
             'bar' => array(
                 'default' => 1,
@@ -132,6 +134,8 @@ class MysqlDriverTest extends MyTestCase
                 'pkey' => false,
                 'type' => 'INT(11)',
                 'pdo_type' => \PDO::PARAM_INT,
+                'data_type' => 'INT',
+                'constraint' => '11',
             ),
         );
 

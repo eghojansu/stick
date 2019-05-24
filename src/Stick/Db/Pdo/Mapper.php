@@ -77,6 +77,16 @@ class Mapper extends Magic implements \Iterator, \Countable
     protected $changes = array();
 
     /**
+     * @var array
+     */
+    protected $rules = array();
+
+    /**
+     * @var array
+     */
+    protected $extraRules = array();
+
+    /**
      * Class constructor.
      *
      * @param Db                $db
@@ -477,6 +487,48 @@ class Mapper extends Magic implements \Iterator, \Countable
         }
 
         return $adhocs;
+    }
+
+    /**
+     * Returns validation rules.
+     *
+     * @param string|null $group
+     *
+     * @return array
+     */
+    public function rules(string $group = null): array
+    {
+        $rules = array();
+
+        if (empty($this->rules)) {
+            foreach ($this->schema as $field => $schema) {
+                if ($schema['pkey'] && \PDO::PARAM_INT === $schema['pdo_type']) {
+                    continue;
+                }
+
+                $rule = $schema['nullable'] ? array() : array('required');
+
+                if (\PDO::PARAM_STR === $schema['pdo_type'] && is_numeric($schema['constraint'])) {
+                    $rule[] = 'lenmax:'.$schema['constraint'];
+                } elseif (0 === stripos($schema['data_type'], 'date')) {
+                    $rule[] = $schema['data_type'];
+                }
+
+                $rules[$field] = implode('|', $rule);
+            }
+
+            return array_filter($this->extraRules + $rules);
+        }
+
+        foreach ($this->rules as $field => $ruleGroup) {
+            list($rule, $grp) = ((array) $ruleGroup) + array(1 => 'default');
+
+            if (!$group || $group === $grp) {
+                $rules[$field] = $rule;
+            }
+        }
+
+        return $rules;
     }
 
     /**

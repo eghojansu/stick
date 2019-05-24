@@ -28,6 +28,8 @@ class Schema extends Magic implements \Countable, \IteratorAggregate
         'pkey' => false,
         'type' => 'string',
         'pdo_type' => \PDO::PARAM_STR,
+        'data_type' => null,
+        'constraint' => null,
     );
 
     /**

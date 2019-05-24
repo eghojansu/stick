@@ -41,4 +41,12 @@ class DbUtilTest extends MyTestCase
     {
         $this->assertEquals($expected, DbUtil::value($val, $type));
     }
+
+    /**
+     * @dataProvider Fal\Stick\TestSuite\Provider\Db\Pdo\DbUtilProvider::extractType
+     */
+    public function testExtractType($expected, $type)
+    {
+        $this->assertEquals($expected, DbUtil::extractType($type));
+    }
 }

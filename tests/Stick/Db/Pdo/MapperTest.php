@@ -467,4 +467,32 @@ class MapperTest extends MyTestCase
     {
         $this->assertEquals(array(), $this->mapper->initial());
     }
+
+    public function testRules()
+    {
+        $this->mapper->switchTable('types_check');
+
+        $ref = new \ReflectionProperty($this->mapper, 'extraRules');
+        $ref->setAccessible(true);
+        $ref->setValue($this->mapper, array(
+            'extra' => 'foo',
+        ));
+
+        $this->assertEquals(array(
+            'extra' => 'foo',
+            'name' => 'lenmax:32',
+            'last_check' => 'required|DATE',
+        ), $this->mapper->rules());
+
+        $ref = new \ReflectionProperty($this->mapper, 'rules');
+        $ref->setAccessible(true);
+        $ref->setValue($this->mapper, array(
+            'foo' => 'bar',
+            'bar' => array('baz', 'group2'),
+        ));
+
+        $this->assertEquals(array(
+            'bar' => 'baz',
+        ), $this->mapper->rules('group2'));
+    }
 }
