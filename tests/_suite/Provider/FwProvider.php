@@ -43,6 +43,7 @@ class FwProvider
         return array(
             array('foo', 'foo'),
             array('camelCase', 'camel_case'),
+            array('camelCase', 'camel-case'),
             array('camelCase', 'Camel_Case'),
             array('camelCase', 'camelCase'),
             array('camelCaseLongText', 'camel_Case_long_Text'),
@@ -54,6 +55,7 @@ class FwProvider
         return array(
             array('Foo', 'foo'),
             array('PascalCase', 'pascal_case'),
+            array('PascalCase', 'pascal-case'),
             array('PascalCase', 'pascalCase'),
             array('PascalCase', 'PascalCase'),
             array('PascalCaseLongText', 'pascal_Case_long_Text'),

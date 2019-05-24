@@ -347,7 +347,7 @@ final class Fw extends Magic
      */
     public static function camelCase(string $text): string
     {
-        return lcfirst(str_replace('_', '', ucwords($text, '_')));
+        return lcfirst(self::pascalCase($text));
     }
 
     /**
@@ -359,7 +359,7 @@ final class Fw extends Magic
      */
     public static function pascalCase(string $text): string
     {
-        return str_replace('_', '', ucwords($text, '_'));
+        return str_replace('_', '', ucwords(str_replace('-', '_', $text), '_'));
     }
 
     /**
