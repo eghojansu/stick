@@ -28,7 +28,6 @@ class AuthTest extends MyTestCase
     public function setup(): void
     {
         $this->fw = new Fw();
-        $this->fw->set('QUIET', true);
     }
 
     public function teardown(): void

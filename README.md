@@ -24,7 +24,7 @@ Fal\Stick\Fw::createFromGlobals()
     ->route('GET /', function($fw, $params) {
         return 'foo';
     })
-    ->run();
+    ->runOut();
 
 ```
 

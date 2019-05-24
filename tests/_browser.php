@@ -288,4 +288,4 @@ HTML;
             '%content%' => $content,
         ));
     })
-    ->run();
+    ->runOut();

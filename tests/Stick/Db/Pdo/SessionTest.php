@@ -91,7 +91,6 @@ class SessionTest extends MyTestCase
         $this->assertEquals('foo', $this->session->read('sid1'));
         $this->assertEquals('', $this->session->read('sid2'));
 
-        $this->fw->set('QUIET', true);
         $this->fw->on('session.suspect', function ($session) {
             return false;
         });

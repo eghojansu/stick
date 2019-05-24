@@ -2855,15 +2855,23 @@ HTML;
      *
      * @return Fw
      */
-    public function run()
+    public function run(): Fw
     {
         try {
-            $this->doRun();
+            return $this->doRun();
         } catch (\Throwable $e) {
-            $this->handleException($e);
+            return $this->handleException($e);
         }
+    }
 
-        return $this->send();
+    /**
+     * Run and send output.
+     *
+     * @return Fw
+     */
+    public function runOut(): Fw
+    {
+        return $this->run()->send();
     }
 
     /**
@@ -2922,7 +2930,7 @@ HTML;
             $this->hive['SERVER'] = $server + (array) $this->hive['SERVER'];
         }
 
-        return $this->status(200)->doRun();
+        return $this->status(200)->run();
     }
 
     /**

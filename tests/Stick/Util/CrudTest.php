@@ -39,7 +39,6 @@ class CrudTest extends MyTestCase
     {
         $this->fw = new Fw();
         $this->fw->set('TEMP', $this->tmp('/'));
-        $this->fw->set('QUIET', true);
         $this->env = new Environment($this->fw, $this->fixture('/crud/'));
         $this->auth = new Auth($this->fw, new InMemoryUserProvider(), new PlainPasswordEncoder());
         $this->crud = new Crud($this->fw, $this->env, $this->auth);

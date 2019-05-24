@@ -833,7 +833,6 @@ class FwTest extends MyTestCase
         $this->fw->route('GET /foo', function () {
             return 'foo';
         });
-        $this->fw->set('QUIET', true);
 
         $expected = array(
             'foo' => '/',
@@ -1044,8 +1043,6 @@ class FwTest extends MyTestCase
      */
     public function testError($expected, $code, $message = null, $hive = null)
     {
-        $this->fw->set('QUIET', true);
-
         if ($hive) {
             $this->fw->mset($hive);
         }
@@ -1060,8 +1057,6 @@ class FwTest extends MyTestCase
      */
     public function testRun($expected, $routes = null, $hive = null)
     {
-        $this->fw->set('QUIET', true);
-
         if ($hive) {
             $this->fw->mset($hive);
         }
@@ -1078,7 +1073,6 @@ class FwTest extends MyTestCase
     public function testRunCache()
     {
         $this->fw->mset(array(
-            'QUIET' => true,
             'TEMP' => $this->tmp('/'),
             'CACHE' => 'fallback',
         ));
@@ -1105,8 +1099,6 @@ class FwTest extends MyTestCase
      */
     public function testMock($expected, $routes, $route, $arguments = null, $server = null, $body = null, $hive = null, $exception = null)
     {
-        $this->fw->set('QUIET', true);
-
         if ($hive) {
             $this->fw->mset($exception);
         }
@@ -1133,8 +1125,6 @@ class FwTest extends MyTestCase
      */
     public function testReroute($expected, $routes, $target, $hive = null)
     {
-        $this->fw->set('QUIET', true);
-
         if ($hive) {
             $this->fw->mset($hive);
         }
@@ -1405,5 +1395,15 @@ class FwTest extends MyTestCase
         $this->assertNull($this->fw->routeMatch('/foo/11', '/foo/@bar([\\d])'));
         $this->assertEquals(array('bar' => 1), $this->fw->routeMatch('/foo/1', '/foo/@bar([\\d])'));
         $this->assertEquals(array('foo' => 'bar', 'bar' => array('baz', 'qux')), $this->fw->routeMatch('/foo/bar/baz/qux', '/foo/@foo/@bar*'));
+    }
+
+    public function testRunOut()
+    {
+        $this->fw->route('GET /', function () {
+            echo 'foo';
+        });
+
+        $this->expectOutputString('foo');
+        $this->fw->runOut();
     }
 }
