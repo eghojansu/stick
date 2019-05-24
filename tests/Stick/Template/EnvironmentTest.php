@@ -27,7 +27,7 @@ class EnvironmentTest extends MyTestCase
         $this->fw = new Fw(array(
             'TEMP' => $this->tmp('/'),
         ));
-        $this->environment = new Environment($this->fw, $this->fixture('/template/'), null, true);
+        $this->environment = new Environment($this->fw, $this->fixture('/template/'), null, '.shtml', true);
     }
 
     public function teardown(): void
@@ -94,9 +94,10 @@ class EnvironmentTest extends MyTestCase
 
     public function testRender()
     {
-        $source = 'foo.shtml';
+        $source = 'foo';
 
         $this->assertEquals('notfoobar.', $this->environment->render($source));
+        $this->assertEquals('foobar.', $this->environment->render($source, array('foo' => 'foo')));
         $this->assertEquals('foobar.', $this->environment->render($source, array('foo' => 'foo')));
     }
 
@@ -586,5 +587,15 @@ HTML;
     public function testOtherwise($expected, $node, $default = null)
     {
         $this->assertEquals($expected, $this->environment->otherwise($node, $default));
+    }
+
+    public function testGetExtension()
+    {
+        $this->assertEquals('.shtml', $this->environment->getExtension());
+    }
+
+    public function testSetExtension()
+    {
+        $this->assertEquals('foo', $this->environment->setExtension('foo')->getExtension());
     }
 }

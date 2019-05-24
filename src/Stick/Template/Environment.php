@@ -60,19 +60,26 @@ class Environment
     protected $autoreload;
 
     /**
+     * @var bool
+     */
+    protected $extension;
+
+    /**
      * Class constructor.
      *
      * @param Fw           $fw
      * @param string|array $directories
-     * @param string       $temp
+     * @param string|null  $temp
+     * @param string|null  $extension
      * @param bool         $autoreload
      */
-    public function __construct(Fw $fw, $directories = null, string $temp = null, bool $autoreload = false)
+    public function __construct(Fw $fw, $directories = null, string $temp = null, string $extension = null, bool $autoreload = false)
     {
         $this->fw = $fw;
         $this->tags .= str_replace('_', '|', implode('', preg_grep('/^_(?=[[:alpha:]])/', get_class_methods($this))));
 
         $this->setTemp($temp ?? $fw->get('TEMP').'template/');
+        $this->setExtension($extension ?? '.html');
         $this->setAutoreload($autoreload);
         $this->setDirectories($directories);
     }
@@ -143,6 +150,30 @@ class Environment
     }
 
     /**
+     * Returns template extension.
+     *
+     * @return string
+     */
+    public function getExtension(): string
+    {
+        return $this->extension;
+    }
+
+    /**
+     * Sets template extension.
+     *
+     * @param string $extension
+     *
+     * @return Environment
+     */
+    public function setExtension(string $extension): Environment
+    {
+        $this->extension = $extension;
+
+        return $this;
+    }
+
+    /**
      * Returns autoreload status.
      *
      * @return bool
@@ -176,7 +207,9 @@ class Environment
     public function findTemplate(string $templateName): string
     {
         foreach ($this->directories as $dir) {
-            if (is_file($file = $dir.$templateName)) {
+            if (is_file($file = $dir.$templateName) ||
+                is_file($file = $dir.$templateName.$this->extension) ||
+                is_file($file = $dir.str_replace('.', '/', $templateName).$this->extension)) {
                 return $file;
             }
         }

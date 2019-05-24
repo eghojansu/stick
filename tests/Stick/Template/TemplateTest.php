@@ -28,7 +28,7 @@ class TemplateTest extends MyTestCase
         $this->fw = new Fw(array(
             'TEMP' => $this->tmp('/'),
         ));
-        $this->env = new Environment($this->fw, $this->fixture('/template/'), null, true);
+        $this->env = new Environment($this->fw, $this->fixture('/template/'), null, null, true);
         $this->template = $this->env->loadTemplate('foo.shtml');
     }
 
