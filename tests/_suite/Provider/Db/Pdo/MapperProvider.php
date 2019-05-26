@@ -13,7 +13,7 @@ namespace Fal\Stick\TestSuite\Provider\Db\Pdo;
 
 class MapperProvider
 {
-    public function findKey()
+    public function find()
     {
         return array(
             array(
@@ -50,13 +50,13 @@ class MapperProvider
                 'friends',
             ),
             array(
-                'Insufficient keys value, expected exactly 2 parameter, 1 given.',
+                'Insufficient keys, expected exactly 2 keys, 1 given.',
                 '1',
                 'friends',
                 'LogicException',
             ),
             array(
-                'Insufficient keys value, expected exactly 2 parameter, 3 given.',
+                'Insufficient keys, expected exactly 2 keys, 3 given.',
                 array(2, 3, 4),
                 'friends',
                 'LogicException',
@@ -109,6 +109,87 @@ class MapperProvider
             ), 2, null, array(
                 'limit' => 1,
             )),
+        );
+    }
+
+    public function createRelation()
+    {
+        $expected = array(
+            array(
+                'id' => 1,
+                'fullname' => 'fooname',
+                'user_id' => 1,
+            ),
+        );
+
+        return array(
+            'with table name' => array(
+                $expected,
+                array('profile'),
+            ),
+            'with relation' => array(
+                $expected,
+                array('profile', 'user_id = id'),
+            ),
+            'with relation (fk only)' => array(
+                $expected,
+                array('profile', 'user_id'),
+            ),
+            'with extra filter' => array(
+                $expected,
+                array('profile', null, false, false, 'id = 1'),
+            ),
+            'belongs to' => array(
+                array(
+                    array(
+                        'id' => 1,
+                        'username' => 'foo',
+                        'password' => null,
+                        'active' => 1,
+                    ),
+                ),
+                array('user', null, true),
+                null,
+                false,
+                'profile',
+            ),
+            'has many' => array(
+                array(
+                    array(
+                        'id' => 1,
+                        'phonename' => 'foo1',
+                        'user_id' => 1,
+                    ),
+                    array(
+                        'id' => 2,
+                        'phonename' => 'foo2',
+                        'user_id' => 1,
+                    ),
+                ),
+                array('phone', null, false, true),
+            ),
+            'with mapper class' => array(
+                $expected,
+                array('Fal\\Stick\\TestSuite\\Classes\\Mapper\\UserProfileSample'),
+            ),
+            'with instance of mapper' => array(
+                $expected,
+                array('Fal\\Stick\\TestSuite\\Classes\\Mapper\\UserProfileSample'),
+                null,
+                true,
+            ),
+            'not a table and not a subclass of mapper' => array(
+                'Mapper should be an instance of Fal\\Stick\\Db\\Pdo\\Mapper.',
+                array('stdClass'),
+                'LogicException',
+            ),
+            'with no relation' => array(
+                'No relation defined.',
+                array('nokey'),
+                'LogicException',
+                false,
+                'nokey',
+            ),
         );
     }
 }

@@ -383,7 +383,7 @@ class MysqlDriver implements DriverInterface
             if (is_numeric($key)) {
                 if (is_string($value)) {
                     // raw
-                    $str .= ' '.$value;
+                    $str .= ($str ? ' AND' : '').' ('.$value.')';
                 } elseif ($filter !== $value && $cfilter = $this->filter((array) $value, $result + $lookup)) {
                     $str .= ($str ? ' AND' : '').' ('.array_shift($cfilter).')';
                     $result = array_merge($result, $cfilter);

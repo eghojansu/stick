@@ -21,9 +21,9 @@ class MysqlDriverProvider
             array(
                 array(
                     'SELECT foo FROM `user` AS `u`'.
-                    ' WHERE id = 1'.
+                    ' WHERE (id = 1)'.
                     ' GROUP BY `id`'.
-                    ' HAVING id > 1'.
+                    ' HAVING (id > 1)'.
                     ' ORDER BY `username`'.
                     ' LIMIT 10'.
                     ' OFFSET 5'.
@@ -78,7 +78,7 @@ class MysqlDriverProvider
     {
         return array(
             array(
-                array('foo = bar'),
+                array('(foo = bar)'),
                 'foo = bar',
             ),
             array(
@@ -106,11 +106,11 @@ class MysqlDriverProvider
                 array('foo' => 'bar', '&' => array('bar' => 'baz', '| baz' => 'qux')),
             ),
             array(
-                array('foo = 1 OR `bar` != :bar', ':bar' => 'baz'),
+                array('(foo = 1) OR `bar` != :bar', ':bar' => 'baz'),
                 array('foo = 1', '| bar !=' => 'baz'),
             ),
             array(
-                array('foo = 1 OR `bar` != :bar AND (baz = 2)', ':bar' => 'baz'),
+                array('(foo = 1) OR `bar` != :bar AND ((baz = 2))', ':bar' => 'baz'),
                 array('foo = 1', '| bar !=' => 'baz', array('baz = 2')),
             ),
             array(
@@ -284,7 +284,7 @@ class MysqlDriverProvider
         return array(
             array(
                 array(
-                    'DELETE FROM `foo` WHERE id = 1',
+                    'DELETE FROM `foo` WHERE (id = 1)',
                     array(),
                 ),
                 'foo',

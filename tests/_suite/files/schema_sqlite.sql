@@ -46,3 +46,8 @@ CREATE TABLE types_check (
     name VARCHAR(32) NULL,
     last_check DATE NOT NULL
 );
+CREATE TABLE phone (
+    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    phonename TEXT NOT NULL,
+    user_id INTEGER NOT NULL
+);

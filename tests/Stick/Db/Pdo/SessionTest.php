@@ -62,9 +62,9 @@ class SessionTest extends MyTestCase
     {
         $this->insert();
 
-        $this->assertCount(1, $this->mapper->find());
+        $this->assertCount(1, $this->mapper->findAll());
         $this->assertTrue($this->session->destroy('sid1'));
-        $this->assertCount(0, $this->mapper->find());
+        $this->assertCount(0, $this->mapper->findAll());
     }
 
     public function testGc()
@@ -74,9 +74,9 @@ class SessionTest extends MyTestCase
         // ten seconds ago
         $this->insert(time() - 10, 'sid2');
 
-        $this->assertCount(2, $this->mapper->find());
+        $this->assertCount(2, $this->mapper->findAll());
         $this->assertEquals(1, $this->session->gc(5));
-        $this->assertCount(1, $this->mapper->find());
+        $this->assertCount(1, $this->mapper->findAll());
     }
 
     public function testOpen()

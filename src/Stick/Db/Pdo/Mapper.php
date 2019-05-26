@@ -79,6 +79,11 @@ class Mapper extends Magic implements \Iterator, \Countable
     /**
      * @var array
      */
+    protected $locker = array();
+
+    /**
+     * @var array
+     */
     protected $rules = array();
 
     /**
@@ -126,10 +131,10 @@ class Mapper extends Magic implements \Iterator, \Countable
             $call = 'get';
             $argument = $this->db->fw->snakeCase(substr($method, 3));
         } elseif (0 === strncasecmp('findby', $method, 6)) {
-            $call = 'find';
-            $argument = array($this->db->fw->snakeCase(substr($method, 6)) => array_shift($arguments));
-        } elseif (0 === strncasecmp('findoneby', $method, 9)) {
             $call = 'findOne';
+            $argument = array($this->db->fw->snakeCase(substr($method, 6)) => array_shift($arguments));
+        } elseif (0 === strncasecmp('findallby', $method, 9)) {
+            $call = 'findAll';
             $argument = array($this->db->fw->snakeCase(substr($method, 9)) => array_shift($arguments));
         } else {
             throw new \BadMethodCallException(sprintf('Call to undefined method %s::%s.', static::class, $method));
@@ -191,6 +196,14 @@ class Mapper extends Magic implements \Iterator, \Countable
     }
 
     /**
+     * Next complement.
+     */
+    public function prev()
+    {
+        --$this->ptr;
+    }
+
+    /**
      * Returns true if mapper is new.
      *
      * @return bool
@@ -237,6 +250,40 @@ class Mapper extends Magic implements \Iterator, \Countable
 
         list($this->table, $this->alias) = explode('.', $table) + array(1 => $this->alias);
         $this->schema = $this->db->schema($this->table, $fields, $ttl);
+
+        return $this;
+    }
+
+    /**
+     * Lock field value.
+     *
+     * @param string $field
+     * @param mixed  $value
+     *
+     * @return Mapper
+     */
+    public function lock(string $field, $value): Mapper
+    {
+        if (!isset($this->schema[$field])) {
+            throw new \LogicException(sprintf('Cannot lock adhoc field: %s.', $field));
+        }
+
+        $this->locker[$field] = $value;
+        $this->changes[$this->ptr][$field] = $value;
+
+        return $this;
+    }
+
+    /**
+     * Unlock field.
+     *
+     * @param string $field
+     *
+     * @return Mapper
+     */
+    public function unlock(string $field): Mapper
+    {
+        unset($this->locker[$field]);
 
         return $this;
     }
@@ -345,6 +392,10 @@ class Mapper extends Magic implements \Iterator, \Countable
         $this->changes = array();
         $this->loaded = false;
         $this->ptr = 0;
+
+        if ($this->locker) {
+            $this->changes[$this->ptr] = $this->locker;
+        }
 
         return $this;
     }
@@ -540,7 +591,7 @@ class Mapper extends Magic implements \Iterator, \Countable
      *
      * @return Mapper
      */
-    public function find($filter = null, array $options = null, int $ttl = 0): Mapper
+    public function findAll($filter = null, array $options = null, int $ttl = 0): Mapper
     {
         $this->reset();
 
@@ -565,33 +616,31 @@ class Mapper extends Magic implements \Iterator, \Countable
     {
         $options['limit'] = 1;
 
-        return $this->find($filter, $options, $ttl);
+        return $this->findAll($filter, $options, $ttl);
     }
 
     /**
      * Find matching records by keys.
      *
-     * @param string|array $values
+     * @param string|array $keys
      * @param int          $ttl
      *
      * @return Mapper
      */
-    public function findKey($values, int $ttl = 0): Mapper
+    public function find($keys, int $ttl = 0): Mapper
     {
-        $values = $this->db->fw->split($values);
-        $keys = $this->schema->getKeys();
-        $vcount = count($values);
-        $pcount = count($keys);
+        $keys = $this->db->fw->split($keys);
+        $pkeys = $this->schema->getKeys();
 
-        if (0 === $pcount) {
+        if (0 === $pcount = count($pkeys)) {
             throw new \LogicException('Mapper has no key.');
         }
 
-        if ($vcount !== $pcount) {
-            throw new \LogicException(sprintf('Insufficient keys value, expected exactly %d parameter, %d given.', $pcount, $vcount));
+        if ($pcount !== $vcount = count($keys)) {
+            throw new \LogicException(sprintf('Insufficient keys, expected exactly %d keys, %d given.', $pcount, $vcount));
         }
 
-        return $this->findOne(array_combine($keys, $values), null, $ttl);
+        return $this->findOne(array_combine($pkeys, $keys), null, $ttl);
     }
 
     /**
@@ -637,7 +686,7 @@ class Mapper extends Magic implements \Iterator, \Countable
             $options['offset'] = ($page - 1) * $limit;
             $options['limit'] = $limit;
 
-            if ($count = $subset->find($filter, $options, $ttl)->count()) {
+            if ($count = $subset->findAll($filter, $options, $ttl)->count()) {
                 $start = $options['offset'] + 1;
                 $end = $options['offset'] + $count;
             }
@@ -730,7 +779,7 @@ class Mapper extends Magic implements \Iterator, \Countable
         if ($dispatch) {
             $deleted = 0;
 
-            foreach ($this->find($filters) as $self) {
+            foreach ($this->findAll($filters) as $self) {
                 $deleted += (int) $self->delete();
             }
 
@@ -740,5 +789,133 @@ class Mapper extends Magic implements \Iterator, \Countable
         list($sql, $arguments) = $this->db->driver->sqlDeleteBatch($this->table, $filters);
 
         return $this->db->exec($sql, $arguments);
+    }
+
+    /**
+     * Returns mapper to relate.
+     *
+     * @param string|object $mapper
+     * @param string|null   $relations
+     * @param bool          $belongsTo
+     * @param bool          $findAll
+     * @param mixed         $filters
+     * @param array|null    $options
+     *
+     * @return Mapper
+     */
+    public function createRelation($mapper, string $relations = null, bool $belongsTo = false, bool $findAll = false, $filters = null, array $options = null): Mapper
+    {
+        if (!is_a($mapper, self::class, true) && (!is_string($mapper) || $aClass = class_exists($mapper))) {
+            throw new \LogicException(sprintf('Mapper should be an instance of %s.', self::class));
+        }
+
+        if (isset($aClass)) {
+            $mapper = new self($this->db, $mapper);
+        } elseif (is_string($mapper)) {
+            $mapper = new $mapper($this->db);
+        }
+
+        $keys = $belongsTo ? $mapper->schema->getKeys() : $this->schema->getKeys();
+
+        if (!$relations && !$keys) {
+            throw new \LogicException('No relation defined.');
+        }
+
+        $ctr = -1;
+        $fw = $this->db->fw;
+        $find = $findAll ? 'findAll' : 'findOne';
+        $relationFilters = array(array());
+
+        foreach ($fw->split($relations ?? ($belongsTo ? $mapper->table() : $this->table).'_id') as $relation) {
+            ++$ctr;
+            $pair = $fw->split($relation, '=');
+
+            if ($belongsTo) {
+                // first is localkey (fallback to the first primary key), last is foreignkey
+                $relationFilters[0][$pair[1] ?? $keys[$ctr] ?? $keys[0]] = $this->get($pair[0]);
+            } else {
+                // first is foreignkey, last is localkey (fallback to the first primary key)
+                $mapper->lock($pair[0], $relationFilters[0][$pair[0]] = $this->get($pair[1] ?? $keys[$ctr] ?? $keys[0]));
+            }
+        }
+
+        if ($filters) {
+            $relationFilters[] = is_callable($filters) ? $filters($this) : $filters;
+        }
+
+        return $mapper->$find($relationFilters, $options);
+    }
+
+    /**
+     * One to one relationship.
+     *
+     * @param string|Mapper $mapper
+     * @param string|null   $relations
+     * @param mixed         $filters
+     * @param array|null    $options
+     *
+     * @return Mapper
+     */
+    public function hasOne($mapper, string $relations = null, $filters = null, array $options = null): Mapper
+    {
+        return $this->createRelation($mapper, $relations, false, false, $filters, $options);
+    }
+
+    /**
+     * One to many relationship.
+     *
+     * @param string|Mapper $mapper
+     * @param string|null   $relations
+     * @param mixed         $filters
+     * @param array|null    $options
+     *
+     * @return Mapper
+     */
+    public function hasMany($mapper, string $relations = null, $filters = null, array $options = null): Mapper
+    {
+        return $this->createRelation($mapper, $relations, false, true, $filters, $options);
+    }
+
+    /**
+     * One to one relationship (inverse).
+     *
+     * @param string|Mapper $mapper
+     * @param string|null   $relations
+     * @param mixed         $filters
+     * @param array|null    $options
+     *
+     * @return Mapper
+     */
+    public function belongsTo($mapper, string $relations = null, $filters = null, array $options = null): Mapper
+    {
+        return $this->createRelation($mapper, $relations, true, false, $filters, $options);
+    }
+
+    /**
+     * Many to one relationship.
+     *
+     * @param string|Mapper $mapper
+     * @param string|Mapper $pivotMapper
+     * @param string|null   $pivotField
+     * @param string|null   $relations
+     * @param mixed         $filters
+     * @param array|null    $options
+     * @param string|null   $mapperRelations
+     * @param mixed         $mapperFilters
+     * @param array|null    $mapperOptions
+     *
+     * @return Mapper
+     */
+    public function belongsToMany($mapper, $pivotMapper, string $pivotField = null, string $relations = null, $filters = null, array $options = null, string $mapperRelations = null, $mapperFilters = null, array $mapperOptions = null): Mapper
+    {
+        $pivot = $this->hasMany($pivotMapper, $relations, $filters, $options);
+
+        if ($pivotField) {
+            $pivot->set($pivotField, function ($pivot) use ($mapper, $mapperRelations, $mapperFilters, $mapperOptions) {
+                return $pivot->belongsTo($mapper, $mapperRelations, $mapperFilters, $mapperOptions);
+            });
+        }
+
+        return $pivot;
     }
 }
