@@ -1406,4 +1406,22 @@ class FwTest extends MyTestCase
         $this->expectOutputString('foo');
         $this->fw->runOut();
     }
+
+    public function testEHttp()
+    {
+        $this->assertInstanceOf('RuntimeException', $e = $this->fw->eHttp(400, 'foo'));
+        $this->assertEquals('http:400 foo', $e->getMessage());
+    }
+
+    public function testENotFound()
+    {
+        $this->assertInstanceOf('RuntimeException', $e = $this->fw->eNotFound());
+        $this->assertEquals('http:404 Not Found', $e->getMessage());
+    }
+
+    public function testEForbidden()
+    {
+        $this->assertInstanceOf('RuntimeException', $e = $this->fw->eForbidden());
+        $this->assertEquals('http:403 Forbidden', $e->getMessage());
+    }
 }

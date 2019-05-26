@@ -2658,6 +2658,46 @@ HTML;
     }
 
     /**
+     * Create http exception.
+     *
+     * @param int            $code
+     * @param string|null    $message
+     * @param Throwable|null $previous
+     *
+     * @return RuntimeException With message format that can be handled by framework as http exception
+     */
+    public function eHttp(int $code, string $message = null, \Throwable $previous = null): \RuntimeException
+    {
+        return new \RuntimeException(sprintf('http:%d %s', $code, $message), 0, $previous);
+    }
+
+    /**
+     * Create not found http exception.
+     *
+     * @param string|null    $message
+     * @param Throwable|null $previous
+     *
+     * @return RuntimeException
+     */
+    public function eNotFound(string $message = null, \Throwable $previous = null): \RuntimeException
+    {
+        return $this->eHttp(404, $message ?? self::HTTP_404, $previous);
+    }
+
+    /**
+     * Create forbidden http exception.
+     *
+     * @param string|null    $message
+     * @param Throwable|null $previous
+     *
+     * @return RuntimeException
+     */
+    public function eForbidden(string $message = null, \Throwable $previous = null): \RuntimeException
+    {
+        return $this->eHttp(403, $message ?? self::HTTP_403, $previous);
+    }
+
+    /**
      * Wrap engine execution.
      *
      * @return Fw
