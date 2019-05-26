@@ -14,211 +14,11 @@ declare(strict_types=1);
 namespace Fal\Stick;
 
 /**
- * Magic class.
- *
- * @author Eko Kurniawan <ekokurniawanbs@gmail.com>
- */
-class Magic implements \ArrayAccess
-{
-    /**
-     * @var array
-     */
-    protected $hive = array();
-
-    /**
-     * Allow check hive member as class property.
-     *
-     * @param string $key
-     *
-     * @return bool
-     */
-    public function __isset($key)
-    {
-        return $this->has($key);
-    }
-
-    /**
-     * Allow retrieve hive member as class property.
-     *
-     * @param string $key
-     *
-     * @return mixed
-     */
-    public function &__get($key)
-    {
-        $var = &$this->get($key);
-
-        return $var;
-    }
-
-    /**
-     * Allow assign hive member as class property.
-     *
-     * @param string $key
-     * @param mixed  $value
-     */
-    public function __set($key, $value)
-    {
-        $this->set($key, $value);
-    }
-
-    /**
-     * Allow remove hive member as class property.
-     *
-     * @param string $key
-     */
-    public function __unset($key)
-    {
-        $this->rem($key);
-    }
-
-    /**
-     * Allow check hive member as array.
-     *
-     * @param string $key
-     *
-     * @return bool
-     */
-    public function offsetExists($key)
-    {
-        return $this->has($key);
-    }
-
-    /**
-     * Allow retrieve hive member as array.
-     *
-     * @param string $key
-     *
-     * @return mixed
-     */
-    public function &offsetGet($key)
-    {
-        $var = &$this->get($key);
-
-        return $var;
-    }
-
-    /**
-     * Allow assign hive member as array.
-     *
-     * @param string $key
-     * @param mixed  $value
-     */
-    public function offsetSet($key, $value)
-    {
-        $this->set($key, $value);
-    }
-
-    /**
-     * Allow remove hive member as array.
-     *
-     * @param string $key
-     */
-    public function offsetUnset($key)
-    {
-        $this->rem($key);
-    }
-
-    /**
-     * Returns variables hive.
-     *
-     * @return array
-     */
-    public function hive(): array
-    {
-        return $this->hive;
-    }
-
-    /**
-     * Returns true if hive member exists.
-     *
-     * @param string $key
-     *
-     * @return bool
-     */
-    public function has(string $key): bool
-    {
-        return array_key_exists($key, $this->hive);
-    }
-
-    /**
-     * Returns hive member if exists, otherwise returns the defaults.
-     *
-     * @param string $key
-     * @param mixed  $default
-     *
-     * @return mixed
-     */
-    public function &get(string $key, $default = null)
-    {
-        if (!$this->has($key)) {
-            $this->hive[$key] = $default;
-        }
-
-        return $this->hive[$key];
-    }
-
-    /**
-     * Assign hive member.
-     *
-     * @param string $key
-     * @param mixed  $value
-     *
-     * @return Magic
-     */
-    public function set(string $key, $value): Magic
-    {
-        $this->hive[$key] = $value;
-
-        return $this;
-    }
-
-    /**
-     * Remove hive member.
-     *
-     * @param string $key
-     *
-     * @return Magic
-     */
-    public function rem(string $key): Magic
-    {
-        unset($this->hive[$key]);
-
-        return $this;
-    }
-
-    /**
-     * Reset hive.
-     *
-     * @return Magic
-     */
-    public function reset(): Magic
-    {
-        $this->hive = array();
-
-        return $this;
-    }
-}
-
-/**
- * Http exception.
- *
- * @author Eko Kurniawan <ekokurniawanbs@gmail.com>
- */
-class HttpException extends \Exception
-{
-    public function __construct(string $message = null, int $code = 500, \Throwable $previous = null)
-    {
-        parent::__construct($message ?? '', $code, $previous);
-    }
-}
-
-/**
  * Main framework engine.
  *
  * @author Eko Kurniawan <ekokurniawanbs@gmail.com>
  */
-final class Fw extends Magic
+final class Fw implements \ArrayAccess
 {
     // Framework info
     const PACKAGE = 'eghojansu/stick';
@@ -305,6 +105,13 @@ final class Fw extends Magic
         self::LOG_INFO => 6,
         self::LOG_DEBUG => 7,
     );
+
+    /**
+     * Framework variables hive.
+     *
+     * @var array
+     */
+    private $hive;
 
     /**
      * Framework initial variables hive.
@@ -1494,9 +1301,9 @@ final class Fw extends Magic
      * @param string $key
      * @param mixed  $val
      *
-     * @return Magic
+     * @return Fw
      */
-    public function set(string $key, $val): Magic
+    public function set(string $key, $val): Fw
     {
         if ('COOKIE' === $key) {
             return $this->cookies($val);
@@ -1540,9 +1347,9 @@ final class Fw extends Magic
      *
      * @param string $key
      *
-     * @return Magic
+     * @return Fw
      */
-    public function rem(string $key): Magic
+    public function rem(string $key): Fw
     {
         if ('COOKIE' === $key) {
             return $this->cookies(array());
@@ -1572,9 +1379,9 @@ final class Fw extends Magic
     /**
      * Reset hive to initial state.
      *
-     * @return Magic
+     * @return Fw
      */
-    public function reset(): Magic
+    public function reset(): Fw
     {
         $this->hive = $this->init;
 
@@ -3639,6 +3446,7 @@ HTML;
     private function handleException(\Throwable $exception): Fw
     {
         $trace = $exception->getTrace();
+        $message = $exception->getMessage();
 
         array_unshift($trace, array(
             'file' => $exception->getFile(),
@@ -3647,12 +3455,13 @@ HTML;
             'type' => null,
         ));
 
-        if ($exception instanceof HttpException) {
-            $code = $exception->getCode();
+        if (preg_match('/^http:(\d{3})(?:\s+(.+))?$/', trim($message), $match)) {
+            $code = 0 + $match[1];
+            $message = $match[2];
         } else {
             $code = 500;
         }
 
-        return $this->error($code, $exception->getMessage(), $trace);
+        return $this->error($code, $message, $trace);
     }
 }

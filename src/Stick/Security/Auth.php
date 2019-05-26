@@ -14,7 +14,6 @@ declare(strict_types=1);
 namespace Fal\Stick\Security;
 
 use Fal\Stick\Fw;
-use Fal\Stick\HttpException;
 use Fal\Stick\Util\Option;
 
 /**
@@ -142,7 +141,7 @@ class Auth
     {
         if ($header = $this->fw->get('REQUEST.Authorization') ?? $this->fw->get('SERVER.REDIRECT_HTTP_AUTHORIZATION')) {
             if (sscanf($header, 'Bearer %s', $token) < 1) {
-                throw new HttpException('', 203);
+                throw new \LogicException('http:203');
             }
 
             $user = $toUser($jwt->decode($token), $this->fw);
@@ -231,7 +230,7 @@ class Auth
     public function denyAccessUnlessGranted($roles, $data = null)
     {
         if (false === $this->isGranted($roles, $data)) {
-            throw new HttpException('Access denied.', 403);
+            throw new \LogicException('http:403 Access denied.');
         }
     }
 

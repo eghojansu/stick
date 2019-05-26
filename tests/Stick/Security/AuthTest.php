@@ -137,8 +137,8 @@ class AuthTest extends MyTestCase
     {
         $this->assertNull($this->auth->setUser(new SimpleUser(1, 'foo', 'bar', array('foo')))->denyAccessUnlessGranted('foo'));
 
-        $this->expectException('Fal\\Stick\\HttpException');
-        $this->expectExceptionMessage('Access denied.');
+        $this->expectException('LogicException');
+        $this->expectExceptionMessage('http:403 Access denied.');
 
         $this->auth->denyAccessUnlessGranted('bar');
     }
@@ -213,8 +213,8 @@ class AuthTest extends MyTestCase
         $this->assertFalse($this->auth->jwt($jwt, $toUser));
         $this->assertEquals('foo', $this->auth->getUser()->getUsername());
 
-        $this->expectException('Fal\Stick\HttpException');
-        $this->expectExceptionCode(203);
+        $this->expectException('LogicException');
+        $this->expectExceptionMessage('http:203');
         $this->fw->set('REQUEST.Authorization', 'Nothing '.$token);
         $this->auth->jwt($jwt, $toUser);
     }
