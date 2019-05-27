@@ -49,22 +49,24 @@ class SqliteDriverTest extends MyTestCase
         $schema = $this->sqliteDriver->buildSchema($rows);
         $expected = array(
             'foo' => array(
+                'constraint' => null,
+                'data_type' => 'TEXT',
                 'default' => null,
+                'name' => 'foo',
                 'nullable' => true,
+                'pdo_type' => \PDO::PARAM_STR,
                 'pkey' => true,
                 'type' => 'TEXT',
-                'pdo_type' => \PDO::PARAM_STR,
-                'data_type' => 'TEXT',
-                'constraint' => null,
             ),
             'bar' => array(
+                'constraint' => null,
+                'data_type' => 'INTEGER',
                 'default' => 1,
+                'name' => 'bar',
                 'nullable' => false,
+                'pdo_type' => \PDO::PARAM_INT,
                 'pkey' => false,
                 'type' => 'INTEGER',
-                'pdo_type' => \PDO::PARAM_INT,
-                'data_type' => 'INTEGER',
-                'constraint' => null,
             ),
         );
 

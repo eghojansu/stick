@@ -23,29 +23,107 @@ class MapperTest extends MyTestCase
 {
     private $fw;
     private $db;
-    private $table = 'user';
+    private $mapper;
 
     public function setup(): void
     {
         $this->fw = new Fw();
-        $this->db = new Db($this->fw, new SqliteDriver(), 'sqlite::memory:', null, null, array(
-            $this->read('/files/schema_sqlite.sql'),
-            'insert into user (username) values ("foo"), ("bar"), ("baz")',
-            'insert into friends (user_id, friend_id, level) values (1, 2, 3), (2, 3, 4)',
-            'insert into nokey (name, info) values ("foo", "bar"), ("bar", "baz")',
-            'insert into profile (fullname, user_id) values("fooname", 1), ("barname", 2), ("bazname", 3)',
-            'insert into phone (phonename, user_id) values("foo1", 1), ("foo2", 1), ("bar1", 2), ("baz1", 3)',
-        ));
+        $this->db = new Db(
+            $this->fw,
+            new SqliteDriver(),
+            'sqlite::memory:',
+            null,
+            null,
+            array(
+                $this->read('/files/schema_sqlite.sql'),
+                'insert into user (username) values ("foo"), ("bar"), ("baz")',
+                'insert into friends (user_id, friend_id, level) values '.
+                    '(1, 2, 3), (2, 3, 4)',
+                'insert into nokey (name, info) values '.
+                    '("foo", "bar"), ("bar", "baz")',
+                'insert into profile (fullname, user_id) values '.
+                    '("fooname", 1), ("barname", 2), ("bazname", 3)',
+                'insert into phone (phonename, user_id) values '.
+                    '("foo1", 1), ("foo2", 1), ("bar1", 2), ("baz1", 3)',
+            )
+        );
+        $this->mapper = new Mapper($this->db, 'user');
     }
 
-    protected function createInstance()
+    public function testMagicCall()
     {
-        return new Mapper($this->db, $this->table);
+        $this->assertCount(1, $this->mapper->findAllById(1));
+        $this->assertCount(1, $this->mapper->findById(2));
+        $this->assertEquals('bar', $this->mapper->getUsername());
+
+        $this->expectException('BadMethodCallException');
+        $this->expectExceptionMessage(
+            'Call to undefined method Fal\\Stick\\Db\\Pdo\\Mapper::foo.'
+        );
+        $this->mapper->foo();
+    }
+
+    public function testMagicExists()
+    {
+        $this->assertTrue(isset($this->mapper->username));
+        $this->assertFalse(isset($this->mapper->foo));
+    }
+
+    public function testMagicGet()
+    {
+        $this->assertNull($this->mapper->username);
+    }
+
+    public function testMagicSet()
+    {
+        $this->mapper->username = 'foo';
+
+        $this->assertEquals('foo', $this->mapper->username);
+    }
+
+    public function testMagicUnset()
+    {
+        $this->mapper->username = 'foo';
+        unset($this->mapper->username);
+
+        $this->assertNull($this->mapper->username);
+    }
+
+    public function testOffsetExists()
+    {
+        $this->assertTrue(isset($this->mapper['username']));
+        $this->assertFalse(isset($this->mapper['foo']));
+    }
+
+    public function testOffsetGet()
+    {
+        $this->assertNull($this->mapper['username']);
+    }
+
+    public function testOffsetSet()
+    {
+        $this->mapper['username'] = 'foo';
+
+        $this->assertEquals('foo', $this->mapper['username']);
+    }
+
+    public function testOffsetUnset()
+    {
+        $this->mapper['username'] = 'foo';
+        unset($this->mapper['username']);
+
+        $this->assertNull($this->mapper['username']);
     }
 
     public function testCurrent()
     {
-        $this->assertSame($this->mapper, $this->mapper->current());
+        $this->assertCount(3, $this->mapper->findAll());
+        $this->assertEquals(array(
+            'id' => 1,
+            'username' => 'foo',
+            'password' => null,
+            'active' => 1,
+        ), $this->mapper->toArray());
     }
 
     public function testKey()
@@ -62,7 +140,6 @@ class MapperTest extends MyTestCase
 
     public function testRewind()
     {
-        $this->mapper->next();
         $this->mapper->rewind();
 
         $this->assertEquals(0, $this->mapper->key());
@@ -75,7 +152,28 @@ class MapperTest extends MyTestCase
 
     public function testCount()
     {
-        $this->assertEquals(0, $this->mapper->count());
+        $this->assertCount(0, $this->mapper);
+    }
+
+    public function testMoveTo()
+    {
+        $this->mapper->findAll();
+        $this->mapper->moveTo(2);
+
+        $this->assertEquals(2, $this->mapper->key());
+        $this->assertEquals('baz', $this->mapper->get('username'));
+
+        $this->expectException('LogicException');
+        $this->expectExceptionMessage('Invalid pointer: 3.');
+
+        $this->mapper->moveTo(3);
+    }
+
+    public function testPrev()
+    {
+        $this->mapper->prev();
+
+        $this->assertEquals(-1, $this->mapper->key());
     }
 
     public function testDry()
@@ -95,167 +193,250 @@ class MapperTest extends MyTestCase
 
     public function testSwitchTable()
     {
-        $this->assertEquals('profile', $this->mapper->switchTable('profile.alias')->table());
+        $this->mapper->switchTable('profile.foo');
+
+        $this->assertEquals('profile', $this->mapper->table());
+        $this->assertEquals('foo', $this->mapper->alias());
+    }
+
+    public function testFactory()
+    {
+        $this->assertEquals(array(
+            'id' => null,
+            'username' => 'manual',
+            'password' => null,
+            'active' => 1,
+        ), $this->mapper->factory(array('username' => 'manual'))->toArray());
+    }
+
+    public function testLock()
+    {
+        $this->mapper->lock('username', 'foo');
+        $this->assertEquals('foo', $this->mapper->get('username'));
+        $this->assertTrue($this->mapper->locked('username'));
+
+        $this->expectException('LogicException');
+        $this->expectExceptionMessage('Cannot lock adhoc field: foo.');
+
+        $this->mapper->lock('foo', 'bar');
+    }
+
+    public function testUnlock()
+    {
+        $this->mapper->lock('username', 'foo')->unlock('username');
+
+        $this->assertEquals('foo', $this->mapper->get('username'));
+        $this->assertFalse($this->mapper->locked('username'));
     }
 
     public function testHas()
     {
-        $this->assertTrue($this->mapper->has('id'));
         $this->assertTrue($this->mapper->has('username'));
         $this->assertFalse($this->mapper->has('foo'));
     }
 
     public function testGet()
     {
-        // set id
-        $this->mapper->set('id', 1);
-        // set adhoc
-        $this->mapper->set('adhoc', function () {
-            return 'foo';
-        });
+        // get field value
+        $this->assertNull($this->mapper->get('username'));
 
-        // get previously set id
-        $this->assertEquals(1, $this->mapper->get('id'));
-        // get default value
-        $this->assertEquals(1, $this->mapper->get('active'));
-        // previously set adhoc
-        $this->assertEquals('foo', $this->mapper->get('adhoc'));
-        // call mapper method
+        // get call result of dry
+        $this->assertTrue($this->mapper->get('dry'));
+        // second call
         $this->assertTrue($this->mapper->get('dry'));
 
         $this->expectException('LogicException');
         $this->expectExceptionMessage('Field not exists: baz.');
+
         $this->mapper->get('baz');
     }
 
     public function testSet()
     {
-        // set id
-        $this->mapper->set('id', 1);
-        // update id
-        $this->mapper->set('id', 2);
-        // set adhoc
-        $this->mapper->set('adhoc', function () {
-            return 'foo';
+        // assign username
+        $this->mapper->set('username', 'manual');
+        // assign expr adhoc
+        $this->mapper->set('foo', 'bar');
+        // update expr adhoc
+        $this->mapper->set('foo', 'baz');
+        // update value adhoc
+        $this->mapper->set('bar', 1);
+        // assign callable adhoc
+        $this->mapper->set('baz', function () {
+            return 'baz';
         });
-        $this->mapper->set('adhoc2', 'expr');
+        // locked field
+        $this->mapper->lock('password', 'initial');
+        $this->mapper->set('password', 'update');
 
-        // get previously set id
-        $this->assertEquals(2, $this->mapper->get('id'));
-        // get default value
-        $this->assertEquals(1, $this->mapper->get('active'));
-        // previously set adhoc
-        $this->assertEquals('foo', $this->mapper->get('adhoc'));
-
-        // modify adhoc
-        $this->mapper->set('adhoc', function () {
-            return 'bar';
-        });
-        $this->mapper->set('adhoc2', 'expr2');
-        $this->assertEquals('bar', $this->mapper->get('adhoc'));
+        $this->assertEquals('manual', $this->mapper->get('username'));
+        $this->assertEquals('baz', $this->mapper->get('foo'));
+        $this->assertEquals(1, $this->mapper->get('bar'));
+        $this->assertEquals('baz', $this->mapper->get('baz'));
+        $this->assertEquals('initial', $this->mapper->get('password'));
     }
 
     public function testRem()
     {
-        // set active
+        // update field with initial value
         $this->mapper->set('active', 0);
-        $this->mapper->set('adhoc', function () {
+        // assign adhoc
+        $this->mapper->set('foo', function () {
             return 'foo';
         });
 
-        // get mapper self adhoc, then update its value, confirm value
-        $dry = $this->mapper->get('dry');
-        $this->mapper->set('dry', false);
-        $this->assertFalse($this->mapper->get('dry'));
+        // remove
+        $this->mapper->rem('active');
+        $this->mapper->rem('foo');
 
-        // remove active, reset to initial
-        $this->assertEquals(1, $this->mapper->rem('active')->get('active'));
-        // remove self adhoc, which always be executed back after remove
-        $this->assertTrue($this->mapper->rem('dry')->get('dry'));
+        $this->assertEquals(1, $this->mapper->get('active'));
+        $this->assertEquals('foo', $this->mapper->get('foo'));
+    }
 
-        // remove adhoc, confirm
-        $this->mapper->rem('adhoc');
-        $this->expectException('LogicException');
-        $this->expectExceptionMessage('Field not exists: adhoc.');
-        $this->mapper->get('adhoc');
+    public function testChanged()
+    {
+        $this->assertFalse($this->mapper->changed());
+
+        // change it
+        $this->mapper->set('username', 'foo');
+        $this->assertTrue($this->mapper->changed());
+        $this->assertTrue($this->mapper->changed('username'));
+        $this->assertFalse($this->mapper->changed('password'));
+    }
+
+    public function testLocked()
+    {
+        $this->assertFalse($this->mapper->locked('username'));
+    }
+
+    public function testReset()
+    {
+        $this->mapper->set('active', 0);
+        $this->mapper->reset();
+
+        $this->assertEquals(1, $this->mapper->get('active'));
     }
 
     public function testToArray()
     {
-        // set id
-        $this->mapper->set('id', 1);
-        // set adhoc
-        $this->mapper->set('adhoc', function () {
-            return 'foo';
-        });
+        // add adhoc
+        $this->mapper->set('next_id', 'id + 1');
+        $this->mapper->findAll();
 
         $this->assertEquals(array(
-            'id' => 1,
-            'username' => null,
+            'id' => '1',
+            'username' => 'foo',
             'password' => null,
-            'active' => 1,
-        ), $this->mapper->toArray());
-        $this->assertEquals(array(
-            'id' => 1,
-            'username' => null,
-            'password' => null,
-            'active' => 1,
-            'adhoc' => 'foo',
+            'active' => '1',
+            'next_id' => '2',
         ), $this->mapper->toArray(true));
     }
 
     public function testFromArray()
     {
-        // set adhoc
-        $this->mapper->set('adhoc', function () {
-            return 'foo';
-        });
-
+        // add adhoc
+        $this->mapper->set('next_id', 'id + 1');
+        $this->mapper->fromArray(array(
+            'username' => 'manual',
+            'next_id' => 'foo',
+        ), true);
         $this->assertEquals(array(
-            'id' => 1,
+            'id' => null,
+            'username' => 'manual',
+            'password' => null,
+            'active' => '1',
+            'next_id' => 'foo',
+        ), $this->mapper->toArray(true));
+
+        // no adhoc
+        $this->mapper->fromArray(array(
+            'username' => 'manual',
+            'next_id' => 'bar',
+        ));
+        $this->assertEquals(array(
+            'id' => null,
+            'username' => 'manual',
+            'password' => null,
+            'active' => '1',
+            'next_id' => 'foo',
+        ), $this->mapper->toArray(true));
+    }
+
+    public function testInitial()
+    {
+        $this->assertEquals(array(
+            'id' => null,
             'username' => null,
             'password' => null,
-            'active' => 1,
-            'adhoc' => 'foo',
-        ), $this->mapper->fromArray(array(
-            'id' => 1,
-            'adhoc' => 'bar',
-        ))->toArray(true));
+            'active' => '1',
+        ), $this->mapper->initial());
+    }
+
+    public function testValues()
+    {
+        $this->assertEquals(array(
+            'id' => null,
+            'username' => null,
+            'password' => null,
+            'active' => '1',
+        ), $this->mapper->values());
+    }
+
+    public function testChanges()
+    {
+        $this->assertEquals(array(), $this->mapper->changes());
     }
 
     public function testKeys()
     {
-        $this->mapper->findOne();
-        $this->assertEquals(array('id' => 1), $this->mapper->keys());
-
-        $this->expectException('LogicException');
-        $this->expectExceptionMessage('Invalid operation on an empty mapper.');
-        $this->mapper->reset()->keys();
+        $this->assertEquals(array(
+            'id' => null,
+        ), $this->mapper->keys());
     }
 
-    public function testReset()
+    public function testConcatFields()
     {
-        $this->mapper->lock('username', 'bar');
-        $this->mapper->set('id', 1);
+        $expected = '`id`, `username`, `password`, `active`';
 
-        $this->assertCount(0, $this->mapper);
-        $this->assertEquals(1, $this->mapper->get('id'));
-        $this->assertCount(0, $this->mapper->reset());
-        $this->assertNull($this->mapper->get('id'));
-        $this->assertEquals('bar', $this->mapper->get('username'));
+        $this->assertEquals($expected, $this->mapper->concatFields());
     }
 
-    public function testFields()
+    public function testConcatAdhoc()
     {
-        $this->assertEquals('`id`, `username`, `password`, `active`', $this->mapper->fields());
-    }
-
-    public function testAdhocs()
-    {
-        // set adhoc
         $this->mapper->set('adhoc', 'foo');
+        $expected = ', (foo) as `adhoc`';
 
-        $this->assertEquals(', (foo) as `adhoc`', $this->mapper->adhocs());
+        $this->assertEquals($expected, $this->mapper->concatAdhoc());
+    }
+
+    public function testRows()
+    {
+        $this->assertCount(0, $this->mapper->rows());
+    }
+
+    public function testAdhoc()
+    {
+        $this->assertCount(0, $this->mapper->adhoc());
+    }
+
+    public function testRules()
+    {
+        $this->mapper->switchTable('types_check');
+
+        $ref = new \ReflectionProperty($this->mapper, 'rules');
+        $ref->setAccessible(true);
+        $ref->setValue($this->mapper, array(
+            'foo' => 'bar',
+            'bar' => array('baz', 'group2'),
+            'name' => array('foo', 'group2'),
+        ));
+
+        $this->assertEquals(array(
+            'last_name' => 'lenmax:32',
+            'last_check' => 'required|DATE',
+            'name' => 'foo',
+            'bar' => 'baz',
+        ), $this->mapper->rules('group2'));
     }
 
     public function testFindAll()
@@ -285,6 +466,7 @@ class MapperTest extends MyTestCase
         if ($exception) {
             $this->expectException($exception);
             $this->expectExceptionMessage($expected);
+
             $this->mapper->find($keys);
 
             return;
@@ -293,9 +475,9 @@ class MapperTest extends MyTestCase
         $this->assertEquals($expected, $this->mapper->find($keys)->toArray());
     }
 
-    public function testRecordCount()
+    public function testCountRow()
     {
-        $this->assertEquals(3, $this->mapper->recordCount());
+        $this->assertEquals(3, $this->mapper->countRow());
     }
 
     /**
@@ -304,6 +486,9 @@ class MapperTest extends MyTestCase
     public function testPaginate($expected, $page, $filter = null, $options = null)
     {
         $actual = $this->mapper->paginate($page, $filter, $options);
+
+        $this->assertInstanceOf(Mapper::class, $actual['subset']);
+
         $actual['subset'] = count($actual['subset']);
 
         $this->assertEquals($expected, $actual);
@@ -317,15 +502,13 @@ class MapperTest extends MyTestCase
             'password' => 'qux',
             'active' => 0,
         ));
-        // this will make active skipped to insert
-        $this->mapper->set('active', 1);
 
         $this->assertTrue($this->mapper->dry());
         $this->assertEquals(array(
             'id' => null,
             'username' => 'qux',
             'password' => 'qux',
-            'active' => 1,
+            'active' => 0,
         ), $this->mapper->toArray());
         $this->assertTrue($this->mapper->save());
         $this->assertTrue($this->mapper->valid());
@@ -334,7 +517,7 @@ class MapperTest extends MyTestCase
             'id' => 4,
             'username' => 'qux',
             'password' => 'qux',
-            'active' => 1,
+            'active' => 0,
         ), $this->mapper->toArray());
 
         // assign with id
@@ -415,153 +598,6 @@ class MapperTest extends MyTestCase
         $this->assertCount(1, $this->mapper->findAll());
     }
 
-    public function testCallMagic()
-    {
-        $this->assertCount(1, $this->mapper->findById(1));
-        $this->assertCount(1, $this->mapper->findAllById(2));
-        $this->assertEquals('bar', $this->mapper->getUsername());
-
-        $this->expectException('BadMethodCallException');
-        $this->expectExceptionMessage('Call to undefined method Fal\\Stick\\Db\\Pdo\\Mapper::foo.');
-        $this->mapper->foo();
-    }
-
-    public function testClone()
-    {
-        $mapper = clone $this->mapper;
-
-        $this->assertNotSame($this->mapper->schema, $mapper->schema);
-    }
-
-    public function testHive()
-    {
-        $this->mapper->set('adhoc', '1+2');
-        $this->mapper->findOne();
-        // update username
-        $this->mapper->set('username', 'bar');
-
-        $expected = array(
-            'id' => 1,
-            'username' => 'bar',
-            'password' => null,
-            'active' => 1,
-            'adhoc' => 3,
-        );
-
-        $this->assertEquals(array($expected), $this->mapper->hive());
-    }
-
-    public function testRows()
-    {
-        $this->mapper->set('adhoc', '1+2');
-        $this->mapper->findOne();
-        // update username
-        $this->mapper->set('username', 'bar');
-
-        $expected = array(
-            'id' => 1,
-            'username' => 'foo',
-            'password' => null,
-            'active' => 1,
-            'adhoc' => 3,
-        );
-
-        $this->assertEquals(array($expected), $this->mapper->rows());
-    }
-
-    public function testChanges()
-    {
-        $this->mapper->findOne()->set('username', 'foo')->set('active', 0);
-
-        $this->assertEquals(array('active' => 0), $this->mapper->changes());
-    }
-
-    public function testInitial()
-    {
-        $this->assertEquals(array(), $this->mapper->initial());
-    }
-
-    public function testRules()
-    {
-        $this->mapper->switchTable('types_check');
-
-        $ref = new \ReflectionProperty($this->mapper, 'extraRules');
-        $ref->setAccessible(true);
-        $ref->setValue($this->mapper, array(
-            'extra' => 'foo',
-        ));
-
-        $this->assertEquals(array(
-            'extra' => 'foo',
-            'name' => 'lenmax:32',
-            'last_check' => 'required|DATE',
-        ), $this->mapper->rules());
-
-        $ref = new \ReflectionProperty($this->mapper, 'rules');
-        $ref->setAccessible(true);
-        $ref->setValue($this->mapper, array(
-            'foo' => 'bar',
-            'bar' => array('baz', 'group2'),
-        ));
-
-        $this->assertEquals(array(
-            'bar' => 'baz',
-        ), $this->mapper->rules('group2'));
-    }
-
-    public function testPrev()
-    {
-        $this->mapper->prev();
-
-        $this->assertEquals(-1, $this->mapper->key());
-    }
-
-    public function testLock()
-    {
-        $this->assertEquals('foo', $this->mapper->lock('username', 'foo')->get('username'));
-
-        $this->expectException('LogicException');
-        $this->expectExceptionMessage('Cannot lock adhoc field: foo.');
-
-        $this->mapper->lock('foo', 'bar');
-    }
-
-    public function testUnlock()
-    {
-        $this->assertEquals('foo', $this->mapper->lock('username', 'foo')->unlock('username')->get('username'));
-    }
-
-    /**
-     * @dataProvider Fal\Stick\TestSuite\Provider\Db\Pdo\MapperProvider::createRelation
-     */
-    public function testCreateRelation($expected, $relations, $exception = null, $construct = false, $switch = null)
-    {
-        list($mapper) = $relations;
-
-        if ($switch) {
-            $this->mapper->switchTable($switch);
-        }
-
-        $this->mapper->findOne();
-
-        if ($exception) {
-            $this->expectException('LogicException');
-            $this->expectExceptionMessage($expected);
-
-            $this->mapper->createRelation(...$relations);
-
-            return;
-        }
-
-        if ($construct) {
-            $relations[0] = new $mapper($this->db);
-        }
-
-        $mapper = $this->mapper->createRelation(...$relations);
-
-        $this->assertEquals($expected, $mapper->rows());
-    }
-
     public function testHasOne()
     {
         // new mapper without profile
@@ -575,11 +611,18 @@ class MapperTest extends MyTestCase
         $this->assertCount(0, $profile);
         $this->assertEquals(4, $profile->get('user_id'));
 
-        // save profile
+        // assign and save profile
         $profile->fromArray(array(
             'fullname' => 'myfoo name',
-        ))->save();
+        ));
 
+        $this->assertEquals(array(
+            'id' => null,
+            'fullname' => 'myfoo name',
+            'user_id' => '4',
+        ), $profile->toArray());
+
+        $this->assertTrue($profile->save());
         $this->assertCount(1, $profile);
         $this->assertEquals('myfoo name', $profile->get('fullname'));
 
@@ -591,6 +634,10 @@ class MapperTest extends MyTestCase
 
         $this->assertCount(1, $profile);
         $this->assertEquals('myfoo name', $profile->get('fullname'));
+
+        // load profile with extra filter
+        $profile = $this->mapper->hasOne('profile', null, 'fullname = "none"');
+        $this->assertCount(0, $profile);
     }
 
     public function testHasMany()
@@ -624,9 +671,61 @@ class MapperTest extends MyTestCase
         $this->mapper->switchTable('ta');
         $this->mapper->findOne();
 
-        $tc = $this->mapper->belongsToMany('tb', 'tc', 'pivot');
+        $tc = $this->mapper->belongsToMany('tb', 'tc', null, 'id > 0');
 
         $this->assertCount(2, $tc);
         $this->assertCount(1, $tc->pivot);
+
+        $this->assertEquals(array(
+            'id' => 1,
+            'vcol' => 'tb1',
+        ), $tc->toArray());
+        $this->assertEquals(array(
+            'ta_id' => 1,
+            'tb_id' => 1,
+        ), $tc->pivot->toArray());
+
+        // next
+        $tc->next();
+        $tc->current();
+        $this->assertEquals(array(
+            'id' => 2,
+            'vcol' => 'tb2',
+        ), $tc->toArray());
+        $this->assertEquals(array(
+            'ta_id' => 1,
+            'tb_id' => 2,
+        ), $tc->pivot->toArray());
+    }
+
+    /**
+     * @dataProvider Fal\Stick\TestSuite\Provider\Db\Pdo\MapperProvider::prepareRelation
+     */
+    public function testPrepareRelation($expected, $relations, $exception = null, $construct = false, $switch = null)
+    {
+        list($mapper) = $relations;
+
+        if ($switch) {
+            $this->mapper->switchTable($switch);
+        }
+
+        $this->mapper->findOne();
+
+        if ($exception) {
+            $this->expectException('LogicException');
+            $this->expectExceptionMessage($expected);
+
+            $this->mapper->hasOne(...$relations);
+
+            return;
+        }
+
+        if ($construct) {
+            $relations[0] = new $mapper($this->db);
+        }
+
+        $mapper = $this->mapper->hasOne(...$relations);
+
+        $this->assertEquals($expected, $mapper->toArray());
     }
 }

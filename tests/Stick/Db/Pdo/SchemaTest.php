@@ -17,9 +17,48 @@ use Fal\Stick\TestSuite\MyTestCase;
 
 class SchemaTest extends MyTestCase
 {
+    public function testOffsetExists()
+    {
+        $this->assertFalse(isset($this->schema['foo']));
+    }
+
+    public function testOffsetGet()
+    {
+        $this->expectException('LogicException');
+        $this->expectExceptionMessage('Field not exists: foo.');
+
+        $this->schema['foo'];
+    }
+
+    public function testOffsetSet()
+    {
+        $this->schema['foo'] = null;
+
+        $this->assertEquals(array(
+            'constraint' => null,
+            'data_type' => null,
+            'default' => null,
+            'name' => 'foo',
+            'nullable' => true,
+            'pdo_type' => \PDO::PARAM_STR,
+            'pkey' => false,
+            'type' => 'string',
+        ), $this->schema['foo']);
+    }
+
+    public function testOffsetUnset()
+    {
+        $this->schema['foo'] = null;
+        unset($this->schema['foo']);
+
+        $this->expectException('LogicException');
+        $this->expectExceptionMessage('Field not exists: foo.');
+
+        $this->schema['foo'];
+    }
+
     public function testCount()
     {
-        $this->assertEquals(0, $this->schema->count());
         $this->assertCount(0, $this->schema);
     }
 
@@ -43,73 +82,32 @@ class SchemaTest extends MyTestCase
         $this->assertCount(0, $this->schema->getKeys());
     }
 
-    public function testGet()
-    {
-        $this->schema->add('foo');
-
-        $this->assertEquals(array(
-            'default' => null,
-            'nullable' => true,
-            'pkey' => false,
-            'type' => 'string',
-            'pdo_type' => \PDO::PARAM_STR,
-            'data_type' => null,
-            'constraint' => null,
-        ), $this->schema->get('foo'));
-
-        $this->expectException('LogicException');
-        $this->expectExceptionMessage('Field not exists: bar.');
-        $this->schema->get('bar');
-    }
-
-    public function testSet()
-    {
-        $this->assertEquals(array(
-            'default' => null,
-            'nullable' => true,
-            'pkey' => false,
-            'type' => 'string',
-            'pdo_type' => \PDO::PARAM_STR,
-            'data_type' => null,
-            'constraint' => null,
-        ), $this->schema->set('foo', null)->get('foo'));
-    }
-
-    public function testRem()
-    {
-        $this->schema->add('foo', 'baz', false, true);
-
-        $this->assertCount(1, $this->schema->getSchema());
-        $this->assertEquals(array('foo'), $this->schema->getKeys());
-
-        $this->schema->rem('foo');
-        $this->assertCount(0, $this->schema->getSchema());
-        $this->assertCount(0, $this->schema->getKeys());
-    }
-
     public function testAdd()
     {
         $this->schema->add('foo');
         $this->schema->add('bar', 'baz', false, true, 'int', \PDO::PARAM_INT);
 
         $this->assertEquals(array(
+            'constraint' => null,
+            'data_type' => null,
             'default' => null,
+            'name' => 'foo',
             'nullable' => true,
+            'pdo_type' => \PDO::PARAM_STR,
             'pkey' => false,
             'type' => 'string',
-            'pdo_type' => \PDO::PARAM_STR,
-            'data_type' => null,
-            'constraint' => null,
-        ), $this->schema->get('foo'));
+        ), $this->schema['foo']);
         $this->assertEquals(array(
+            'constraint' => null,
+            'data_type' => null,
             'default' => 'baz',
+            'name' => 'bar',
             'nullable' => false,
+            'pdo_type' => \PDO::PARAM_INT,
             'pkey' => true,
             'type' => 'int',
-            'pdo_type' => \PDO::PARAM_INT,
-            'data_type' => null,
-            'constraint' => null,
-        ), $this->schema->get('bar'));
+        ), $this->schema['bar']);
+
         $this->assertEquals(array('bar'), $this->schema->getKeys());
     }
 }

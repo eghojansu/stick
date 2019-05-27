@@ -120,22 +120,24 @@ class MysqlDriverTest extends MyTestCase
         $schema = $this->mysqlDriver->buildSchema($rows);
         $expected = array(
             'foo' => array(
+                'constraint' => '20',
+                'data_type' => 'VARCHAR',
                 'default' => null,
+                'name' => 'foo',
                 'nullable' => true,
+                'pdo_type' => \PDO::PARAM_STR,
                 'pkey' => true,
                 'type' => 'VARCHAR(20)',
-                'pdo_type' => \PDO::PARAM_STR,
-                'data_type' => 'VARCHAR',
-                'constraint' => '20',
             ),
             'bar' => array(
+                'constraint' => '11',
+                'data_type' => 'INT',
                 'default' => 1,
+                'name' => 'bar',
                 'nullable' => false,
+                'pdo_type' => \PDO::PARAM_INT,
                 'pkey' => false,
                 'type' => 'INT(11)',
-                'pdo_type' => \PDO::PARAM_INT,
-                'data_type' => 'INT',
-                'constraint' => '11',
             ),
         );
 

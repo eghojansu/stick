@@ -198,31 +198,34 @@ OUTPUT
         $this->fw->set('CACHE', 'filesystem='.$this->tmp('/'));
         $expected = array(
             'id' => array(
+                'constraint' => null,
+                'data_type' => 'INTEGER',
                 'default' => null,
+                'name' => 'id',
                 'nullable' => false,
+                'pdo_type' => \PDO::PARAM_INT,
                 'pkey' => true,
                 'type' => 'INTEGER',
-                'pdo_type' => \PDO::PARAM_INT,
-                'data_type' => 'INTEGER',
-                'constraint' => null,
             ),
             'username' => array(
+                'constraint' => null,
+                'data_type' => 'TEXT',
                 'default' => null,
+                'name' => 'username',
                 'nullable' => false,
+                'pdo_type' => \PDO::PARAM_STR,
                 'pkey' => false,
                 'type' => 'TEXT',
-                'pdo_type' => \PDO::PARAM_STR,
-                'data_type' => 'TEXT',
-                'constraint' => null,
             ),
             'active' => array(
+                'constraint' => null,
+                'data_type' => 'INTEGER',
                 'default' => 1,
+                'name' => 'active',
                 'nullable' => false,
+                'pdo_type' => \PDO::PARAM_INT,
                 'pkey' => false,
                 'type' => 'INTEGER',
-                'pdo_type' => \PDO::PARAM_INT,
-                'data_type' => 'INTEGER',
-                'constraint' => null,
             ),
         );
         $result1 = $this->db->schema('user', 'id,username,active', 1);

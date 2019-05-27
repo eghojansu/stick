@@ -22,25 +22,52 @@ use Fal\Stick\Magic;
  */
 class Schema extends Magic implements \Countable, \IteratorAggregate
 {
+    /** @var array Row blueprint */
     const BLUEPRINT = array(
+        'constraint' => null,
+        'data_type' => null,
         'default' => null,
+        'name' => null,
         'nullable' => true,
+        'pdo_type' => \PDO::PARAM_STR,
         'pkey' => false,
         'type' => 'string',
-        'pdo_type' => \PDO::PARAM_STR,
-        'data_type' => null,
-        'constraint' => null,
     );
 
     /**
-     * @var array
+     * {inheritdoc}.
      */
-    private $keys;
+    public function &get(string $field, $default = null)
+    {
+        if (isset($this->hive[$field])) {
+            return $this->hive[$field];
+        }
+
+        throw new \LogicException(sprintf('Field not exists: %s.', $field));
+    }
 
     /**
-     * Returns schema count.
-     *
-     * @return int
+     * {inheritdoc}.
+     */
+    public function set(string $field, $schema): Magic
+    {
+        if (!is_array($schema)) {
+            $schema = array('default' => $schema);
+        }
+
+        $this->hive[$field] = self::BLUEPRINT;
+
+        foreach (array_intersect_key($schema, self::BLUEPRINT) as $key => $val) {
+            $this->hive[$field][$key] = $val ?? self::BLUEPRINT[$key];
+        }
+
+        $this->hive[$field]['name'] = $field;
+
+        return $this;
+    }
+
+    /**
+     * {inheritdoc}.
      */
     public function count()
     {
@@ -48,9 +75,7 @@ class Schema extends Magic implements \Countable, \IteratorAggregate
     }
 
     /**
-     * Returns array iterator.
-     *
-     * @return ArrayIterator
+     * {inheritdoc}.
      */
     public function getIterator()
     {
@@ -68,7 +93,7 @@ class Schema extends Magic implements \Countable, \IteratorAggregate
     }
 
     /**
-     * Returns fields.
+     * Returns schema field names.
      *
      * @return array
      */
@@ -84,69 +109,7 @@ class Schema extends Magic implements \Countable, \IteratorAggregate
      */
     public function getKeys(): array
     {
-        if (null === $this->keys) {
-            $this->keys = array();
-
-            foreach ($this->hive as $key => $value) {
-                if ($value['pkey']) {
-                    $this->keys[] = $key;
-                }
-            }
-        }
-
-        return $this->keys;
-    }
-
-    /**
-     * Returns field schema.
-     *
-     * @param string $field
-     * @param mixed  $default
-     *
-     * @return array|null
-     */
-    public function &get(string $field, $default = null)
-    {
-        if ($this->has($field)) {
-            return $this->hive[$field];
-        }
-
-        throw new \LogicException(sprintf('Field not exists: %s.', $field));
-    }
-
-    /**
-     * Add field schema.
-     *
-     * @param string $field
-     * @param mixed  $schema
-     *
-     * @return Magic
-     */
-    public function set(string $field, $schema): Magic
-    {
-        if (!is_array($schema)) {
-            $schema = array('default' => $schema);
-        }
-
-        $this->keys = null;
-        $this->hive[$field] = array();
-
-        foreach (self::BLUEPRINT as $key => $value) {
-            $this->hive[$field][$key] = $schema[$key] ?? $value;
-        }
-
-        return $this;
-    }
-
-    /**
-     * {inheritdoc}.
-     */
-    public function rem(string $field): Magic
-    {
-        unset($this->hive[$field]);
-        $this->keys = null;
-
-        return $this;
+        return array_keys(array_filter(array_column($this->hive, 'pkey', 'name')));
     }
 
     /**
@@ -161,8 +124,16 @@ class Schema extends Magic implements \Countable, \IteratorAggregate
      *
      * @return Schema
      */
-    public function add(string $field, $default = null, bool $nullable = null, bool $pkey = null, string $type = null, int $pdo_type = null): Schema
-    {
-        return $this->set($field, compact('default', 'nullable', 'pkey', 'type', 'pdo_type'));
+    public function add(
+        string $field,
+        $default = null,
+        bool $nullable = null,
+        bool $pkey = null,
+        string $type = null,
+        int $pdo_type = null
+    ): Schema {
+        $this->set($field, compact('default', 'nullable', 'pkey', 'type', 'pdo_type'));
+
+        return $this;
     }
 }

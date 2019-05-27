@@ -112,14 +112,12 @@ class MapperProvider
         );
     }
 
-    public function createRelation()
+    public function prepareRelation()
     {
         $expected = array(
-            array(
-                'id' => 1,
-                'fullname' => 'fooname',
-                'user_id' => 1,
-            ),
+            'id' => 1,
+            'fullname' => 'fooname',
+            'user_id' => 1,
         );
 
         return array(
@@ -137,36 +135,7 @@ class MapperProvider
             ),
             'with extra filter' => array(
                 $expected,
-                array('profile', null, false, false, 'id = 1'),
-            ),
-            'belongs to' => array(
-                array(
-                    array(
-                        'id' => 1,
-                        'username' => 'foo',
-                        'password' => null,
-                        'active' => 1,
-                    ),
-                ),
-                array('user', null, true),
-                null,
-                false,
-                'profile',
-            ),
-            'has many' => array(
-                array(
-                    array(
-                        'id' => 1,
-                        'phonename' => 'foo1',
-                        'user_id' => 1,
-                    ),
-                    array(
-                        'id' => 2,
-                        'phonename' => 'foo2',
-                        'user_id' => 1,
-                    ),
-                ),
-                array('phone', null, false, true),
+                array('profile', null, 'id = 1'),
             ),
             'with mapper class' => array(
                 $expected,
@@ -185,7 +154,7 @@ class MapperProvider
             ),
             'with no relation' => array(
                 'No relation defined.',
-                array('nokey'),
+                array('nokey', ''),
                 'LogicException',
                 false,
                 'nokey',

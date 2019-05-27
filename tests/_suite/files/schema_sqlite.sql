@@ -44,6 +44,7 @@ CREATE TABLE session (
 CREATE TABLE types_check (
     id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     name VARCHAR(32) NULL,
+    last_name VARCHAR(32) NULL,
     last_check DATE NOT NULL
 );
 CREATE TABLE phone (
