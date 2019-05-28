@@ -1140,8 +1140,6 @@ class Mapper implements \ArrayAccess, \Iterator, \Countable
                 return $pivot->moveTo($pivotMap[$mapper->get($key)]);
             });
         } else {
-            // @codeCoverageIgnoreStart
-            // We prepare this but doesn't know how test it!
             $pivotMap = array();
             $pickKeys = array_flip($relations);
 
@@ -1161,11 +1159,9 @@ class Mapper implements \ArrayAccess, \Iterator, \Countable
                 $pickKeys
             ) {
                 $key = implode(',', array_intersect_key($mapper->initial(), $pickKeys));
-                $ptr = $pivotMap[$key];
 
-                return $pivot->moveTo($ptr);
+                return $pivot->moveTo($pivotMap[$key]);
             });
-            // @codeCoverageIgnoreEnd
         }
 
         $finalFilter = array($relationFilters);

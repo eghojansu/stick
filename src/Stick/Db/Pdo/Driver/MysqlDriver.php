@@ -487,13 +487,17 @@ class MysqlDriver implements DriverInterface
     protected function ensureKey(string $key, array $keys): string
     {
         if (in_array($key, $keys)) {
-            $seq = 2;
+            $pattern = '/^'.$key.'__(\d+)$/';
+            $existing = preg_grep($pattern, $keys);
 
-            while (preg_grep('/^'.$key.'__'.$seq.'$/', $keys)) {
-                ++$seq;
+            if ($existing) {
+                natsort($existing);
+                preg_match($pattern, end($existing), $match);
+
+                return $key.'__'.($match[1] + 1);
             }
 
-            return $key.'__'.$seq;
+            return $key.'__2';
         }
 
         return $key;

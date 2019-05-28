@@ -674,8 +674,8 @@ class MapperTest extends MyTestCase
         $tc = $this->mapper->belongsToMany('tb', 'tc', null, 'id > 0');
 
         $this->assertCount(2, $tc);
-        $this->assertCount(1, $tc->pivot);
 
+        $this->assertCount(1, $tc->pivot);
         $this->assertEquals(array(
             'id' => 1,
             'vcol' => 'tb1',
@@ -688,6 +688,7 @@ class MapperTest extends MyTestCase
         // next
         $tc->next();
         $tc->current();
+        $this->assertCount(1, $tc->pivot);
         $this->assertEquals(array(
             'id' => 2,
             'vcol' => 'tb2',
@@ -695,6 +696,63 @@ class MapperTest extends MyTestCase
         $this->assertEquals(array(
             'ta_id' => 1,
             'tb_id' => 2,
+        ), $tc->pivot->toArray());
+    }
+
+    public function testBelongsToMany2()
+    {
+        $this->db->mexec(array(
+            'insert into ta2 (id, vcol) values (1, "ta1"), (2, "ta2")',
+            'insert into tb2 (id, vcol, id2) values (1, "tb11", 1), (1, "tb12", 2), (1, "tb13", 3), (2, "tb21", 1)',
+            'insert into tc2 (ta2_id, tb2_id, tb2_id2) values (1, 1, 1), (1, 1, 2), (1, 1, 3), (2, 1, 1)',
+        ));
+        $this->mapper->switchTable('ta2');
+        $this->mapper->findOne();
+
+        $tc = $this->mapper->belongsToMany('tb2', 'tc2', 'tb2_id = id, tb2_id2 = id2');
+
+        $this->assertCount(3, $tc);
+
+        $this->assertCount(1, $tc->pivot);
+        $this->assertEquals(array(
+            'id' => 1,
+            'vcol' => 'tb11',
+            'id2' => 1,
+        ), $tc->toArray());
+        $this->assertEquals(array(
+            'ta2_id' => 1,
+            'tb2_id' => 1,
+            'tb2_id2' => 1,
+        ), $tc->pivot->toArray());
+
+        // next
+        $tc->next();
+        $tc->current();
+        $this->assertCount(1, $tc->pivot);
+        $this->assertEquals(array(
+            'id' => 1,
+            'vcol' => 'tb12',
+            'id2' => 2,
+        ), $tc->toArray());
+        $this->assertEquals(array(
+            'ta2_id' => 1,
+            'tb2_id' => 1,
+            'tb2_id2' => 2,
+        ), $tc->pivot->toArray());
+
+        // next
+        $tc->next();
+        $tc->current();
+        $this->assertCount(1, $tc->pivot);
+        $this->assertEquals(array(
+            'id' => 1,
+            'vcol' => 'tb13',
+            'id2' => 3,
+        ), $tc->toArray());
+        $this->assertEquals(array(
+            'ta2_id' => 1,
+            'tb2_id' => 1,
+            'tb2_id2' => 3,
         ), $tc->pivot->toArray());
     }
 

@@ -52,3 +52,20 @@ CREATE TABLE phone (
     phonename TEXT NOT NULL,
     user_id INTEGER NOT NULL
 );
+CREATE TABLE ta2 (
+    id INTEGER NOT NULL,
+    vcol TEXT NOT NULL,
+    PRIMARY KEY (id)
+);
+CREATE TABLE tb2 (
+    id INTEGER NOT NULL,
+    vcol TEXT NOT NULL,
+    id2 INTEGER NOT NULL,
+    PRIMARY KEY (id, id2)
+);
+CREATE TABLE tc2 (
+    ta2_id INTEGER NOT NULL,
+    tb2_id INTEGER NOT NULL,
+    tb2_id2 INTEGER NOT NULL,
+    PRIMARY KEY (ta2_id, tb2_id, tb2_id2)
+);
