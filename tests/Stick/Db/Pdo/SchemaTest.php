@@ -17,22 +17,22 @@ use Fal\Stick\TestSuite\MyTestCase;
 
 class SchemaTest extends MyTestCase
 {
-    public function testOffsetExists()
+    public function testHas()
     {
-        $this->assertFalse(isset($this->schema['foo']));
+        $this->assertFalse($this->schema->has('foo'));
     }
 
-    public function testOffsetGet()
+    public function testGet()
     {
         $this->expectException('LogicException');
         $this->expectExceptionMessage('Field not exists: foo.');
 
-        $this->schema['foo'];
+        $this->schema->get('foo');
     }
 
-    public function testOffsetSet()
+    public function testSet()
     {
-        $this->schema['foo'] = null;
+        $this->schema->set('foo', null);
 
         $this->assertEquals(array(
             'constraint' => null,
@@ -43,18 +43,18 @@ class SchemaTest extends MyTestCase
             'pdo_type' => \PDO::PARAM_STR,
             'pkey' => false,
             'type' => 'string',
-        ), $this->schema['foo']);
+        ), $this->schema->get('foo'));
     }
 
-    public function testOffsetUnset()
+    public function testRem()
     {
-        $this->schema['foo'] = null;
-        unset($this->schema['foo']);
+        $this->schema->set('foo', null);
+        $this->schema->rem('foo');
 
         $this->expectException('LogicException');
         $this->expectExceptionMessage('Field not exists: foo.');
 
-        $this->schema['foo'];
+        $this->schema->get('foo');
     }
 
     public function testCount()
@@ -67,11 +67,6 @@ class SchemaTest extends MyTestCase
         $this->assertInstanceOf('ArrayIterator', $this->schema->getIterator());
     }
 
-    public function testGetSchema()
-    {
-        $this->assertCount(0, $this->schema->getSchema());
-    }
-
     public function testGetFields()
     {
         $this->assertCount(0, $this->schema->getFields());
@@ -80,34 +75,5 @@ class SchemaTest extends MyTestCase
     public function testGetKeys()
     {
         $this->assertCount(0, $this->schema->getKeys());
-    }
-
-    public function testAdd()
-    {
-        $this->schema->add('foo');
-        $this->schema->add('bar', 'baz', false, true, 'int', \PDO::PARAM_INT);
-
-        $this->assertEquals(array(
-            'constraint' => null,
-            'data_type' => null,
-            'default' => null,
-            'name' => 'foo',
-            'nullable' => true,
-            'pdo_type' => \PDO::PARAM_STR,
-            'pkey' => false,
-            'type' => 'string',
-        ), $this->schema['foo']);
-        $this->assertEquals(array(
-            'constraint' => null,
-            'data_type' => null,
-            'default' => 'baz',
-            'name' => 'bar',
-            'nullable' => false,
-            'pdo_type' => \PDO::PARAM_INT,
-            'pkey' => true,
-            'type' => 'int',
-        ), $this->schema['bar']);
-
-        $this->assertEquals(array('bar'), $this->schema->getKeys());
     }
 }

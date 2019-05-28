@@ -232,8 +232,8 @@ OUTPUT
         // second call hit cache
         $result2 = $this->db->schema('user', 'id,username,active', 1);
 
-        $this->assertEquals($expected, $result1->getSchema());
-        $this->assertEquals($expected, $result2->getSchema());
+        $this->assertEquals($expected, $result1->getFields(true));
+        $this->assertEquals($expected, $result2->getFields(true));
 
         $this->fw->creset();
     }

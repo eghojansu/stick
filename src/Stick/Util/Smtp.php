@@ -16,69 +16,41 @@ namespace Fal\Stick\Util;
 use Fal\Stick\Fw;
 use Fal\Stick\Magic;
 
+/**
+ * SMTP helper ported from F3/SMTP.
+ *
+ * @author Eko Kurniawan <ekokurniawanbs@gmail.com>
+ */
 class Smtp extends Magic
 {
-    /**
-     * E-mail attachments.
-     *
-     * @var string
-     */
+    /** @var string E-mail attachments */
     protected $attachments;
 
-    /**
-     * SMTP host.
-     *
-     * @var string
-     */
+    /** @var string SMTP host */
     protected $host;
 
-    /**
-     * SMTP port.
-     *
-     * @var string
-     */
+    /** @var string SMTP port */
     protected $port;
 
-    /**
-     * TLS/SSL.
-     *
-     * @var string
-     */
+    /** @var string TLS/SSL */
     protected $scheme;
 
-    /**
-     * User ID.
-     *
-     * @var string
-     */
+    /** @var string User ID */
     protected $user;
 
-    /**
-     * Password.
-     *
-     * @var string
-     */
+    /** @var string User password */
     protected $password;
 
-    /**
-     * TLS/SSL stream context.
-     *
-     * @var string
-     */
+    /** @var resource TLS/SSL stream context */
     protected $context;
 
-    /**
-     * TCP/IP socket.
-     *
-     * @var string
-     */
+    /** @var resource TCP/IP socket */
     protected $socket;
 
-    /**
-     * Server-client conversation.
-     *
-     * @var string
-     */
+    /** @var array */
+    protected $headers;
+
+    /** @var string Server-client conversation */
     protected $log = '';
 
     /**
@@ -92,11 +64,18 @@ class Smtp extends Magic
      * @param array|null  $context
      * @param string      $charset
      */
-    public function __construct(string $user = null, string $password = null, string $scheme = 'ssl', string $host = 'localhost', int $port = 25, array $context = null, string $charset = 'UTF-8')
-    {
-        $this->hive = array(
+    public function __construct(
+        string $user = null,
+        string $password = null,
+        string $scheme = 'ssl',
+        string $host = 'localhost',
+        int $port = 25,
+        array $context = null,
+        string $charset = 'UTF-8'
+    ) {
+        $this->headers = array(
             'MIME-Version' => '1.0',
-            'Content-Type' => 'text/plain; '.'charset='.$charset,
+            'Content-Type' => 'text/plain; charset='.$charset,
         );
         $this->scheme = 0 === strcasecmp($scheme, 'ssl') ? 'ssl' : 'tcp';
         $this->host = $this->scheme.'://'.strtolower($host);
@@ -115,32 +94,25 @@ class Smtp extends Magic
      */
     public function has(string $key): bool
     {
-        return isset($this->hive[Fw::dashCase($key)]);
+        return isset($this->headers[Fw::dashCase($key)]);
     }
-
-    /**
-     *   @return string|null
-     *
-     *   @param $key string
-     **/
 
     /**
      * Return value of e-mail header.
      *
      * @param string $key
-     * @param mixed  $default
      *
      * @return mixed
      */
-    public function &get(string $key, $default = null)
+    public function &get(string $key)
     {
-        $key = Fw::dashCase($key);
+        $use = Fw::dashCase($key);
 
-        if (isset($this->hive[$key])) {
-            return $this->hive[$key];
+        if (isset($this->headers[$use])) {
+            return $this->headers[$use];
         }
 
-        return $default;
+        throw new \LogicException(sprintf('Header not exists: %s.', $key));
     }
 
     /**
@@ -153,7 +125,7 @@ class Smtp extends Magic
      */
     public function set(string $key, $value): Magic
     {
-        $this->hive[Fw::dashCase($key)] = (string) $value;
+        $this->headers[Fw::dashCase($key)] = (string) $value;
 
         return $this;
     }
@@ -167,7 +139,7 @@ class Smtp extends Magic
      */
     public function rem(string $key): Magic
     {
-        unset($this->hive[Fw::dashCase($key)]);
+        unset($this->headers[Fw::dashCase($key)]);
 
         return $this;
     }
@@ -194,10 +166,14 @@ class Smtp extends Magic
     public function attach(string $file, string $alias = null, string $cid = null): Smtp
     {
         if (!is_file($file)) {
-            throw new \LogicException(sprintf('Attachment not found: %s.', $file));
+            throw new \LogicException(sprintf('Attachment file not found: %s.', $file));
         }
 
-        $this->attachments[] = array('filename' => $file, 'alias' => $alias ?? basename($file), 'cid' => $cid);
+        $this->attachments[] = array(
+            'filename' => $file,
+            'alias' => $alias ?? basename($file),
+            'cid' => $cid,
+        );
 
         return $this;
     }
@@ -225,13 +201,20 @@ class Smtp extends Magic
         }
 
         // Retrieve headers
-        $headers = $this->hive;
+        $headers = $this->headers;
         $host = $this->fw->get('HOST');
 
         // Connect to the server
         if (!$mock) {
             $socket = &$this->socket;
-            $socket = stream_socket_client($this->host.':'.$this->port, $errno, $errstr, ini_get('default_socket_timeout'), STREAM_CLIENT_CONNECT, $this->context);
+            $socket = stream_socket_client(
+                $this->host.':'.$this->port,
+                $errno,
+                $errstr,
+                ini_get('default_socket_timeout'),
+                STREAM_CLIENT_CONNECT,
+                $this->context
+            );
 
             if (!$socket) {
                 $this->fw->error(500, $errstr);

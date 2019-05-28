@@ -46,11 +46,6 @@ class OptionTest extends MyTestCase
         $this->assertTrue($this->option->isAllowed('foo', 'bar'));
     }
 
-    public function testIsValid()
-    {
-        $this->assertTrue($this->option->isValid('foo', 'bar'));
-    }
-
     public function testIsRequired()
     {
         $this->assertFalse($this->option->isRequired('foo'));
@@ -59,11 +54,6 @@ class OptionTest extends MyTestCase
     public function testIsOptional()
     {
         $this->assertTrue($this->option->isOptional('foo'));
-    }
-
-    public function testGetDefaults()
-    {
-        $this->assertEquals(array('foo' => 'foo'), $this->option->getDefaults());
     }
 
     public function testSetDefaults()
@@ -79,10 +69,6 @@ class OptionTest extends MyTestCase
             'foo' => 'foo',
         ));
         $this->assertTrue($this->option->isAllowed('foo', 'foo'));
-
-        $this->expectException('OutOfBoundsException');
-        $this->expectExceptionMessage("Option foo only allow these values: 'foo'.");
-        $this->option->isAllowed('foo', 'bar');
     }
 
     public function testSetTypes()
@@ -90,22 +76,13 @@ class OptionTest extends MyTestCase
         $this->option->setTypes(array(
             'foo' => 'string,stdClass',
         ));
-        $this->assertTrue($this->option->isValid('foo', 'bar'));
-        $this->assertTrue($this->option->isValid('foo', new \stdClass()));
 
-        $this->expectException('UnexpectedValueException');
-        $this->expectExceptionMessage('Option foo expect string or stdClass, given integer type.');
-        $this->option->isValid('foo', 1);
+        $this->assertCount(1, $this->option->options());
     }
 
     public function testSetRequired()
     {
         $this->assertTrue($this->option->setRequired('foo')->isRequired('foo'));
-    }
-
-    public function testSetOptionals()
-    {
-        $this->assertTrue($this->option->setOptionals('foo')->isOptional('foo'));
     }
 
     public function testHas()
@@ -129,30 +106,49 @@ class OptionTest extends MyTestCase
         $this->option->get('bar');
     }
 
-    public function testSet()
+    /**
+     * @dataProvider Fal\Stick\TestSuite\Provider\Util\OptionProvider::set
+     */
+    public function testSet($expected, $field, $add = null, $value = null, $allowed = null, $exception = null)
     {
-        $this->assertEquals('bar', $this->option->set('foo', 'bar')->get('foo'));
+        if ($add) {
+            $this->option->add($field, ...$add);
+        }
 
-        $this->expectException('LogicException');
-        $this->expectExceptionMessage('Option bar is not available.');
-        $this->option->set('bar', 'baz');
+        if ($allowed) {
+            $this->option->setAllowed(array(
+                $field => $allowed,
+            ));
+        }
+
+        if ($exception) {
+            $this->expectException($exception);
+            $this->expectExceptionMessage($expected);
+
+            $this->option->set($field, $value);
+
+            return;
+        }
+
+        $this->option->set($field, $value ?? $expected);
+
+        $this->assertEquals($expected, $this->option->get($field));
     }
 
     public function testRem()
     {
         $this->option->set('foo', 'bar')->rem('foo');
-        $this->assertEquals('foo', $this->option->get('foo'));
+
+        $this->expectException('LogicException');
+        $this->expectExceptionMessage('Option foo is not available.');
+        $this->option->get('foo');
     }
 
     public function testAdd()
     {
         $this->option->add('foo', 'foo');
 
-        $this->assertTrue($this->option->isValid('foo', 'bar'));
-
-        $this->expectException('UnexpectedValueException');
-        $this->expectExceptionMessage('Option foo expect string, given integer type.');
-        $this->option->isValid('foo', 1);
+        $this->assertCount(1, $this->option->options());
     }
 
     public function testResolve()
@@ -180,7 +176,17 @@ class OptionTest extends MyTestCase
         ));
 
         $this->expectException('LogicException');
-        $this->expectExceptionMessage('Not an option: baz.');
+        $this->expectExceptionMessage('Option baz is not available.');
         $this->option->resolve(array('baz' => null));
+    }
+
+    public function testOptions()
+    {
+        $this->assertCount(1, $this->option->options());
+    }
+
+    public function testSetOptional()
+    {
+        $this->assertTrue($this->option->setOptional('bar')->isOptional('bar'));
     }
 }

@@ -141,7 +141,7 @@ class MysqlDriverTest extends MyTestCase
             ),
         );
 
-        $this->assertEquals($expected, $schema->getSchema());
+        $this->assertEquals($expected, $schema->getFields(true));
     }
 
     public function testFixOrder()

@@ -22,20 +22,17 @@ use Fal\Stick\Magic;
  */
 class ValueStore extends Magic
 {
-    /**
-     * @var string
-     */
+    /** @var string Source file */
     protected $filename;
 
-    /**
-     * @var string
-     */
+    /** @var string Save file */
     protected $saveAs;
 
-    /**
-     * @var array
-     */
+    /** @var array Initial data */
     protected $initial;
+
+    /** @var array Values */
+    protected $values;
 
     /**
      * Class constructor.
@@ -49,6 +46,56 @@ class ValueStore extends Magic
         $this->saveAs = $saveAs ?? $filename;
 
         $this->reload();
+    }
+
+    /**
+     * {inheritdoc}.
+     */
+    public function has(string $key): bool
+    {
+        return array_key_exists($key, $this->values);
+    }
+
+    /**
+     * {inheritdoc}.
+     */
+    public function &get(string $key)
+    {
+        if ($this->has($key)) {
+            return $this->values[$key];
+        }
+
+        throw new \LogicException(sprintf('Key not found: %s.', $key));
+    }
+
+    /**
+     * {inheritdoc}.
+     */
+    public function set(string $key, $value): Magic
+    {
+        $this->values[$key] = $value;
+
+        return $this;
+    }
+
+    /**
+     * {inheritdoc}.
+     */
+    public function rem(string $key): Magic
+    {
+        unset($this->values[$key]);
+
+        return $this;
+    }
+
+    /**
+     * Returns values.
+     *
+     * @return array
+     */
+    public function all(): array
+    {
+        return $this->values;
     }
 
     /**
@@ -80,7 +127,7 @@ class ValueStore extends Magic
      */
     public function merge(array $data): ValueStore
     {
-        $this->hive = array_replace_recursive($this->hive, $data);
+        $this->values = array_replace_recursive($this->values, $data);
 
         return $this;
     }
@@ -94,7 +141,7 @@ class ValueStore extends Magic
      */
     public function replace(array $data): ValueStore
     {
-        $this->hive = $data;
+        $this->values = $data;
 
         return $this;
     }
@@ -109,9 +156,9 @@ class ValueStore extends Magic
     public function commit(bool $replace = false): ValueStore
     {
         if ($replace) {
-            $commit = $this->hive;
+            $commit = $this->values;
         } else {
-            $commit = array_intersect_key($this->hive, $this->initial);
+            $commit = array_intersect_key($this->values, $this->initial);
         }
 
         file_put_contents($this->saveAs, json_encode($commit));
@@ -126,15 +173,20 @@ class ValueStore extends Magic
      */
     public function reload(): ValueStore
     {
-        $this->hive = $this->initial = array();
+        $this->values = $this->initial = array();
 
-        $content = file_exists($this->saveAs) ? file_get_contents($this->saveAs) : file_get_contents($this->filename);
+        $content = file_exists($this->saveAs) ?
+            file_get_contents($this->saveAs) :
+            file_get_contents($this->filename);
 
         if ($content) {
-            $this->hive = $this->initial = json_decode($content, true);
+            $this->values = $this->initial = json_decode($content, true);
 
             if (JSON_ERROR_NONE !== json_last_error()) {
-                throw new \LogicException(sprintf('JSON error: %s.', json_last_error_msg()));
+                throw new \LogicException(sprintf(
+                    'JSON error: %s.',
+                    json_last_error_msg()
+                ));
             }
         }
 

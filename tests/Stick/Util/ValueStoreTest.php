@@ -30,6 +30,37 @@ class ValueStoreTest extends MyTestCase
         $this->clear($this->tmp());
     }
 
+    public function testHas()
+    {
+        $this->assertTrue($this->store->has('foo'));
+        $this->assertFalse($this->store->has('bar'));
+    }
+
+    public function testGet()
+    {
+        $this->assertEquals('bar', $this->store->get('foo'));
+
+        $this->expectException('LogicException');
+        $this->expectExceptionMessage('Key not found: bar.');
+
+        $this->store->get('bar');
+    }
+
+    public function testSet()
+    {
+        $this->assertEquals('foo', $this->store->set('bar', 'foo')->get('bar'));
+    }
+
+    public function testRem()
+    {
+        $this->store->set('bar', 'foo')->rem('bar');
+
+        $this->expectException('LogicException');
+        $this->expectExceptionMessage('Key not found: bar.');
+
+        $this->store->get('bar');
+    }
+
     public function testGetFilename()
     {
         $this->assertEquals($this->fixture('/files/json_foo.json'), $this->store->getFilename());
@@ -46,12 +77,12 @@ class ValueStoreTest extends MyTestCase
         $this->store->commit();
 
         $this->assertFileExists($this->store->getSaveAs());
-        $this->assertEquals(array('foo' => 'bar'), $this->store->reload()->hive());
+        $this->assertEquals(array('foo' => 'bar'), $this->store->reload()->all());
 
         // second call, replace
         $this->store->set('bar', 'baz');
         $this->store->commit(true);
-        $this->assertEquals(array('foo' => 'bar', 'bar' => 'baz'), $this->store->reload()->hive());
+        $this->assertEquals(array('foo' => 'bar', 'bar' => 'baz'), $this->store->reload()->all());
     }
 
     public function testReload()
@@ -69,6 +100,11 @@ class ValueStoreTest extends MyTestCase
 
     public function testReplace()
     {
-        $this->assertNull($this->store->replace(array('bar' => 'baz'))->get('foo'));
+        $this->store->replace(array('bar' => 'baz'));
+
+        $this->expectException('LogicException');
+        $this->expectExceptionMessage('Key not found: foo.');
+
+        $this->store->get('foo');
     }
 }

@@ -70,6 +70,6 @@ class SqliteDriverTest extends MyTestCase
             ),
         );
 
-        $this->assertEquals($expected, $schema->getSchema());
+        $this->assertEquals($expected, $schema->getFields(true));
     }
 }

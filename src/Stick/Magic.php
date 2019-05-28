@@ -18,12 +18,44 @@ namespace Fal\Stick;
  *
  * @author Eko Kurniawan <ekokurniawanbs@gmail.com>
  */
-class Magic implements \ArrayAccess
+abstract class Magic implements \ArrayAccess
 {
     /**
-     * @var array
+     * Returns true if hive member exists.
+     *
+     * @param string $key
+     *
+     * @return bool
      */
-    protected $hive = array();
+    abstract public function has(string $key): bool;
+
+    /**
+     * Returns hive member if exists, otherwise returns the defaults.
+     *
+     * @param string $key
+     *
+     * @return mixed
+     */
+    abstract public function &get(string $key);
+
+    /**
+     * Assign hive member.
+     *
+     * @param string $key
+     * @param mixed  $value
+     *
+     * @return Magic
+     */
+    abstract public function set(string $key, $value): Magic;
+
+    /**
+     * Remove hive member.
+     *
+     * @param string $key
+     *
+     * @return Magic
+     */
+    abstract public function rem(string $key): Magic;
 
     /**
      * Allow check hive member as class property.
@@ -117,85 +149,5 @@ class Magic implements \ArrayAccess
     public function offsetUnset($key)
     {
         $this->rem($key);
-    }
-
-    /**
-     * Returns variables hive.
-     *
-     * @return array
-     */
-    public function hive(): array
-    {
-        return $this->hive;
-    }
-
-    /**
-     * Returns true if hive member exists.
-     *
-     * @param string $key
-     *
-     * @return bool
-     */
-    public function has(string $key): bool
-    {
-        return array_key_exists($key, $this->hive);
-    }
-
-    /**
-     * Returns hive member if exists, otherwise returns the defaults.
-     *
-     * @param string $key
-     * @param mixed  $default
-     *
-     * @return mixed
-     */
-    public function &get(string $key, $default = null)
-    {
-        if (!$this->has($key)) {
-            $this->hive[$key] = $default;
-        }
-
-        return $this->hive[$key];
-    }
-
-    /**
-     * Assign hive member.
-     *
-     * @param string $key
-     * @param mixed  $value
-     *
-     * @return Magic
-     */
-    public function set(string $key, $value): Magic
-    {
-        $this->hive[$key] = $value;
-
-        return $this;
-    }
-
-    /**
-     * Remove hive member.
-     *
-     * @param string $key
-     *
-     * @return Magic
-     */
-    public function rem(string $key): Magic
-    {
-        unset($this->hive[$key]);
-
-        return $this;
-    }
-
-    /**
-     * Reset hive.
-     *
-     * @return Magic
-     */
-    public function reset(): Magic
-    {
-        $this->hive = array();
-
-        return $this;
     }
 }

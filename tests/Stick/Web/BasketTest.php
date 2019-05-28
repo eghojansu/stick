@@ -68,7 +68,7 @@ class BasketTest extends MyTestCase
 
     public function testGet()
     {
-        $this->assertEquals('foo', $this->basket->get('foo', 'foo'));
+        $this->assertNull($this->basket->get('foo'));
     }
 
     public function testSet()
@@ -96,9 +96,9 @@ class BasketTest extends MyTestCase
         $this->assertEquals(array('foo' => 'bar'), $this->basket->fromArray(array('foo' => 'bar'))->toArray());
     }
 
-    public function testFound()
+    public function testDry()
     {
-        $this->assertFalse($this->basket->found());
+        $this->assertTrue($this->basket->dry());
     }
 
     public function testFind()

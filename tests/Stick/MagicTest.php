@@ -13,10 +13,18 @@ declare(strict_types=1);
 
 namespace Fal\Stick\Test;
 
+use Fal\Stick\TestSuite\Classes\SampleMagic;
 use Fal\Stick\TestSuite\MyTestCase;
 
 class MagicTest extends MyTestCase
 {
+    private $magic;
+
+    protected function setUp(): void
+    {
+        $this->magic = new SampleMagic();
+    }
+
     public function testHas()
     {
         $this->assertFalse($this->magic->has('foo'));
@@ -88,15 +96,5 @@ class MagicTest extends MyTestCase
         unset($this->magic['foo']);
 
         $this->assertFalse(isset($this->magic['foo']));
-    }
-
-    public function testHive()
-    {
-        $this->assertEquals(array(), $this->magic->hive());
-    }
-
-    public function testReset()
-    {
-        $this->assertEquals(array(), $this->magic->set('foo', 'bar')->reset()->hive());
     }
 }

@@ -22,7 +22,7 @@ use Fal\Stick\Magic;
  */
 class Schema extends Magic implements \Countable, \IteratorAggregate
 {
-    /** @var array Row blueprint */
+    /** @var array Schema blueprint */
     const BLUEPRINT = array(
         'constraint' => null,
         'data_type' => null,
@@ -34,13 +34,24 @@ class Schema extends Magic implements \Countable, \IteratorAggregate
         'type' => 'string',
     );
 
+    /** @var array Schema fields */
+    protected $fields = array();
+
     /**
      * {inheritdoc}.
      */
-    public function &get(string $field, $default = null)
+    public function has(string $field): bool
     {
-        if (isset($this->hive[$field])) {
-            return $this->hive[$field];
+        return isset($this->fields[$field]);
+    }
+
+    /**
+     * {inheritdoc}.
+     */
+    public function &get(string $field)
+    {
+        if (isset($this->fields[$field])) {
+            return $this->fields[$field];
         }
 
         throw new \LogicException(sprintf('Field not exists: %s.', $field));
@@ -51,17 +62,27 @@ class Schema extends Magic implements \Countable, \IteratorAggregate
      */
     public function set(string $field, $schema): Magic
     {
-        if (!is_array($schema)) {
-            $schema = array('default' => $schema);
+        $this->fields[$field] = self::BLUEPRINT;
+
+        if (is_array($schema)) {
+            foreach (array_intersect_key($schema, self::BLUEPRINT) as $key => $val) {
+                $this->fields[$field][$key] = $val ?? self::BLUEPRINT[$key];
+            }
+        } else {
+            $this->fields[$field]['default'] = $schema;
         }
 
-        $this->hive[$field] = self::BLUEPRINT;
+        $this->fields[$field]['name'] = $field;
 
-        foreach (array_intersect_key($schema, self::BLUEPRINT) as $key => $val) {
-            $this->hive[$field][$key] = $val ?? self::BLUEPRINT[$key];
-        }
+        return $this;
+    }
 
-        $this->hive[$field]['name'] = $field;
+    /**
+     * {inheritdoc}.
+     */
+    public function rem(string $field): Magic
+    {
+        unset($this->fields[$field]);
 
         return $this;
     }
@@ -71,7 +92,7 @@ class Schema extends Magic implements \Countable, \IteratorAggregate
      */
     public function count()
     {
-        return count($this->hive);
+        return count($this->fields);
     }
 
     /**
@@ -79,27 +100,19 @@ class Schema extends Magic implements \Countable, \IteratorAggregate
      */
     public function getIterator()
     {
-        return new \ArrayIterator($this->hive);
+        return new \ArrayIterator($this->fields);
     }
 
     /**
-     * Returns schema.
+     * Returns field names or schema.
+     *
+     * @param bool $schema
      *
      * @return array
      */
-    public function getSchema(): array
+    public function getFields(bool $schema = false): array
     {
-        return $this->hive;
-    }
-
-    /**
-     * Returns schema field names.
-     *
-     * @return array
-     */
-    public function getFields(): array
-    {
-        return array_keys($this->hive);
+        return $schema ? $this->fields : array_keys($this->fields);
     }
 
     /**
@@ -109,31 +122,6 @@ class Schema extends Magic implements \Countable, \IteratorAggregate
      */
     public function getKeys(): array
     {
-        return array_keys(array_filter(array_column($this->hive, 'pkey', 'name')));
-    }
-
-    /**
-     * Add field schema.
-     *
-     * @param string      $field
-     * @param mixed       $default
-     * @param bool|null   $nullable
-     * @param bool|null   $pkey
-     * @param string|null $type
-     * @param int|null    $pdo_type
-     *
-     * @return Schema
-     */
-    public function add(
-        string $field,
-        $default = null,
-        bool $nullable = null,
-        bool $pkey = null,
-        string $type = null,
-        int $pdo_type = null
-    ): Schema {
-        $this->set($field, compact('default', 'nullable', 'pkey', 'type', 'pdo_type'));
-
-        return $this;
+        return array_keys(array_filter(array_column($this->fields, 'pkey', 'name')));
     }
 }

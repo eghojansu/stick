@@ -23,20 +23,17 @@ use Fal\Stick\Magic;
  */
 class Basket extends Magic implements \Iterator, \Countable
 {
-    /**
-     * @var Fw
-     */
+    /** @var Fw */
     protected $fw;
 
-    /**
-     * @var string
-     */
+    /** @var string */
     protected $key;
 
-    /**
-     * @var int
-     */
+    /** @var int */
     protected $ptr = 0;
+
+    /** @var array */
+    protected $basket = array();
 
     /**
      * Class constructor.
@@ -88,7 +85,7 @@ class Basket extends Magic implements \Iterator, \Countable
      */
     public function valid()
     {
-        return isset($this->hive[$this->ptr]);
+        return isset($this->basket[$this->ptr]);
     }
 
     /**
@@ -96,7 +93,7 @@ class Basket extends Magic implements \Iterator, \Countable
      */
     public function count()
     {
-        return count($this->hive);
+        return count($this->basket);
     }
 
     /**
@@ -104,19 +101,19 @@ class Basket extends Magic implements \Iterator, \Countable
      */
     public function has(string $key): bool
     {
-        return isset($this->hive[$this->ptr]) && array_key_exists($key, $this->hive[$this->ptr]);
+        return isset($this->basket[$this->ptr]) && array_key_exists($key, $this->basket[$this->ptr]);
     }
 
     /**
      * {@inheritdoc}
      */
-    public function &get(string $key, $default = null)
+    public function &get(string $key)
     {
-        if ($this->has($key)) {
-            return $this->hive[$this->ptr][$key];
+        if (!$this->has($key)) {
+            $this->basket[$this->ptr][$key] = null;
         }
 
-        return $default;
+        return $this->basket[$this->ptr][$key];
     }
 
     /**
@@ -124,7 +121,7 @@ class Basket extends Magic implements \Iterator, \Countable
      */
     public function set(string $key, $value): Magic
     {
-        $this->hive[$this->ptr][$key] = $value;
+        $this->basket[$this->ptr][$key] = $value;
 
         return $this;
     }
@@ -134,17 +131,19 @@ class Basket extends Magic implements \Iterator, \Countable
      */
     public function rem(string $key): Magic
     {
-        unset($this->hive[$this->ptr][$key]);
+        unset($this->basket[$this->ptr][$key]);
 
         return $this;
     }
 
     /**
-     * {@inheritdoc}
+     * Reset basket.
+     *
+     * @return Basket
      */
-    public function reset(): Magic
+    public function reset(): Basket
     {
-        $this->hive = array();
+        $this->basket = array();
         $this->ptr = 0;
 
         return $this;
@@ -157,7 +156,7 @@ class Basket extends Magic implements \Iterator, \Countable
      */
     public function toArray(): array
     {
-        return $this->valid() ? $this->hive[$this->ptr] : array();
+        return $this->valid() ? $this->basket[$this->ptr] : array();
     }
 
     /**
@@ -169,19 +168,19 @@ class Basket extends Magic implements \Iterator, \Countable
      */
     public function fromArray(array $row): Basket
     {
-        $this->hive[$this->ptr] = $row;
+        $this->basket[$this->ptr] = $row;
 
         return $this;
     }
 
     /**
-     * Returns true if basket is not empty.
+     * Valid complement.
      *
      * @return bool
      */
-    public function found(): bool
+    public function dry(): bool
     {
-        return $this->valid();
+        return !$this->valid();
     }
 
     /**
@@ -198,7 +197,7 @@ class Basket extends Magic implements \Iterator, \Countable
         $found = array();
         $ctr = 0;
 
-        foreach ($this->load()->hive as $ptr => $row) {
+        foreach ($this->load()->basket as $ptr => $row) {
             if (array_key_exists($key, $row) && $value == $row[$key]) {
                 $found[] = $row;
                 ++$ctr;
@@ -209,19 +208,19 @@ class Basket extends Magic implements \Iterator, \Countable
             }
         }
 
-        $this->hive = $found;
+        $this->basket = $found;
 
         return $this;
     }
 
     /**
-     * Commit current hive to session.
+     * Commit current basket to session.
      *
      * @return Basket
      */
     public function save(): Basket
     {
-        foreach ($this->hive as $key => $row) {
+        foreach ($this->basket as $key => $row) {
             $_id = $row['_id'] ?? $key;
 
             $this->fw->set('SESSION.'.$this->key.'.'.$_id, compact('_id') + $row);
@@ -237,7 +236,7 @@ class Basket extends Magic implements \Iterator, \Countable
      */
     public function delete(): Basket
     {
-        $this->hive = array_slice($this->hive, 0, $this->ptr, true) + array_slice($this->hive, $this->ptr + 1, null, true);
+        $this->basket = array_slice($this->basket, 0, $this->ptr, true) + array_slice($this->basket, $this->ptr + 1, null, true);
         $this->next();
 
         return $this->save();
@@ -253,7 +252,7 @@ class Basket extends Magic implements \Iterator, \Countable
         $this->reset();
 
         foreach ($this->fw->get('SESSION.'.$this->key, array()) as $_id => $row) {
-            $this->hive[] = compact('_id') + $row;
+            $this->basket[] = compact('_id') + $row;
         }
 
         return $this;
@@ -272,15 +271,15 @@ class Basket extends Magic implements \Iterator, \Countable
     }
 
     /**
-     * Drop basket and returns current hive.
+     * Drop basket and returns current basket.
      *
      * @return array
      */
     public function checkout(): array
     {
-        $hive = $this->hive();
+        $basket = $this->basket;
         $this->drop();
 
-        return $hive;
+        return $basket;
     }
 }

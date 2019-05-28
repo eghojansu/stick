@@ -24,7 +24,10 @@ class SmtpTest extends MyTestCase
 
     public function testGet()
     {
-        $this->assertNull($this->smtp->get('foo'));
+        $this->expectException('LogicException');
+        $this->expectExceptionMessage('Header not exists: foo.');
+
+        $this->smtp->get('foo');
     }
 
     public function testSet()
@@ -34,7 +37,12 @@ class SmtpTest extends MyTestCase
 
     public function testRem()
     {
-        $this->assertNull($this->smtp->set('foo', 'bar')->rem('foo')->get('Foo'));
+        $this->smtp->set('foo', 'bar')->rem('foo');
+
+        $this->expectException('LogicException');
+        $this->expectExceptionMessage('Header not exists: foo.');
+
+        $this->smtp->get('foo');
     }
 
     public function testLog()
@@ -48,7 +56,7 @@ class SmtpTest extends MyTestCase
 
         $file = $this->fixture('/files/none.txt');
         $this->expectException('LogicException');
-        $this->expectExceptionMessage('Attachment not found: '.$file.'.');
+        $this->expectExceptionMessage('Attachment file not found: '.$file.'.');
         $this->smtp->attach($file);
     }
 

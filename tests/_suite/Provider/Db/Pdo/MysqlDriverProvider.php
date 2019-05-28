@@ -179,7 +179,15 @@ class MysqlDriverProvider
                     'foo',
                 ),
                 'foo',
-                (new Schema())->add('foo', null, false, true, 'int', 1)->add('bar'),
+                (new Schema())
+                    ->set('foo', array(
+                        'default' => null,
+                        'nullable' => false,
+                        'pkey' => true,
+                        'type' => 'int',
+                        'pdo_type' => 1,
+                    ))
+                    ->set('bar', null),
                 array(
                     'bar' => 'bar',
                 ),
@@ -191,7 +199,14 @@ class MysqlDriverProvider
                     'foo',
                 ),
                 'foo',
-                (new Schema())->add('foo', null, false, true, 'int', 1)->add('bar'),
+                (new Schema())->set('foo', array(
+                    'default' => null,
+                    'nullable' => false,
+                    'pkey' => true,
+                    'type' => 'int',
+                    'pdo_type' => 1,
+                    ))
+                    ->set('bar', null),
                 array(
                     'foo' => null,
                     'bar' => 'bar',
@@ -200,7 +215,7 @@ class MysqlDriverProvider
             array(
                 array(),
                 'foo',
-                (new Schema())->add('foo'),
+                (new Schema())->set('foo', null),
                 array(
                     'bar' => 'bar',
                 ),
@@ -208,7 +223,10 @@ class MysqlDriverProvider
             array(
                 'Field cannot be null: foo.',
                 'foo',
-                (new Schema())->add('foo', null, false),
+                (new Schema())->set('foo', array(
+                    'default' => null,
+                    'nullable' => false,
+                )),
                 array(
                     'foo' => null,
                 ),
@@ -226,7 +244,15 @@ class MysqlDriverProvider
                     array(array('bar', 2), array(1, 1)),
                 ),
                 'foo',
-                (new Schema())->add('foo', null, false, true, 'int', 1)->add('bar'),
+                (new Schema())
+                    ->set('foo', array(
+                        'default' => null,
+                        'nullable' => false,
+                        'pkey' => true,
+                        'type' => 'int',
+                        'pdo_type' => 1,
+                    ))
+                    ->set('bar', null),
                 array(
                     'bar' => 'bar',
                 ),
@@ -237,7 +263,15 @@ class MysqlDriverProvider
             array(
                 array(),
                 'foo',
-                (new Schema())->add('foo', null, false, true, 'int', 1)->add('bar'),
+                (new Schema())
+                    ->set('foo', array(
+                        'default' => null,
+                        'nullable' => false,
+                        'pkey' => true,
+                        'type' => 'int',
+                        'pdo_type' => 1,
+                    ))
+                    ->set('bar', null),
                 array(),
                 array(
                     'foo' => 1,
@@ -246,7 +280,18 @@ class MysqlDriverProvider
             array(
                 'Field cannot be null: bar.',
                 'foo',
-                (new Schema())->add('foo', null, false, true, 'int', 1)->add('bar', null, false),
+                (new Schema())
+                    ->set('foo', array(
+                        'default' => null,
+                        'nullable' => false,
+                        'pkey' => true,
+                        'type' => 'int',
+                        'pdo_type' => 1,
+                    ))
+                    ->set('bar', array(
+                        'default' => null,
+                        'nullable' => false,
+                    )),
                 array(
                     'bar' => null,
                 ),
@@ -267,13 +312,20 @@ class MysqlDriverProvider
                     array(array(1, 1)),
                 ),
                 'foo',
-                (new Schema())->add('id', null, false, true, 'int', 1),
+                (new Schema())
+                    ->set('id', array(
+                        'default' => null,
+                        'nullable' => false,
+                        'pkey' => true,
+                        'type' => 'int',
+                        'pdo_type' => 1,
+                    )),
                 array('id' => 1),
             ),
             array(
                 array(),
                 'foo',
-                (new Schema())->add('id'),
+                (new Schema())->set('id', null),
                 array('id' => 1),
             ),
         );
