@@ -23,19 +23,11 @@ class Mapper implements \ArrayAccess, \Iterator, \Countable
     /** @var int Pagination limit */
     const PAGINATION_LIMIT = 10;
 
-    /** @var string On mapper load */
+    // Events
     const EVENT_LOAD = 'mapper.load';
-
-    /** @var string On mapper before save */
     const EVENT_SAVE = 'mapper.save';
-
-    /** @var string On mapper after save */
     const EVENT_AFTER_SAVE = 'mapper.after_save';
-
-    /** @var string On mapper before save */
     const EVENT_DELETE = 'mapper.delete';
-
-    /** @var string On mapper after save */
     const EVENT_AFTER_DELETE = 'mapper.after_delete';
 
     /** @var Schema Row blueprint */
