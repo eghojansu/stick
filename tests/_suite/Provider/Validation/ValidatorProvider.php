@@ -42,16 +42,21 @@ class ValidatorProvider
                     'errors' => array(
                         'foo' => 'This value should not be blank.',
                         'bar' => 'This value should not be blank.',
+                        'date' => "This value should be after 'tomorrow'.",
                     ),
                     'data' => array(
                         'foo' => null,
                         'bar' => null,
+                        'date' => 'today',
                     ),
                 ),
-                array(),
+                array(
+                    'date' => 'today',
+                ),
                 array(
                     'foo' => 'required',
                     'bar' => 'required',
+                    'date' => 'required|after:tomorrow',
                 ),
             ),
             'error custom' => array(

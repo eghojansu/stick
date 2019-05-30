@@ -110,7 +110,7 @@ class Mapper implements \ArrayAccess, \Iterator, \Countable
 
         if (0 === strncasecmp('findby', $method, 6)) {
             $filter = array(
-                $this->db->fw->snakeCase(substr($method, 6)) => array_shift($arguments)
+                $this->db->fw->snakeCase(substr($method, 6)) => array_shift($arguments),
             );
 
             return $this->findOne($filter, ...$arguments);
@@ -118,7 +118,7 @@ class Mapper implements \ArrayAccess, \Iterator, \Countable
 
         if (0 === strncasecmp('findallby', $method, 9)) {
             $filter = array(
-                $this->db->fw->snakeCase(substr($method, 9)) => array_shift($arguments)
+                $this->db->fw->snakeCase(substr($method, 9)) => array_shift($arguments),
             );
 
             return $this->findAll($filter, ...$arguments);

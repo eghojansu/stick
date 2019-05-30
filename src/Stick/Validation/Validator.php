@@ -145,14 +145,14 @@ final class Validator
      */
     private function message(string $rule, array $arguments, Field $field): string
     {
-        $params = array();
-        $data = array(
-            'rule' => $rule,
-            'field' => $field->field(),
-            'value' => $field->value(),
-        ) + $arguments;
+        $params = array(
+            '%rule%' => $rule,
+            '%field%' => $field->field(),
+            '%value%' => $this->fw->stringify($field->value()),
+            '%all%' => $this->fw->stringify($arguments),
+        );
 
-        foreach ($data as $key => $value) {
+        foreach ($arguments as $key => $value) {
             $params['%'.$key.'%'] = $this->fw->stringify($value);
         }
 
