@@ -22,20 +22,14 @@ use Fal\Stick\Fw;
  */
 final class Validator
 {
-    /**
-     * @var Fw
-     */
+    /** @var Fw */
     private $fw;
 
-    /**
-     * @var array
-     */
+    /** @var array Registered rules */
     private $rules = array();
 
-    /**
-     * @var array
-     */
-    private $rulesCache = array();
+    /** @var array Rule cache */
+    private $cache = array();
 
     /**
      * Class constructor.
@@ -64,50 +58,54 @@ final class Validator
     /**
      * Returns validation result.
      *
-     * @param array $data
+     * @param array $rawData
      * @param array $rules
      * @param array $messages
      *
-     * @return Result
+     * @return array
      */
-    public function validate(array $data, array $rules, array $messages = null): Result
+    public function validate(array $rawData, array $rules, array $messages = null): array
     {
-        $result = new Result(new Context($data));
+        $success = true;
+        $errors = array();
+        $data = array();
 
-        foreach ($rules as $field => $expression) {
-            $result->context->setField($field);
+        foreach ($rules as $fieldName => $expression) {
+            $field = new Field(
+                $this->fw,
+                $data,
+                $rawData,
+                $fieldName,
+                $expression
+            );
 
-            foreach (RuleParser::parse($expression) as $rule => $arguments) {
-                $initial = $result->context->getValue();
+            if ($field->hasRule('optional') && $field->isEmpty()) {
+                $data[$fieldName] = $field->value();
 
-                // special rule
-                if ('optional' === $rule) {
-                    if (null === $initial || '' === $initial) {
-                        break;
-                    }
+                continue;
+            }
 
-                    $result->context->addValidated($field, $initial);
-                    continue;
-                }
-
-                $value = $this->findRule($rule)->validate($rule, $result->context->setArguments($arguments));
+            foreach ($field->rules() as $rule => $arguments) {
+                $value = $this->findRule($rule)->validate($rule, $arguments, $field);
 
                 // validation fail?
                 if (false === $value) {
-                    if ($messages && isset($messages[$field.'.'.$rule])) {
-                        $result->addError($field, $messages[$field.'.'.$rule]);
-                    } else {
-                        $result->addError($field, $this->message($rule, $result->context));
-                    }
+                    $success = false;
+                    $errors[$fieldName] = $messages[$fieldName.'.'.$rule] ??
+                        $this->message($rule, $arguments, $field);
 
                     break;
                 }
 
-                $result->context->addValidated($field, true === $value ? $initial : $value);
+                if (true !== $value) {
+                    $field->update($value);
+                }
             }
+
+            $data[$fieldName] = $field->value();
         }
 
-        return $result;
+        return compact('success', 'errors', 'data');
     }
 
     /**
@@ -121,13 +119,13 @@ final class Validator
      */
     private function findRule($name): RuleInterface
     {
-        if (isset($this->rulesCache[$name])) {
-            return $this->rules[$this->rulesCache[$name]];
+        if (isset($this->cache[$name])) {
+            return $this->rules[$this->cache[$name]];
         }
 
         foreach ($this->rules as $key => $rule) {
             if ($rule->has($name)) {
-                $this->rulesCache[$name] = $key;
+                $this->cache[$name] = $key;
 
                 return $rule;
             }
@@ -139,22 +137,23 @@ final class Validator
     /**
      * Get message for rule.
      *
-     * @param string  $rule
-     * @param Context $context
+     * @param string $rule
+     * @param array  $arguments
+     * @param Field  $field
      *
      * @return string
      */
-    private function message(string $rule, Context $context): string
+    private function message(string $rule, array $arguments, Field $field): string
     {
         $params = array();
         $data = array(
             'rule' => $rule,
-            'field' => $context->getField(),
-            'value' => $context->getValue(),
-        ) + $context->getArguments();
+            'field' => $field->field(),
+            'value' => $field->value(),
+        ) + $arguments;
 
         foreach ($data as $key => $value) {
-            $params['%'.$key.'%'] = is_array($value) ? implode(',', $value) : (string) $value;
+            $params['%'.$key.'%'] = $this->fw->stringify($value);
         }
 
         return $this->fw->transAlt(array(

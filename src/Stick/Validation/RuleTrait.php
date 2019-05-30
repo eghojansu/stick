@@ -21,13 +21,6 @@ namespace Fal\Stick\Validation;
 trait RuleTrait
 {
     /**
-     * Validation context.
-     *
-     * @var Context
-     */
-    protected $context;
-
-    /**
      * {@inheritdoc}
      */
     public function has(string $rule): bool
@@ -38,10 +31,8 @@ trait RuleTrait
     /**
      * {@inheritdoc}
      */
-    public function validate(string $rule, Context $value)
+    public function validate(string $rule, array $arguments, Field $value)
     {
-        $this->context = $value;
-
-        return $this->{'_'.$rule}($value->getValue(), ...$value->getArguments());
+        return $this->{'_'.$rule}($value, ...$arguments);
     }
 }

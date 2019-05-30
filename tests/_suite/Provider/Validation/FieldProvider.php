@@ -11,7 +11,7 @@
 
 namespace Fal\Stick\TestSuite\Provider\Validation;
 
-class RuleParserProvider
+class FieldProvider
 {
     public function parse()
     {
@@ -42,6 +42,42 @@ class RuleParserProvider
                     'quux' => array(1, 'arg', array(0, 1, 2), array('foo' => 'bar')),
                 ),
                 'foo:1|bar:arg|baz:[0,1,2]|qux:{"foo":"bar"}|quux:1,arg,[0,1,2],{"foo":"bar"}',
+            ),
+        );
+    }
+
+    public function getSize()
+    {
+        return array(
+            'length' => array(
+                3,
+                'bar',
+            ),
+            'integer' => array(
+                11,
+                '11',
+            ),
+            'integer size' => array(
+                2,
+                11,
+                array(false),
+            ),
+            'array' => array(
+                1,
+                array('foo'),
+            ),
+            'file' => array(
+                1,
+                'foo',
+                array(),
+                array(
+                    'FILES' => array(
+                        'foo' => array(
+                            'error' => UPLOAD_ERR_OK,
+                            'size' => 1024,
+                        ),
+                    ),
+                ),
             ),
         );
     }

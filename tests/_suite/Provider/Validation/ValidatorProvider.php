@@ -16,57 +16,61 @@ class ValidatorProvider
     public function validate()
     {
         return array(
-            array(
-                true,
-                array(),
-                array('foo' => 'bar'),
-                array('foo' => 'bar'),
-                array('foo' => 'required'),
+            'valid' => array(
+                array(
+                    'success' => true,
+                    'errors' => array(),
+                    'data' => array(
+                        'foo' => 'bar',
+                        'bar' => 'bar ',
+                        'baz' => null,
+                    ),
+                ),
+                array(
+                    'foo' => 'bar ',
+                    'bar' => 'bar ',
+                ),
+                array(
+                    'foo' => 'trim|required',
+                    'bar' => 'required',
+                    'baz' => 'optional',
+                ),
             ),
-            'optional and value empty' => array(
-                true,
+            'error' => array(
+                array(
+                    'success' => false,
+                    'errors' => array(
+                        'foo' => 'This value should not be blank.',
+                        'bar' => 'This value should not be blank.',
+                    ),
+                    'data' => array(
+                        'foo' => null,
+                        'bar' => null,
+                    ),
+                ),
                 array(),
-                array(),
-                array('foo' => ''),
-                array('foo' => 'optional'),
+                array(
+                    'foo' => 'required',
+                    'bar' => 'required',
+                ),
             ),
-            'optional and value not empty' => array(
-                true,
+            'error custom' => array(
+                array(
+                    'success' => false,
+                    'errors' => array(
+                        'foo' => 'Custom error',
+                    ),
+                    'data' => array(
+                        'foo' => null,
+                    ),
+                ),
                 array(),
-                array('foo' => 'bar'),
-                array('foo' => 'bar'),
-                array('foo' => 'optional'),
-            ),
-            array(
-                false,
-                array('foo' => array('This value should not be blank.')),
-                array(),
-                array(),
-                array('foo' => 'required'),
-            ),
-            array(
-                false,
-                array('foo' => array('Please fill foo!')),
-                array(),
-                array(),
-                array('foo' => 'required'),
-                array('foo.required' => 'Please fill foo!'),
-            ),
-            array(
-                true,
-                array(),
-                array('foo' => 'bar', 'bar' => 'baz'),
-                array('foo' => 'bar', 'bar' => 'baz', 'baz' => 'qux'),
-                array('foo' => 'required', 'bar' => 'required'),
-            ),
-            array(
-                'Validation rule not exists: foo.',
-                array(),
-                array(),
-                array(),
-                array('foo' => 'foo'),
-                null,
-                'LogicException',
+                array(
+                    'foo' => 'required',
+                ),
+                array(
+                    'foo.required' => 'Custom error',
+                ),
             ),
         );
     }

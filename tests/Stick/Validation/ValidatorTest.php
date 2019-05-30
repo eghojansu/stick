@@ -16,7 +16,7 @@ namespace Fal\Stick\Test\Validation;
 use Fal\Stick\Fw;
 use Fal\Stick\TestSuite\MyTestCase;
 use Fal\Stick\Validation\Validator;
-use Fal\Stick\Validation\Rules\CommonRule;
+use Fal\Stick\Validation\Rules\LaravelRule;
 
 class ValidatorTest extends MyTestCase
 {
@@ -25,36 +25,29 @@ class ValidatorTest extends MyTestCase
     public function setup(): void
     {
         $this->fw = new Fw();
-    }
-
-    protected function createInstance()
-    {
-        return new Validator($this->fw);
+        $this->validator = new Validator($this->fw);
     }
 
     public function testAdd()
     {
-        $this->assertSame($this->validator, $this->validator->add(new CommonRule()));
+        $this->assertSame($this->validator, $this->validator->add(new LaravelRule()));
     }
 
     /**
      * @dataProvider Fal\Stick\TestSuite\Provider\Validation\ValidatorProvider::validate
      */
-    public function testValidate($expected, $errors, $validated, $data, $rules, $messages = null, $exception = null)
+    public function testValidate($expected, $data, $rules, $messages = null)
     {
-        $this->validator->add(new CommonRule());
+        $this->validator->add(new LaravelRule());
 
-        if ($exception) {
-            $this->expectException($exception);
-            $this->expectExceptionMessage($expected);
-            $this->validator->validate($data, $rules, $messages);
+        $this->assertEquals($expected, $this->validator->validate($data, $rules, $messages));
+    }
 
-            return;
-        }
+    public function testValidateNotFound()
+    {
+        $this->expectException('LogicException');
+        $this->expectExceptionMessage('Validation rule not exists: foo.');
 
-        $result = $this->validator->validate($data, $rules, $messages);
-        $this->assertEquals($expected, $result->isSuccess());
-        $this->assertEquals($validated, $result->getData());
-        $this->assertEquals($errors, $result->getErrors());
+        $this->validator->validate(array(), array('foo' => 'foo'));
     }
 }

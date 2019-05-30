@@ -17,7 +17,7 @@ use Fal\Stick\Fw;
 use Fal\Stick\Form\Form;
 use Fal\Stick\TestSuite\MyTestCase;
 use Fal\Stick\Validation\Validator;
-use Fal\Stick\Validation\Rules\CommonRule;
+use Fal\Stick\Validation\Rules\LaravelRule;
 use Fal\Stick\Form\FormBuilder\DivFormBuilder;
 
 class FormTest extends MyTestCase
@@ -31,7 +31,7 @@ class FormTest extends MyTestCase
         $this->fw->set('CONTINUE', true);
 
         $validator = new Validator($this->fw);
-        $validator->add(new CommonRule());
+        $validator->add(new LaravelRule());
         $this->form = new Form($this->fw, $validator, new DivFormBuilder($this->fw));
     }
 
@@ -166,9 +166,9 @@ class FormTest extends MyTestCase
         $this->assertTrue($this->form->isSubmitted());
     }
 
-    public function testGetResult()
+    public function testErrors()
     {
-        $this->assertNull($this->form->getResult());
+        $this->assertCount(0, $this->form->errors());
     }
 
     public function testHas()
@@ -304,10 +304,6 @@ class FormTest extends MyTestCase
         $this->assertTrue($this->form->isSubmitted());
         $this->assertTrue($this->form->valid());
         $this->assertEquals(array('foo' => 'foobarbaz', 'bar' => 'baz'), $this->form->getValidatedData());
-
-        $result = $this->form->getResult();
-        $this->assertInstanceOf('Fal\\Stick\\Validation\\Result', $result);
-        $this->assertTrue($result->isSuccess());
     }
 
     public function testValidException()

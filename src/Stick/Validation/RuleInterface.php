@@ -32,10 +32,11 @@ interface RuleInterface
     /**
      * Returns the return value of performed rule.
      *
-     * @param string  $rule
-     * @param Context $value
+     * @param string $rule
+     * @param array  $arguments
+     * @param Field  $value
      *
      * @return mixed
      */
-    public function validate(string $rule, Context $value);
+    public function validate(string $rule, array $arguments, Field $value);
 }

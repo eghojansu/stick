@@ -15,7 +15,6 @@ namespace Fal\Stick\Form;
 
 use Fal\Stick\Fw;
 use Fal\Stick\Util\Option;
-use Fal\Stick\Validation\Result;
 use Fal\Stick\Validation\Validator;
 
 /**
@@ -25,79 +24,49 @@ use Fal\Stick\Validation\Validator;
  */
 class Form implements \ArrayAccess
 {
-    /**
-     * @var Validator
-     */
+    /** @var Validator */
     protected $validator;
 
-    /**
-     * @var Fw
-     */
+    /** @var Fw */
     protected $fw;
 
-    /**
-     * @var FormBuilderInterface
-     */
+    /** @var FormBuilderInterface */
     public $formBuilder;
 
-    /**
-     * @var Result
-     */
-    protected $result;
+    /** @var array */
+    protected $errors = array();
 
-    /**
-     * @var string
-     */
+    /** @var string */
     protected $name;
 
-    /**
-     * @var string
-     */
+    /** @var string */
     protected $method = 'POST';
 
-    /**
-     * @var bool
-     */
+    /** @var bool */
     protected $submitted;
 
-    /**
-     * @var array
-     */
+    /** @var array */
     protected $initialData = array();
 
-    /**
-     * @var array
-     */
+    /** @var array */
     protected $formData = array();
 
-    /**
-     * @var array
-     */
+    /** @var array */
     protected $validatedData = array();
 
-    /**
-     * @var array
-     */
+    /** @var array */
     protected $attributes = array();
 
-    /**
-     * @var array
-     */
+    /** @var array */
     protected $fields = array();
 
-    /**
-     * @var array
-     */
+    /** @var array */
     protected $buttons = array();
 
-    /**
-     * @var array
-     */
+    /** @var array */
     protected $ignores = array();
 
-    /**
-     * @var array
-     */
+    /** @var array */
     protected $options;
 
     /**
@@ -110,8 +79,14 @@ class Form implements \ArrayAccess
      * @param array|null           $options
      * @param string|null          $name
      */
-    public function __construct(Fw $fw, Validator $validator, FormBuilderInterface $formBuilder, array $data = null, array $options = null, string $name = null)
-    {
+    public function __construct(
+        Fw $fw,
+        Validator $validator,
+        FormBuilderInterface $formBuilder,
+        array $data = null,
+        array $options = null,
+        string $name = null
+    ) {
         $this->fw = $fw;
         $this->validator = $validator;
         $this->formBuilder = $formBuilder;
@@ -370,20 +345,21 @@ class Form implements \ArrayAccess
 
         list($rules, $messages, $data, $extra) = $this->prepareValidation($this->fields, $this->formData);
 
-        $this->result = $this->validator->validate($data, $rules, $messages);
-        $this->validatedData = $this->finishValidation($this->fields, $this->result, $extra);
+        $result = $this->validator->validate($data, $rules, $messages);
+        $this->errors = $result['errors'];
+        $this->validatedData = $this->finishValidation($this->fields, $result['data'], $extra);
 
-        return $this->result->isSuccess();
+        return $result['success'];
     }
 
     /**
-     * Returns form result if any.
+     * Returns errors.
      *
-     * @return Result|null
+     * @return array
      */
-    public function getResult(): ?Result
+    public function errors(): array
     {
-        return $this->result;
+        return $this->errors;
     }
 
     /**
@@ -623,7 +599,8 @@ class Form implements \ArrayAccess
         }
 
         $field->value = $this->offsetGet($field->name);
-        $field->errors = $this->result ? $this->result->getError($field->name) : array();
+        $field->errors = isset($this->errors[$field->name]) ?
+            array($this->errors[$field->name]) : array();
         $field->submitted = $this->submitted ?? false;
 
         $str = $this->formBuilder->renderField($field);
@@ -696,16 +673,15 @@ class Form implements \ArrayAccess
     /**
      * Returns validated data.
      *
-     * @param array  $fields
-     * @param Result $result
-     * @param array  $extra
+     * @param array $fields
+     * @param array $validated
+     * @param array $extra
      *
      * @return array
      */
-    protected function finishValidation(array $fields, Result $result, array $extra): array
+    protected function finishValidation(array $fields, array $validated, array $extra): array
     {
         $data = array();
-        $validated = $result->context->getValidated();
 
         foreach ($fields as $name => $field) {
             if (isset($this->ignores[$name])) {

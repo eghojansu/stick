@@ -11,194 +11,803 @@
 
 namespace Fal\Stick\TestSuite\Provider\Validation;
 
-use Fal\Stick\Validation\Context;
-
 class RuleProvider
 {
-    private static function context($value = null, $arguments = null, $validated = null, $data = null, $field = 'foo')
-    {
-        $data[$field] = $value;
-
-        $context = new Context($data);
-        $context->setField($field);
-        $context->setArguments((array) $arguments);
-        $context->setValidated((array) $validated);
-
-        return $context;
-    }
-
-    public function commonRules()
+    public function laravel()
     {
         return array(
-            array(false, 'foo'),
-            array(true, 'trim'),
-            array(true, 'ltrim'),
-            array(true, 'rtrim'),
-            array(true, 'required'),
-            array(true, 'type'),
-            array(true, 'min'),
-            array(true, 'max'),
-            array(true, 'lt'),
-            array(true, 'gt'),
-            array(true, 'lte'),
-            array(true, 'gte'),
-            array(true, 'equaltofield'),
-            array(true, 'notequaltofield'),
-            array(true, 'equalto'),
-            array(true, 'notequalto'),
-            array(true, 'identicalto'),
-            array(true, 'notidenticalto'),
-            array(true, 'len'),
-            array(true, 'lenmin'),
-            array(true, 'lenmax'),
-            array(true, 'count'),
-            array(true, 'countmin'),
-            array(true, 'countmax'),
-            array(true, 'regex'),
-            array(true, 'choice'),
-            array(true, 'choices'),
-            array(true, 'date'),
-            array(true, 'datetime'),
-            array(true, 'todate'),
+            'accepted' => array(
+                true,
+                'accepted',
+                'true',
+            ),
+            'accepted on' => array(
+                true,
+                'accepted',
+                'on',
+            ),
+            'accepted false' => array(
+                false,
+                'accepted',
+                'false',
+            ),
+            'after' => array(
+                true,
+                'after',
+                'tomorrow',
+                array('today'),
+            ),
+            'after false' => array(
+                false,
+                'after',
+                'yesterday',
+                array('today'),
+            ),
+            'after false 2' => array(
+                false,
+                'after',
+                'today',
+                array('today'),
+            ),
+            'afterOrEqual' => array(
+                true,
+                'afterOrEqual',
+                'today',
+                array('today'),
+            ),
+            'afterOrEqual false' => array(
+                false,
+                'afterOrEqual',
+                'yesterday',
+                array('today'),
+            ),
+            'alpha' => array(
+                true,
+                'alpha',
+                'alpha',
+            ),
+            'alpha false' => array(
+                false,
+                'alpha',
+                'alpha -',
+            ),
+            'aldash' => array(
+                true,
+                'aldash',
+                '_aldash-',
+            ),
+            'aldash false' => array(
+                false,
+                'aldash',
+                '_aldash-1',
+            ),
+            'alnum' => array(
+                true,
+                'alnum',
+                'alnum123',
+            ),
+            'alnum false' => array(
+                false,
+                'alnum',
+                'alnum123@',
+            ),
+            'array' => array(
+                true,
+                'array',
+                array(),
+            ),
+            'array false' => array(
+                false,
+                'array',
+                'foo',
+            ),
+            'before' => array(
+                true,
+                'before',
+                'yesterday',
+                array('today'),
+            ),
+            'before false' => array(
+                false,
+                'before',
+                'tomorrow',
+                array('today'),
+            ),
+            'beforeOrEqual' => array(
+                true,
+                'beforeOrEqual',
+                'today',
+                array('today'),
+            ),
+            'beforeOrEqual false' => array(
+                false,
+                'beforeOrEqual',
+                'tomorrow',
+                array('today'),
+            ),
+            'between' => array(
+                true,
+                'between',
+                1,
+                array(1, 2),
+            ),
+            'between false' => array(
+                false,
+                'between',
+                3,
+                array(1, 2),
+            ),
+            'bool' => array(
+                true,
+                'bool',
+                '0',
+            ),
+            'bool false' => array(
+                false,
+                'bool',
+            ),
+            'confirmed' => array(
+                true,
+                'confirmed',
+                'yes',
+                array(),
+                array(
+                    'foo' => 'yes',
+                    'foo_confirmation' => 'yes',
+                ),
+            ),
+            'confirmed custom field' => array(
+                true,
+                'confirmed',
+                'yes',
+                array('bar'),
+                array(
+                    'foo' => 'yes',
+                    'bar' => 'yes',
+                ),
+            ),
+            'confirmed false' => array(
+                false,
+                'confirmed',
+                'yes',
+            ),
+            'convert' => array(
+                '1991-10-20 00:00:00',
+                'convert',
+                'Oct 20, 1991',
+                array('Y-m-d H:i:s'),
+            ),
+            'date' => array(
+                true,
+                'date',
+                'Oct 20, 1991',
+            ),
+            'date false' => array(
+                false,
+                'date',
+            ),
+            'dateEquals' => array(
+                true,
+                'dateEquals',
+                'tomorrow',
+                array('tomorrow'),
+            ),
+            'dateEquals false' => array(
+                false,
+                'dateEquals',
+                'today',
+                array('tomorrow'),
+            ),
+            'dateFormat' => array(
+                true,
+                'dateFormat',
+                'Oct 20, 1991',
+                array('M d, Y'),
+            ),
+            'dateFormat false' => array(
+                false,
+                'dateFormat',
+                '1991-10-20',
+                array('M d, Y'),
+            ),
+            'different' => array(
+                true,
+                'different',
+                'bar', // not used
+                array('bar'),
+                array(
+                    'foo' => 'bar',
+                    'bar' => 'foo',
+                ),
+            ),
+            'different false' => array(
+                false,
+                'different',
+                'foo', // not used
+                array('bar'),
+                array(
+                    'foo' => 'foo',
+                    'bar' => 'foo',
+                ),
+            ),
+            'digits' => array(
+                true,
+                'digits',
+                11,
+                array(2),
+            ),
+            'digits false' => array(
+                false,
+                'digits',
+                1,
+                array(2),
+            ),
+            'digitsBetween' => array(
+                true,
+                'digitsBetween',
+                11,
+                array(1, 2),
+            ),
+            'digitsBetween false' => array(
+                false,
+                'digitsBetween',
+                111,
+                array(1, 2),
+            ),
+            'digitsBetween false type' => array(
+                false,
+                'digitsBetween',
+                'foo',
+                array(1, 2),
+            ),
+            'distinct' => array(
+                true,
+                'distinct',
+                array('foo', 'bar'),
+            ),
+            'distinct false' => array(
+                false,
+                'distinct',
+                array('foo', 'bar', 'foo'),
+            ),
+            'email' => array(
+                true,
+                'email',
+                'foo@foo.com',
+            ),
+            'email false' => array(
+                false,
+                'email',
+                'foo@foo',
+            ),
+            'endsWith' => array(
+                true,
+                'endsWith',
+                'foobar',
+                array('bar'),
+            ),
+            'endsWith false' => array(
+                false,
+                'endsWith',
+                'foobaz',
+                array('bar'),
+            ),
+            'equalto' => array(
+                true,
+                'equalto',
+                '1',
+                array(1),
+            ),
+            'equalto loose' => array(
+                true,
+                'equalto',
+                1,
+                array(1),
+            ),
+            'equalto strict' => array(
+                false,
+                'equalto',
+                '1',
+                array(1, true),
+            ),
+            'file' => array(
+                true,
+                'file',
+                'foo',
+                array(),
+                null,
+                array(
+                    'FILES' => array(
+                        'foo' => array(
+                            'error' => UPLOAD_ERR_OK,
+                        ),
+                    ),
+                ),
+            ),
+            'gt' => array(
+                true,
+                'gt',
+                11,
+                array(10),
+            ),
+            'gt false' => array(
+                false,
+                'gt',
+                10,
+                array(10),
+            ),
+            'gte' => array(
+                true,
+                'gte',
+                10,
+                array(10),
+            ),
+            'gte false' => array(
+                false,
+                'gte',
+                9,
+                array(10),
+            ),
+            'image' => array(
+                true,
+                'image',
+                'foo',
+                array(),
+                null,
+                array(
+                    'FILES' => array(
+                        'foo' => array(
+                            'error' => UPLOAD_ERR_OK,
+                            'type' => 'image/png',
+                        ),
+                    ),
+                ),
+            ),
+            'in' => array(
+                true,
+                'in',
+                'foo',
+                array('foo'),
+            ),
+            'in false' => array(
+                false,
+                'in',
+                'bar',
+                array('foo'),
+            ),
+            'inField' => array(
+                true,
+                'inField',
+                'foo', // not used
+                array('bar'),
+                array(
+                    'foo' => 'foo',
+                    'bar' => array('foo'),
+                ),
+            ),
+            'inField false' => array(
+                false,
+                'inField',
+                'bar', // not used
+                array('bar'),
+                array(
+                    'foo' => 'bar',
+                    'bar' => array('foo'),
+                ),
+            ),
+            'integer' => array(
+                true,
+                'integer',
+                '11',
+            ),
+            'integer false' => array(
+                false,
+                'integer',
+                'foo',
+            ),
+            'ip' => array(
+                true,
+                'ip',
+                '30.88.29.1',
+            ),
+            'ip false' => array(
+                false,
+                'ip',
+                '172.300.256.100',
+            ),
+            'ipv4' => array(
+                true,
+                'ipv4',
+                '30.88.29.1',
+            ),
+            'ipv4 false' => array(
+                false,
+                'ipv4',
+                '172.300.256.100',
+            ),
+            'ipv6' => array(
+                true,
+                'ipv6',
+                '2001:DB8:0:0:8:800:200C:417A',
+            ),
+            'ipv6 false' => array(
+                false,
+                'ipv6',
+                'FF02:0000:0000:0000:0000:0000:0000:0000:0001',
+            ),
+            'lt' => array(
+                true,
+                'lt',
+                9,
+                array(10),
+            ),
+            'lt false' => array(
+                false,
+                'lt',
+                10,
+                array(10),
+            ),
+            'lte' => array(
+                true,
+                'lte',
+                10,
+                array(10),
+            ),
+            'lte false' => array(
+                false,
+                'lte',
+                11,
+                array(10),
+            ),
+            'max' => array(
+                true,
+                'max',
+                'foo',
+                array(3),
+            ),
+            'max false' => array(
+                false,
+                'max',
+                'foobar',
+                array(3),
+            ),
+            'mimes' => array(
+                true,
+                'mimes',
+                'foo',
+                array('png'),
+                null,
+                array(
+                    'FILES' => array(
+                        'foo' => array(
+                            'error' => UPLOAD_ERR_OK,
+                            'type' => 'image/png',
+                        ),
+                    ),
+                ),
+            ),
+            'mimeTypes' => array(
+                true,
+                'mimeTypes',
+                'foo',
+                array('image/png'),
+                null,
+                array(
+                    'FILES' => array(
+                        'foo' => array(
+                            'error' => UPLOAD_ERR_OK,
+                            'type' => 'image/png',
+                        ),
+                    ),
+                ),
+            ),
+            'mimeTypes false' => array(
+                false,
+                'mimeTypes',
+            ),
+            'min' => array(
+                true,
+                'min',
+                'foo',
+                array(3),
+            ),
+            'min false' => array(
+                false,
+                'min',
+                'f',
+                array(3),
+            ),
+            'notequalto' => array(
+                true,
+                'notequalto',
+                '2',
+                array(1),
+            ),
+            'notequalto strict' => array(
+                true,
+                'notequalto',
+                '1',
+                array(1, true),
+            ),
+            'notIn' => array(
+                true,
+                'notIn',
+                'foo',
+                array('bar'),
+            ),
+            'notIn false' => array(
+                false,
+                'notIn',
+                'foo',
+                array('foo'),
+            ),
+            'notInField' => array(
+                true,
+                'notInField',
+                'bar', // not used
+                array('bar'),
+                array(
+                    'foo' => 'bar',
+                    'bar' => array('foo'),
+                ),
+            ),
+            'notInField false' => array(
+                false,
+                'notInField',
+                'foo',
+                array('bar'),
+                array(
+                    'foo' => 'foo',
+                    'bar' => array('foo'),
+                ),
+            ),
+            'notRegex' => array(
+                true,
+                'notRegex',
+                'foo',
+                array('/bar/'),
+            ),
+            'notRegex false' => array(
+                false,
+                'notRegex',
+                'foo',
+                array('/foo/'),
+            ),
+            'optional' => array(
+                true,
+                'optional',
+            ),
+            'numeric' => array(
+                true,
+                'numeric',
+                '11',
+            ),
+            'numeric false' => array(
+                false,
+                'numeric',
+                'foo',
+            ),
+            'regex' => array(
+                true,
+                'regex',
+                'foo',
+                array('/foo/'),
+            ),
+            'regex with quote' => array(
+                true,
+                'regex',
+                'foo',
+                array('"/foo/"'),
+            ),
+            'regex false' => array(
+                false,
+                'regex',
+                'foo',
+                array('/bar/'),
+            ),
+            'rejected' => array(
+                true,
+                'rejected',
+                'off',
+            ),
+            'rejected false' => array(
+                false,
+                'rejected',
+                'on',
+            ),
+            'required' => array(
+                true,
+                'required',
+            ),
+            'required false' => array(
+                false,
+                'required',
+                '',
+            ),
+            'same' => array(
+                true,
+                'same',
+                'foo',
+                array('bar'),
+                array(
+                    'foo' => 'foo',
+                    'bar' => 'foo',
+                ),
+            ),
+            'same false' => array(
+                false,
+                'same',
+                'bar',
+                array('bar'),
+                array(
+                    'foo' => 'bar',
+                    'bar' => 'foo',
+                ),
+            ),
+            'size' => array(
+                true,
+                'size',
+                'foo',
+                array(3),
+            ),
+            'size int' => array(
+                true,
+                'size',
+                111,
+                array(3),
+            ),
+            'size array' => array(
+                true,
+                'size',
+                array('foo', 'bar', 'baz'),
+                array(3),
+            ),
+            'size file' => array(
+                true,
+                'size',
+                'foo',
+                array(3),
+                null,
+                array(
+                    'FILES' => array(
+                        'foo' => array(
+                            'error' => UPLOAD_ERR_OK,
+                            'type' => 'image/png',
+                            'size' => 3072,
+                        ),
+                    ),
+                ),
+            ),
+            'size false' => array(
+                false,
+                'size',
+                'foobar',
+                array(3),
+            ),
+            'startsWith' => array(
+                true,
+                'startsWith',
+                'foobar',
+                array('foo'),
+            ),
+            'startsWith false' => array(
+                false,
+                'startsWith',
+                'barbar',
+                array('foo'),
+            ),
+            'string' => array(
+                true,
+                'string',
+                'foo',
+            ),
+            'timezone' => array(
+                true,
+                'timezone',
+                'Asia/Jakarta',
+            ),
+            'timezone false' => array(
+                false,
+                'timezone',
+                'foo/bar',
+            ),
+            'trim' => array(
+                'foo',
+                'trim',
+                'foo ',
+            ),
+            'url' => array(
+                true,
+                'url',
+                'http://example.com',
+            ),
+            'url false' => array(
+                false,
+                'url',
+                'example',
+            ),
         );
     }
 
-    public function commonValidations()
+    public function mapper()
     {
         return array(
-            array('foo', 'trim', self::context(' foo ')),
-            array('', 'trim', self::context()),
-            array('foo ', 'ltrim', self::context(' foo ')),
-            array('', 'ltrim', self::context()),
-            array(' foo', 'rtrim', self::context(' foo ')),
-            array('', 'rtrim', self::context()),
-            array(true, 'required', self::context('foo')),
-            array(false, 'required', self::context()),
-            array(false, 'required', self::context('')),
-            array(true, 'date', self::context('2010-10-10')),
-            array(false, 'date', self::context('2010-10-32')),
-            array(false, 'date', self::context('2010-13-10')),
-            array(false, 'date', self::context('2010-13')),
-            array(true, 'datetime', self::context('2010-10-10 00:00:00')),
-            array(false, 'datetime', self::context('2010-10-10 00:00:70')),
-            array(false, 'datetime', self::context('2010-10-10 24:00:00')),
-            array(false, 'datetime', self::context('2010-10-32 00:00:00')),
-            array(false, 'datetime', self::context('2010-13-10 00:00:00')),
-            array('2010-10-10', 'todate', self::context('2010-10-10')),
-            array('2010-10-10', 'todate', self::context('Oct 10, 2010')),
-            array('Oct 32, 2010', 'todate', self::context('Oct 32, 2010')),
-            array(true, 'type', self::context(1, array('integer'))),
-            array(true, 'type', self::context(array(), array('array'))),
-            array(true, 'min', self::context(1, array(1))),
-            array(true, 'min', self::context(3, array(2))),
-            array(false, 'min', self::context(1, array(2))),
-            array(true, 'max', self::context(1, array(1))),
-            array(true, 'max', self::context(1, array(2))),
-            array(false, 'max', self::context(3, array(2))),
-            array(true, 'lt', self::context(1, array(2))),
-            array(false, 'lt', self::context(2, array(2))),
-            array(true, 'gt', self::context(2, array(1))),
-            array(false, 'gt', self::context(1, array(2))),
-            array(true, 'lte', self::context(1, array(2))),
-            array(true, 'lte', self::context(2, array(2))),
-            array(false, 'lte', self::context(3, array(2))),
-            array(true, 'gte', self::context(3, array(2))),
-            array(true, 'gte', self::context(2, array(2))),
-            array(false, 'gte', self::context(1, array(2))),
-            array(true, 'equalto', self::context('foo', array('foo'))),
-            array(false, 'equalto', self::context('bar', array('foo'))),
-            array(true, 'notequalto', self::context('bar', array('foo'))),
-            array(false, 'notequalto', self::context('foo', array('foo'))),
-            array(true, 'identicalto', self::context(1, array(1))),
-            array(false, 'identicalto', self::context('1', array(1))),
-            array(true, 'notidenticalto', self::context('1', array(1))),
-            array(false, 'notidenticalto', self::context(1, array(1))),
-            array(true, 'len', self::context('foo', array(3))),
-            array(false, 'len', self::context('fo', array(3))),
-            array(true, 'lenmin', self::context('foo', array(3))),
-            array(true, 'lenmin', self::context('foobar', array(3))),
-            array(false, 'lenmin', self::context('fo', array(3))),
-            array(true, 'lenmax', self::context('foo', array(3))),
-            array(true, 'lenmax', self::context('fo', array(3))),
-            array(false, 'lenmax', self::context('foobar', array(3))),
-            array(true, 'count', self::context(array(1, 2, 3), array(3))),
-            array(false, 'count', self::context(array(1, 2), array(3))),
-            array(true, 'countmin', self::context(array(1, 2, 3), array(3))),
-            array(true, 'countmin', self::context(array(1, 2, 3, 4), array(3))),
-            array(false, 'countmin', self::context(array(1, 2), array(3))),
-            array(true, 'countmax', self::context(array(1, 2, 3), array(3))),
-            array(true, 'countmax', self::context(array(1, 2), array(3))),
-            array(false, 'countmax', self::context(array(1, 2, 3, 4), array(3))),
-            array(true, 'regex', self::context('foo', array('/^foo$/'))),
-            array(false, 'regex', self::context('bar', array('/^foo$/'))),
-            array(true, 'regex', self::context('foo', array('"/^foo$/"'))),
-            array(true, 'choice', self::context('foo', array(array('foo', 'bar')))),
-            array(false, 'choice', self::context('baz', array(array('foo', 'bar')))),
-            array(true, 'choices', self::context(array('foo', 'bar'), array(array('foo', 'bar', 'baz')))),
-            array(false, 'choices', self::context(array('foo', 'qux'), array(array('foo', 'bar', 'baz')))),
-            array(true, 'equaltofield', self::context('baz', array('bar'), array('bar' => 'baz'))),
-            array(false, 'equaltofield', self::context('bar', array('bar'), array('bar' => 'baz'))),
-            array(false, 'equaltofield', self::context('bar', array('bar'))),
-            array(true, 'equaltofield', self::context('baz', array('bar'), null, array('bar' => 'baz'))),
-            array(true, 'notequaltofield', self::context('bar', array('bar'), array('bar' => 'baz'))),
-            array(true, 'notequaltofield', self::context('bar', array('bar'))),
-            array(false, 'notequaltofield', self::context('baz', array('bar'), array('bar' => 'baz'))),
-            array(true, 'notequaltofield', self::context('bar', array('bar'), null, array('bar' => 'baz'))),
+            'exists' => array(
+                true,
+                'exists',
+                array('user'),
+            ),
+            'exists alternative connection' => array(
+                true,
+                'exists',
+                array('alt.user'),
+            ),
+            'exists false' => array(
+                false,
+                'exists',
+                array('user'),
+                'username',
+                'quux',
+            ),
+            'exists false' => array(
+                false,
+                'exists',
+                array('profile'),
+                'fullname',
+            ),
+            'unique' => array(
+                true,
+                'unique',
+                array('user'),
+                'username',
+                'quux',
+            ),
+            'unique self id' => array(
+                true,
+                'unique',
+                array('user', null, 1),
+                'username',
+                'foo',
+            ),
+            'unique self id alternative connection' => array(
+                true,
+                'unique',
+                array('alt.user', null, 1),
+                'username',
+                'foo',
+            ),
+            'unique false' => array(
+                false,
+                'unique',
+                array('user'),
+                'username',
+                'foo',
+            ),
         );
     }
 
-    public function urlRules()
+    public function auth()
     {
         return array(
-            array(true, 'email'),
-            array(true, 'url'),
-            array(true, 'ipv4'),
-            array(true, 'ipv6'),
-            array(true, 'isprivate'),
-            array(true, 'ispublic'),
-            array(true, 'isreserved'),
-        );
-    }
-
-    public function urlValidations()
-    {
-        return array(
-            array(true, 'email', self::context('foo@bar.com')),
-            array(false, 'email', self::context('foo@bar')),
-            array(true, 'url', self::context('http://foo.com')),
-            array(false, 'url', self::context('http')),
-            array(true, 'ipv4', self::context('30.88.29.1')),
-            array(false, 'ipv4', self::context('172.300.256.100')),
-            array(true, 'ipv6', self::context('2001:DB8:0:0:8:800:200C:417A')),
-            array(false, 'ipv6', self::context('FF02:0000:0000:0000:0000:0000:0000:0000:0001')),
-            array(true, 'isprivate', self::context('10.10.10.10')),
-            array(false, 'isprivate', self::context('201.176.14.4')),
-            array(true, 'ispublic', self::context('180.1.1.0')),
-            array(false, 'ispublic', self::context('10.10.10.10')),
-            array(true, 'isreserved', self::context('240.241.242.243')),
-            array(false, 'isreserved', self::context('193.194.195.196')),
-        );
-    }
-
-    public function mapperValidateExists()
-    {
-        return array(
-            array(true, self::context('foo', array('user', 'username'))),
-            array(true, self::context('bar', array('user', 'username'))),
-            array(true, self::context('baz', array('user', 'username'))),
-            array(false, self::context('qux', array('user', 'username'))),
-        );
-    }
-
-    public function mapperValidateUnique()
-    {
-        return array(
-            array(false, self::context('foo', array('user', 'username'))),
-            array(false, self::context('bar', array('user', 'username'))),
-            array(false, self::context('baz', array('user', 'username'))),
-            array(false, self::context('foo', array('user', 'username', 'id', '2'))),
-            array(true, self::context('foo', array('user', 'username', 'id', '1'))),
-            array(true, self::context('qux', array('user', 'username'))),
+            'auth' => array(
+                true,
+                1,
+            ),
+            'auth none' => array(
+                true,
+                0,
+            ),
+            'auth alternative' => array(
+                true,
+                1,
+                'bar',
+                array('alt'),
+            ),
+            'auth false' => array(
+                false,
+                1,
+                'baz',
+            ),
         );
     }
 }
