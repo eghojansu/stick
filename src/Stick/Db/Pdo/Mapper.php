@@ -103,23 +103,32 @@ class Mapper implements \ArrayAccess, \Iterator, \Countable
     public function __call($method, $arguments)
     {
         if (0 === strncasecmp('get', $method, 3)) {
-            $call = 'get';
-            $argument = $this->db->fw->snakeCase(substr($method, 3));
-        } elseif (0 === strncasecmp('findby', $method, 6)) {
-            $call = 'findOne';
-            $argument = array($this->db->fw->snakeCase(substr($method, 6)) => array_shift($arguments));
-        } elseif (0 === strncasecmp('findallby', $method, 9)) {
-            $call = 'findAll';
-            $argument = array($this->db->fw->snakeCase(substr($method, 9)) => array_shift($arguments));
-        } else {
-            throw new \BadMethodCallException(sprintf(
-                'Call to undefined method %s::%s.',
-                static::class,
-                $method
-            ));
+            $field = $this->db->fw->snakeCase(substr($method, 3));
+
+            return $this->get($field);
         }
 
-        return $this->$call($argument, ...$arguments);
+        if (0 === strncasecmp('findby', $method, 6)) {
+            $filter = array(
+                $this->db->fw->snakeCase(substr($method, 6)) => array_shift($arguments)
+            );
+
+            return $this->findOne($filter, ...$arguments);
+        }
+
+        if (0 === strncasecmp('findallby', $method, 9)) {
+            $filter = array(
+                $this->db->fw->snakeCase(substr($method, 9)) => array_shift($arguments)
+            );
+
+            return $this->findAll($filter, ...$arguments);
+        }
+
+        throw new \BadMethodCallException(sprintf(
+            'Call to undefined method %s::%s.',
+            static::class,
+            $method
+        ));
     }
 
     /**
