@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Fal\Stick\Db\Pdo;
 
+use Fal\Stick\Fw;
 use Fal\Stick\Magic;
 
 /**
@@ -27,7 +28,6 @@ class Schema extends Magic implements \Countable, \IteratorAggregate
         'constraint' => null,
         'data_type' => null,
         'default' => null,
-        'name' => null,
         'nullable' => true,
         'pdo_type' => \PDO::PARAM_STR,
         'pkey' => false,
@@ -71,8 +71,6 @@ class Schema extends Magic implements \Countable, \IteratorAggregate
         } else {
             $this->fields[$field]['default'] = $schema;
         }
-
-        $this->fields[$field]['name'] = $field;
 
         return $this;
     }
@@ -122,6 +120,6 @@ class Schema extends Magic implements \Countable, \IteratorAggregate
      */
     public function getKeys(): array
     {
-        return array_keys(array_filter(array_column($this->fields, 'pkey', 'name')));
+        return array_keys(Fw::arrColumn($this->fields, 'pkey', false));
     }
 }

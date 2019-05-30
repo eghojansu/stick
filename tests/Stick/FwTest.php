@@ -1436,4 +1436,12 @@ class FwTest extends MyTestCase
 
         $this->fw->service('bar', 'DateTime');
     }
+
+    /**
+     * @dataProvider Fal\Stick\TestSuite\Provider\FwProvider::arrColumn
+     */
+    public function testArrColumn($expected, $input, $key, $noFilter = true)
+    {
+        $this->assertEquals($expected, Fw::arrColumn($input, $key, $noFilter));
+    }
 }

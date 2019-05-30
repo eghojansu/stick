@@ -806,4 +806,35 @@ class FwProvider
     {
         return new \stdClass();
     }
+
+    public function arrColumn()
+    {
+        return array(
+            'no filter' => array(
+                array(
+                    'foo' => 1,
+                    'bar' => null,
+                    'baz' => 0,
+                ),
+                array(
+                    'foo' => array('v' => 1),
+                    'bar' => array('v' => null),
+                    'baz' => array('v' => 0),
+                ),
+                'v',
+            ),
+            'with filter' => array(
+                array(
+                    'foo' => 1,
+                ),
+                array(
+                    'foo' => array('v' => 1),
+                    'bar' => array('v' => null),
+                    'baz' => array('v' => 0),
+                ),
+                'v',
+                false,
+            ),
+        );
+    }
 }

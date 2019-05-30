@@ -106,18 +106,10 @@ final class Fw implements \ArrayAccess
         self::LOG_DEBUG => 7,
     );
 
-    /**
-     * Framework variables hive.
-     *
-     * @var array
-     */
+    /** @var array Framework variables hive */
     private $hive;
 
-    /**
-     * Framework initial variables hive.
-     *
-     * @var array
-     */
+    /** @var array Framework initial variables hive */
     private $init;
 
     /**
@@ -130,7 +122,12 @@ final class Fw implements \ArrayAccess
      */
     public static function hash(string $text, string $suffix = null): string
     {
-        return str_pad(base_convert(substr(sha1($text), -16), 16, 36), 11, '0', STR_PAD_LEFT).$suffix;
+        return str_pad(
+            base_convert(substr(sha1($text), -16), 16, 36),
+            11,
+            '0',
+            STR_PAD_LEFT
+        ).$suffix;
     }
 
     /**
@@ -202,7 +199,10 @@ final class Fw implements \ArrayAccess
      */
     public static function classname($class): string
     {
-        return ltrim(strrchr('\\'.(is_object($class) ? get_class($class) : $class), '\\'), '\\');
+        return ltrim(
+            strrchr('\\'.(is_object($class) ? get_class($class) : $class), '\\'),
+            '\\'
+        );
     }
 
     /**
@@ -227,7 +227,12 @@ final class Fw implements \ArrayAccess
             return array($var);
         }
 
-        return array_map('trim', preg_split('/['.preg_quote($delimiter ?? ',;|', '/').']/', $var, 0, PREG_SPLIT_NO_EMPTY));
+        return array_map('trim', preg_split(
+            '/['.preg_quote($delimiter ?? ',;|', '/').']/',
+            $var,
+            0,
+            PREG_SPLIT_NO_EMPTY
+        ));
     }
 
     /**
@@ -249,6 +254,28 @@ final class Fw implements \ArrayAccess
         }
 
         return (string) $var;
+    }
+
+    /**
+     * Extending array_column functionality, using self index for every row.
+     *
+     * @param array $input
+     * @param mixed $key
+     * @param bool  $raw   No filter
+     *
+     * @return array
+     */
+    public static function arrColumn(array $input, $key, bool $raw = true): array
+    {
+        $result = array();
+
+        foreach ($input as $id => $value) {
+            if ($raw || $value[$key]) {
+                $result[$id] = $value[$key];
+            }
+        }
+
+        return $result;
     }
 
     /**
@@ -291,15 +318,15 @@ final class Fw implements \ArrayAccess
      * Returns file content with normalized line feed if needed.
      *
      * @param string $file
-     * @param bool   $normalizeLinefeed
+     * @param bool   $lf   Normalize linefeed
      *
      * @return string
      */
-    public static function read(string $file, bool $normalizeLinefeed = false): string
+    public static function read(string $file, bool $lf = false): string
     {
         $content = is_file($file) ? file_get_contents($file) : '';
 
-        return $normalizeLinefeed && $content ? self::fixLinefeed($content) : $content;
+        return $lf && $content ? self::fixLinefeed($content) : $content;
     }
 
     /**
@@ -313,7 +340,11 @@ final class Fw implements \ArrayAccess
      */
     public static function write(string $file, string $content, bool $append = false): int
     {
-        $result = file_put_contents($file, $content, LOCK_EX | ((int) $append * FILE_APPEND));
+        $result = file_put_contents(
+            $file,
+            $content,
+            LOCK_EX | ((int) $append * FILE_APPEND)
+        );
 
         return false === $result ? -1 : $result;
     }
@@ -356,10 +387,13 @@ final class Fw implements \ArrayAccess
             throw new \LogicException(sprintf('Directory not exists: %s.', $dir));
         }
 
-        $dirFlags = \FilesystemIterator::CURRENT_AS_FILEINFO | \FilesystemIterator::SKIP_DOTS;
-        $itFlags = \RecursiveIteratorIterator::CHILD_FIRST;
-
-        return new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($dir, $dirFlags), $itFlags);
+        return new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator(
+                $dir,
+                \FilesystemIterator::CURRENT_AS_FILEINFO | \FilesystemIterator::SKIP_DOTS
+            ),
+            \RecursiveIteratorIterator::CHILD_FIRST
+        );
     }
 
     /**
@@ -417,7 +451,8 @@ final class Fw implements \ArrayAccess
 
             if ($props = get_object_vars($arg)) {
                 foreach ($props as $key => $val) {
-                    $str .= ','.var_export($key, true).'=>'.self::stringify($val, array_merge($stack, array($arg)));
+                    $str .= ','.var_export($key, true).'=>'.
+                        self::stringify($val, array_merge($stack, array($arg)));
                 }
 
                 $str = '['.ltrim($str, ',').']';
@@ -450,7 +485,10 @@ final class Fw implements \ArrayAccess
      */
     public static function csv(array $arguments): string
     {
-        return implode(',', array_map('stripcslashes', array_map(array('Fal\\Stick\\Fw', 'stringify'), $arguments)));
+        return implode(',', array_map(
+            'stripcslashes',
+            array_map(array('Fal\\Stick\\Fw', 'stringify'), $arguments)
+        ));
     }
 
     /**
@@ -474,7 +512,11 @@ final class Fw implements \ArrayAccess
         foreach ($list as $item) {
             $range = explode('..', $item);
 
-            if (isset($range[1]) && $ipLong >= ip2long($range[0]) && $ipLong <= ip2long($range[1])) {
+            if (
+                isset($range[1]) &&
+                $ipLong >= ip2long($range[0]) &&
+                $ipLong <= ip2long($range[1])
+            ) {
                 return true;
             }
         }
@@ -492,8 +534,12 @@ final class Fw implements \ArrayAccess
      *
      * @return string
      */
-    public static function buildUrl(string $scheme, string $host, int $port = 80, string $suffix = null): string
-    {
+    public static function buildUrl(
+        string $scheme,
+        string $host,
+        int $port = 80,
+        string $suffix = null
+    ): string {
         $prefix = $scheme.'://'.$host;
 
         if (80 !== $port && 443 !== $port) {
@@ -557,7 +603,10 @@ final class Fw implements \ArrayAccess
 
                 foreach ($file as $group => $info) {
                     foreach ($info as $pos => $value) {
-                        if (isset($skip[$pos]) || ('error' === $group && UPLOAD_ERR_NO_FILE === $value)) {
+                        if (
+                            isset($skip[$pos]) ||
+                            ('error' === $group && UPLOAD_ERR_NO_FILE === $value)
+                        ) {
                             $skip[$pos] = true;
                             continue;
                         }
@@ -585,8 +634,14 @@ final class Fw implements \ArrayAccess
      *
      * @return Fw
      */
-    public static function create(array $parameters = null, array $query = null, array $request = null, array $cookies = null, array $files = null, array $server = null): Fw
-    {
+    public static function create(
+        array $parameters = null,
+        array $query = null,
+        array $request = null,
+        array $cookies = null,
+        array $files = null,
+        array $server = null
+    ): Fw {
         return new static($parameters, $query, $request, $cookies, $files, $server);
     }
 
@@ -612,20 +667,29 @@ final class Fw implements \ArrayAccess
      * @param array|null $files      equivalent to $_FILES
      * @param array|null $server     equivalent to $_SERVER
      */
-    public function __construct(array $parameters = null, array $query = null, array $request = null, array $cookies = null, array $files = null, array $server = null)
-    {
+    public function __construct(
+        array $parameters = null,
+        array $query = null,
+        array $request = null,
+        array $cookies = null,
+        array $files = null,
+        array $server = null
+    ) {
         $start = microtime(true);
         $cli = 'cli' === PHP_SAPI || 'phpdbg' === PHP_SAPI;
         $host = $server['SERVER_NAME'] ?? 'localhost';
         $script = $server['SCRIPT_NAME'] ?? '';
-        $script = $cli || !$script || false === strpos($script, '.') ? '' : str_replace('\\', '/', $script);
+        $script = $cli || !$script || false === strpos($script, '.') ?
+            '' : str_replace('\\', '/', $script);
         $base = rtrim(dirname($script), '/');
-        $secure = 'on' === ($server['HTTPS'] ?? '') || 'https' === ($server['HTTP_X_FORWARDED_PROTO'] ?? '');
+        $secure = 'on' === ($server['HTTPS'] ?? '') ||
+            'https' === ($server['HTTP_X_FORWARDED_PROTO'] ?? '');
         $uri = $server['REQUEST_URI'] ?? '/';
         $url = parse_url($uri);
 
         // request path
-        $path = $script && 0 === strpos($url['path'], $script) ? substr($url['path'], strlen($script)) : $url['path'];
+        $path = $script && 0 === strpos($url['path'], $script) ?
+            substr($url['path'], strlen($script)) : $url['path'];
         $path = $path ? urldecode($path) : '/';
 
         // cors
@@ -739,7 +803,10 @@ final class Fw implements \ArrayAccess
             return $this->call($func, $this, ...$arguments);
         }
 
-        throw new \BadMethodCallException(sprintf('Call to undefined method Fal\\Stick\\Fw::%s.', $method));
+        throw new \BadMethodCallException(sprintf(
+            'Call to undefined method Fal\\Stick\\Fw::%s.',
+            $method
+        ));
     }
 
     /**
@@ -892,7 +959,11 @@ final class Fw implements \ArrayAccess
 
                     // treat arguments properly
                     if ('--' === $arg) {
-                        $opts .= '&_arguments[]='.implode('&_arguments[]=', array_map('urlencode', array_slice($argv, $i + 1)));
+                        $opts .= '&_arguments[]='.implode(
+                            '&_arguments[]=',
+                            array_map('urlencode', array_slice($argv, $i + 1))
+                        );
+
                         break;
                     }
 
@@ -928,7 +999,8 @@ final class Fw implements \ArrayAccess
                         if (false === $pos = strpos($arg, '=')) {
                             $opt = urlencode(substr($arg, 2));
                         } else {
-                            $opts .= urlencode(substr($arg, 2, $pos - 2)).'='.urlencode(substr($arg, $pos + 1));
+                            $opts .= urlencode(substr($arg, 2, $pos - 2)).'=';
+                            $opts .= urlencode(substr($arg, $pos + 1));
                         }
 
                         continue;
@@ -942,7 +1014,8 @@ final class Fw implements \ArrayAccess
                     } else {
                         // give value to the last option for o=value form
                         $all = array_filter(str_split(substr($arg, 1, $pos - 2)));
-                        $line = '&'.substr($arg, $pos - 1, 1).'='.urlencode(substr($arg, $pos + 1));
+                        $line = '&'.substr($arg, $pos - 1, 1).'=';
+                        $line .= urlencode(substr($arg, $pos + 1));
                     }
 
                     if ($all) {
@@ -1010,7 +1083,11 @@ final class Fw implements \ArrayAccess
             ob_end_clean();
 
             // show previous error only!
-            $this->hive['ERROR'] || $this->error(500, 'Fatal error: '.$error['message'], array($error));
+            $this->hive['ERROR'] || $this->error(
+                500,
+                'Fatal error: '.$error['message'],
+                array($error)
+            );
 
             $this->send();
             die;
@@ -1056,7 +1133,8 @@ final class Fw implements \ArrayAccess
             return null;
         }
 
-        $file = $this->findFileWithExtension($class, '.php') ?? $this->findFileWithExtension($class, '.hh');
+        $file = $this->findFileWithExtension($class, '.php') ??
+            $this->findFileWithExtension($class, '.hh');
 
         if (null === $file) {
             // Remember, this class not exist
@@ -1094,7 +1172,12 @@ final class Fw implements \ArrayAccess
     {
         $path = $this->hive['BASE'].$suffix;
 
-        return $absolute ? self::buildUrl($this->hive['SCHEME'], $this->hive['HOST'], $this->hive['PORT'], $path) : $path;
+        return $absolute ? self::buildUrl(
+            $this->hive['SCHEME'],
+            $this->hive['HOST'],
+            $this->hive['PORT'],
+            $path
+        ) : $path;
     }
 
     /**
@@ -1157,12 +1240,21 @@ final class Fw implements \ArrayAccess
      *
      * @return mixed
      */
-    public function &ref(string $key, bool $add = true, bool &$found = null, array &$var = null)
-    {
+    public function &ref(
+        string $key,
+        bool $add = true,
+        bool &$found = null,
+        array &$var = null
+    ) {
         $parts = explode('.', $key);
         $self = null === $var;
 
-        if ('SESSION' === $parts[0] && $self && !headers_sent() && !$this->sessionActive()) {
+        if (
+            'SESSION' === $parts[0] &&
+            $self &&
+            !headers_sent() &&
+            !$this->sessionActive()
+        ) {
             session_start();
             $this->hive['SESSION'] = &$GLOBALS['_SESSION'];
         }
@@ -1182,10 +1274,16 @@ final class Fw implements \ArrayAccess
 
             $exists = false;
 
-            if (is_array($var) && ($add || $exists = array_key_exists($part, $var))) {
+            if (
+                is_array($var) &&
+                ($add || $exists = array_key_exists($part, $var))
+            ) {
                 $found = $exists || array_key_exists($part, $var);
                 $var = &$var[$part];
-            } elseif (is_object($var) && ($add || $exists = property_exists($var, $part))) {
+            } elseif (
+                is_object($var) &&
+                ($add || $exists = property_exists($var, $part))
+            ) {
                 $found = $exists || property_exists($var, $part);
                 $var = &$var->$part;
             } else {
@@ -1591,7 +1689,11 @@ final class Fw implements \ArrayAccess
      */
     public function csrfRegister(): Fw
     {
-        $this->set('CSRF', self::hash($this->hive['SEED'].(extension_loaded('openssl') ? implode(unpack('L', openssl_random_pseudo_bytes(4))) : mt_rand())));
+        $this->set('CSRF', self::hash(
+            $this->hive['SEED'].(extension_loaded('openssl') ?
+                implode(unpack('L', openssl_random_pseudo_bytes(4))) : mt_rand()
+            )
+        ));
         $this->copy($this->hive['CSRF_KEY'], 'CSRF_PREV');
         $this->copy('CSRF', $this->hive['CSRF_KEY']);
 
@@ -1607,7 +1709,8 @@ final class Fw implements \ArrayAccess
      */
     public function isCsrfValid(string $csrf): bool
     {
-        return $this->hive['CSRF'] && $this->hive['CSRF_PREV'] && 0 === strcmp($csrf, $this->hive['CSRF_PREV']);
+        return $this->hive['CSRF'] && $this->hive['CSRF_PREV'] &&
+            0 === strcmp($csrf, $this->hive['CSRF_PREV']);
     }
 
     /**
@@ -1675,7 +1778,10 @@ final class Fw implements \ArrayAccess
                 $rval = $match['rval'];
             }
 
-            return array_merge(array($lval), array_map(array('Fal\\Stick\\Fw', 'cast'), str_getcsv($rval)));
+            return array_merge(
+                array($lval),
+                array_map(array('Fal\\Stick\\Fw', 'cast'), str_getcsv($rval))
+            );
         };
         $cast = function ($val) {
             if (is_string($val = self::cast($val))) {
@@ -1698,7 +1804,10 @@ final class Fw implements \ArrayAccess
 
                 if (0 === strcasecmp($command[1], 'controller')) {
                     if (empty($command[2])) {
-                        throw new \LogicException(sprintf('The command need first parameter: %s.', $command[1]));
+                        throw new \LogicException(sprintf(
+                            'The command need first parameter: %s.',
+                            $command[1]
+                        ));
                     }
 
                     $pair = array();
@@ -1736,7 +1845,11 @@ final class Fw implements \ArrayAccess
 
             // Replace newline expression, mark quoted strings with 0x00 whitespace
             $val = preg_replace('/\\\\\h*(\r?\n)/', '\1', $val);
-            $val = array_map($cast, str_getcsv(preg_replace('/(?<!\\\\)(")(.*?)\1/', "\\1\x00\\2\\1", trim($val))));
+            $val = array_map($cast, str_getcsv(preg_replace(
+                '/(?<!\\\\)(")(.*?)\1/',
+                "\\1\x00\\2\\1",
+                trim($val)
+            )));
 
             $this->set($prefix.$key, count($val) > 1 ? $val : reset($val));
         }
@@ -1754,8 +1867,14 @@ final class Fw implements \ArrayAccess
      */
     public function route(string $route, $controller): Fw
     {
-        if (preg_match(self::ROUTE_PATTERN, $route, $match, PREG_UNMATCHED_AS_NULL) && count($match) < 3) {
-            throw new \LogicException(sprintf('Invalid routing pattern: %s.', $route));
+        if (
+            preg_match(self::ROUTE_PATTERN, $route, $match, PREG_UNMATCHED_AS_NULL) &&
+            count($match) < 3
+        ) {
+            throw new \LogicException(sprintf(
+                'Invalid routing pattern: %s.',
+                $route
+            ));
         }
 
         $verbs = explode('|', strtoupper($match[1]));
@@ -1766,14 +1885,21 @@ final class Fw implements \ArrayAccess
 
         if (!$pattern) {
             if (!isset($this->hive['ALIASES'][$alias])) {
-                throw new \LogicException(sprintf('Route not exists: %s.', $alias));
+                throw new \LogicException(sprintf(
+                    'Route not exists: %s.',
+                    $alias
+                ));
             }
 
             $pattern = $this->hive['ALIASES'][$alias];
         }
 
         foreach ($verbs as $verb) {
-            $this->hive['ROUTES'][$pattern][$mode][$verb] = array($controller, $alias, $ttl);
+            $this->hive['ROUTES'][$pattern][$mode][$verb] = array(
+                $controller,
+                $alias,
+                $ttl,
+            );
         }
 
         if ($alias) {
@@ -1810,9 +1936,13 @@ final class Fw implements \ArrayAccess
      */
     public function rest(string $route, string $class): Fw
     {
-        $itemRoute = preg_replace_callback('~^(?:(\w+)\h+)?(/[^\h]*)~', function ($match) {
-            return ($match[1] ? $match[1].'_item' : '').' '.('/' === $match[2] ? '' : $match[2]).'/@item';
-        }, $route);
+        $itemRoute = preg_replace_callback(
+            '~^(?:(\w+)\h+)?(/[^\h]*)~', function ($match) {
+                return ($match[1] ? $match[1].'_item' : '').' '.
+                    ('/' === $match[2] ? '' : $match[2]).'/@item';
+            },
+            $route
+        );
 
         return $this
             ->route('GET '.$route, $class.'->all')
@@ -1867,35 +1997,52 @@ final class Fw implements \ArrayAccess
             $parameters = (array) $parameters;
         }
 
-        $path = preg_replace_callback(self::ROUTE_PARAMS, function ($match) use ($alias, &$parameters) {
-            $name = $match[1];
-            $defaultValue = $match[2] ?? null;
-            $matchAll = $match[3] ?? false;
-            $pattern = $matchAll ? null : ($match[4] ?? null);
-            $param = $parameters[$name] ?? $defaultValue;
+        $path = preg_replace_callback(
+            self::ROUTE_PARAMS,
+            function ($match) use ($alias, &$parameters) {
+                $name = $match[1];
+                $defaultValue = $match[2] ?? null;
+                $matchAll = $match[3] ?? false;
+                $pattern = $matchAll ? null : ($match[4] ?? null);
+                $param = $parameters[$name] ?? $defaultValue;
 
-            if (empty($param)) {
-                throw new \LogicException(sprintf('Parameter should be provided (%s@%s).', $name, $alias));
-            }
+                if (empty($param)) {
+                    throw new \LogicException(sprintf(
+                        'Parameter should be provided (%s@%s).',
+                        $name,
+                        $alias
+                    ));
+                }
 
-            if ($pattern && is_string($param) && !preg_match('~^'.$pattern.'$~', $param)) {
-                throw new \LogicException(sprintf('Parameter is not valid, given: %s (%s@%s).', $param, $name, $alias));
-            }
+                if (
+                    $pattern &&
+                    is_string($param) &&
+                    !preg_match('~^'.$pattern.'$~', $param)
+                ) {
+                    throw new \LogicException(sprintf(
+                        'Parameter is not valid, given: %s (%s@%s).',
+                        $param,
+                        $name,
+                        $alias
+                    ));
+                }
 
-            unset($parameters[$name]);
+                unset($parameters[$name]);
 
-            if (is_array($param)) {
-                return implode('/', array_map(function ($item) {
-                    return is_string($item) ? urlencode($item) : $item;
-                }, $param));
-            }
+                if (is_array($param)) {
+                    return implode('/', array_map(function ($item) {
+                        return is_string($item) ? urlencode($item) : $item;
+                    }, $param));
+                }
 
-            if (is_string($param)) {
-                return urlencode($param);
-            }
+                if (is_string($param)) {
+                    return urlencode($param);
+                }
 
-            return $param;
-        }, $pattern);
+                return $param;
+            },
+            $pattern
+        );
 
         if ($parameters) {
             $path .= '?'.http_build_query($parameters);
@@ -1941,11 +2088,17 @@ final class Fw implements \ArrayAccess
      */
     public function grab(string $expression)
     {
-        if (false !== strpos($expression, '->') && 2 === count($parts = explode('->', $expression))) {
+        if (
+            false !== strpos($expression, '->') &&
+            2 === count($parts = explode('->', $expression))
+        ) {
             return array($this->get($parts[0]), $parts[1]);
         }
 
-        if (false !== strpos($expression, '::') && 2 === count($parts = explode('::', $expression))) {
+        if (
+            false !== strpos($expression, '::') &&
+            2 === count($parts = explode('::', $expression))
+        ) {
             return $parts;
         }
 
@@ -2093,7 +2246,13 @@ final class Fw implements \ArrayAccess
             return $name;
         }
 
-        if ($this->hive['RESPONSE'] && $found = preg_grep('/^'.preg_quote($name, '/').'$/i', array_keys($this->hive['RESPONSE']))) {
+        if (
+            $this->hive['RESPONSE'] &&
+            $found = preg_grep(
+                '/^'.preg_quote($name, '/').'$/i',
+                array_keys($this->hive['RESPONSE'])
+            )
+        ) {
             return $found[0];
         }
 
@@ -2191,8 +2350,12 @@ final class Fw implements \ArrayAccess
      *
      * @return Fw
      */
-    public function cookie(string $name, string $value = null, array $options = null, string &$cookie = null): Fw
-    {
+    public function cookie(
+        string $name,
+        string $value = null,
+        array $options = null,
+        string &$cookie = null
+    ): Fw {
         if (empty($name)) {
             throw new \LogicException('Cookie name empty!');
         }
@@ -2201,7 +2364,9 @@ final class Fw implements \ArrayAccess
         $cookie = $name.'=';
 
         if (null === $value || '' === $value) {
-            $cookie .= 'deleted; Expires='.gmdate(self::COOKIE_DATE, time() - 31536001).'; Max-Age=0';
+            $cookie .= 'deleted; Expires=';
+            $cookie .= gmdate(self::COOKIE_DATE, time() - 31536001);
+            $cookie .= '; Max-Age=0';
         } else {
             $cookie .= $jar['raw'] ? $value : rawurlencode($value);
             $expires = $jar['expires'];
@@ -2213,7 +2378,10 @@ final class Fw implements \ArrayAccess
                 $time = strtotime($expires);
 
                 if (false === $time) {
-                    throw new \InvalidArgumentException(sprintf('Cookie expiration time is not valid: %s.', $expires));
+                    throw new \InvalidArgumentException(sprintf(
+                        'Cookie expiration time is not valid: %s.',
+                        $expires
+                    ));
                 }
 
                 $expires = $time;
@@ -2226,7 +2394,8 @@ final class Fw implements \ArrayAccess
                     $maxAge = 0;
                 }
 
-                $cookie .= '; Expires='.gmdate(self::COOKIE_DATE, $expires).'; Max-Age='.$maxAge;
+                $cookie .= '; Expires='.gmdate(self::COOKIE_DATE, $expires);
+                $cookie .= '; Max-Age='.$maxAge;
             }
         }
 
@@ -2247,8 +2416,14 @@ final class Fw implements \ArrayAccess
         }
 
         if (null !== $jar['samesite']) {
-            if (self::COOKIE_LAX !== $jar['samesite'] && self::COOKIE_STRICT !== $jar['samesite']) {
-                throw new \InvalidArgumentException(sprintf('Samesite parameter value is not valid: %s.', $jar['samesite']));
+            if (
+                self::COOKIE_LAX !== $jar['samesite'] &&
+                self::COOKIE_STRICT !== $jar['samesite']
+            ) {
+                throw new \InvalidArgumentException(sprintf(
+                    'Samesite parameter value is not valid: %s.',
+                    $jar['samesite']
+                ));
             }
 
             $cookie .= '; Samesite='.$jar['samesite'];
@@ -2294,7 +2469,10 @@ final class Fw implements \ArrayAccess
         $name = 'self::HTTP_'.$code;
 
         if (!defined($name)) {
-            throw new \LogicException(sprintf('Unsupported HTTP code: %d.', $code));
+            throw new \LogicException(sprintf(
+                'Unsupported HTTP code: %d.',
+                $code
+            ));
         }
 
         $this->hive['STATUS'] = $code;
@@ -2350,8 +2528,6 @@ final class Fw implements \ArrayAccess
     {
         if (null === $trace) {
             $trace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);
-
-            (empty($trace[0]['file']) || __FILE__ !== $trace[0]['file']) || array_shift($trace);
         }
 
         $out = '';
@@ -2362,14 +2538,16 @@ final class Fw implements \ArrayAccess
         // Analyze stack trace
         foreach ($trace as $frame) {
             if (isset($frame['file'])) {
-                $out .= '['.str_replace($clear, '', $frame['file']).':'.$frame['line'].'] ';
+                $out .= '['.str_replace($clear, '', $frame['file']).':'.
+                    $frame['line'].'] ';
 
                 if (isset($frame['class'])) {
                     $out .= $frame['class'].$frame['type'];
                 }
 
                 if (isset($frame['function'])) {
-                    $arg = $noArgument || empty($frame['args']) ? '' : self::csv($frame['args']);
+                    $arg = $noArgument ||
+                        empty($frame['args']) ? '' : self::csv($frame['args']);
                     $out .= $frame['function'].'('.$arg.')';
                 }
 
@@ -2391,8 +2569,11 @@ final class Fw implements \ArrayAccess
     public function log(string $level, string $message): Fw
     {
         // level less than threshold
-        if ($message && $this->hive['LOG'] &&
-            (self::LOG_LEVELS[$level] ?? 9) <= (self::LOG_LEVELS[$this->hive['LOG_THRESHOLD']] ?? 8)) {
+        if (
+            $message &&
+            $this->hive['LOG'] &&
+            (self::LOG_LEVELS[$level] ?? 9) <= (self::LOG_LEVELS[$this->hive['LOG_THRESHOLD']] ?? 8)
+        ) {
             $prefix = $this->hive['LOG'].'log_';
             $suffix = '.log';
             $files = glob($prefix.date('Y-m').'*'.$suffix);
@@ -2471,8 +2652,11 @@ final class Fw implements \ArrayAccess
      *
      * @return string
      */
-    public function trans(string $message, array $parameters = null, bool $titleize = false): string
-    {
+    public function trans(
+        string $message,
+        array $parameters = null,
+        bool $titleize = false
+    ): string {
         if (null === $ref = $this->langRef($message)) {
             return $titleize ? self::titleCase($message) : $message;
         }
@@ -2561,7 +2745,11 @@ final class Fw implements \ArrayAccess
             }
 
             // status
-            header($this->hive['PROTOCOL'].' '.$this->hive['STATUS'].' '.$this->hive['TEXT'], true, $this->hive['STATUS']);
+            header(
+                $this->hive['PROTOCOL'].' '.$this->hive['STATUS'].' '.$this->hive['TEXT'],
+                true,
+                $this->hive['STATUS']
+            );
         }
 
         return $this;
@@ -2574,7 +2762,11 @@ final class Fw implements \ArrayAccess
      */
     public function sendContent(): Fw
     {
-        if (!$this->hive['QUIET'] && $this->hive['OUTPUT'] && is_string($this->hive['OUTPUT'])) {
+        if (
+            !$this->hive['QUIET'] &&
+            $this->hive['OUTPUT'] &&
+            is_string($this->hive['OUTPUT'])
+        ) {
             echo $this->hive['OUTPUT'];
         }
 
@@ -2619,7 +2811,9 @@ final class Fw implements \ArrayAccess
         $eol = "\n";
 
         if ($this->hive['WITH_PRIOR_ERROR'] && $prior = $this->hive['ERROR']) {
-            $debug .= '[*previous error*:0] '.$prior['text'].' ('.$prior['code'].' '.$prior['status'].')'.$eol.$prior['debug'];
+            $debug .= '[*previous error*:0] '.$prior['text'];
+            $debug .= ' ('.$prior['code'].' '.$prior['status'].')'.$eol;
+            $debug .= $prior['debug'];
         }
 
         $this->hive['ERROR'] = array(
@@ -2654,7 +2848,8 @@ final class Fw implements \ArrayAccess
             $this->hset('Content-Type', 'application/json');
             $this->hive['OUTPUT'] = json_encode($response, JSON_PRETTY_PRINT);
         } elseif ($this->hive['CLI']) {
-            $this->hive['OUTPUT'] = $error.$eol.($message ?: $status).$eol.($this->hive['DEBUG'] ? $eol.$debug : '');
+            $this->hive['OUTPUT'] = $error.$eol.($message ?: $status).$eol;
+            $this->hive['OUTPUT'] .= $this->hive['DEBUG'] ? $eol.$debug : '';
         } else {
             $debug = $this->hive['DEBUG'] ? '<pre>'.$debug.'</pre>' : '';
 
@@ -2690,9 +2885,16 @@ HTML;
      *
      * @return RuntimeException With message format that can be handled by framework as http exception
      */
-    public function eHttp(int $code, string $message = null, \Throwable $previous = null): \RuntimeException
-    {
-        return new \RuntimeException(sprintf('http:%d %s', $code, $message), 0, $previous);
+    public function eHttp(
+        int $code,
+        string $message = null,
+        \Throwable $previous = null
+    ): \RuntimeException {
+        return new \RuntimeException(sprintf(
+            'http:%d %s',
+            $code,
+            $message
+        ), 0, $previous);
     }
 
     /**
@@ -2703,8 +2905,10 @@ HTML;
      *
      * @return RuntimeException
      */
-    public function eNotFound(string $message = null, \Throwable $previous = null): \RuntimeException
-    {
+    public function eNotFound(
+        string $message = null,
+        \Throwable $previous = null
+    ): \RuntimeException {
         return $this->eHttp(404, $message ?? self::HTTP_404, $previous);
     }
 
@@ -2716,8 +2920,10 @@ HTML;
      *
      * @return RuntimeException
      */
-    public function eForbidden(string $message = null, \Throwable $previous = null): \RuntimeException
-    {
+    public function eForbidden(
+        string $message = null,
+        \Throwable $previous = null
+    ): \RuntimeException {
         return $this->eHttp(403, $message ?? self::HTTP_403, $previous);
     }
 
@@ -2755,8 +2961,12 @@ HTML;
      *
      * @return Fw
      */
-    public function mock(string $route, array $arguments = null, array $server = null, $body = null): Fw
-    {
+    public function mock(
+        string $route,
+        array $arguments = null,
+        array $server = null,
+        $body = null
+    ): Fw {
         $mockPattern = '~^(\w+)\h+([^\h?]+)(\?[^\h]+)?(?:\h+(ajax|cli|sync))?$~';
 
         if (!preg_match($mockPattern, $route, $parts)) {
@@ -2790,7 +3000,10 @@ HTML;
 
         if (('GET' === $verb || 'HEAD' === $verb) && $arguments) {
             $this->hive['POST'] = null;
-            $this->hive['GET'] = $this->hive['GET'] ? array_merge($this->hive['GET'], $arguments) : $arguments;
+            $this->hive['GET'] = array_merge(
+                $this->hive['GET'] ?? array(),
+                $arguments
+            );
         } elseif ('POST' === $verb) {
             $this->hive['POST'] = $arguments;
         } elseif (!$body && $arguments) {
@@ -2957,11 +3170,20 @@ HTML;
 
                 return false !== self::write($this->cacheFile($ckey), $cache);
             case 'memcache':
-                return $this->hive['CACHE_REF']->set($ckey, $cache, MEMCACHE_COMPRESSED, $ttl);
+                return $this->hive['CACHE_REF']->set(
+                    $ckey,
+                    $cache,
+                    MEMCACHE_COMPRESSED,
+                    $ttl
+                );
             case 'memcached':
                 return $this->hive['CACHE_REF']->set($ckey, $cache, $ttl);
             case 'redis':
-                return $this->hive['CACHE_REF']->set($ckey, $cache, array_filter(array('ex' => $ttl)));
+                return $this->hive['CACHE_REF']->set(
+                    $ckey,
+                    $cache,
+                    array_filter(array('ex' => $ttl))
+                );
             default:
                 return false;
         }
@@ -3068,18 +3290,22 @@ HTML;
         $last = null;
 
         if (false !== strpos($pattern, '@')) {
-            $pattern = preg_replace_callback(self::ROUTE_PARAMS, function ($match) use (&$last) {
-                $name = $match[1];
-                $matchAll = $match[3] ?? false;
-                $pattern = $match[4] ?? '[^/]+';
+            $pattern = preg_replace_callback(
+                self::ROUTE_PARAMS,
+                function ($match) use (&$last) {
+                    $name = $match[1];
+                    $matchAll = $match[3] ?? false;
+                    $pattern = $match[4] ?? '[^/]+';
 
-                if ($matchAll) {
-                    $pattern = '.+';
-                    $last = $name;
-                }
+                    if ($matchAll) {
+                        $pattern = '.+';
+                        $last = $name;
+                    }
 
-                return '(?<'.$name.'>'.$pattern.')';
-            }, $pattern);
+                    return '(?<'.$name.'>'.$pattern.')';
+                },
+                $pattern
+            );
         }
 
         if (preg_match('~^'.$pattern.'$~'.$modifier, $path, $match)) {
@@ -3107,7 +3333,8 @@ HTML;
         $cors = $this->hive['CORS'];
         $modifier = $this->hive['CASELESS'] ? 'i' : '';
         $handleCors = isset($this->hive['REQUEST']['Origin']) && $cors['origin'];
-        $preflight = $handleCors && isset($this->hive['REQUEST']['Access-Control-Request-Method']);
+        $preflight = $handleCors &&
+            isset($this->hive['REQUEST']['Access-Control-Request-Method']);
         $allowed = array();
 
         if ($this->hive['AJAX']) {
@@ -3133,7 +3360,10 @@ HTML;
 
                     if (isset($route[$verb]) && !$preflight) {
                         if ($cors['expose']) {
-                            $this->hset('Access-Control-Expose-Headers', self::join($cors['expose']));
+                            $this->hset(
+                                'Access-Control-Expose-Headers',
+                                self::join($cors['expose'])
+                            );
                         }
 
                         return $route[$verb] + array(3 => $pattern, $params);
@@ -3143,7 +3373,13 @@ HTML;
                     break;
                 }
 
-                return array(function ($fw) { $fw->error(400); }, null, null, $pattern, array());
+                return array(
+                    function ($fw) { $fw->error(400); },
+                    null,
+                    null,
+                    $pattern,
+                    array(),
+                );
             }
         }
 
@@ -3157,7 +3393,10 @@ HTML;
                         $noHeaders = empty($params['headers']);
                         $noMaxAge = 0 >= $params['ttl'];
 
-                        $this->hset('Access-Control-Allow-Methods', 'OPTIONS,'.$params['allowed']);
+                        $this->hset(
+                            'Access-Control-Allow-Methods',
+                            'OPTIONS,'.$params['allowed']
+                        );
 
                         $noHeaders || $this->hset('Access-Control-Allow-Headers', self::join($params['headers']));
                         $noMaxAge || $this->hset('Access-Control-Max-Age', $params['ttl']);
@@ -3168,7 +3407,13 @@ HTML;
                 ));
             }
 
-            return array(function ($fw) { $fw->error(405); }, null, null, '/', array());
+            return array(
+                function ($fw) { $fw->error(405); },
+                null,
+                null,
+                '/',
+                array(),
+            );
         }
 
         return null;
@@ -3186,7 +3431,10 @@ HTML;
         $ref = $this->ref('LEXICON.'.$message, false);
 
         if (null !== $ref && !is_string($ref)) {
-            throw new \LogicException(sprintf('The message reference is not a string: %s.', $message));
+            throw new \LogicException(sprintf(
+                'The message reference is not a string: %s.',
+                $message
+            ));
         }
 
         return $ref;
@@ -3214,7 +3462,11 @@ HTML;
         $eol = "\n";
 
         if ($this->hive['LANGUAGE']) {
-            $languages .= ','.preg_replace('/\h+|;q=[0-9.]+/', '', self::join($this->hive['LANGUAGE']));
+            $languages .= ','.preg_replace(
+                '/\h+|;q=[0-9.]+/',
+                '',
+                self::join($this->hive['LANGUAGE'])
+            );
         }
 
         foreach (self::split($languages) as $lang) {
@@ -3231,7 +3483,14 @@ HTML;
 
         foreach (array_unique($codes) as $code) {
             foreach ($locales as $locale) {
-                if (preg_match_all($pattern, self::read($locale.$code.$ext), $matches, PREG_SET_ORDER)) {
+                if (
+                    preg_match_all(
+                        $pattern,
+                        self::read($locale.$code.$ext),
+                        $matches,
+                        PREG_SET_ORDER
+                    )
+                ) {
                     $prefix = '';
 
                     foreach ($matches as $match) {
@@ -3241,8 +3500,17 @@ HTML;
                             continue;
                         }
 
-                        $ref = &$this->ref($prefix.$match['lval'], true, $found, $lexicon);
-                        $ref = trim(preg_replace('/\\\\\h*\r?\n/', $eol, $match['rval']));
+                        $ref = &$this->ref(
+                            $prefix.$match['lval'],
+                            true,
+                            $found,
+                            $lexicon
+                        );
+                        $ref = trim(preg_replace(
+                            '/\\\\\h*\r?\n/',
+                            $eol,
+                            $match['rval']
+                        ));
                     }
                 }
             }
@@ -3265,7 +3533,10 @@ HTML;
         if (is_array($autoload)) {
             foreach ($autoload as $namespace => $directories) {
                 if ('\\' !== substr($namespace, -1)) {
-                    throw new \LogicException(sprintf('Namespace should ends with backslash: %s.', $namespace));
+                    throw new \LogicException(sprintf(
+                        'Namespace should ends with backslash: %s.',
+                        $namespace
+                    ));
                 }
 
                 $fixed[$namespace] = $this->autoNormalizePaths($directories);
@@ -3297,11 +3568,11 @@ HTML;
      * Find file class with extension.
      *
      * @param string $class
-     * @param string $extension
+     * @param string $ext
      *
      * @return string|null
      */
-    private function findFileWithExtension(string $class, string $extension): ?string
+    private function findFileWithExtension(string $class, string $ext): ?string
     {
         // PSR-4 lookup
         $subPath = $class;
@@ -3315,7 +3586,7 @@ HTML;
                 $pathEnd = DIRECTORY_SEPARATOR.substr($logicalPath, $lastPos + 1);
 
                 foreach ($this->hive['AUTOLOAD'][$search] as $directory) {
-                    if (is_file($file = $directory.$pathEnd.$extension)) {
+                    if (is_file($file = $directory.$pathEnd.$ext)) {
                         return $file;
                     }
                 }
@@ -3324,7 +3595,7 @@ HTML;
 
         // PSR-4 fallback dirs
         foreach ($this->hive['AUTOLOAD_FALLBACK'] ?? array() as $directory) {
-            if (is_file($file = $directory.DIRECTORY_SEPARATOR.$logicalPath.$extension)) {
+            if (is_file($file = $directory.DIRECTORY_SEPARATOR.$logicalPath.$ext)) {
                 return $file;
             }
         }
@@ -3356,13 +3627,20 @@ HTML;
             } catch (\Throwable $e) {
                 $this->cacheFallback(true);
             }
-        } elseif (('memcache' === $engine || 'memcached' === $engine) && $reference && extension_loaded($engine)) {
+        } elseif (
+            ('memcache' === $engine || 'memcached' === $engine) &&
+            $reference &&
+            extension_loaded($engine)
+        ) {
             $this->hive['CACHE_REF'] = new $engine();
 
             // remember that we do not check server!
             foreach (self::split($reference) as $serverPort) {
                 $parts = explode(':', $serverPort);
-                $this->hive['CACHE_REF']->addServer($parts[0], intval($parts[1] ?? 11211));
+                $this->hive['CACHE_REF']->addServer(
+                    $parts[0],
+                    intval($parts[1] ?? 11211)
+                );
             }
         } elseif ($engine && !$reference) {
             // leave it to fallback
@@ -3461,10 +3739,16 @@ HTML;
         }
 
         // collect body
-        ($this->hive['RAW'] || $this->hive['BODY']) || $this->hive['BODY'] = file_get_contents('php://input');
+        ($this->hive['RAW'] || $this->hive['BODY']) ||
+            $this->hive['BODY'] = file_get_contents('php://input');
 
         // before route
-        $dispatch = $this->dispatch(self::EVENT_BEFOREROUTE, $this, $controller, $arguments);
+        $dispatch = $this->dispatch(
+            self::EVENT_BEFOREROUTE,
+            $this,
+            $controller,
+            $arguments
+        );
 
         if ($dispatch && false === $dispatch[0]) {
             return $this;
@@ -3483,13 +3767,24 @@ HTML;
         }
 
         // after route
-        $dispatch = $this->dispatch(self::EVENT_AFTERROUTE, $this, $controller, $arguments, $response);
+        $dispatch = $this->dispatch(
+            self::EVENT_AFTERROUTE,
+            $this,
+            $controller,
+            $arguments,
+            $response
+        );
 
         if ($dispatch && false === $dispatch[0]) {
             return $this;
         }
 
-        if ($ttl && isset($hash) && $this->hive['OUTPUT'] && is_string($this->hive['OUTPUT'])) {
+        if (
+            $ttl &&
+            isset($hash) &&
+            $this->hive['OUTPUT'] &&
+            is_string($this->hive['OUTPUT'])
+        ) {
             $this->cset($hash, array(
                 $this->hive['STATUS'],
                 $this->hive['RESPONSE'],

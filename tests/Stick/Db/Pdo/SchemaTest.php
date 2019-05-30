@@ -38,7 +38,6 @@ class SchemaTest extends MyTestCase
             'constraint' => null,
             'data_type' => null,
             'default' => null,
-            'name' => 'foo',
             'nullable' => true,
             'pdo_type' => \PDO::PARAM_STR,
             'pkey' => false,

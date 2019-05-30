@@ -786,4 +786,60 @@ class MapperTest extends MyTestCase
 
         $this->assertEquals($expected, $mapper->toArray());
     }
+
+    public function testRow()
+    {
+        $expected = array(
+            'id' => array(
+                'changed' => false,
+                'initial' => null,
+                'locked' => false,
+                'value' => null,
+            ),
+            'username' => array(
+                'changed' => false,
+                'initial' => null,
+                'locked' => false,
+                'value' => null,
+            ),
+            'password' => array(
+                'changed' => false,
+                'initial' => null,
+                'locked' => false,
+                'value' => null,
+            ),
+            'active' => array(
+                'changed' => false,
+                'initial' => 1,
+                'locked' => false,
+                'value' => 1,
+            ),
+        );
+
+        $this->assertEquals($expected, $this->mapper->row());
+    }
+
+    public function testJsonSerialize()
+    {
+        $json = json_encode($this->mapper->findOne());
+        $expected = '[{"id":"1","username":"foo","password":null,"active":"1"}]';
+
+        $this->assertEquals($expected, $json);
+    }
+
+    public function testToJson()
+    {
+        $json = $this->mapper->findOne()->toJson();
+        $expected = '{"id":"1","username":"foo","password":null,"active":"1"}';
+
+        $this->assertEquals($expected, $json);
+    }
+
+    public function testFromJson()
+    {
+        $json = '{"username": "from json"}';
+        $this->mapper->fromJson($json);
+
+        $this->assertEquals('from json', $this->mapper->get('username'));
+    }
 }

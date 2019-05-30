@@ -18,7 +18,7 @@ namespace Fal\Stick\Db\Pdo;
  *
  * @author Eko Kurniawan <ekokurniawanbs@gmail.com>
  */
-class Mapper implements \ArrayAccess, \Iterator, \Countable
+class Mapper implements \ArrayAccess, \Iterator, \Countable, \JsonSerializable
 {
     /** @var int Pagination limit */
     const PAGINATION_LIMIT = 10;
@@ -248,6 +248,20 @@ class Mapper implements \ArrayAccess, \Iterator, \Countable
     public function count()
     {
         return count($this->rows);
+    }
+
+    /**
+     * {inheritdoc}.
+     */
+    public function jsonSerialize()
+    {
+        $rows = array();
+
+        foreach ($this->rows as $row) {
+            $rows[] = $row->toArray(true);
+        }
+
+        return $rows;
     }
 
     /**
@@ -508,6 +522,97 @@ class Mapper implements \ArrayAccess, \Iterator, \Countable
     }
 
     /**
+     * Reset mapper data.
+     *
+     * @param bool $unlock
+     *
+     * @return Mapper
+     */
+    public function reset(bool $unlock = false): Mapper
+    {
+        $this->row = $this->commitRow(array(), $unlock);
+        $this->adhoc = array_map(function ($adhoc) {
+            $adhoc['raw'] = true;
+
+            return $adhoc;
+        }, $this->adhoc);
+        $this->rows = array();
+        $this->ptr = 0;
+
+        return $this;
+    }
+
+    /**
+     * Returns mapper in array key, value pairs.
+     *
+     * @param bool $adhoc
+     *
+     * @return array
+     */
+    public function toArray(bool $adhoc = false): array
+    {
+        $result = $this->values();
+
+        foreach ($adhoc ? $this->adhoc : array() as $key => $value) {
+            $result[$key] = $this->get($key);
+        }
+
+        return $result;
+    }
+
+    /**
+     * Sets mapper from aray key, value pairs.
+     *
+     * @param array $values
+     * @param bool  $adhoc
+     *
+     * @return Mapper
+     */
+    public function fromArray(array $values, bool $adhoc = false): Mapper
+    {
+        $this->adhocSetValue = true;
+
+        foreach ($values as $field => $value) {
+            if (!isset($this->row[$field]) && !$adhoc) {
+                continue;
+            }
+
+            $this->set($field, $value);
+        }
+
+        $this->adhocSetValue = false;
+
+        return $this;
+    }
+
+    /**
+     * Row to json.
+     *
+     * @param bool $adhoc
+     * @param int  $options
+     *
+     * @return string
+     */
+    public function toJson(bool $adhoc = false, int $options = 0): string
+    {
+        return json_encode($this->toArray($adhoc), $options);
+    }
+
+    /**
+     * Json to mapper.
+     *
+     * @param string $json
+     * @param bool   $adhoc
+     * @param int    $options
+     *
+     * @return Mapper
+     */
+    public function fromJson(string $json, bool $adhoc = false, int $options = 0): Mapper
+    {
+        return $this->fromArray(json_decode($json, true, 512, $options), $adhoc);
+    }
+
+    /**
      * Returns true if mapper or field value changed.
      *
      * @param string|null $field
@@ -533,77 +638,13 @@ class Mapper implements \ArrayAccess, \Iterator, \Countable
     }
 
     /**
-     * Reset mapper data.
-     *
-     * @param bool $unlock
-     *
-     * @return Mapper
-     */
-    public function reset(bool $unlock = false): Mapper
-    {
-        $this->row = $this->commitRow(array(), $unlock);
-        $this->adhoc = array_map(function ($adhoc) {
-            $adhoc['raw'] = true;
-
-            return $adhoc;
-        }, $this->adhoc);
-        $this->rows = array();
-        $this->ptr = 0;
-
-        return $this;
-    }
-
-    /**
-     * Returns mapper in array key, value pairs.
-     *
-     * @param bool $withAdhoc
-     *
-     * @return array
-     */
-    public function toArray(bool $withAdhoc = false): array
-    {
-        $result = $this->values();
-
-        foreach ($withAdhoc ? $this->adhoc : array() as $key => $value) {
-            $result[$key] = $this->get($key);
-        }
-
-        return $result;
-    }
-
-    /**
-     * Sets mapper from aray key, value pairs.
-     *
-     * @param array $values
-     * @param bool  $withAdhoc
-     *
-     * @return Mapper
-     */
-    public function fromArray(array $values, bool $withAdhoc = false): Mapper
-    {
-        $this->adhocSetValue = true;
-
-        foreach ($values as $field => $value) {
-            if (!isset($this->row[$field]) && !$withAdhoc) {
-                continue;
-            }
-
-            $this->set($field, $value);
-        }
-
-        $this->adhocSetValue = false;
-
-        return $this;
-    }
-
-    /**
      * Mapper initial data.
      *
      * @return array
      */
     public function initial(): array
     {
-        return array_column($this->row, 'initial', 'name');
+        return $this->db->fw->arrColumn($this->row, 'initial');
     }
 
     /**
@@ -613,7 +654,7 @@ class Mapper implements \ArrayAccess, \Iterator, \Countable
      */
     public function values(): array
     {
-        return array_column($this->row, 'value', 'name');
+        return $this->db->fw->arrColumn($this->row, 'value');
     }
 
     /**
@@ -625,7 +666,7 @@ class Mapper implements \ArrayAccess, \Iterator, \Countable
     {
         return array_intersect_key(
             $this->values(),
-            array_filter(array_column($this->row, 'changed', 'name'))
+            $this->db->fw->arrColumn($this->row, 'changed', false)
         );
     }
 
@@ -640,6 +681,26 @@ class Mapper implements \ArrayAccess, \Iterator, \Countable
             $this->initial(),
             array_fill_keys($this->schema->getKeys(), null)
         );
+    }
+
+    /**
+     * Returns current row state.
+     *
+     * @return array
+     */
+    public function row(): array
+    {
+        return $this->row;
+    }
+
+    /**
+     * Returns loaded mappers.
+     *
+     * @return array
+     */
+    public function rows(): array
+    {
+        return $this->rows;
     }
 
     /**
@@ -671,16 +732,6 @@ class Mapper implements \ArrayAccess, \Iterator, \Countable
         }
 
         return $str;
-    }
-
-    /**
-     * Returns loaded mappers.
-     *
-     * @return array
-     */
-    public function rows(): array
-    {
-        return $this->rows;
     }
 
     /**
@@ -1263,13 +1314,15 @@ class Mapper implements \ArrayAccess, \Iterator, \Countable
                 $value = $this->row[$name]['value'];
                 $changed = true;
             } elseif (null === $data) {
-                $value = isset($this->row[$name]) ? $this->row[$name]['value'] : $schema['default'];
+                $value = isset($this->row[$name]) ?
+                    $this->row[$name]['value'] : $schema['default'];
             } else {
-                $value = array_key_exists($name, $data) ? $data[$name] : $schema['default'];
+                $value = array_key_exists($name, $data) ?
+                    $data[$name] : $schema['default'];
             }
 
             $initial = $value;
-            $row[$name] = compact('changed', 'initial', 'locked', 'name', 'value');
+            $row[$name] = compact('changed', 'initial', 'locked', 'value');
         }
 
         return $row;
