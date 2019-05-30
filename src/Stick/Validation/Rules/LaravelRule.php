@@ -884,8 +884,8 @@ class LaravelRule implements RuleInterface
      *
      * @param Field       $field
      * @param string      $table
-     * @param string|null $column
      * @param mixed       $except
+     * @param string|null $column
      * @param string|null $idColumn
      *
      * @return bool
@@ -893,8 +893,8 @@ class LaravelRule implements RuleInterface
     protected function _unique(
         Field $field,
         string $table,
-        string $column = null,
         $except = null,
+        string $column = null,
         string $idColumn = null
     ): bool {
         list($conn, $table) = false === strpos($table, '.') ?

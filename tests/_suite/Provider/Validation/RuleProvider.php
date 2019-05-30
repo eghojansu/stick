@@ -765,14 +765,21 @@ class RuleProvider
             'unique self id' => array(
                 true,
                 'unique',
-                array('user', null, 1),
+                array('user', 1),
                 'username',
                 'foo',
+            ),
+            'unique self id defined id column' => array(
+                true,
+                'unique',
+                array('user', 1, 'id'),
+                'username',
+                'bar',
             ),
             'unique self id alternative connection' => array(
                 true,
                 'unique',
-                array('alt.user', null, 1),
+                array('alt.user', 1),
                 'username',
                 'foo',
             ),
