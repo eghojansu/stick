@@ -920,7 +920,16 @@ class Mapper implements \ArrayAccess, \Iterator, \Countable, \JsonSerializable
             }
         }
 
-        return compact('subset', 'total', 'count', 'pages', 'page', 'start', 'end');
+        return compact(
+            'count',
+            'end',
+            'limit',
+            'page',
+            'pages',
+            'start',
+            'subset',
+            'total'
+        );
     }
 
     /**
