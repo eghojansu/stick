@@ -485,16 +485,18 @@ class Crud
         }
 
         $name = $this->options->get('route_param_name');
-        $start = $this->options['segment_start'];
-        $segments = $this->fw->split($this->options->get('segments'), '/');
+        $start = $this->options->get('segment_start');
+        $segments = $this->options->get('segments');
         $route = $this->options->get('route_name') ?? $this->fw->get('ALIAS');
 
-        if (!$segments && $arguments = $this->fw->get('PARAMS')) {
+        if (null === $segments && $arguments = $this->fw->get('PARAMS')) {
             $segments = $this->fw->split(end($arguments), '/');
 
             if (!$name) {
                 $name = key($arguments);
             }
+        } else {
+            $segments = $this->fw->split($segments, '/');
         }
 
         if (empty($route)) {
