@@ -393,7 +393,7 @@ class LaravelRule implements RuleInterface
     {
         list($conn, $table) = false === strpos($table, '.') ?
             array('db', $table) : explode('.', $table);
-        $db = $field->getService($conn, 'Fal\\Stick\\Db\\Pdo\\Db');
+        $db = $field->fw->service($conn, 'Fal\\Stick\\Db\\Pdo\\Db');
 
         return (new Mapper($db, $table))
             ->findOne(array(
@@ -703,7 +703,7 @@ class LaravelRule implements RuleInterface
      */
     protected function _password(Field $field, string $auth = null): bool
     {
-        $service = $field->getService($auth ?? 'auth', 'Fal\\Stick\\Security\\Auth');
+        $service = $field->fw->service($auth ?? 'auth', 'Fal\\Stick\\Security\\Auth');
         $user = $service->getUser();
 
         return $user ? $service->encoder->verify($field->value(), $user->getPassword()) : true;
@@ -899,7 +899,7 @@ class LaravelRule implements RuleInterface
     ): bool {
         list($conn, $table) = false === strpos($table, '.') ?
             array('db', $table) : explode('.', $table);
-        $db = $field->getService($conn, 'Fal\\Stick\\Db\\Pdo\\Db');
+        $db = $field->fw->service($conn, 'Fal\\Stick\\Db\\Pdo\\Db');
 
         $mapper = (new Mapper($db, $table))
             ->findOne(array(

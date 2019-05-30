@@ -1424,4 +1424,16 @@ class FwTest extends MyTestCase
         $this->assertInstanceOf('RuntimeException', $e = $this->fw->eForbidden());
         $this->assertEquals('http:403 Forbidden', $e->getMessage());
     }
+
+    public function testService()
+    {
+        $this->fw->set('foo', new \DateTime());
+
+        $this->assertInstanceOf('DateTime', $this->fw->service('foo', 'DateTime'));
+
+        $this->expectException('LogicException');
+        $this->expectExceptionMessage('Instance of DateTime expected, given NULL (key: bar).');
+
+        $this->fw->service('bar', 'DateTime');
+    }
 }

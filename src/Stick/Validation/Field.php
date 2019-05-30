@@ -400,28 +400,4 @@ final class Field
 
         return strlen(strval($this->value));
     }
-
-    /**
-     * Returns expected service.
-     *
-     * @param string $key
-     * @param string $expected
-     *
-     * @return mixed
-     */
-    public function getService(string $key, string $expected)
-    {
-        $service = $this->fw->get($key);
-
-        if (!$service instanceof $expected) {
-            throw new \LogicException(sprintf(
-                'Instance of %s expected, given %s (key: %s).',
-                $expected,
-                is_object($service) ? get_class($service) : gettype($service),
-                $key
-            ));
-        }
-
-        return $service;
-    }
 }

@@ -154,18 +154,6 @@ class FieldTest extends MyTestCase
         $this->assertEquals($expected, $this->field->getSize(...$arguments));
     }
 
-    public function testGetService()
-    {
-        $this->field->fw->set('foo', new \DateTime());
-
-        $this->assertInstanceOf('DateTime', $this->field->getService('foo', 'DateTime'));
-
-        $this->expectException('LogicException');
-        $this->expectExceptionMessage('Instance of DateTime expected, given NULL (key: bar).');
-
-        $this->field->getService('bar', 'DateTime');
-    }
-
     public function testMagicCall()
     {
         $this->assertTrue($this->field->isString());
