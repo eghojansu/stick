@@ -13,10 +13,11 @@ declare(strict_types=1);
 
 namespace Fal\Stick\Cli;
 
-use Fal\Stick\Fw;
-use Fal\Stick\Util\Option;
+use Fal\Stick\Cli\Commands\GenerateMapperCommand;
 use Fal\Stick\Cli\Commands\HelpCommand;
 use Fal\Stick\Cli\Commands\ListCommand;
+use Fal\Stick\Fw;
+use Fal\Stick\Util\Option;
 
 /**
  * Console helper.
@@ -145,26 +146,38 @@ class Console
         $arguments = $found['arguments'];
         $name = $found['command'];
         $command = $this->getCommand($name);
-        $input = (new Input())->resolve($command, $arguments, $options);
-
-        if ($input->hasOption('v', 'version')) {
-            $this->writeln(sprintf('<info>%s</> <comment>%s</>', $this->app->name, $this->app->version));
-
-            return 0;
-        }
-
-        if ('help' !== $name && $input->hasOption('h', 'help') && $this->hasCommand('help')) {
-            $command = $this->commands['help'];
-            $input->resolve($command, array($name), array());
-        }
 
         try {
+            $input = (new Input())->resolve($command, $arguments, $options);
+
+            if ($input->hasOption('v', 'version')) {
+                $this->writeln(sprintf(
+                    '<info>%s</> <comment>%s</>',
+                    $this->app->name,
+                    $this->app->version
+                ));
+
+                return 0;
+            }
+
+            if (
+                'help' !== $name &&
+                $input->hasOption('h', 'help') &&
+                $this->hasCommand('help')
+            ) {
+                $command = $this->commands['help'];
+                $input->resolve($command, array($name), array());
+            }
+
             return $command->run($this, $input);
         } catch (\Throwable $e) {
             $this->writeln('<error>An error occured</>');
             $this->writeln();
             $this->writeln(sprintf('  <comment>%s</>', get_class($e)));
-            $this->writeln(sprintf('  <info>%s</>', wordwrap($e->getMessage(), $this->getWidth() - 5)));
+            $this->writeln(sprintf('  <info>%s</>', wordwrap(
+                $e->getMessage(),
+                $this->getWidth() - 5
+            )));
 
             return 1;
         }
@@ -195,7 +208,7 @@ class Console
             $this->addCommands($this->getDefaultCommands());
         }
 
-        $path = $this->fw->get('PATH');
+        $path = urldecode($this->fw->get('PATH'));
 
         foreach ($this->routes as $pattern => $command) {
             if (null !== $arguments = $this->fw->routeMatch($path, $pattern)) {
@@ -265,7 +278,9 @@ class Console
     public function getCommand(string $name): Command
     {
         if ($this->hasCommand($name)) {
-            // options -h, --help, -v, --version is reserved
+            // reserved options:
+            //   -h, --help,
+            //   -v, --version
             return $this->commands[$name]
                 ->addOption('help', 'Display command help', 'h')
                 ->addOption('version', 'Display application version', 'v');
@@ -492,7 +507,11 @@ class Console
      */
     protected function getDefaultCommands(): array
     {
-        return array(new HelpCommand(), new ListCommand());
+        return array(
+            new HelpCommand(),
+            new ListCommand(),
+            new GenerateMapperCommand(),
+        );
     }
 
     /**

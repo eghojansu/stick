@@ -72,7 +72,13 @@ class Command
      */
     public function __construct(string $name = null)
     {
-        $this->setName($name ?? preg_replace('/_command$/', '', Fw::snakeCase(Fw::classname($this))));
+        $this->setName(
+            $this->name ?? $name ?? preg_replace(
+                '/_command$/',
+                '',
+                Fw::snakeCase(Fw::classname($this))
+            )
+        );
         $this->configure();
     }
 
