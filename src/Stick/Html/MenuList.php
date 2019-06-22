@@ -69,6 +69,9 @@ class MenuList
             'parent_attr' => null,
             'parent_item_attr' => null,
             'parent_wrapper_attr' => null,
+            'parent_wrapper_attr' => null,
+            'global_attr' => null,
+            'global_item_attr' => null,
             'active_class' => 'active',
         );
         $dItem = array(
@@ -80,15 +83,14 @@ class MenuList
             'items' => null,
             'roles' => null,
         );
-        $aClass = array(null, $config['active_class']);
         $lists = '';
 
         foreach ($items as $label => $item) {
             $child = '';
             $mItem = (is_array($item) ? $item : array('route' => $item)) + $dItem;
-            $aAttr = (array) $mItem['attr'];
-            $iAttr = (array) $mItem['item_attr'];
-            $active = (int) ($mItem['route'] && ($mItem['route'] === $activeRoute));
+            $aAttr = (array) $mItem['attr'] + (array) $config['global_attr'];
+            $iAttr = (array) $mItem['item_attr'] + (array) $config['global_item_attr'];
+            $active = $mItem['route'] && $mItem['route'] === $activeRoute;
 
             if ($mItem['roles'] && $this->auth && !$this->auth->isGranted($mItem['roles'])) {
                 continue;
@@ -102,14 +104,22 @@ class MenuList
                 $iAttr += (array) $config['parent_attr'];
 
                 $child = $this->build($mItem['items'], $activeRoute, $cAttr);
-                $active = (int) ($active || preg_match('/class="\\b'.preg_quote($aClass[1], '/').'\\b"/', $child));
+                $active = $active || preg_match(
+                    '/class="\\b'.preg_quote($config['active_class'], '/').'\\b"/',
+                    $child
+                );
             }
 
             if (empty($aAttr['href'])) {
                 $aAttr['href'] = $mItem['route'] ? $this->fw->path($mItem['route'], $mItem['args']) : '#';
             }
 
-            $iAttr['class'] = trim(($iAttr['class'] ?? null).' '.$aClass[$active]) ?: null;
+            if (
+                $active &&
+                $activeClass = trim(($iAttr['class'] ?? null).' '.$config['active_class'])
+            ) {
+                $iAttr['class'] = $activeClass;
+            }
 
             $content = Element::tag('a', $aAttr, true, $label);
             $lists .= Element::tag('li', $iAttr, true, $content.$child);
