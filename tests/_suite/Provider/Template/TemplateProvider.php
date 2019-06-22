@@ -60,6 +60,11 @@ class TemplateProvider
                     ),
                 ),
             ),
+            array(
+                MyTestCase::read('/template/include_sub.html'),
+                MyTestCase::fixture('/template/include_sub.php'),
+                'include_sub',
+            ),
         );
     }
 }

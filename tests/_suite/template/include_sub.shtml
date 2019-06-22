@@ -1,0 +1,4 @@
+Below is content of sub template, called with dot notation.
+<div>
+  <include href="sub.depth1" />
+</div>

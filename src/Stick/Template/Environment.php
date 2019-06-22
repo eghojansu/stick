@@ -24,6 +24,8 @@ use Fal\Stick\Fw;
  */
 class Environment
 {
+    const ATTRIB_REQUIRED = '***required***';
+
     /**
      * @var Fw
      */
@@ -535,11 +537,19 @@ class Environment
                     $node = &$tree[][$match[3]];
                     $node = array();
                     if ($match[4]) {
+                        if (isset($match[5]) && $match[5]) {
+                            $node['@attrib']['__leaf'] = true;
+                        }
+
                         // Process attributes
                         preg_match_all(
                             '/(?:(\{\{.+?\}\})|([^\s\/"\'=]+))'.
                             '\h*(?:=\h*(?:"(.*?)"|\'(.*?)\'))?/s',
-                            $match[4], $attr, PREG_SET_ORDER);
+                            $match[4],
+                            $attr,
+                            PREG_SET_ORDER
+                        );
+
                         foreach ($attr as $kv) {
                             if (!empty($kv[1]) && !isset($kv[3]) && !isset($kv[4])) {
                                 $node['@attrib'][] = $kv[1];
@@ -622,7 +632,7 @@ class Environment
         foreach ($required as $key => $value) {
             $attrib[$key] = $node['@attrib'][$key] ?? $value;
 
-            if ('***required***' === $attrib[$key]) {
+            if (self::ATTRIB_REQUIRED === $attrib[$key]) {
                 throw new \LogicException(sprintf('Missing property: %s.', $key));
             }
         }
@@ -689,7 +699,7 @@ class Environment
     public function _extends(array $node): string
     {
         extract($this->attrib($node, array(
-            'href' => '***required***',
+            'href' => self::ATTRIB_REQUIRED,
         )));
 
         return '<?php $this->extend('.$this->tokenize($href).') ?>';
@@ -706,7 +716,7 @@ class Environment
     {
         extract($this->attrib($node, array(
             'if' => '',
-            'href' => '***required***',
+            'href' => self::ATTRIB_REQUIRED,
             'with' => '',
         )));
 
@@ -728,7 +738,9 @@ class Environment
         $out = '';
 
         foreach ($node['@attrib'] as $key => $val) {
-            $out .= '$'.$key.'='.$this->tokenize($val).';';
+            if (is_string($val)) {
+                $out .= '$'.$key.'='.$this->tokenize($val).';';
+            }
         }
 
         return '<?php '.trim($out, ';').' ?>';
@@ -744,10 +756,12 @@ class Environment
     public function _block(array $node): string
     {
         extract($this->attrib($node, array(
-            'name' => '***required***',
+            'name' => self::ATTRIB_REQUIRED,
+            'yield' => false,
+            '__leaf' => false,
         )));
 
-        if (empty($node)) {
+        if ($__leaf || false !== $yield) {
             return '<?= $this->block('.$this->tokenize($name).') ?>';
         }
 
@@ -840,9 +854,9 @@ class Environment
     {
         extract($this->attrib($node, array(
             'counter' => '',
-            'group' => '***required***',
+            'group' => self::ATTRIB_REQUIRED,
             'key' => '',
-            'value' => '***required***',
+            'value' => self::ATTRIB_REQUIRED,
         )));
         $value = $this->token($value);
         $otherwise = $this->otherwise($node, '!isset('.$value.')');
@@ -865,7 +879,7 @@ class Environment
     public function _check(array $node): string
     {
         extract($this->attrib($node, array(
-            'if' => '***required***',
+            'if' => self::ATTRIB_REQUIRED,
         )));
         $ifTrue = null;
         $ifFalse = null;
@@ -950,7 +964,7 @@ class Environment
     public function _switch(array $node): string
     {
         extract($this->attrib($node, array(
-            'expr' => '***required***',
+            'expr' => self::ATTRIB_REQUIRED,
         )));
         $newNode = $this->clearEmptyNode($node);
 
@@ -970,7 +984,7 @@ class Environment
     public function _case(array $node): string
     {
         extract($this->attrib($node, array(
-            'value' => '***required***',
+            'value' => self::ATTRIB_REQUIRED,
             'break' => null,
         )));
 

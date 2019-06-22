@@ -75,13 +75,21 @@ class EnvironmentTest extends MyTestCase
         $this->assertFalse($this->environment->setAutoreload(false)->isAutoreload());
     }
 
-    public function testFindTemplate()
+    /**
+     * @dataProvider Fal\Stick\TestSuite\Provider\Template\EnvironmentProvider::findTemplate
+     */
+    public function testFindTemplate($expected, $template, $exception = null)
     {
-        $this->assertEquals($this->fixture('/template/partial.shtml'), $this->environment->findTemplate('partial.shtml'));
+        if ($exception) {
+            $this->expectException($exception);
+            $this->expectExceptionMessage($expected);
 
-        $this->expectException('LogicException');
-        $this->expectExceptionMessage('Template not found: unknown.html');
-        $this->environment->findTemplate('unknown.html');
+            $this->environment->findTemplate($template);
+
+            return;
+        }
+
+        $this->assertEquals($expected, $this->environment->findTemplate($template));
     }
 
     public function testLoadTemplate()
@@ -208,6 +216,7 @@ HTML;
                         'set' => array(
                             '@attrib' => array(
                                 'foo' => 'bar',
+                                '__leaf' => true,
                             ),
                         ),
                     ),
@@ -294,6 +303,7 @@ HTML;
         $node = array(
             '@attrib' => array(
                 'name' => 'foo',
+                '__leaf' => true,
             ),
         );
 

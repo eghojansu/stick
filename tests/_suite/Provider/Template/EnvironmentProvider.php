@@ -11,6 +11,8 @@
 
 namespace Fal\Stick\TestSuite\Provider\Template;
 
+use Fal\Stick\TestSuite\MyTestCase;
+
 class EnvironmentProvider
 {
     public function compile()
@@ -202,6 +204,37 @@ HTML
                     ),
                 ),
                 'true',
+            ),
+        );
+    }
+
+    public function findTemplate()
+    {
+        return array(
+            'found' => array(
+                MyTestCase::fixture('/template/partial.shtml'),
+                'partial.shtml',
+            ),
+            'no extension' => array(
+                MyTestCase::fixture('/template/partial.shtml'),
+                'partial',
+            ),
+            'sub dir' => array(
+                MyTestCase::fixture('/template/sub/depth1.shtml'),
+                'sub/depth1.shtml',
+            ),
+            'sub dir no extension' => array(
+                MyTestCase::fixture('/template/sub/depth1.shtml'),
+                'sub/depth1',
+            ),
+            'dot notation' => array(
+                MyTestCase::fixture('/template/sub/depth1.shtml'),
+                'sub.depth1',
+            ),
+            'not found' => array(
+                'Template not found: unknown.html',
+                'unknown.html',
+                'LogicException',
             ),
         );
     }
