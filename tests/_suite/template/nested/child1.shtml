@@ -1,0 +1,11 @@
+<extends href="nested.root" />
+
+<block name="content">
+  Child 1 content
+
+  <div class="subcontent">
+    <block name="subcontent">
+      Child 1 sub content
+    </block>
+  </div>
+</block>

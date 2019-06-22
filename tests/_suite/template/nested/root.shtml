@@ -1,0 +1,8 @@
+<div class="root">
+  I am root
+  <div class="content">
+    <block name="content">
+      Root content
+    </block>
+  </div>
+</div>

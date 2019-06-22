@@ -10,6 +10,6 @@ trim_trailing_whitespace = true
 [*.php]
 insert_final_newline = true
 
-[tests/_suite/{crud,template}/*]
+[tests/_suite/{crud,template}/**/*]
 insert_final_newline = false
 indent_size = 2

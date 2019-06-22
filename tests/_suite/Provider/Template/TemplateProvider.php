@@ -65,6 +65,11 @@ class TemplateProvider
                 MyTestCase::fixture('/template/include_sub.php'),
                 'include_sub',
             ),
+            array(
+                MyTestCase::read('/template/nested/child2.html'),
+                MyTestCase::fixture('/template/nested/child2.php'),
+                'nested.child2',
+            ),
         );
     }
 }

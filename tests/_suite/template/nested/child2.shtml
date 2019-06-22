@@ -1,0 +1,9 @@
+<extends href="nested.child1" />
+
+<block name="subcontent">
+  Child 2 sub content
+  With parent:
+  <div class="subcontent-parent">
+    <parent />
+  </div>
+</block>

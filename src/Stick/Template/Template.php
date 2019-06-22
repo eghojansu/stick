@@ -213,7 +213,7 @@ class Template
             $this->blocks[$block] = $this->child->applyParentBlock($block, $this->blocks[$block]);
         }
 
-        if (!$this->parent) {
+        if (!$this->parent || $this->child) {
             echo $this->blocks[$block];
         }
     }
