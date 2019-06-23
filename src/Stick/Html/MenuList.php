@@ -88,8 +88,8 @@ class MenuList
         foreach ($items as $label => $item) {
             $child = '';
             $mItem = (is_array($item) ? $item : array('route' => $item)) + $dItem;
-            $aAttr = (array) $mItem['attr'] + (array) $config['global_attr'];
-            $iAttr = (array) $mItem['item_attr'] + (array) $config['global_item_attr'];
+            $aAttr = Element::mergeAttr($config['global_attr'], $mItem['attr']);
+            $iAttr = Element::mergeAttr($config['global_item_attr'], $mItem['item_attr']);
             $active = $mItem['route'] && $mItem['route'] === $activeRoute;
 
             if ($mItem['roles'] && $this->auth && !$this->auth->isGranted($mItem['roles'])) {
@@ -98,10 +98,10 @@ class MenuList
 
             if ($mItem['items']) {
                 $cAttr = array('root_attr' => (array) $mItem['wrapper_attr']) + $config;
-
                 $cAttr['root_attr'] += (array) $config['parent_wrapper_attr'];
-                $aAttr += (array) $config['parent_item_attr'];
-                $iAttr += (array) $config['parent_attr'];
+
+                $aAttr = Element::mergeAttr($config['parent_item_attr'], $aAttr);
+                $iAttr = Element::mergeAttr($config['parent_attr'], $iAttr);
 
                 $child = $this->build($mItem['items'], $activeRoute, $cAttr);
                 $active = $active || preg_match(

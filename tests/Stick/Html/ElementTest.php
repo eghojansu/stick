@@ -33,4 +33,19 @@ class ElementTest extends MyTestCase
     {
         $this->assertEquals($expected, Element::tag($tag, $attr, $pair, $content));
     }
+
+    public function testMergeAttr()
+    {
+        $expected = array(
+            'class' => 'foo bar',
+        );
+        $source = array(
+            'class' => 'foo',
+        );
+        $replace = array(
+            'class' => 'bar',
+        );
+
+        $this->assertEquals($expected, Element::mergeAttr($source, $replace));
+    }
 }

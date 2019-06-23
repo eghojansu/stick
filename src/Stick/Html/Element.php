@@ -56,6 +56,32 @@ class Element
     }
 
     /**
+     * Merge attributes.
+     *
+     * @param array|null $source
+     * @param array|null $replace
+     * @param array|null $concats
+     *
+     * @return array
+     */
+    public static function mergeAttr(
+        array $source = null,
+        array $replace = null,
+        array $concats = null
+    ): array {
+        $updates = array();
+        $defaults = array('class');
+
+        foreach ($concats ?? $defaults as $key) {
+            if (isset($replace[$key])) {
+                $updates[$key] = (isset($source[$key]) ? $source[$key].' ' : null).$replace[$key];
+            }
+        }
+
+        return array_replace($source ?? array(), $replace ?? array(), $updates);
+    }
+
+    /**
      * Returns html tag.
      *
      * @param string      $tag
