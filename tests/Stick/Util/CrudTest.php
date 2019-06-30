@@ -320,6 +320,34 @@ class CrudTest extends MyTestCase
         $this->assertEquals($expected, $this->fw->get('OUTPUT') ?? $output);
     }
 
+    public function testRenderSimpleFieldLabel()
+    {
+        $this->fw->mset(array(
+            'ALIASES.foo' => '/bar/@segments*',
+            'ALIAS' => 'foo',
+            'PARAMS' => array('segments' => array('index')),
+            'GET' => array('keyword' => 'foo'),
+        ));
+
+        $output = $this->crud
+            ->views(array(
+                'listing' => 'listing.shtml',
+            ))
+            ->mapper($this->mapper())
+            ->form($this->form())
+            ->field('listing', array(
+                'id' => 'Id',
+                'username' => null,
+                'active' => null,
+            ))
+            ->searchable('username')
+            ->render()
+        ;
+        $expected = $this->read('/crud/listing.html');
+
+        $this->assertEquals($expected, $output);
+    }
+
     public function testRenderSegmentStart()
     {
         $this->fw->mset(array(

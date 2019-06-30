@@ -86,6 +86,17 @@ class MenuList
         $lists = '';
 
         foreach ($items as $label => $item) {
+            if (isset($item['content'])) {
+                $lists .= Element::tag(
+                    'li',
+                    $mItem['item_attr'] ?? null,
+                    true,
+                    $item['content']
+                );
+
+                continue;
+            }
+
             $child = '';
             $mItem = (is_array($item) ? $item : array('route' => $item)) + $dItem;
             $aAttr = Element::mergeAttr($config['global_attr'], $mItem['attr']);

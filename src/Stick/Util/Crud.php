@@ -542,6 +542,10 @@ class Crud
         foreach ($keys as $key) {
             $field = $fields[$key] ?? null;
 
+            if (is_string($field)) {
+                $field = array('label' => $field);
+            }
+
             if (!isset($field['name'])) {
                 $field['name'] = $key;
             }
@@ -626,7 +630,7 @@ class Crud
                 parse_str($query, $query);
             }
 
-            $parameters += $query;
+            $parameters = array_merge($parameters, $query);
         }
 
         $parameters += $this->options['append_query'] ? ($this->fw->get('GET') ?? array()) : array();

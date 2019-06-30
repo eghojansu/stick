@@ -48,4 +48,25 @@ class PaginationListTest extends MyTestCase
 
         $this->assertEquals($content, $this->list->build($page, $max));
     }
+
+    public function testBuildUseItemAttributes()
+    {
+        $this->fw->set('ALIAS', 'foo');
+        $this->fw->set('ALIASES.foo', '/');
+
+        $config = array(
+            'parent' => array('class' => 'parent'),
+            'item_attr' => array('class' => 'item'),
+            'link_attr' => array('class' => 'link'),
+        );
+        $expected = '<nav aria-label="Page navigation">'.
+            '<ul class="parent">'.
+                '<li class="active item">'.
+                    '<a href="/?page=1" class="link">1</a>'.
+                '</li>'.
+            '</ul>'.
+        '</nav>';
+
+        $this->assertEquals($expected, $this->list->build(1, 1, $config));
+    }
 }

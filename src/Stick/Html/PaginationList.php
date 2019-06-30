@@ -68,16 +68,32 @@ class PaginationList
             'prev_label' => 'Prev',
             'next_label' => 'Next',
             'active_class' => 'active',
+            'link_attr' => null,
+            'item_attr' => null,
         );
         $urlPage = function ($page) use ($config) {
             $query = array($config['page_query'] => $page) + $config['route_query'];
 
             return $this->fw->path($config['route'], $config['route_data'] + $query);
         };
-        $child = function ($label, array $attr = null, array $wrapperAttr = null, $tag = 'a') {
+        $child = function (
+            $label,
+            array $attr = null,
+            array $wrapperAttr = null,
+            $tag = 'a'
+        ) use ($config) {
+            if ('a' === $tag) {
+                $attr = Element::mergeAttr($attr, $config['link_attr']);
+            }
+
             $content = Element::tag($tag, $attr, true, (string) $label);
 
-            return Element::tag('li', $wrapperAttr, true, $content);
+            return Element::tag(
+                'li',
+                Element::mergeAttr($wrapperAttr, $config['item_attr']),
+                true,
+                $content
+            );
         };
         $adjacent = $config['adjacent'];
         $rangeStart = $page <= $adjacent ? 1 : $page - $adjacent;

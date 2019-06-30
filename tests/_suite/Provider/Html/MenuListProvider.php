@@ -148,6 +148,16 @@ class MenuListProvider
                     ),
                 ),
             ),
+            'custom content' => array(
+                '<ul>'.
+                '<li>Custom</li>'.
+                '</ul>',
+                array(
+                    'Foo' => array(
+                        'content' => 'Custom',
+                    ),
+                ),
+            ),
         );
     }
 }
