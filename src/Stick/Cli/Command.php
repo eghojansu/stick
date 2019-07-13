@@ -57,11 +57,15 @@ class Command
      *
      * @param string   $name
      * @param callable $name
+     * @param string   $description
      *
      * @return Command
      */
-    public static function create(string $name, callable $code): Command
-    {
+    public static function create(
+        string $name,
+        callable $code,
+        string $description = null
+    ): Command {
         return (new static($name))->setCode($code);
     }
 
@@ -69,8 +73,9 @@ class Command
      * Class constructor.
      *
      * @param string $name
+     * @param string $description
      */
-    public function __construct(string $name = null)
+    public function __construct(string $name = null, string $description = null)
     {
         $this->setName(
             $this->name ?? $name ?? preg_replace(
@@ -79,6 +84,7 @@ class Command
                 Fw::snakeCase(Fw::classname($this))
             )
         );
+        $this->setDescription($description ?? '');
         $this->configure();
     }
 
