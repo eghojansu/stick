@@ -471,13 +471,11 @@ class FwTest extends MyTestCase
             return $std;
         });
         $this->fw->set('SERVICES.s4', 'Fal\\Stick\\TestSuite\\Provider\\FwProvider->createStd');
-        $this->fw->set('SERVICES.s5', 'Fal\\Stick\\TestSuite\\Classes\\MyStdCreator');
 
         $this->assertInstanceOf('stdClass', $this->fw->get('s1'));
         $this->assertInstanceOf('stdClass', $this->fw->get('s2'));
         $this->assertInstanceOf('stdClass', $s3 = $this->fw->get('s3'));
         $this->assertInstanceOf('stdClass', $this->fw->get('s4'));
-        $this->assertInstanceOf('stdClass', $this->fw->get('s5'));
         $this->assertSame($s3, $this->fw->get('s3'));
         $this->assertInstanceOf('stdClass', $this->fw->get('stdClass'));
         $this->assertSame($this->fw, $this->fw->get('FW'));

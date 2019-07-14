@@ -1374,10 +1374,6 @@ final class Fw implements \ArrayAccess
                 if (is_string($obj)) {
                     if ($obj === $call = $this->grab($obj)) {
                         $var = new $obj($this);
-
-                        if (is_callable($var)) {
-                            $var = $var($this);
-                        }
                     } else {
                         $var = $call($this);
                     }
