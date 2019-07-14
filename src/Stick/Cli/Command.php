@@ -66,7 +66,7 @@ class Command
         callable $code,
         string $description = null
     ): Command {
-        return (new static($name))->setCode($code);
+        return (new static($name, $description))->setCode($code);
     }
 
     /**
