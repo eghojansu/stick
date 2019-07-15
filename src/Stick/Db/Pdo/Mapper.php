@@ -791,6 +791,28 @@ class Mapper implements \ArrayAccess, \Iterator, \Countable, \JsonSerializable
     }
 
     /**
+     * Find matching records and returns rows.
+     *
+     * @param string|array|null $filter
+     * @param array|null        $options
+     * @param int               $ttl
+     *
+     * @return array
+     */
+    public function select($filter = null, array $options = null, int $ttl = 0): array
+    {
+        list($sql, $arguments) = $this->db->driver->sqlSelect(
+            $this->concatFields().$this->concatAdhoc(),
+            $this->table,
+            $this->alias,
+            $filter,
+            $options
+        );
+
+        return $this->db->exec($sql, $arguments, $ttl);
+    }
+
+    /**
      * Find matching records.
      *
      * @param string|array|null $filter
@@ -801,15 +823,7 @@ class Mapper implements \ArrayAccess, \Iterator, \Countable, \JsonSerializable
      */
     public function findAll($filter = null, array $options = null, int $ttl = 0): Mapper
     {
-        $cmd = $this->db->driver->sqlSelect(
-            $this->concatFields().$this->concatAdhoc(),
-            $this->table,
-            $this->alias,
-            $filter,
-            $options
-        );
-
-        if ($rows = $this->reset()->db->exec($cmd[0], $cmd[1], $ttl)) {
+        if ($rows = $this->reset()->select($filter, $options, $ttl)) {
             $this->rows = array_map(array($this, 'factory'), $rows);
             $this->current();
         }

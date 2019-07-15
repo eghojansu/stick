@@ -439,6 +439,11 @@ class MapperTest extends MyTestCase
         ), $this->mapper->rules('group2'));
     }
 
+    public function testSelect()
+    {
+        $this->assertCount(3, $this->mapper->select());
+    }
+
     public function testFindAll()
     {
         // set adhoc
