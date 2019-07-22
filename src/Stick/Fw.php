@@ -3347,10 +3347,7 @@ HTML;
 
         if ($handleCors) {
             $this->hset('Access-Control-Allow-Origin', $cors['origin']);
-
-            if ($cors['credentials']) {
-                $this->hset('Access-Control-Allow-Credentials', 'true');
-            }
+            $this->hset('Access-Control-Allow-Credentials', var_export($cors['credentials'], true));
         }
 
         foreach ($this->hive['ROUTES'] as $pattern => $routes) {
