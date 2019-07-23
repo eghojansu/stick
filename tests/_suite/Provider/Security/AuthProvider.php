@@ -134,6 +134,14 @@ class AuthProvider
                 null,
                 'LogicException',
             ),
+            'not guard options request' => array(
+                false,
+                null,
+                null,
+                array(
+                    'VERB' => 'OPTIONS',
+                ),
+            ),
         );
     }
 

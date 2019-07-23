@@ -160,6 +160,10 @@ class Auth
      */
     public function guard(): bool
     {
+        if ($this->fw->isVerb('options')) {
+            return false;
+        }
+
         $path = $this->fw->get('PATH');
 
         if ($this->options['excludes'] && in_array($path, $this->fw->split($this->options['excludes']))) {
