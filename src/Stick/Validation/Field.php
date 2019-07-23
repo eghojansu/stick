@@ -159,26 +159,6 @@ final class Field
     }
 
     /**
-     * Proxy to native method.
-     *
-     * @param string $method
-     * @param array  $arguments
-     *
-     * @return mixed
-     */
-    public function __call($method, $arguments)
-    {
-        if (0 === strncasecmp($method, 'is', 2)) {
-            return ('is_'.substr($method, 2))($this->value);
-        }
-
-        throw new \BadMethodCallException(sprintf(
-            'Call to undefined method Fal\\Stick\\Validation\\Field::%s.',
-            $method
-        ));
-    }
-
-    /**
      * Returns true if rule exists.
      *
      * @param string $rule
@@ -337,18 +317,6 @@ final class Field
     }
 
     /**
-     * Returns true if value match pattern.
-     *
-     * @param string $pattern
-     *
-     * @return bool
-     */
-    public function match(string $pattern): bool
-    {
-        return is_string($this->value) && preg_match($pattern, $this->value);
-    }
-
-    /**
      * Proxy to filter_var.
      *
      * @param mixed $filters
@@ -398,6 +366,6 @@ final class Field
             return $size['size'] / 1024;
         }
 
-        return strlen(strval($this->value));
+        return strlen((string) $this->value);
     }
 }

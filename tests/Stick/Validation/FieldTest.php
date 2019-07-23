@@ -107,11 +107,6 @@ class FieldTest extends MyTestCase
         $this->assertEquals(strtotime('Oct 20, 1991'), $this->field->time('date'));
     }
 
-    public function testMatch()
-    {
-        $this->assertTrue($this->field->match('/^true$/'));
-    }
-
     public function testFilter()
     {
         $this->assertTrue($this->field->filter(FILTER_VALIDATE_BOOLEAN));
@@ -152,17 +147,6 @@ class FieldTest extends MyTestCase
         }
 
         $this->assertEquals($expected, $this->field->getSize(...$arguments));
-    }
-
-    public function testMagicCall()
-    {
-        $this->assertTrue($this->field->isString());
-        $this->assertFalse($this->field->isInteger());
-
-        $this->expectException('BadMethodCallException');
-        $this->expectExceptionMessage('Call to undefined method Fal\\Stick\\Validation\\Field::foo');
-
-        $this->field->foo();
     }
 
     public function testIsEmpty()

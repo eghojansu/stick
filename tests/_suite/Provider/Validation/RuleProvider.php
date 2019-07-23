@@ -726,6 +726,46 @@ class RuleProvider
                 'url',
                 'example',
             ),
+            'convert to string' => array(
+                '11',
+                'asstring',
+                11,
+            ),
+            'convert to number' => array(
+                11,
+                'asnumber',
+                '11',
+            ),
+            'convert to array' => array(
+                array('foo'),
+                'asarray',
+            ),
+            'convert to json' => array(
+                '["foo"]',
+                'tojson',
+                array('foo'),
+            ),
+            'convert from json' => array(
+                array('foo'),
+                'fromjson',
+                '["foo"]',
+            ),
+            'split into array' => array(
+                array('foo', 'bar', 'baz', 'qux'),
+                'split',
+                'foo,bar|baz;qux',
+            ),
+            'split into array with regexp' => array(
+                array('foo,bar|baz', 'qux'),
+                'split',
+                'foo,bar|baz;qux',
+                array('"/;/"', true),
+            ),
+            'join into string' => array(
+                'foo,bar',
+                'join',
+                array('foo', 'bar'),
+            ),
         );
     }
 

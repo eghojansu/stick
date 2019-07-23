@@ -93,7 +93,7 @@ class LaravelRule implements RuleInterface
      */
     protected function _alpha(Field $field): bool
     {
-        return $field->match('/^[[:alpha:]_]+$/');
+        return (bool) preg_match('/^[[:alpha:]_]+$/', $field->value());
     }
 
     /**
@@ -105,7 +105,7 @@ class LaravelRule implements RuleInterface
      */
     protected function _aldash(Field $field): bool
     {
-        return $field->match('/^[[:alpha:]_-]+$/');
+        return (bool) preg_match('/^[[:alpha:]_-]+$/', $field->value());
     }
 
     /**
@@ -117,7 +117,7 @@ class LaravelRule implements RuleInterface
      */
     protected function _alnum(Field $field): bool
     {
-        return $field->match('/^[[:alnum:]]+$/');
+        return (bool) preg_match('/^[[:alnum:]]+$/', $field->value());
     }
 
     /**
@@ -302,7 +302,7 @@ class LaravelRule implements RuleInterface
      */
     protected function _digits(Field $field, int $length): bool
     {
-        return $field->isNumeric() && $field->getSize(false) === $length;
+        return is_numeric($field->value()) && $field->getSize(false) === $length;
     }
 
     /**
@@ -316,7 +316,7 @@ class LaravelRule implements RuleInterface
      */
     protected function _digitsBetween(Field $field, int $min, int $max): bool
     {
-        if ($field->isNumeric()) {
+        if (is_numeric($field->value())) {
             $check = $field->getSize(false);
 
             return $check >= $min && $check <= $max;
@@ -363,11 +363,11 @@ class LaravelRule implements RuleInterface
      */
     protected function _endsWith(Field $field, string ...$suffixes): bool
     {
-        if ($field->isString()) {
-            foreach ($suffixes as $suffix) {
-                if ($field->match('/'.preg_quote($suffix, '/').'$/i')) {
-                    return true;
-                }
+        $value = $field->value();
+
+        foreach ($suffixes as $suffix) {
+            if (preg_match('/'.preg_quote($suffix, '/').'$/i', $value)) {
+                return true;
             }
         }
 
@@ -506,7 +506,9 @@ class LaravelRule implements RuleInterface
      */
     protected function _integer(Field $field): bool
     {
-        return $field->isNumeric() && is_int($field->value() + 0);
+        $value = $field->value();
+
+        return is_numeric($value) && is_int($value + 0);
     }
 
     /**
@@ -751,7 +753,7 @@ class LaravelRule implements RuleInterface
             $pattern = substr($pattern, 1, -1);
         }
 
-        return $field->match($pattern);
+        return (bool) preg_match($pattern, $field->value());
     }
 
     /**
@@ -827,11 +829,11 @@ class LaravelRule implements RuleInterface
      */
     protected function _startsWith(Field $field, string ...$prefixes): bool
     {
-        if ($field->isString()) {
-            foreach ($prefixes as $prefix) {
-                if ($field->match('/^'.preg_quote($prefix, '/').'/i')) {
-                    return true;
-                }
+        $value = $field->value();
+
+        foreach ($prefixes as $prefix) {
+            if (preg_match('/^'.preg_quote($prefix, '/').'/i', $value)) {
+                return true;
             }
         }
 
@@ -847,7 +849,9 @@ class LaravelRule implements RuleInterface
      */
     protected function _string(Field $field): bool
     {
-        return is_string($field->value());
+        $value = $field->value();
+
+        return is_string($value) && !is_numeric($value);
     }
 
     /**
@@ -928,5 +932,107 @@ class LaravelRule implements RuleInterface
     protected function _url(Field $field): bool
     {
         return $field->filter(FILTER_VALIDATE_URL);
+    }
+
+    /**
+     * Convert field value to string.
+     *
+     * @param Field $field
+     *
+     * @return string
+     */
+    protected function _asString(Field $field): string
+    {
+        $value = $field->value();
+
+        return (string) $value;
+    }
+
+    /**
+     * Convert field value to number.
+     *
+     * @param Field $field
+     *
+     * @return mixed
+     */
+    protected function _asNumber(Field $field)
+    {
+        return 1 * $field->value();
+    }
+
+    /**
+     * Convert field value to array.
+     *
+     * @param Field $field
+     *
+     * @return array
+     */
+    protected function _asArray(Field $field): array
+    {
+        $value = $field->value();
+
+        return (array) $value;
+    }
+
+    /**
+     * Convert field value using json_encode.
+     *
+     * @param Field $field
+     *
+     * @return string
+     */
+    protected function _toJson(Field $field): string
+    {
+        return json_encode($field->value());
+    }
+
+    /**
+     * Convert field value using json_decode.
+     *
+     * @param Field $field
+     * @param bool  $assoc
+     *
+     * @return mixed
+     */
+    protected function _fromJson(Field $field, bool $assoc = true)
+    {
+        return json_decode($field->value(), $assoc);
+    }
+
+    /**
+     * Split into array.
+     *
+     * @param Field  $field
+     * @param string $rule
+     * @param bool   $regexp
+     *
+     * @return array
+     */
+    protected function _split(Field $field, string $rule = null, bool $regexp = false): array
+    {
+        if ($regexp && $rule) {
+            $q = $rule[0];
+
+            if (('"' === $q || "'" === $q) && substr($rule, -1) === $q) {
+                $rule = substr($rule, 1, -1);
+            }
+
+            return preg_split($rule, $field->value(), 0, PREG_SPLIT_NO_EMPTY);
+        }
+
+        return $field->fw->split($field->value(), $rule);
+    }
+
+    /**
+     * Join into string.
+     *
+     * @param Field  $field
+     * @param string $glue
+     *
+     * @return string
+     */
+    protected function _join(Field $field, string $glue = ','): string
+    {
+        return implode($glue, $field->value());
     }
 }

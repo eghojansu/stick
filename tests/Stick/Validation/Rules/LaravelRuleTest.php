@@ -58,7 +58,7 @@ class LaravelRuleTest extends MyTestCase
 
         $actual = $this->laravelRule->validate($rule, $arguments, $fieldValue);
 
-        $this->assertEquals($expected, $actual);
+        $this->assertSame($expected, $actual);
     }
 
     /**
