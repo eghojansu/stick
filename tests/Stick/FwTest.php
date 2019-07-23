@@ -658,27 +658,26 @@ class FwTest extends MyTestCase
             ),
             '/rest' => array(
                 'all' => array(
-                    'GET' => array('Rest->all', 'rest', 0),
+                    'GET' => array('Rest->index', 'rest', 0),
                     'POST' => array('Rest->create', 'rest', 0),
                 ),
             ),
             '/rest/@item' => array(
                 'all' => array(
-                    'GET' => array('Rest->one', 'rest_item', 0),
+                    'GET' => array('Rest->view', 'rest_item', 0),
                     'PUT' => array('Rest->update', 'rest_item', 0),
-                    'PATCH' => array('Rest->update', 'rest_item', 0),
                     'DELETE' => array('Rest->delete', 'rest_item', 0),
                 ),
             ),
             '/rest2' => array(
                 'all' => array(
-                    'GET' => array('Rest2->all', 'rest2', 0),
+                    'GET' => array('Rest2->index', 'rest2', 0),
                     'POST' => array('Rest2->create', 'rest2', 0),
                 ),
             ),
             '/rest2/@item' => array(
                 'all' => array(
-                    'GET' => array('Rest2->one', 'rest2_item', 0),
+                    'GET' => array('Rest2->view', 'rest2_item', 0),
                     'PUT' => array('Rest2->update', 'rest2_item', 0),
                     'PATCH' => array('Rest2->update', 'rest2_item', 0),
                     'DELETE' => array('Rest2->delete', 'rest2_item', 0),
@@ -770,7 +769,7 @@ class FwTest extends MyTestCase
     {
         $this->fw->rest('foo / 11', 'Foo');
         $this->fw->rest('bar /bar', 'Bar');
-        $this->fw->rest('/baz', 'Baz');
+        $this->fw->rest('/baz', 'Baz', true);
 
         $aliases = array(
             'foo' => '/',
@@ -781,41 +780,39 @@ class FwTest extends MyTestCase
         $expected = array(
             '/' => array(
                 'all' => array(
-                    'GET' => array('Foo->all', 'foo', 11),
+                    'GET' => array('Foo->index', 'foo', 11),
                     'POST' => array('Foo->create', 'foo', 11),
                 ),
             ),
             '/@item' => array(
                 'all' => array(
-                    'GET' => array('Foo->one', 'foo_item', 11),
+                    'GET' => array('Foo->view', 'foo_item', 11),
                     'PUT' => array('Foo->update', 'foo_item', 11),
-                    'PATCH' => array('Foo->update', 'foo_item', 11),
                     'DELETE' => array('Foo->delete', 'foo_item', 11),
                 ),
             ),
             '/bar' => array(
                 'all' => array(
-                    'GET' => array('Bar->all', 'bar', 0),
+                    'GET' => array('Bar->index', 'bar', 0),
                     'POST' => array('Bar->create', 'bar', 0),
                 ),
             ),
             '/bar/@item' => array(
                 'all' => array(
-                    'GET' => array('Bar->one', 'bar_item', 0),
+                    'GET' => array('Bar->view', 'bar_item', 0),
                     'PUT' => array('Bar->update', 'bar_item', 0),
-                    'PATCH' => array('Bar->update', 'bar_item', 0),
                     'DELETE' => array('Bar->delete', 'bar_item', 0),
                 ),
             ),
             '/baz' => array(
                 'all' => array(
-                    'GET' => array('Baz->all', null, 0),
+                    'GET' => array('Baz->index', null, 0),
                     'POST' => array('Baz->create', null, 0),
                 ),
             ),
             '/baz/@item' => array(
                 'all' => array(
-                    'GET' => array('Baz->one', null, 0),
+                    'GET' => array('Baz->view', null, 0),
                     'PUT' => array('Baz->update', null, 0),
                     'PATCH' => array('Baz->update', null, 0),
                     'DELETE' => array('Baz->delete', null, 0),

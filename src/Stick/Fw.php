@@ -1931,10 +1931,11 @@ final class Fw implements \ArrayAccess
      *
      * @param string $route
      * @param string $class
+     * @param bool   $allowPatch
      *
      * @return Fw
      */
-    public function rest(string $route, string $class): Fw
+    public function rest(string $route, string $class, bool $allowPatch = false): Fw
     {
         $itemRoute = preg_replace_callback(
             '~^(?:(\w+)\h+)?(/[^\h]*)~', function ($match) {
@@ -1945,10 +1946,10 @@ final class Fw implements \ArrayAccess
         );
 
         return $this
-            ->route('GET '.$route, $class.'->all')
+            ->route('GET '.$route, $class.'->index')
             ->route('POST '.$route, $class.'->create')
-            ->route('GET '.$itemRoute, $class.'->one')
-            ->route('PUT|PATCH '.$itemRoute, $class.'->update')
+            ->route('GET '.$itemRoute, $class.'->view')
+            ->route('PUT'.($allowPatch ? '|PATCH' : '').' '.$itemRoute, $class.'->update')
             ->route('DELETE '.$itemRoute, $class.'->delete')
         ;
     }
