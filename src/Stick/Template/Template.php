@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace Fal\Stick\Template;
 
+use Fal\Stick\Util\Common;
+
 /**
  * Template file.
  *
@@ -119,7 +121,7 @@ class Template
     {
         $content = $this->sandbox($context ?? array());
 
-        return $this->parent ? $this->parent->render($context) : $this->env->fw->trimTrailingSpace(rtrim($content));
+        return $this->parent ? $this->parent->render($context) : Common::trimTrailingSpace(rtrim($content));
     }
 
     /**

@@ -13,8 +13,8 @@ declare(strict_types=1);
 
 namespace Fal\Stick\Db\Pdo;
 
-use Fal\Stick\Fw;
 use Fal\Stick\Magic;
+use Fal\Stick\Util\Common;
 
 /**
  * Table schema.
@@ -120,6 +120,6 @@ class Schema extends Magic implements \Countable, \IteratorAggregate
      */
     public function getKeys(): array
     {
-        return array_keys(Fw::arrColumn($this->fields, 'pkey', false));
+        return array_keys(Common::arrColumn($this->fields, 'pkey', false));
     }
 }

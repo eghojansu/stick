@@ -137,81 +137,6 @@ final class Fw implements \ArrayAccess
     }
 
     /**
-     * Returns CamelCase to snake_case.
-     *
-     * @param string $text
-     *
-     * @return string
-     */
-    public static function snakeCase(string $text): string
-    {
-        return strtolower(preg_replace('/(?!^)\p{Lu}/u', '_\0', $text));
-    }
-
-    /**
-     * Returns snake_case to camelCase.
-     *
-     * @param string $text
-     *
-     * @return string
-     */
-    public static function camelCase(string $text): string
-    {
-        return lcfirst(self::pascalCase($text));
-    }
-
-    /**
-     * Returns snake_case to PascalCase.
-     *
-     * @param string $text
-     *
-     * @return string
-     */
-    public static function pascalCase(string $text): string
-    {
-        return str_replace('_', '', ucwords(str_replace('-', '_', $text), '_'));
-    }
-
-    /**
-     * Returns camelCase to "Title Case".
-     *
-     * @param string $text
-     *
-     * @return string
-     */
-    public static function titleCase(string $text): string
-    {
-        return ucwords(str_replace('_', ' ', self::snakeCase($text)));
-    }
-
-    /**
-     * Returns UPPER_SNAKE_CASE to Dash-Case.
-     *
-     * @param string $text
-     *
-     * @return string
-     */
-    public static function dashCase(string $text): string
-    {
-        return ucwords(str_replace('_', '-', strtolower($text)), '-');
-    }
-
-    /**
-     * Returns class name from full namespace or instance of class.
-     *
-     * @param string|object $class
-     *
-     * @return string
-     */
-    public static function classname($class): string
-    {
-        return ltrim(
-            strrchr('\\'.(is_object($class) ? get_class($class) : $class), '\\'),
-            '\\'
-        );
-    }
-
-    /**
      * Ensure variable is an array.
      *
      * @param string|array|null $var
@@ -263,111 +188,6 @@ final class Fw implements \ArrayAccess
     }
 
     /**
-     * Extending array_column functionality, using self index for every row.
-     *
-     * @param array $input
-     * @param mixed $key
-     * @param bool  $raw   No filter
-     *
-     * @return array
-     */
-    public static function arrColumn(array $input, $key, bool $raw = true): array
-    {
-        $result = array();
-
-        foreach ($input as $id => $value) {
-            if ($raw || $value[$key]) {
-                $result[$id] = $value[$key];
-            }
-        }
-
-        return $result;
-    }
-
-    /**
-     * Normalize line feed with new line.
-     *
-     * @param string $text
-     *
-     * @return string
-     */
-    public static function fixLinefeed(string $text): string
-    {
-        return preg_replace('/\r\n|\r/', "\n", $text);
-    }
-
-    /**
-     * Remove trailing space.
-     *
-     * @param string $text
-     *
-     * @return string
-     */
-    public static function trimTrailingSpace(string $text): string
-    {
-        return preg_replace('/^\h+$/m', '', $text);
-    }
-
-    /**
-     * Native require file wrapper.
-     *
-     * @param string $file
-     *
-     * @return mixed
-     */
-    public static function requireFile(string $file)
-    {
-        return require $file;
-    }
-
-    /**
-     * Returns file content with normalized line feed if needed.
-     *
-     * @param string $file
-     * @param bool   $lf   Normalize linefeed
-     *
-     * @return string
-     */
-    public static function read(string $file, bool $lf = false): string
-    {
-        $content = is_file($file) ? file_get_contents($file) : '';
-
-        return $lf && $content ? self::fixLinefeed($content) : $content;
-    }
-
-    /**
-     * Write content to specified file.
-     *
-     * @param string $file
-     * @param string $content
-     * @param int    $append
-     *
-     * @return int Returns -1 if failed
-     */
-    public static function write(string $file, string $content, bool $append = false): int
-    {
-        $result = file_put_contents(
-            $file,
-            $content,
-            LOCK_EX | ((int) $append * FILE_APPEND)
-        );
-
-        return false === $result ? -1 : $result;
-    }
-
-    /**
-     * Returns true if file deleted successfully.
-     *
-     * @param string $file
-     *
-     * @return bool
-     */
-    public static function delete(string $file): bool
-    {
-        return is_file($file) ? unlink($file) : false;
-    }
-
-    /**
      * Returns true if directory exists or created successfully.
      *
      * @param string $path
@@ -378,28 +198,6 @@ final class Fw implements \ArrayAccess
     public static function mkdir(string $path, int $mode = 0755): bool
     {
         return file_exists($path) ? true : mkdir($path, $mode, true);
-    }
-
-    /**
-     * Returns directory content recursively.
-     *
-     * @param string $dir
-     *
-     * @return RecursiveIteratorIterator
-     */
-    public static function files(string $dir): \RecursiveIteratorIterator
-    {
-        if (!is_dir($dir)) {
-            throw new \LogicException(sprintf('Directory not exists: %s.', $dir));
-        }
-
-        return new \RecursiveIteratorIterator(
-            new \RecursiveDirectoryIterator(
-                $dir,
-                \FilesystemIterator::CURRENT_AS_FILEINFO | \FilesystemIterator::SKIP_DOTS
-            ),
-            \RecursiveIteratorIterator::CHILD_FIRST
-        );
     }
 
     /**
@@ -568,13 +366,15 @@ final class Fw implements \ArrayAccess
             return array();
         }
 
-        $headers = array();
+        $headers = array_filter(array(
+            'Content-Type' => $server['CONTENT_TYPE'] ?? null,
+            'Content-Length' => $server['CONTENT_LENGTH'] ?? null,
+        ), 'is_scalar');
 
         foreach ($server as $key => $value) {
-            if ('CONTENT_TYPE' === $key || 'CONTENT_LENGTH' === $key) {
-                $headers[self::dashCase($key)] = $value;
-            } elseif (0 === strpos($key, 'HTTP_') && $key = substr($key, 5)) {
-                $headers[self::dashCase($key)] = $value;
+            if (0 === strpos($key, 'HTTP_') && $use = substr($key, 5)) {
+                $fix = ucwords(str_replace('_', '-', strtolower($use)), '-');
+                $headers[$fix] = $value;
             }
         }
 
@@ -1160,7 +960,7 @@ final class Fw implements \ArrayAccess
     public function loadClass(string $class)
     {
         if ($file = $this->findClass($class)) {
-            self::requireFile($file);
+            require $file;
 
             return true;
         }
@@ -1761,13 +1561,20 @@ final class Fw implements \ArrayAccess
      */
     public function config(string $file, bool $parse = false): Fw
     {
-        $pattern = '/(?<=^|\n)(?:'.
-            '\[(?<section>.+?)\]|'.
-            '(?<lval>[^\h\r\n;].*?)\h*=\h*'.
-            '(?<rval>(?:\\\\\h*\r?\n|.+?)*)'.
-        ')(?=\r?\n|$)/';
+        $skipAja = !is_file($file) || !($content = file_get_contents($file)) ||
+            !preg_match_all(
+                '/(?<=^|\n)(?:'.
+                    '\[(?<section>.+?)\]|'.
+                    '(?<lval>[^\h\r\n;].*?)\h*=\h*'.
+                    '(?<rval>(?:\\\\\h*\r?\n|.+?)*)'.
+                ')(?=\r?\n|$)/',
+                $content,
+                $matches,
+                PREG_SET_ORDER
+            )
+        ;
 
-        if (!preg_match_all($pattern, self::read($file), $matches, PREG_SET_ORDER)) {
+        if ($skipAja) {
             return $this;
         }
 
@@ -2589,7 +2396,7 @@ final class Fw implements \ArrayAccess
             $content = date('r').' ['.$this->hive['IP'].'] '.$level.' '.$message.PHP_EOL;
 
             self::mkdir($this->hive['LOG']);
-            self::write($file, $content, true);
+            file_put_contents($file, $content, LOCK_EX | FILE_APPEND);
         }
 
         return $this;
@@ -2655,20 +2462,18 @@ final class Fw implements \ArrayAccess
      *
      * @param string     $message
      * @param array|null $parameters
-     * @param bool       $titleize
+     * @param bool       $nonSelf
      *
-     * @return string
+     * @return string|null
      */
     public function trans(
         string $message,
         array $parameters = null,
-        bool $titleize = false
-    ): string {
-        if (null === $ref = $this->langRef($message)) {
-            return $titleize ? self::titleCase($message) : $message;
-        }
+        bool $nonSelf = false
+    ): ?string {
+        $ref = $this->langRef($message);
 
-        return $parameters ? strtr($ref, $parameters) : $ref;
+        return $nonSelf && null === $ref ? null : strtr($ref ?? $message, $parameters ?? array());
     }
 
     /**
@@ -3133,7 +2938,8 @@ HTML;
                 break;
             case 'fallback':
             case 'filesystem':
-                $raw = self::read($this->cacheFile($ckey));
+                $raw = is_file($file = $this->cacheFile($ckey)) ?
+                    file_get_contents($file) : null;
                 break;
             case 'memcache':
             case 'memcached':
@@ -3181,7 +2987,7 @@ HTML;
             case 'filesystem':
                 self::mkdir($this->hive['CACHE_REF']);
 
-                return false !== self::write($this->cacheFile($ckey), $cache);
+                return false !== file_put_contents($this->cacheFile($ckey), $cache);
             case 'memcache':
                 return $this->hive['CACHE_REF']->set(
                     $ckey,
@@ -3220,7 +3026,7 @@ HTML;
                 return apcu_delete($ckey);
             case 'fallback':
             case 'filesystem':
-                return self::delete($this->cacheFile($ckey));
+                return is_file($file = $this->cacheFile($ckey)) && unlink($file);
             case 'memcache':
             case 'memcached':
                 return $this->hive['CACHE_REF']->delete($ckey);
@@ -3493,35 +3299,34 @@ HTML;
 
         foreach (array_unique($codes) as $code) {
             foreach ($locales as $locale) {
-                if (
-                    preg_match_all(
-                        $pattern,
-                        self::read($locale.$code.$ext),
-                        $matches,
-                        PREG_SET_ORDER
-                    )
-                ) {
-                    $prefix = '';
+                $skipAja = !is_file($file = $locale.$code.$ext) ||
+                    !($content = file_get_contents($file)) ||
+                    !preg_match_all($pattern, $content, $matches, PREG_SET_ORDER);
 
-                    foreach ($matches as $match) {
-                        if ($match['prefix']) {
-                            $prefix = $match['prefix'].'.';
+                if ($skipAja) {
+                    continue;
+                }
 
-                            continue;
-                        }
+                $prefix = '';
 
-                        $ref = &$this->ref(
-                            $prefix.$match['lval'],
-                            true,
-                            $found,
-                            $lexicon
-                        );
-                        $ref = trim(preg_replace(
-                            '/\\\\\h*\r?\n/',
-                            $eol,
-                            $match['rval']
-                        ));
+                foreach ($matches as $match) {
+                    if ($match['prefix']) {
+                        $prefix = $match['prefix'].'.';
+
+                        continue;
                     }
+
+                    $ref = &$this->ref(
+                        $prefix.$match['lval'],
+                        true,
+                        $found,
+                        $lexicon
+                    );
+                    $ref = trim(preg_replace(
+                        '/\\\\\h*\r?\n/',
+                        $eol,
+                        $match['rval']
+                    ));
                 }
             }
         }

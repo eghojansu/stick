@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Fal\Stick\Template;
 
 use Fal\Stick\Fw;
+use Fal\Stick\Util\Common;
 
 /**
  * Template engine.
@@ -237,9 +238,9 @@ class Environment
         $build = $this->autoreload || (!is_file($temp) || filemtime($temp) < filemtime($file));
 
         if ($build) {
-            $source = $this->fw->trimTrailingSpace(rtrim($this->build($this->parseXml($this->fw->read($file)))));
+            $source = Common::trimTrailingSpace(rtrim($this->build($this->parseXml(Common::read($file)))));
 
-            if (!$this->fw->mkdir($this->temp) || $this->fw->write($temp, $source) < 0) {
+            if (!$this->fw->mkdir($this->temp) || Common::write($temp, $source) < 0) {
                 throw new \LogicException(sprintf('Unable to write compiled template: %s.', $templateName));
             }
         }

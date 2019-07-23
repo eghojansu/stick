@@ -34,54 +34,6 @@ class FwTest extends MyTestCase
     }
 
     /**
-     * @dataProvider Fal\Stick\TestSuite\Provider\FwProvider::snakeCase
-     */
-    public function testSnakeCase($expected, $text)
-    {
-        $this->assertEquals($expected, Fw::snakeCase($text));
-    }
-
-    /**
-     * @dataProvider Fal\Stick\TestSuite\Provider\FwProvider::camelCase
-     */
-    public function testCamelCase($expected, $text)
-    {
-        $this->assertEquals($expected, Fw::camelCase($text));
-    }
-
-    /**
-     * @dataProvider Fal\Stick\TestSuite\Provider\FwProvider::pascalCase
-     */
-    public function testPascalCase($expected, $text)
-    {
-        $this->assertEquals($expected, Fw::pascalCase($text));
-    }
-
-    /**
-     * @dataProvider Fal\Stick\TestSuite\Provider\FwProvider::titleCase
-     */
-    public function testTitleCase($expected, $text)
-    {
-        $this->assertEquals($expected, Fw::titleCase($text));
-    }
-
-    /**
-     * @dataProvider Fal\Stick\TestSuite\Provider\FwProvider::dashCase
-     */
-    public function testDashCase($expected, $text)
-    {
-        $this->assertEquals($expected, Fw::dashCase($text));
-    }
-
-    /**
-     * @dataProvider Fal\Stick\TestSuite\Provider\FwProvider::classname
-     */
-    public function testClassname($expected, $class)
-    {
-        $this->assertEquals($expected, Fw::classname($class));
-    }
-
-    /**
      * @dataProvider Fal\Stick\TestSuite\Provider\FwProvider::split
      */
     public function testSplit($expected, $var, $delimiter = null)
@@ -106,52 +58,6 @@ class FwTest extends MyTestCase
         $this->assertTrue(is_dir($dir));
         $this->assertTrue(Fw::mkdir($dir));
         $this->assertTrue(is_dir($dir));
-    }
-
-    /**
-     * @dataProvider Fal\Stick\TestSuite\Provider\FwProvider::read
-     */
-    public function testRead($expected, $file, $normalizeLinefeed = false)
-    {
-        $this->assertEquals($expected, Fw::read($file, $normalizeLinefeed));
-    }
-
-    public function testWrite()
-    {
-        $file = $this->tmp('/foo.txt', true);
-
-        $this->assertEquals(3, Fw::write($file, 'foo'));
-        $this->assertEquals(3, Fw::write($file, 'bar', true));
-        $this->assertEquals('foobar', file_get_contents($file));
-    }
-
-    public function testDelete()
-    {
-        $file = $this->tmp('/foo.txt', true);
-        touch($file);
-
-        $this->assertFileExists($file);
-        $this->assertTrue(Fw::delete($file));
-        $this->assertFileNotExists($file);
-        $this->assertFalse(Fw::delete($file));
-    }
-
-    public function testFiles()
-    {
-        $dir = $this->tmp(null, true);
-
-        $this->assertInstanceOf('RecursiveIteratorIterator', Fw::files($dir));
-
-        // update
-        $dir .= '/foo';
-        $this->expectException('LogicException');
-        $this->expectExceptionMessage('Directory not exists: '.$dir);
-        Fw::files($dir);
-    }
-
-    public function testRequireFile()
-    {
-        $this->assertEquals('foo', Fw::requireFile($this->fixture('/files/foo.php')));
     }
 
     /**
@@ -199,17 +105,6 @@ class FwTest extends MyTestCase
         $this->assertTrue(Fw::ipValid('127.0.0.1', '127.0.0.1'));
         $this->assertTrue(Fw::ipValid('127.0.0.5', '127.0.0.1..127.0.0.10'));
         $this->assertFalse(Fw::ipValid('127.0.0.11', '127.0.0.1..127.0.0.10'));
-    }
-
-    public function testFixLinefeed()
-    {
-        $this->assertEquals("foo\nbar\nbaz", Fw::fixLinefeed("foo\nbar\r\nbaz"));
-    }
-
-    public function testTrimTrailingSpace()
-    {
-        // this is a fake test!
-        $this->assertEquals('foo', Fw::trimTrailingSpace('foo'));
     }
 
     public function testBuildUrl()
@@ -995,7 +890,7 @@ class FwTest extends MyTestCase
         $this->assertEquals('Saya seorang tukang post', $this->fw->trans('i.am.postman'));
         $this->assertEquals('Saya seorang tukang ketik', $this->fw->trans('i.am.programmer'));
         $this->assertEquals('I am a police', $this->fw->trans('i.am.police'));
-        $this->assertEquals('Foo', $this->fw->trans('foo', null, true));
+        $this->assertNull($this->fw->trans('foo', null, true));
 
         $this->expectException('LogicException');
         $this->expectExceptionMessage('The message reference is not a string: i.');
@@ -1432,13 +1327,5 @@ class FwTest extends MyTestCase
         $this->expectExceptionMessage('Instance of DateTime expected, given NULL (key: bar).');
 
         $this->fw->service('bar', 'DateTime');
-    }
-
-    /**
-     * @dataProvider Fal\Stick\TestSuite\Provider\FwProvider::arrColumn
-     */
-    public function testArrColumn($expected, $input, $key, $noFilter = true)
-    {
-        $this->assertEquals($expected, Fw::arrColumn($input, $key, $noFilter));
     }
 }

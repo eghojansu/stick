@@ -17,6 +17,7 @@ use Fal\Stick\Fw;
 use Fal\Stick\Cli\Command;
 use Fal\Stick\Cli\Console;
 use Fal\Stick\Cli\Input;
+use Fal\Stick\Util\Common;
 
 /**
  * Generate simple mapper.
@@ -103,7 +104,7 @@ class GenerateMapperCommand extends Command
         return array_reduce(
             $db->pdo()->query($sql)->fetchAll(\PDO::FETCH_NUM),
             function ($carry, $row) use ($fw) {
-                return $carry + array($fw->pascalCase($row[0]) => $row[0]);
+                return $carry + array(Common::pascalCase($row[0]) => $row[0]);
             },
             array()
         );

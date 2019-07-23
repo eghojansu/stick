@@ -49,7 +49,7 @@ class Option extends Magic implements \Countable, \IteratorAggregate
      */
     public function getIterator()
     {
-        return new \ArrayIterator(Fw::arrColumn($this->options, 'value'));
+        return new \ArrayIterator(Common::arrColumn($this->options, 'value'));
     }
 
     /**

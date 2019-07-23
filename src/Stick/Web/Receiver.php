@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Fal\Stick\Web;
 
 use Fal\Stick\Fw;
+use Fal\Stick\Util\Common;
 
 /**
  * Request related helper.
@@ -127,7 +128,8 @@ class Receiver
         $this->fw->mkdir($tmp = $this->fw->get('TEMP').'uploads/');
 
         $tmp .= $this->fw->get('SEED').'.'.$this->fw->hash(uniqid());
-        $written = $this->fw->get('RAW') ? $this->fw->receiveRaw($tmp) : false !== $this->fw->write($tmp, $this->fw->get('BODY'));
+        $written = $this->fw->get('RAW') ? $this->fw->receiveRaw($tmp) :
+            false !== Common::write($tmp, $this->fw->get('BODY'));
         $saved = false;
 
         if ($written) {

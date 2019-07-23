@@ -13,7 +13,6 @@ declare(strict_types=1);
 
 namespace Fal\Stick\Util;
 
-use Fal\Stick\Fw;
 use Fal\Stick\Magic;
 
 /**
@@ -94,7 +93,7 @@ class Smtp extends Magic
      */
     public function has(string $key): bool
     {
-        return isset($this->headers[Fw::dashCase($key)]);
+        return isset($this->headers[Common::dashCase($key)]);
     }
 
     /**
@@ -106,7 +105,7 @@ class Smtp extends Magic
      */
     public function &get(string $key)
     {
-        $use = Fw::dashCase($key);
+        $use = Common::dashCase($key);
 
         if (isset($this->headers[$use])) {
             return $this->headers[$use];
@@ -125,7 +124,7 @@ class Smtp extends Magic
      */
     public function set(string $key, $value): Magic
     {
-        $this->headers[Fw::dashCase($key)] = (string) $value;
+        $this->headers[Common::dashCase($key)] = (string) $value;
 
         return $this;
     }
@@ -139,7 +138,7 @@ class Smtp extends Magic
      */
     public function rem(string $key): Magic
     {
-        unset($this->headers[Fw::dashCase($key)]);
+        unset($this->headers[Common::dashCase($key)]);
 
         return $this;
     }

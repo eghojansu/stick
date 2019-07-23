@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 namespace Fal\Stick\Cli;
 
-use Fal\Stick\Fw;
+use Fal\Stick\Util\Common;
 
 /**
  * Console command.
@@ -81,7 +81,7 @@ class Command
             $this->name ?? $name ?? preg_replace(
                 '/_command$/',
                 '',
-                Fw::snakeCase(Fw::classname($this))
+                Common::snakeCase(Common::classname($this))
             )
         );
         $this->setDescription($description ?? '');

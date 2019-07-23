@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace Fal\Stick\Db\Pdo;
 
+use Fal\Stick\Util\Common;
+
 /**
  * Database table mapper.
  *
@@ -79,7 +81,7 @@ class Mapper implements \ArrayAccess, \Iterator, \Countable, \JsonSerializable
     ) {
         $this->db = $db;
         $this->switchTable(
-            $table ?? $this->table ?? $db->fw->snakeCase($db->fw->classname($this)),
+            $table ?? $this->table ?? Common::snakeCase(Common::classname($this)),
             $fields,
             $ttl
         );
@@ -103,14 +105,14 @@ class Mapper implements \ArrayAccess, \Iterator, \Countable, \JsonSerializable
     public function __call($method, $arguments)
     {
         if (0 === strncasecmp('get', $method, 3)) {
-            $field = $this->db->fw->snakeCase(substr($method, 3));
+            $field = Common::snakeCase(substr($method, 3));
 
             return $this->get($field);
         }
 
         if (0 === strncasecmp('findby', $method, 6)) {
             $filter = array(
-                $this->db->fw->snakeCase(substr($method, 6)) => array_shift($arguments),
+                Common::snakeCase(substr($method, 6)) => array_shift($arguments),
             );
 
             return $this->findOne($filter, ...$arguments);
@@ -118,7 +120,7 @@ class Mapper implements \ArrayAccess, \Iterator, \Countable, \JsonSerializable
 
         if (0 === strncasecmp('findallby', $method, 9)) {
             $filter = array(
-                $this->db->fw->snakeCase(substr($method, 9)) => array_shift($arguments),
+                Common::snakeCase(substr($method, 9)) => array_shift($arguments),
             );
 
             return $this->findAll($filter, ...$arguments);
@@ -644,7 +646,7 @@ class Mapper implements \ArrayAccess, \Iterator, \Countable, \JsonSerializable
      */
     public function initial(): array
     {
-        return $this->db->fw->arrColumn($this->row, 'initial');
+        return Common::arrColumn($this->row, 'initial');
     }
 
     /**
@@ -654,7 +656,7 @@ class Mapper implements \ArrayAccess, \Iterator, \Countable, \JsonSerializable
      */
     public function values(): array
     {
-        return $this->db->fw->arrColumn($this->row, 'value');
+        return Common::arrColumn($this->row, 'value');
     }
 
     /**
@@ -666,7 +668,7 @@ class Mapper implements \ArrayAccess, \Iterator, \Countable, \JsonSerializable
     {
         return array_intersect_key(
             $this->values(),
-            $this->db->fw->arrColumn($this->row, 'changed', false)
+            Common::arrColumn($this->row, 'changed', false)
         );
     }
 

@@ -191,7 +191,7 @@ class Crud
      */
     public function __call($option, $arguments)
     {
-        $name = $this->options->has($option) ? $option : $this->fw->snakeCase($option);
+        $name = $this->options->has($option) ? $option : Common::snakeCase($option);
 
         if (!$arguments) {
             return $this->options->get($name);
@@ -525,8 +525,8 @@ class Crud
         $this->data['keyword_name'] = $this->options['keyword_name'];
         $this->data['page'] = intval($this->options['page'] ?? $this->fw->get('GET.'.$this->options['page_name']) ?? 1);
         $this->data['page_name'] = $this->options['page_name'];
-        $this->data['title'] = $this->options['title'] ?? 'Manage '.$this->fw->titleCase($this->data['mapper']->table());
-        $this->data['subtitle'] = $this->options['subtitle'] ?? $this->fw->titleCase($state);
+        $this->data['title'] = $this->options['title'] ?? 'Manage '.Common::titleCase($this->data['mapper']->table());
+        $this->data['subtitle'] = $this->options['subtitle'] ?? Common::titleCase($state);
         $this->data['fields'] = array();
 
         // fix fields
@@ -551,7 +551,7 @@ class Crud
             }
 
             if (!isset($field['label'])) {
-                $field['label'] = $this->fw->trans($key, null, true);
+                $field['label'] = $this->fw->trans($key, null, true) ?? Common::titleCase($key);
             }
 
             if (!isset($field['type']) && $this->data['mapper']->schema->has($key)) {

@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Fal\Stick\Form;
 
 use Fal\Stick\Fw;
+use Fal\Stick\Util\Common;
 use Fal\Stick\Util\Option;
 use Fal\Stick\Validation\Validator;
 
@@ -93,7 +94,7 @@ class Form implements \ArrayAccess
         $this->options = $options ?? array();
 
         if (!$this->name) {
-            $this->name = $name ?? $fw->snakeCase($fw->classname($this));
+            $this->name = $name ?? Common::snakeCase(Common::classname($this));
         }
 
         $this->setData($data ?? array());
@@ -625,7 +626,7 @@ class Form implements \ArrayAccess
         }
 
         if (!isset($options['label'])) {
-            $options['label'] = $this->fw->trans($name, null, true);
+            $options['label'] = $this->fw->trans($name, null, true) ?? Common::titleCase($name);
         }
 
         return new Field($name, $type, $options);
