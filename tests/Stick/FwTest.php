@@ -632,51 +632,51 @@ class FwTest extends MyTestCase
         );
         $routes = array(
             '/' => array(
-                'all' => array(
+                0 => array(
                     'GET' => array('home', 'home', 10),
                 ),
             ),
             '/foo' => array(
-                'all' => array(
+                0 => array(
                     'GET' => array('foo', null, 0),
                 ),
             ),
             '/target' => array(
-                'all' => array(
+                0 => array(
                     'GET' => array('redirect', null, 0),
                 ),
             ),
             '/controller/foo' => array(
-                'all' => array(
+                0 => array(
                     'GET' => array('Foo->foo', 'cfoo', 0),
                 ),
             ),
             '/controller/bar' => array(
-                'all' => array(
+                0 => array(
                     'GET' => array('Foo->bar', null, 0),
                 ),
             ),
             '/rest' => array(
-                'all' => array(
+                0 => array(
                     'GET' => array('Rest->index', 'rest', 0),
                     'POST' => array('Rest->create', 'rest', 0),
                 ),
             ),
             '/rest/@item' => array(
-                'all' => array(
+                0 => array(
                     'GET' => array('Rest->view', 'rest_item', 0),
                     'PUT' => array('Rest->update', 'rest_item', 0),
                     'DELETE' => array('Rest->delete', 'rest_item', 0),
                 ),
             ),
             '/rest2' => array(
-                'all' => array(
+                0 => array(
                     'GET' => array('Rest2->index', 'rest2', 0),
                     'POST' => array('Rest2->create', 'rest2', 0),
                 ),
             ),
             '/rest2/@item' => array(
-                'all' => array(
+                0 => array(
                     'GET' => array('Rest2->view', 'rest2_item', 0),
                     'PUT' => array('Rest2->update', 'rest2_item', 0),
                     'PATCH' => array('Rest2->update', 'rest2_item', 0),
@@ -686,7 +686,7 @@ class FwTest extends MyTestCase
         );
         $actualRoutes = $this->fw->get('ROUTES');
         // modify redirect handler
-        $actualRoutes['/target']['all']['GET'][0] = 'redirect';
+        $actualRoutes['/target'][0]['GET'][0] = 'redirect';
         $longText = array(
             'foo' => 'bar',
             'text' => "foo bar baz\ndkskdl\nfoo",
@@ -720,18 +720,18 @@ class FwTest extends MyTestCase
         ), $this->fw->get('ALIASES'));
         $this->assertEquals(array(
             '/' => array(
-                'all' => array(
+                0 => array(
                     'GET' => array('foo', null, 11),
                 ),
             ),
             '/foo' => array(
-                'all' => array(
+                0 => array(
                     'GET' => array('foo', 'foo', 0),
                     'POST' => array('foo', 'foo', 0),
                 ),
             ),
             '/bar' => array(
-                'sync' => array(
+                3 => array(
                     'GET' => array('foo', null, 0),
                     'PUT' => array('foo', null, 0),
                 ),
@@ -756,7 +756,7 @@ class FwTest extends MyTestCase
         ));
         $expected = array(
             '/' => array(
-                'all' => array(
+                0 => array(
                     'GET' => array('Foo->bar', null, 0),
                 ),
             ),
@@ -779,39 +779,39 @@ class FwTest extends MyTestCase
         );
         $expected = array(
             '/' => array(
-                'all' => array(
+                0 => array(
                     'GET' => array('Foo->index', 'foo', 11),
                     'POST' => array('Foo->create', 'foo', 11),
                 ),
             ),
             '/@item' => array(
-                'all' => array(
+                0 => array(
                     'GET' => array('Foo->view', 'foo_item', 11),
                     'PUT' => array('Foo->update', 'foo_item', 11),
                     'DELETE' => array('Foo->delete', 'foo_item', 11),
                 ),
             ),
             '/bar' => array(
-                'all' => array(
+                0 => array(
                     'GET' => array('Bar->index', 'bar', 0),
                     'POST' => array('Bar->create', 'bar', 0),
                 ),
             ),
             '/bar/@item' => array(
-                'all' => array(
+                0 => array(
                     'GET' => array('Bar->view', 'bar_item', 0),
                     'PUT' => array('Bar->update', 'bar_item', 0),
                     'DELETE' => array('Bar->delete', 'bar_item', 0),
                 ),
             ),
             '/baz' => array(
-                'all' => array(
+                0 => array(
                     'GET' => array('Baz->index', null, 0),
                     'POST' => array('Baz->create', null, 0),
                 ),
             ),
             '/baz/@item' => array(
-                'all' => array(
+                0 => array(
                     'GET' => array('Baz->view', null, 0),
                     'PUT' => array('Baz->update', null, 0),
                     'PATCH' => array('Baz->update', null, 0),

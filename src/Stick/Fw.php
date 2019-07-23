@@ -33,6 +33,12 @@ final class Fw implements \ArrayAccess
     const EVENT_AFTERROUTE = 'fw.afterroute';
 
     // Route pattern
+    const ROUTE_MODE = array(
+        'all' => 0,
+        'ajax' => 1,
+        'cli' => 2,
+        'sync' => 3,
+    );
     const ROUTE_PATTERN = '~^([\w|]+)(?:\h+(\w+))?(?:\h+(/[^\h]*))?(?:\h+(ajax|cli|sync))?(?:\h+(\d+))?$~';
     const ROUTE_PARAMS = '~(?:@(\w+)(?::(\w+))?)(?:(\*$)|(?:\(([^\)]+)\)))?~';
 
@@ -1880,7 +1886,7 @@ final class Fw implements \ArrayAccess
         $verbs = explode('|', strtoupper($match[1]));
         $alias = $match[2] ?? null;
         $pattern = $match[3] ?? null;
-        $mode = $match[4] ?? 'all';
+        $mode = self::ROUTE_MODE[$match[4] ?? 'all'];
         $ttl = intval($match[5] ?? 0);
 
         if (!$pattern) {
@@ -3345,11 +3351,11 @@ HTML;
         $allowed = array();
 
         if ($this->hive['AJAX']) {
-            $mode = 'ajax';
+            $mode = 1;
         } elseif ($this->hive['CLI']) {
-            $mode = 'cli';
+            $mode = 2;
         } else {
-            $mode = 'sync';
+            $mode = 3;
         }
 
         if ($handleCors) {
@@ -3359,7 +3365,7 @@ HTML;
 
         foreach ($this->hive['ROUTES'] as $pattern => $routes) {
             if (null !== $params = $this->routeMatch($path, $pattern, $modifier)) {
-                if (isset($routes[$mode]) || isset($routes[$mode = 'all'])) {
+                if (isset($routes[$mode]) || isset($routes[$mode = 0])) {
                     $route = $routes[$mode];
 
                     if (isset($route[$verb]) && !$preflight) {
