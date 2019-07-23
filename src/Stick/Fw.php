@@ -3012,7 +3012,13 @@ HTML;
         }
 
         if ($server) {
-            $this->hive['SERVER'] = $server + (array) $this->hive['SERVER'];
+            $this->hive['SERVER'] = $server + (array) $this->init['SERVER'];
+        }
+
+        $this->hive['URI'] = $path;
+
+        if ($this->hive['GET']) {
+            $this->hive['URI'] .= '?'.http_build_query($this->hive['GET']);
         }
 
         return $this->status(200)->run();
