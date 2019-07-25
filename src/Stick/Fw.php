@@ -898,7 +898,7 @@ final class Fw implements \ArrayAccess
      */
     public function currentUrl(bool $absolute = false): string
     {
-        $suffix = rtrim('?'.http_build_query($this->hive['GET'] ?? array()), '?');
+        $suffix = $this->hive['GET'] ? '?'.http_build_query($this->hive['GET']) : '';
 
         return $this->siteUrl($this->hive['PATH'].$suffix, $absolute);
     }
@@ -3413,6 +3413,17 @@ HTML;
 
         if (empty($this->hive['ROUTES'])) {
             return $this->error(500, 'No routes defined.');
+        }
+
+        // handling trailing slash
+        if (
+            $this->isVerbs('GET', 'HEAD') &&
+            ($trimmed = rtrim($this->hive['PATH'], '/')) &&
+            $this->hive['PATH'] !== $trimmed
+        ) {
+            $query = $this->hive['GET'] ? '?'.http_build_query($this->hive['GET']) : '';
+
+            return $this->reroute($trimmed.$query);
         }
 
         if (null === $route = $this->findRoute()) {

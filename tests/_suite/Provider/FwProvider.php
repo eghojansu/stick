@@ -477,6 +477,18 @@ class FwProvider
                 )),
                 array('GET /' => function () { throw new \LogicException('http:404 http exception'); }),
             ),
+            'trailing slash handling' => array(
+                '/no-slash?foo=bar',
+                array(
+                    'GET /no-slash' => function ($fw) {
+                        return $fw->PATH.'?'.http_build_query($fw['GET']);
+                    },
+                ),
+                array(
+                    'PATH' => '/no-slash/',
+                    'GET' => array('foo' => 'bar'),
+                ),
+            ),
         );
     }
 
