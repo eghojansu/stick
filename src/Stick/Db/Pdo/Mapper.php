@@ -44,6 +44,9 @@ class Mapper implements \ArrayAccess, \Iterator, \Countable, \JsonSerializable
     /** @var bool Resolve rule flag */
     protected $resolveRule = true;
 
+    /** @var bool Single json flag */
+    protected $singleJson = false;
+
     /** @var array User defined rules */
     protected $rules = array();
 
@@ -257,6 +260,10 @@ class Mapper implements \ArrayAccess, \Iterator, \Countable, \JsonSerializable
      */
     public function jsonSerialize()
     {
+        if ($this->singleJson) {
+            return $this->toArray(true);
+        }
+
         $rows = array();
 
         foreach ($this->rows as $row) {
@@ -585,33 +592,6 @@ class Mapper implements \ArrayAccess, \Iterator, \Countable, \JsonSerializable
         $this->adhocSetValue = false;
 
         return $this;
-    }
-
-    /**
-     * Row to json.
-     *
-     * @param bool $adhoc
-     * @param int  $options
-     *
-     * @return string
-     */
-    public function toJson(bool $adhoc = false, int $options = 0): string
-    {
-        return json_encode($this->toArray($adhoc), $options);
-    }
-
-    /**
-     * Json to mapper.
-     *
-     * @param string $json
-     * @param bool   $adhoc
-     * @param int    $options
-     *
-     * @return Mapper
-     */
-    public function fromJson(string $json, bool $adhoc = false, int $options = 0): Mapper
-    {
-        return $this->fromArray(json_decode($json, true, 512, $options), $adhoc);
     }
 
     /**
@@ -1058,6 +1038,20 @@ class Mapper implements \ArrayAccess, \Iterator, \Countable, \JsonSerializable
         list($sql, $arguments) = $this->db->driver->sqlDeleteBatch($this->table, $filters);
 
         return $this->db->exec($sql, $arguments);
+    }
+
+    /**
+     * Set single json flag.
+     *
+     * @param  bool   $single
+     *
+     * @return Mapper
+     */
+    public function singleJson(bool $single = true): Mapper
+    {
+        $this->singleJson = $single;
+
+        return $this;
     }
 
     /**

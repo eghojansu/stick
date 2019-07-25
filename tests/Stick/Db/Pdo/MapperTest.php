@@ -832,19 +832,11 @@ class MapperTest extends MyTestCase
         $this->assertEquals($expected, $json);
     }
 
-    public function testToJson()
+    public function testSingleJson()
     {
-        $json = $this->mapper->findOne()->toJson();
+        $json = json_encode($this->mapper->findOne()->singleJson());
         $expected = '{"id":"1","username":"foo","password":null,"active":"1"}';
 
         $this->assertEquals($expected, $json);
-    }
-
-    public function testFromJson()
-    {
-        $json = '{"username": "from json"}';
-        $this->mapper->fromJson($json);
-
-        $this->assertEquals('from json', $this->mapper->get('username'));
     }
 }
