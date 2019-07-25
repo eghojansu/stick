@@ -22,13 +22,11 @@ use Fal\Stick\Cli\Commands\ListCommand;
 class ListCommandTest extends MyTestCase
 {
     private $console;
-    private $input;
     private $command;
 
     protected function setUp(): void
     {
         $this->console = new Console(new Fw());
-        $this->input = new Input();
         $this->command = new ListCommand();
     }
 
@@ -40,7 +38,7 @@ class ListCommandTest extends MyTestCase
                     "  \033[32mlist\033[39m List available commands\n";
 
         $this->expectOutputString($expected);
-        $this->command->run($this->console, $this->input);
+        $this->command->run($this->console, new Input());
     }
 
     public function testRunEmptyCommand()
@@ -48,6 +46,6 @@ class ListCommandTest extends MyTestCase
         $expected = "\033[33mNo command available\033[39m\n";
 
         $this->expectOutputString($expected);
-        $this->command->run($this->console, $this->input);
+        $this->command->run($this->console, new Input());
     }
 }

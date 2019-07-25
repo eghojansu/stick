@@ -160,7 +160,7 @@ class Auth
      */
     public function guard(): bool
     {
-        if ($this->fw->isVerb('options')) {
+        if ($this->fw->isVerb('OPTIONS')) {
             return false;
         }
 

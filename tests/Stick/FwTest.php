@@ -189,6 +189,7 @@ class FwTest extends MyTestCase
     public function testEllapsed()
     {
         $this->assertGreaterThan(0, $this->fw->ellapsed());
+        $this->assertGreaterThan(0, $this->fw->ellapsed(microtime(true)));
     }
 
     public function testOverrideRequestMethod()
@@ -198,18 +199,6 @@ class FwTest extends MyTestCase
         $this->fw->overrideRequestMethod();
 
         $this->assertEquals('PUT', $this->fw->get('VERB'));
-    }
-
-    /**
-     * @dataProvider Fal\Stick\TestSuite\Provider\FwProvider::emulateCliRequest
-     */
-    public function testEmulateCliRequest($expected, $query, $argv = null)
-    {
-        $this->fw->set('SERVER.argv', $argv);
-        $this->fw->emulateCliRequest();
-
-        $this->assertEquals($expected, $this->fw->get('PATH'));
-        $this->assertEquals($query, $this->fw->get('GET'));
     }
 
     public function testRegisterAutoloader()
@@ -373,7 +362,7 @@ class FwTest extends MyTestCase
         $this->assertInstanceOf('stdClass', $this->fw->get('s4'));
         $this->assertSame($s3, $this->fw->get('s3'));
         $this->assertInstanceOf('stdClass', $this->fw->get('stdClass'));
-        $this->assertSame($this->fw, $this->fw->get('FW'));
+        $this->assertSame($this->fw, $this->fw->get('fw'));
         $this->assertSame($this->fw, $this->fw->get('Fal\\Stick\\Fw'));
     }
 
@@ -731,7 +720,7 @@ class FwTest extends MyTestCase
         );
 
         $this->assertEquals($expected, $this->fw->get('ALIASES'));
-        $this->assertEquals('foo', $this->fw->run()->get('OUTPUT'));
+        $this->assertEquals('foo', $this->fw->execute()->get('OUTPUT'));
     }
 
     /**
@@ -945,9 +934,9 @@ class FwTest extends MyTestCase
     }
 
     /**
-     * @dataProvider Fal\Stick\TestSuite\Provider\FwProvider::run
+     * @dataProvider Fal\Stick\TestSuite\Provider\FwProvider::execute
      */
-    public function testRun($expected, $routes = null, $hive = null)
+    public function testExecute($expected, $routes = null, $hive = null)
     {
         if ($hive) {
             $this->fw->mset($hive);
@@ -957,12 +946,12 @@ class FwTest extends MyTestCase
             $this->fw->route($route, $handler);
         }
 
-        $this->fw->run();
+        $this->fw->execute();
 
         $this->assertEquals($expected, $this->fw->get('OUTPUT'));
     }
 
-    public function testRunCache()
+    public function testExecuteCache()
     {
         $this->fw->mset(array(
             'TEMP' => $this->tmp('/'),
@@ -973,16 +962,16 @@ class FwTest extends MyTestCase
         });
 
         // first call
-        $this->assertEquals('foo', $this->fw->run()->get('OUTPUT'));
+        $this->assertEquals('foo', $this->fw->execute()->get('OUTPUT'));
         $this->fw->rem('OUTPUT');
 
         // second call
-        $this->assertEquals('foo', $this->fw->run()->get('OUTPUT'));
+        $this->assertEquals('foo', $this->fw->execute()->get('OUTPUT'));
         $this->fw->rem('OUTPUT');
 
         // third call, not modified
         $this->fw->set('REQUEST.If-Modified-Since', '+1 day');
-        $this->assertEquals('304', $this->fw->run()->get('STATUS'));
+        $this->assertEquals('304', $this->fw->execute()->get('STATUS'));
         $this->assertNull($this->fw->get('OUTPUT'));
     }
 
@@ -1143,9 +1132,13 @@ class FwTest extends MyTestCase
     public function testIsVerb()
     {
         $this->assertTrue($this->fw->isVerb('get'));
-        $this->assertTrue($this->fw->isVerb('GET', 'post'));
-        $this->assertTrue($this->fw->isVerb('post', 'get'));
-        $this->assertFalse($this->fw->isVerb('post', 'put'));
+    }
+
+    public function testIsVerbs()
+    {
+        $this->assertTrue($this->fw->isVerbs('GET', 'post'));
+        $this->assertTrue($this->fw->isVerbs('post', 'get'));
+        $this->assertFalse($this->fw->isVerbs('post', 'put'));
     }
 
     public function testCsrfRegister()
@@ -1289,14 +1282,14 @@ class FwTest extends MyTestCase
         $this->assertEquals(array('foo' => 'bar', 'bar' => array('baz', 'qux')), $this->fw->routeMatch('/foo/bar/baz/qux', '/foo/@foo/@bar*'));
     }
 
-    public function testRunOut()
+    public function testRun()
     {
         $this->fw->route('GET /', function () {
             echo 'foo';
         });
 
         $this->expectOutputString('foo');
-        $this->fw->runOut();
+        $this->fw->run();
     }
 
     public function testEHttp()

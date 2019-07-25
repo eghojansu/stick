@@ -295,7 +295,7 @@ class FwProvider
         );
     }
 
-    public function run()
+    public function execute()
     {
         return array(
             'no routes' => array(
@@ -625,72 +625,6 @@ class FwProvider
 
                     return false;
                 }),
-            ),
-        );
-    }
-
-    public function emulateCliRequest()
-    {
-        return array(
-            'modify nothing' => array(
-                '/',
-                null,
-            ),
-            'no argument' => array(
-                '/',
-                array(),
-                array(null),
-            ),
-            'with path argument' => array(
-                '/foo',
-                array(),
-                array(null, '/foo'),
-            ),
-            'with path argument and query' => array(
-                '/foo',
-                array('foo' => 'foo'),
-                array(null, '/foo?foo=foo'),
-            ),
-            'with last option' => array(
-                '/foo',
-                array('h' => ''),
-                array(null, 'foo', '-h'),
-            ),
-            'complete arguments resolving' => array(
-                '/foo/bar/baz',
-                array(
-                    'qux' => 'qux',
-                    'quux' => 'quux',
-                    'a' => '',
-                    'b' => '',
-                    'c' => 'value',
-                    'd' => 'value',
-                    'e' => 'value',
-                    'f' => array('v1', 'v2'),
-                    '_arguments' => array('arg1', 'arg2'),
-                ),
-                array(
-                    null,
-                    'foo',
-                    'bar',
-                    'baz',
-                    '--qux=qux',
-                    '--quux',
-                    '-', // challenge
-                    'quux',
-                    '-abc=value',
-                    '-d=value',
-                    '-', // challenge
-                    '-e',
-                    'value',
-                    '-', // challenge
-                    '-f',
-                    'v1',
-                    'v2',
-                    '--',
-                    'arg1',
-                    'arg2',
-                ),
             ),
         );
     }

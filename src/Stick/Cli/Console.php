@@ -15,7 +15,9 @@ namespace Fal\Stick\Cli;
 
 use Fal\Stick\Cli\Commands\GenerateMapperCommand;
 use Fal\Stick\Cli\Commands\HelpCommand;
+use Fal\Stick\Cli\Commands\LintCommand;
 use Fal\Stick\Cli\Commands\ListCommand;
+use Fal\Stick\Cli\Commands\ServerCommand;
 use Fal\Stick\Fw;
 use Fal\Stick\Util\Option;
 
@@ -109,11 +111,6 @@ class Console
     protected $commands = array();
 
     /**
-     * @var array
-     */
-    protected $routes = array();
-
-    /**
      * @var bool
      */
     protected $dry = true;
@@ -130,7 +127,7 @@ class Console
         $this->app = (new Option())
             ->add('name', Fw::PACKAGE, 'string', true)
             ->add('version', Fw::VERSION, 'string', true)
-            ->add('default_command', 'help', 'string', true)
+            ->add('default_command', 'list', 'string', true)
             ->resolve($app ?? array());
     }
 
@@ -141,16 +138,14 @@ class Console
      */
     public function run(): int
     {
-        $found = $this->findCommand($this->app->default_command);
-        $options = $this->fw->get('GET') ?? array();
-        $arguments = $found['arguments'];
-        $name = $found['command'];
-        $command = $this->getCommand($name);
-
         try {
-            $input = (new Input())->resolve($command, $arguments, $options);
+            list($commandName, $arguments, $options) = $this->findCommand(
+                $this->app->default_command
+            );
+            $command = $this->getCommand($commandName);
+            $input = $command->createInput($arguments, $options);
 
-            if ($input->hasOption('v', 'version')) {
+            if ($input->getOption('version')) {
                 $this->writeln(sprintf(
                     '<info>%s</> <comment>%s</>',
                     $this->app->name,
@@ -160,47 +155,37 @@ class Console
                 return 0;
             }
 
-            if (
-                'help' !== $name &&
-                $input->hasOption('h', 'help') &&
-                $this->hasCommand('help')
-            ) {
+            if ('help' !== $commandName && $input->getOption('help')) {
                 $command = $this->commands['help'];
-                $input->resolve($command, array($name), array());
+                $input = $command->createInput(
+                    array_merge(array($commandName), $arguments),
+                    $options
+                );
             }
 
             return $command->run($this, $input);
         } catch (\Throwable $e) {
+            $info = wordwrap($e->getMessage(), $this->getWidth() - 5);
+
             $this->writeln('<error>An error occured</>');
             $this->writeln();
             $this->writeln(sprintf('  <comment>%s</>', get_class($e)));
-            $this->writeln(sprintf('  <info>%s</>', wordwrap(
-                $e->getMessage(),
-                $this->getWidth() - 5
-            )));
+            $this->writeln(sprintf('  <info>%s</>', $info));
+            $this->writeln();
+            $this->writeln(sprintf('[Thrown at %s line %s]', $e->getFile(), $e->getLine()));
 
             return 1;
         }
     }
 
     /**
-     * Returns registered command routes.
+     * Find command from argv.
+     *
+     * @param string|null $defaultCommand
      *
      * @return array
      */
-    public function getRoutes(): array
-    {
-        return $this->routes;
-    }
-
-    /**
-     * Find command from fw path.
-     *
-     * @param string|null $default
-     *
-     * @return array|null
-     */
-    public function findCommand(string $default = null): ?array
+    public function findCommand(string $defaultCommand = null): array
     {
         if ($this->dry) {
             $this->dry = false;
@@ -208,18 +193,35 @@ class Console
             $this->addCommands($this->getDefaultCommands());
         }
 
-        $path = urldecode($this->fw->get('PATH'));
+        $argv = $this->fw['SERVER.argv'] ?? array();
+        $scriptName = array_shift($argv) ?? $this->fw['SERVER.SCRIPT_NAME'];
+        $command = $defaultCommand;
+        $arguments = array();
+        $options = array();
+        $consumeOptions = false;
 
-        foreach ($this->routes as $pattern => $command) {
-            if (null !== $arguments = $this->fw->routeMatch($path, $pattern)) {
-                return compact('command', 'arguments');
+        if (isset($argv[0]) && '-' !== $argv[0][0]) {
+            $command = array_shift($argv);
+        }
+
+        foreach ($argv as $key => $arg) {
+            if ('--' === $arg) {
+                array_push($arguments, ...array_slice($argv, $key + 1));
+                break;
+            }
+
+            if (!$consumeOptions && '-' === $arg[0]) {
+                $consumeOptions = true;
+            }
+
+            if ($consumeOptions) {
+                $options[] = $arg;
+            } else {
+                $arguments[] = $arg;
             }
         }
 
-        return $default ? array(
-            'command' => $default,
-            'arguments' => array(),
-        ) : null;
+        return array($command, $arguments, $options, $scriptName);
     }
 
     /**
@@ -231,11 +233,8 @@ class Console
      */
     public function add(Command $command): Console
     {
-        $name = $command->getName();
-        $path = '/'.$name.rtrim('/@'.implode('/@', array_keys($command->getArguments())), '/@');
-
-        $this->routes[$path] = $name;
-        $this->commands[$name] = $command;
+        $this->commands[$command->getName()] = $command;
+        ksort($this->commands);
 
         return $this;
     }
@@ -282,8 +281,8 @@ class Console
             //   -h, --help,
             //   -v, --version
             return $this->commands[$name]
-                ->addOption('help', 'Display command help', 'h')
-                ->addOption('version', 'Display application version', 'v');
+                ->setOption('help', 'Display command help', 'h', null, InputOption::VALUE_NONE)
+                ->setOption('version', 'Display application version', 'v', null, InputOption::VALUE_NONE);
         }
 
         throw new \LogicException(sprintf('Command not found: %s.', $name));
@@ -511,6 +510,8 @@ class Console
             new HelpCommand(),
             new ListCommand(),
             new GenerateMapperCommand(),
+            new LintCommand(),
+            new ServerCommand(),
         );
     }
 
@@ -554,7 +555,7 @@ class Console
      */
     protected static function getConsoleMode(): ?array
     {
-        if (!\function_exists('proc_open')) {
+        if (!function_exists('proc_open')) {
             return null;
         }
 
@@ -564,7 +565,7 @@ class Console
         );
         $process = proc_open('mode CON', $descriptorspec, $pipes, null, null, array('suppress_errors' => true));
 
-        if (\is_resource($process)) {
+        if (is_resource($process)) {
             $info = stream_get_contents($pipes[1]);
             fclose($pipes[1]);
             fclose($pipes[2]);
@@ -585,7 +586,7 @@ class Console
      */
     protected static function getSttyColumns(): ?string
     {
-        if (!\function_exists('proc_open')) {
+        if (!function_exists('proc_open')) {
             return null;
         }
 
@@ -596,7 +597,7 @@ class Console
 
         $process = proc_open('stty -a | grep columns', $descriptorspec, $pipes, null, null, array('suppress_errors' => true));
 
-        if (\is_resource($process)) {
+        if (is_resource($process)) {
             $info = stream_get_contents($pipes[1]);
             fclose($pipes[1]);
             fclose($pipes[2]);

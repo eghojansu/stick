@@ -44,8 +44,12 @@ class ListCommand extends Command
 
             $console->writeln('<comment>Commands list:</>');
 
-            foreach ($commands as $name => $command) {
-                $console->writeln(sprintf('  <info>%-'.$max.'s</> %s', $name, $command->getDescription()));
+            foreach ($commands as $command) {
+                $console->writeln(sprintf(
+                    '  <info>%-'.$max.'s</> %s',
+                    $command->getName(),
+                    $command->getDescription()
+                ));
             }
         } else {
             $console->writeln('<comment>No command available</>');

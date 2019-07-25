@@ -1,8 +1,8 @@
 <?php
 
-use Fal\Stick\Fw;
 use Fal\Stick\Cli\Command;
 use Fal\Stick\Cli\Console;
+use Fal\Stick\Fw;
 
 /**
  * This file is an entry point to see framework action in console.
@@ -15,8 +15,7 @@ $config = array(
     'TEMP' => dirname(__DIR__).'/var/',
     'TRACE_CLEAR' => dirname(__DIR__).'/',
 );
-$fw = Fw::createFromGlobals($config)->emulateCliRequest();
-(new Console($fw))
+(new Console(Fw::createFromGlobals($config)))
     ->add(
         Command::create(
             'welcome',
@@ -29,9 +28,11 @@ $fw = Fw::createFromGlobals($config)->emulateCliRequest();
                     ->writeln('<comment>Comment: You are seing this line in yellow</>')
                     ->writeln('<question>Question: You are seing this line in cyan block</>')
                 ;
-            }
+            },
+            'Console style parser demo'
         )
-    )->add(
+    )
+    ->add(
         Command::create(
             'dimension',
             function (Console $console) {
@@ -41,7 +42,8 @@ $fw = Fw::createFromGlobals($config)->emulateCliRequest();
                     ->writeln()
                     ->writeln('Try to resize then run this command again!');
                 ;
-            }
+            },
+            'Show console height and width'
         )
     )
     ->run()

@@ -36,7 +36,7 @@ class ConsoleProvider
             'app version' => array(
                 "\033[32meghojansu/stick\033[39m \033[33mv0.1.0-beta\033[39m\n",
                 array(
-                    'GET' => array('v' => ''),
+                    'SERVER.argv' => array('entry', '-v'),
                 ),
             ),
             'help list command' => array(
@@ -47,16 +47,16 @@ class ConsoleProvider
                 "  \033[32m-h, --help   \033[39m Display command help\n".
                 "  \033[32m-v, --version\033[39m Display application version\n",
                 array(
-                    'GET' => array('h' => ''),
-                    'PATH' => '/list',
+                    'SERVER.argv' => array('entry', 'list', '-h'),
                 ),
             ),
             'command throws exception' => array(
                 "\033[37;41mAn error occured\033[39;49m\n\n".
                 "  \033[33mLogicException\033[39m\n".
-                "  \033[32mI am an exception.\033[39m\n",
+                "  \033[32mI am an exception.\033[39m\n\n".
+                "[Thrown at ::file:: line ::line::]\n",
                 array(
-                    'PATH' => '/show:error',
+                    'SERVER.argv' => array('entry', 'show:error'),
                 ),
             ),
         );

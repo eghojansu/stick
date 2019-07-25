@@ -17,6 +17,7 @@ use Fal\Stick\Fw;
 use Fal\Stick\Cli\Command;
 use Fal\Stick\Cli\Console;
 use Fal\Stick\Cli\Input;
+use Fal\Stick\Cli\InputOption;
 use Fal\Stick\Util\Common;
 
 /**
@@ -26,6 +27,8 @@ use Fal\Stick\Util\Common;
  */
 class GenerateMapperCommand extends Command
 {
+    const TEMPLATE = 'template/mapper.php.txt';
+
     /**
      * {@inheritdoc}
      */
@@ -33,14 +36,11 @@ class GenerateMapperCommand extends Command
     {
         $this
             ->setDescription('Generate mapper')
-            ->addOption('yes', 'Confirmation: type in <comment>yes</>', null, null, true)
-            ->addOption('conn', 'Connection name', 'c', 'db')
-            ->addOption(
-                'dir',
-                'Mapper directory, relative to working dir',
-                null,
-                'src/Mapper'
-            )
+            ->setOption('yes', 'Generate mapper confirmation', null, null, InputOption::VALUE_NONE)
+            ->setOption('conn', 'Connection name', null, 'db', InputOption::VALUE_REQUIRED)
+            ->setOption('dir', 'Mapper directory', null, 'src/Mapper', InputOption::VALUE_REQUIRED)
+            ->setOption('namespace', 'Mapper namespace', null, 'App\\Mapper', InputOption::VALUE_REQUIRED)
+            ->setOption('template', 'Mapper template', null, self::TEMPLATE, InputOption::VALUE_REQUIRED)
         ;
     }
 
@@ -49,14 +49,12 @@ class GenerateMapperCommand extends Command
      */
     protected function execute(Console $console, Input $input)
     {
-        if ('yes' !== $yes = $input->getOption('yes')) {
-            $console->writeln('Please give <comment>yes</> first!');
-            $console->writeln(sprintf('Given: <error>%s</>', $yes));
+        if (!$input->getOption('yes')) {
+            $console->writeln('Please confirm by passing option <comment>--yes|-y</>!');
 
             return;
         }
 
-        $tables = $this->tables($console->fw, $input->getOption('conn'));
         $dir = $input->getOption('dir');
 
         if (!is_dir($dir)) {
@@ -68,18 +66,45 @@ class GenerateMapperCommand extends Command
             return;
         }
 
+        $template = $input->getOption('template');
+        $templateDir = self::TEMPLATE === $template ? __DIR__.'/' : '';
+
+        if (!is_file($templateDir.$template)) {
+            $console->writeln(sprintf(
+                'Template file not exists: <comment>%s</>',
+                $template
+            ));
+
+            return;
+        }
+
+        $tables = $this->tables($console->fw, $input->getOption('conn'));
+
         if (!$tables) {
             $console->writeln('<comment>No table available</>');
 
             return;
         }
 
+        $templateContent = file_get_contents($templateDir.$template);
+        $templateSearch = array(
+            '${namespace}',
+            '${classname}',
+        );
+        $namespace = $input->getOption('namespace');
+
         foreach ($tables as $className => $tableName) {
             $filename = rtrim($dir, '/\\').'/'.$className.'.php';
             $message = "$filename: <comment>skipped</>";
 
             if (!file_exists($filename)) {
-                file_put_contents($filename, $this->content($className, $tableName));
+                $replace = array(
+                    $namespace,
+                    $className,
+                );
+                $content = str_replace($templateSearch, $replace, $templateContent);
+                file_put_contents($filename, $content);
+
                 $message = "$filename: <info>created</>";
             }
 
@@ -99,7 +124,8 @@ class GenerateMapperCommand extends Command
     {
         $db = $fw->service($conn, 'Fal\\Stick\\Db\\Pdo\\Db');
         $sql = 'sqlite' !== $db->driver() ? 'show tables' :
-            'select tbl_name from sqlite_master where type = "table" and tbl_name not like "sqlite_%"';
+            'select tbl_name from sqlite_master'.
+            ' where type = "table" and tbl_name not like "sqlite_%"';
 
         return array_reduce(
             $db->pdo()->query($sql)->fetchAll(\PDO::FETCH_NUM),
@@ -108,27 +134,5 @@ class GenerateMapperCommand extends Command
             },
             array()
         );
-    }
-
-    /**
-     * Returns mapper content.
-     *
-     * @param string $className
-     * @param string $tableName
-     *
-     * @return string
-     */
-    protected function content(string $className, string $tableName): string
-    {
-        return <<<CONTENT
-<?php
-
-namespace App\Mapper;
-
-use Fal\Stick\Db\Pdo\Mapper;
-
-class $className extends Mapper
-{}
-CONTENT;
     }
 }

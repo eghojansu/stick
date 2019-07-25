@@ -101,28 +101,27 @@ class ConsoleTest extends MyTestCase
         $this->assertGreaterThan(0, $this->console->getHeight());
     }
 
-    public function testGetRoutes()
-    {
-        $this->assertCount(0, $this->console->getRoutes());
-    }
-
     public function testFindCommand()
     {
-        // no command
-        $this->assertNull($this->console->findCommand());
+        $expected = array(
+            'default',
+            array(),
+            array(),
+            null,
+        );
 
-        // default command
-        $this->assertEquals(array(
-            'command' => 'default',
-            'arguments' => array(),
-        ), $this->console->findCommand('default'));
+        $this->assertEquals($expected, $this->console->findCommand('default'));
 
         // command with argument
-        $this->console->fw->set('PATH', '/help/foo');
-        $this->assertEquals(array(
-            'command' => 'help',
-            'arguments' => array('command_name' => 'foo'),
-        ), $this->console->findCommand());
+        $expected = array(
+            'help',
+            array('foo', 'arg'),
+            array(),
+            'entry',
+        );
+        $this->console->fw->set('SERVER.argv', array('entry', 'help', 'foo', '--', 'arg'));
+
+        $this->assertEquals($expected, $this->console->findCommand('default'));
     }
 
     /**
@@ -130,6 +129,16 @@ class ConsoleTest extends MyTestCase
      */
     public function testRun($expected, $hive)
     {
+        $search = array(
+            '::file::',
+            '::line::',
+        );
+        $replace = array(
+            __FILE__,
+            143,
+        );
+        $expected = str_replace($search, $replace, $expected);
+
         $this->console->add(Command::create('show:error', function () {
             throw new \LogicException('I am an exception.');
         }));

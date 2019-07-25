@@ -13,18 +13,32 @@ declare(strict_types=1);
 
 namespace Fal\Stick\Test\Cli;
 
-use Fal\Stick\Cli\Command;
+use Fal\Stick\Cli\Input;
 use Fal\Stick\TestSuite\MyTestCase;
 
 class InputTest extends MyTestCase
 {
-    public function testHasArgument()
+    private $input;
+
+    /**
+     * {@inheritdoc}
+     */
+    protected function setUp(): void
     {
-        $this->assertFalse($this->input->hasArgument('foo'));
+        $this->input = new Input(
+            array(
+                'arg1' => 'foo',
+            ),
+            array(
+                'opt1' => 'foo',
+            )
+        );
     }
 
     public function testGetArgument()
     {
+        $this->assertEquals('foo', $this->input->getArgument('arg1'));
+
         $this->expectException('LogicException');
         $this->expectExceptionMessage('Argument not exists: foo.');
 
@@ -33,16 +47,13 @@ class InputTest extends MyTestCase
 
     public function testGetArguments()
     {
-        $this->assertCount(0, $this->input->getArguments());
-    }
-
-    public function testHasOption()
-    {
-        $this->assertFalse($this->input->hasOption('foo'));
+        $this->assertCount(1, $this->input->getArguments());
     }
 
     public function testGetOption()
     {
+        $this->assertEquals('foo', $this->input->getOption('opt1'));
+
         $this->expectException('LogicException');
         $this->expectExceptionMessage('Option not exists: foo.');
 
@@ -51,48 +62,6 @@ class InputTest extends MyTestCase
 
     public function testGetOptions()
     {
-        $this->assertCount(0, $this->input->getOptions());
-    }
-
-    public function testResolve()
-    {
-        $command = new Command();
-        $command->addArgument('foo');
-        $command->addArgument('bar');
-        $command->addOption('baz');
-        $command->addOption('qux');
-
-        $arguments = array('bar');
-        $options = array('baz' => 'qux');
-
-        $this->input->resolve($command, $arguments, $options);
-
-        $this->assertEquals('bar', $this->input->getArgument('foo'));
-        $this->assertFalse($this->input->hasArgument('bar'));
-        $this->assertEquals('qux', $this->input->getOption('baz'));
-        $this->assertTrue($this->input->hasOption('baz'));
-        $this->assertFalse($this->input->hasOption('qux'));
-    }
-
-    public function testResolveArgumentException()
-    {
-        $this->expectException('LogicException');
-        $this->expectExceptionMessage('Command command, argument foo is required.');
-
-        $command = new Command();
-        $command->addArgument('foo', 'bar', null, true);
-
-        $this->input->resolve($command, array(), array());
-    }
-
-    public function testResolveOptionException()
-    {
-        $this->expectException('LogicException');
-        $this->expectExceptionMessage('Command command, option foo is required.');
-
-        $command = new Command();
-        $command->addOption('foo', 'bar', 'f', null, true);
-
-        $this->input->resolve($command, array(), array());
+        $this->assertCount(1, $this->input->getOptions());
     }
 }

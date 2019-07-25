@@ -15,7 +15,6 @@ namespace Fal\Stick\Test\Cli\Commands;
 
 use Fal\Stick\Cli\Commands\GenerateMapperCommand;
 use Fal\Stick\Cli\Console;
-use Fal\Stick\Cli\Input;
 use Fal\Stick\Db\Pdo\Db;
 use Fal\Stick\Db\Pdo\Driver\SqliteDriver;
 use Fal\Stick\Fw;
@@ -24,7 +23,6 @@ use Fal\Stick\TestSuite\MyTestCase;
 class GenerateMapperCommandTest extends MyTestCase
 {
     private $console;
-    private $input;
     private $command;
     private $dir;
     private $cwd;
@@ -36,7 +34,6 @@ class GenerateMapperCommandTest extends MyTestCase
         chdir($this->dir);
 
         $this->console = new Console(new Fw());
-        $this->input = new Input();
         $this->command = new GenerateMapperCommand();
     }
 
@@ -63,10 +60,7 @@ class GenerateMapperCommandTest extends MyTestCase
 
     public function testRun()
     {
-        $this->input->resolve($this->command, array(), array(
-            'yes' => 'yes',
-        ));
-
+        $input = $this->command->createInput(null, array('--yes'));
         $expected = "src/Mapper/User.php: \033[32mcreated\033[39m\n".
                     "src/Mapper/Profile.php: \033[32mcreated\033[39m\n".
                     "src/Mapper/Friends.php: \033[32mcreated\033[39m\n".
@@ -86,29 +80,23 @@ class GenerateMapperCommandTest extends MyTestCase
         // create dir
         mkdir('src/Mapper', 0755, true);
         $this->setDb();
-        $this->command->run($this->console, $this->input);
+        $this->command->run($this->console, $input);
     }
 
     public function testRunNoDir()
     {
-        $this->input->resolve($this->command, array(), array(
-            'yes' => 'yes',
-        ));
-
+        $input = $this->command->createInput(null, array('--yes'));
         $expected = "Directory not exists: \033[33msrc/Mapper\033[39m\n";
 
         $this->expectOutputString($expected);
 
         $this->setDb();
-        $this->command->run($this->console, $this->input);
+        $this->command->run($this->console, $input);
     }
 
     public function testRunNoTables()
     {
-        $this->input->resolve($this->command, array(), array(
-            'yes' => 'yes',
-        ));
-
+        $input = $this->command->createInput(null, array('--yes'));
         $expected = "\033[33mNo table available\033[39m\n";
 
         $this->expectOutputString($expected);
@@ -116,20 +104,29 @@ class GenerateMapperCommandTest extends MyTestCase
         // create dir
         mkdir('src/Mapper', 0755, true);
         $this->setDb(false);
-        $this->command->run($this->console, $this->input);
+        $this->command->run($this->console, $input);
     }
 
     public function testRunNoYes()
     {
-        $this->input->resolve($this->command, array(), array(
-            'yes' => 'no',
-        ));
-
-        $expected = "Please give \033[33myes\033[39m first!\n".
-                    "Given: \033[37;41mno\033[39;49m\n";
+        $input = $this->command->createInput();
+        $expected = "Please confirm by passing option \033[33m--yes|-y\033[39m!\n";
 
         $this->expectOutputString($expected);
 
-        $this->command->run($this->console, $this->input);
+        $this->command->run($this->console, $input);
+    }
+
+    public function testRunNoTemplate()
+    {
+        $input = $this->command->createInput(null, array('--yes', '--template=foo'));
+        $expected = "Template file not exists: \033[33mfoo\033[39m\n";
+
+        $this->expectOutputString($expected);
+
+        // create dir
+        mkdir('src/Mapper', 0755, true);
+        $this->setDb(false);
+        $this->command->run($this->console, $input);
     }
 }

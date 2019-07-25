@@ -710,13 +710,15 @@ final class Fw implements \ArrayAccess
     }
 
     /**
-     * Returns ellapsed time since class construction.
+     * Returns ellapsed time since class construction or another start.
+     *
+     * @param float|null $start
      *
      * @return float
      */
-    public function ellapsed(): float
+    public function ellapsed(float $start = null): float
     {
-        return microtime(true) - $this->hive['TIME'];
+        return microtime(true) - ($start ?? $this->hive['TIME']);
     }
 
     /**
@@ -730,127 +732,6 @@ final class Fw implements \ArrayAccess
     {
         if ('POST' === $this->hive['VERB'] && isset($this->hive['POST'][$key])) {
             $this->hive['VERB'] = $this->hive['POST'][$key];
-        }
-
-        return $this;
-    }
-
-    /**
-     * Enable cli request emulation.
-     *
-     * @return Fw
-     */
-    public function emulateCliRequest(): Fw
-    {
-        if ($this->hive['CLI'] && isset($this->hive['SERVER']['argv'])) {
-            $uri = '/';
-            $argv = $this->hive['SERVER']['argv'];
-            array_shift($argv);
-
-            if (isset($argv[0][0]) && '/' === $argv[0][0]) {
-                // in form: /path, /path?query=value etc.
-                $uri = $argv[0];
-            } else {
-                // build uri based on arguments and options
-                $opts = '';
-                $opt = null;
-
-                for ($i = 0, $last = count($argv); $i < $last; ++$i) {
-                    $arg = $argv[$i];
-
-                    // we are paranoid!!!
-                    if ('-' === $arg) {
-                        continue;
-                    }
-
-                    // treat arguments properly
-                    if ('--' === $arg) {
-                        $opts .= '&_arguments[]='.implode(
-                            '&_arguments[]=',
-                            array_map('urlencode', array_slice($argv, $i + 1))
-                        );
-
-                        break;
-                    }
-
-                    // not an option?
-                    if ('-' !== $arg[0]) {
-                        $arg = urlencode($arg);
-
-                        if ($opt) {
-                            $val = '';
-                            $key = '&'.$opt.'[]=';
-
-                            for ($j = $i + 1; $j < $last; ++$j) {
-                                if ('-' === $argv[$j][0]) {
-                                    break;
-                                }
-
-                                $val .= $key.urlencode($argv[$j]);
-                                ++$i;
-                            }
-
-                            $opts .= $val ? $key.$arg.$val : '&'.$opt.'='.$arg;
-                            $opt = null;
-                        } else {
-                            $uri .= $arg.'/';
-                        }
-
-                        continue;
-                    }
-
-                    // long option?
-                    if ('-' === $arg[1]) {
-                        // opt=value form?
-                        if (false === $pos = strpos($arg, '=')) {
-                            $opt = urlencode(substr($arg, 2));
-                        } else {
-                            $opts .= urlencode(substr($arg, 2, $pos - 2)).'=';
-                            $opts .= urlencode(substr($arg, $pos + 1));
-                        }
-
-                        continue;
-                    }
-
-                    // always treat short option as combined
-                    if (false === $pos = strpos($arg, '=')) {
-                        $all = str_split(substr($arg, 1));
-                        $opt = array_pop($all);
-                        $line = '';
-                    } else {
-                        // give value to the last option for o=value form
-                        $all = array_filter(str_split(substr($arg, 1, $pos - 2)));
-                        $line = '&'.substr($arg, $pos - 1, 1).'=';
-                        $line .= urlencode(substr($arg, $pos + 1));
-                    }
-
-                    if ($all) {
-                        $opts .= '&'.implode('=&', $all);
-                    }
-
-                    $opts .= $line;
-                }
-
-                if ('/' !== $uri) {
-                    $uri = rtrim($uri, '/');
-                }
-
-                if ($opt) {
-                    $opts .= '&'.$opt;
-                }
-
-                if ($opts) {
-                    $uri .= '?'.rtrim($opts, '&');
-                }
-            }
-
-            $url = parse_url($uri);
-            parse_str($url['query'] ?? '', $queries);
-
-            $this->hive['VERB'] = 'GET';
-            $this->hive['PATH'] = $url['path'];
-            $this->hive['URI'] = $uri;
-            $this->hive['GET'] = $queries;
         }
 
         return $this;
@@ -885,8 +766,10 @@ final class Fw implements \ArrayAccess
         }
 
         if ($error['type'] & error_reporting()) {
-            // Clear any buffer
-            ob_end_clean();
+            // Clear buffer, if any
+            while (ob_get_level() > 0) {
+                ob_end_clean();
+            }
 
             // show previous error only!
             $this->hive['ERROR'] || $this->error(
@@ -939,10 +822,17 @@ final class Fw implements \ArrayAccess
             return null;
         }
 
-        $file = $this->findFileWithExtension($class, '.php') ??
-            $this->findFileWithExtension($class, '.hh');
+        $file = $this->findFileWithExtension($class, '.php');
 
-        if (null === $file) {
+        // Should we find compiled version if HHVM installed?
+        // @codeCoverageIgnoreStart
+        if (!$file && defined('HHVM_VERSION')) {
+            $file = $this->findFileWithExtension($class, '.hh');
+        }
+        // @codeCoverageIgnoreEnd
+
+        // Still not found?
+        if (!$file) {
             // Remember, this class not exist
             $this->hive['AUTOLOAD_MISSING'][$class] = true;
         }
@@ -1167,7 +1057,7 @@ final class Fw implements \ArrayAccess
     public function &get(string $key, $default = null)
     {
         // reserved keyword, returning self instance
-        if (0 === strcasecmp($key, 'fw') || 'Fal\\Stick\\Fw' === $key) {
+        if ('fw' === $key || 'Fal\\Stick\\Fw' === $key) {
             return $this;
         }
 
@@ -1366,7 +1256,7 @@ final class Fw implements \ArrayAccess
     }
 
     /**
-     * Returns hive value and remove.
+     * Returns hive value and remove it.
      *
      * @param string $key
      *
@@ -1520,16 +1410,28 @@ final class Fw implements \ArrayAccess
     }
 
     /**
+     * Returns true if compared verb equals to current http verb.
+     *
+     * @param string $verb
+     *
+     * @return bool
+     */
+    public function isVerb(string $verb): bool
+    {
+        return 0 === strcasecmp($this->hive['VERB'], $verb);
+    }
+
+    /**
      * Returns true if compared verbs equals to current http verb.
      *
      * @param string ...$verbs
      *
      * @return bool
      */
-    public function isVerb(string ...$verbs): bool
+    public function isVerbs(string ...$verbs): bool
     {
         foreach ($verbs as $verb) {
-            if (0 === strcasecmp($this->hive['VERB'], $verb)) {
+            if ($this->isVerb($verb)) {
                 return true;
             }
         }
@@ -2382,22 +2284,27 @@ final class Fw implements \ArrayAccess
      */
     public function log(string $level, string $message): Fw
     {
-        // level less than threshold
+        // should we write this log?
         if (
-            $message &&
-            $this->hive['LOG'] &&
-            (self::LOG_LEVELS[$level] ?? 9) <= (self::LOG_LEVELS[$this->hive['LOG_THRESHOLD']] ?? 8)
+            // no message
+            !$message ||
+            // log disabled
+            !$this->hive['LOG'] ||
+            // log level greater than threshold
+            (self::LOG_LEVELS[$level] ?? 9) > (self::LOG_LEVELS[$this->hive['LOG_THRESHOLD']] ?? 8)
         ) {
-            $prefix = $this->hive['LOG'].'log_';
-            $suffix = '.log';
-            $files = glob($prefix.date('Y-m').'*'.$suffix);
-
-            $file = $files[0] ?? $prefix.date('Y-m-d').$suffix;
-            $content = date('r').' ['.$this->hive['IP'].'] '.$level.' '.$message.PHP_EOL;
-
-            self::mkdir($this->hive['LOG']);
-            file_put_contents($file, $content, LOCK_EX | FILE_APPEND);
+            return $this;
         }
+
+        $prefix = $this->hive['LOG'].'log_';
+        $suffix = '.log';
+        $files = glob($prefix.date('Y-m').'*'.$suffix);
+
+        $file = $files[0] ?? $prefix.date('Y-m-d').$suffix;
+        $content = date('r').' ['.$this->hive['IP'].'] '.$level.' '.$message.PHP_EOL;
+
+        self::mkdir($this->hive['LOG']);
+        file_put_contents($file, $content, LOCK_EX | FILE_APPEND);
 
         return $this;
     }
@@ -2546,7 +2453,7 @@ final class Fw implements \ArrayAccess
      */
     public function sendHeaders(): Fw
     {
-        if (false === headers_sent()) {
+        if (!headers_sent()) {
             // response headers
             foreach ($this->hive['RESPONSE'] ?? array() as $name => $values) {
                 $replace = 0 === strcasecmp($name, 'Content-Type');
@@ -2574,11 +2481,7 @@ final class Fw implements \ArrayAccess
      */
     public function sendContent(): Fw
     {
-        if (
-            !$this->hive['QUIET'] &&
-            $this->hive['OUTPUT'] &&
-            is_string($this->hive['OUTPUT'])
-        ) {
+        if (!$this->hive['QUIET'] && is_string($this->hive['OUTPUT'])) {
             echo $this->hive['OUTPUT'];
         }
 
@@ -2744,10 +2647,10 @@ HTML;
      *
      * @return Fw
      */
-    public function run(): Fw
+    public function execute(): Fw
     {
         try {
-            return $this->doRun();
+            return $this->doExecute();
         } catch (\Throwable $e) {
             return $this->handleException($e);
         }
@@ -2758,9 +2661,9 @@ HTML;
      *
      * @return Fw
      */
-    public function runOut(): Fw
+    public function run(): Fw
     {
-        return $this->run()->send();
+        return $this->execute()->send();
     }
 
     /**
@@ -2832,7 +2735,7 @@ HTML;
             $this->hive['URI'] .= '?'.http_build_query($this->hive['GET']);
         }
 
-        return $this->status(200)->run();
+        return $this->status(200)->execute();
     }
 
     /**
@@ -3312,21 +3215,19 @@ HTML;
                 foreach ($matches as $match) {
                     if ($match['prefix']) {
                         $prefix = $match['prefix'].'.';
-
-                        continue;
+                    } else {
+                        $ref = &$this->ref(
+                            $prefix.$match['lval'],
+                            true,
+                            $found,
+                            $lexicon
+                        );
+                        $ref = trim(preg_replace(
+                            '/\\\\\h*\r?\n/',
+                            $eol,
+                            $match['rval']
+                        ));
                     }
-
-                    $ref = &$this->ref(
-                        $prefix.$match['lval'],
-                        true,
-                        $found,
-                        $lexicon
-                    );
-                    $ref = trim(preg_replace(
-                        '/\\\\\h*\r?\n/',
-                        $eol,
-                        $match['rval']
-                    ));
                 }
             }
         }
@@ -3498,7 +3399,7 @@ HTML;
      *
      * @return Fw
      */
-    private function doRun(): Fw
+    private function doExecute(): Fw
     {
         $dispatch = $this->dispatch(self::EVENT_BOOT, $this);
 
@@ -3525,7 +3426,7 @@ HTML;
         $this->hive['PARAMS'] = $arguments;
 
         // trying to resolve browser and local cache
-        if ($ttl && $this->isVerb('GET', 'HEAD')) {
+        if ($ttl && $this->isVerbs('GET', 'HEAD')) {
             // Only GET and HEAD requests are cacheable
             $hash = self::hash($this->hive['VERB'].' '.$this->hive['URI'], '.url');
             $cache = $this->cget($hash, $info);

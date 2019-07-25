@@ -47,18 +47,6 @@ class Input
     }
 
     /**
-     * Returns true if all arguments exists.
-     *
-     * @param string $name
-     *
-     * @return bool
-     */
-    public function hasArgument(string $name): bool
-    {
-        return array_key_exists($name, $this->arguments);
-    }
-
-    /**
      * Returns argument value.
      *
      * @param string $name
@@ -85,24 +73,6 @@ class Input
     }
 
     /**
-     * Returns true if option exists.
-     *
-     * @param string ...$names
-     *
-     * @return bool
-     */
-    public function hasOption(string ...$names): bool
-    {
-        foreach ($names as $name) {
-            if (array_key_exists($name, $this->options)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /**
      * Returns option value.
      *
      * @param string $name
@@ -126,49 +96,5 @@ class Input
     public function getOptions(): array
     {
         return $this->options;
-    }
-
-    /**
-     * Resolve command arguments.
-     *
-     * @param Command $command
-     * @param array   $arguments
-     * @param array   $options
-     *
-     * @return Input
-     */
-    public function resolve(Command $command, array $arguments, array $options): Input
-    {
-        foreach ($command->getArguments() as $name => $argument) {
-            list($description, $defaultValue, $required) = $argument;
-            $value = array_shift($arguments);
-
-            if (null === $value && null === $defaultValue) {
-                if ($required) {
-                    throw new \LogicException(sprintf('Command %s, argument %s is required.', $command->getName(), $name));
-                }
-
-                continue;
-            }
-
-            $this->arguments[$name] = $value ?? $defaultValue;
-        }
-
-        foreach ($command->getOptions() as $name => $option) {
-            list($description, $alias, $defaultValue, $required) = $option;
-            $value = $options[$name] ?? $options[$alias] ?? $defaultValue;
-
-            if (null === $value) {
-                if ($required) {
-                    throw new \LogicException(sprintf('Command %s, option %s is required.', $command->getName(), $name));
-                }
-
-                continue;
-            }
-
-            $this->options[$name] = $value;
-        }
-
-        return $this;
     }
 }

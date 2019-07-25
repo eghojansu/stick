@@ -13,9 +13,10 @@ declare(strict_types=1);
 
 namespace Fal\Stick\Cli\Commands;
 
-use Fal\Stick\Cli\Input;
 use Fal\Stick\Cli\Command;
 use Fal\Stick\Cli\Console;
+use Fal\Stick\Cli\Input;
+use Fal\Stick\Cli\InputArgument;
 
 /**
  * Help command.
@@ -31,7 +32,7 @@ class HelpCommand extends Command
     {
         $this
             ->setDescription('Display <info>help</> for a given command')
-            ->addArgument('command_name', 'The command name', 'help', true)
+            ->setArgument('command_name', 'The command name', 'help', InputArgument::IS_REQUIRED)
         ;
     }
 
@@ -54,12 +55,15 @@ class HelpCommand extends Command
             $text .= '<comment>Arguments:</>'.$eol;
             $max = max(array_map('strlen', array_keys($arguments)));
 
-            foreach ($arguments as $argument => $desc) {
-                list($info, $default) = (array) $desc + array(1 => null);
+            foreach ($arguments as $argument) {
+                $text .= sprintf(
+                    '%s<info>%-'.$max.'s</> %s',
+                    $tab,
+                    $argument->getName(),
+                    $argument->getDescription()
+                );
 
-                $text .= sprintf('%s<info>%-'.$max.'s</> %s', $tab, $argument, $info);
-
-                if (null !== $default) {
+                if (null !== $default = $argument->getDefaultValue()) {
                     $text .= ' <comment>[default: '.$console->fw->stringify($default).']</>';
                 }
 
@@ -73,12 +77,17 @@ class HelpCommand extends Command
             $max = max(array_map('strlen', array_keys($options)));
             $max = max($max, 4);
 
-            foreach ($options as $option => $desc) {
-                list($info, $alias, $default) = (array) $desc + array(1 => null, null);
+            foreach ($options as $option) {
+                $alias = $option->getAlias();
+                $text .= sprintf(
+                    '%s<info>%-3s --%-'.$max.'s</> %s',
+                    $tab,
+                    $alias ? '-'.$alias.',' : '',
+                    $option->getName(),
+                    $option->getDescription()
+                );
 
-                $text .= sprintf('%s<info>%-3s --%-'.$max.'s</> %s', $tab, $alias ? '-'.$alias.',' : '', $option, $info);
-
-                if (null !== $default) {
+                if (null !== $default = $option->getDefaultValue()) {
                     $text .= ' <comment>[default: '.$console->fw->stringify($default).']</>';
                 }
 
