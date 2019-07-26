@@ -552,6 +552,7 @@ final class Fw implements \ArrayAccess
             'FRONT' => rtrim('/'.basename($script), '/'),
             'GET' => $query,
             'HOST' => $host,
+            'HEADERS_SENT' => false,
             'IP' => strstr(($req['X-Client-Ip'] ?? $req['X-Forwarded-For'] ?? $server['REMOTE_ADDR'] ?? '').',', ',', true),
             'JAR' => $cookieJar,
             'LANGUAGE' => $req['Accept-Language'] ?? null,
@@ -2453,23 +2454,27 @@ final class Fw implements \ArrayAccess
      */
     public function sendHeaders(): Fw
     {
-        if (!headers_sent()) {
-            // response headers
-            foreach ($this->hive['RESPONSE'] ?? array() as $name => $values) {
-                $replace = 0 === strcasecmp($name, 'Content-Type');
-
-                foreach ($values as $value) {
-                    header($name.': '.$value, $replace, $this->hive['STATUS']);
-                }
-            }
-
-            // status
-            header(
-                $this->hive['PROTOCOL'].' '.$this->hive['STATUS'].' '.$this->hive['TEXT'],
-                true,
-                $this->hive['STATUS']
-            );
+        if ($this->hive['HEADERS_SENT']) {
+            return $this;
         }
+
+        $this->hive['HEADERS_SENT'] = true;
+
+        // response headers
+        foreach ($this->hive['RESPONSE'] ?? array() as $name => $values) {
+            $replace = 0 === strcasecmp($name, 'Content-Type');
+
+            foreach ($values as $value) {
+                header($name.': '.$value, $replace, $this->hive['STATUS']);
+            }
+        }
+
+        // status
+        header(
+            $this->hive['PROTOCOL'].' '.$this->hive['STATUS'].' '.$this->hive['TEXT'],
+            true,
+            $this->hive['STATUS']
+        );
 
         return $this;
     }
@@ -2709,7 +2714,9 @@ HTML;
         $this->hive['OUTPUT'] = null;
         $this->hive['RESPONSE'] = null;
         $this->hive['BODY'] = $body;
+        $this->hive['HEADERS_SENT'] = false;
         ++$this->hive['MOCK_LEVEL'];
+        header_remove();
 
         empty($parts[3]) || parse_str(ltrim($parts[3], '?'), $this->hive['GET']);
 

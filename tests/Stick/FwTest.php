@@ -275,7 +275,7 @@ class FwTest extends MyTestCase
 
     public function testHive()
     {
-        $this->assertCount(71, $this->fw->hive());
+        $this->assertCount(72, $this->fw->hive());
     }
 
     public function testRef()
@@ -1255,7 +1255,13 @@ class FwTest extends MyTestCase
     {
         $this->fw->hadd('Foo', 'bar');
 
+        $this->assertFalse($this->fw->get('HEADERS_SENT'));
         $this->assertSame($this->fw, $this->fw->sendHeaders());
+        $this->assertTrue($this->fw->get('HEADERS_SENT'));
+
+        // second send
+        $this->assertSame($this->fw, $this->fw->sendHeaders());
+        $this->assertTrue($this->fw->get('HEADERS_SENT'));
     }
 
     public function testSendContent()
