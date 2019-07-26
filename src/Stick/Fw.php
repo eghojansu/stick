@@ -2455,7 +2455,7 @@ final class Fw implements \ArrayAccess
     public function sendHeaders(): Fw
     {
         if ($this->hive['HEADERS_SENT']) {
-            return $this;
+            header_remove();
         }
 
         $this->hive['HEADERS_SENT'] = true;
