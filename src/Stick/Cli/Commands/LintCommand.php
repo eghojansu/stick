@@ -16,6 +16,7 @@ namespace Fal\Stick\Cli\Commands;
 use Fal\Stick\Cli\Command;
 use Fal\Stick\Cli\Console;
 use Fal\Stick\Cli\Input;
+use Fal\Stick\Cli\InputOption;
 use Fal\Stick\Util\Common;
 
 /**
@@ -34,7 +35,13 @@ class LintCommand extends Command
     {
         $this
             ->setDescription('Perform PHP lint')
-            ->setOption('dir', 'Directory to scan', 'd')
+            ->setOption(
+                'directories',
+                'Directories to scan',
+                'd',
+                'src,test',
+                InputOption::VALUE_REQUIRED | InputOption::VALUE_ARRAY
+            )
         ;
     }
 
@@ -43,37 +50,49 @@ class LintCommand extends Command
      */
     protected function execute(Console $console, Input $input)
     {
-        $cwd = $input->getOption('dir') ?? getcwd().'/src';
-        $length = strlen($cwd);
+        $directories = $input->getOption('directories');
         $counter = 0;
         $error = 0;
 
-        $console->writeln("<comment>Start linting php files [$cwd], please wait...</>");
+        $console->writeln('<comment>Start linting php files, please wait...</>');
+        $console->writeln();
 
-        foreach (Common::files($cwd) as $file) {
-            $filepath = $file->getRealPath();
+        foreach ($directories as $dir) {
+            $console->writeln("Scanning directory \"<comment>$dir</>\"");
 
-            if (
-                is_dir($filepath) ||
-                0 !== strcasecmp('php', $file->getExtension())
-            ) {
-                continue;
+            $dCounter = 0;
+            $dError = 0;
+
+            foreach (Common::files($dir) as $file) {
+                $filepath = $file->getRealPath();
+
+                if (
+                    is_dir($filepath) ||
+                    0 !== strcasecmp('php', $file->getExtension())
+                ) {
+                    continue;
+                }
+
+                $command = implode(' ', array(
+                    PHP_BINARY,
+                    '-l',
+                    $filepath,
+                ));
+
+                exec($command, $output, $returnVar);
+
+                if (0 !== $returnVar) {
+                    ++$dError;
+                }
+
+                ++$dCounter;
             }
 
-            $relative = substr($filepath, $length + 1);
-            $command = implode(' ', array(
-                PHP_BINARY,
-                '-l',
-                $filepath,
-            ));
+            $error += $dError;
+            $counter += $dCounter;
 
-            exec($command, $output, $returnVar);
-
-            if (0 !== $returnVar) {
-                ++$error;
-            }
-
-            ++$counter;
+            $console->writeln("  <info>done</> [Error/Total: <comment>$dError</>/<info>$dCounter</>]");
+            $console->writeln();
         }
 
         $console->writeln("Error/Total file(s): <comment>$error</>/<info>$counter</>");

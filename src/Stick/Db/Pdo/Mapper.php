@@ -1043,7 +1043,7 @@ class Mapper implements \ArrayAccess, \Iterator, \Countable, \JsonSerializable
     /**
      * Set single json flag.
      *
-     * @param  bool   $single
+     * @param bool $single
      *
      * @return Mapper
      */

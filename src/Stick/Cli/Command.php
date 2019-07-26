@@ -301,11 +301,15 @@ class Command
      *
      * @param array|null $arguments
      * @param array|null $options
+     * @param array|null $defaultsOverride
      *
      * @return Input
      */
-    public function createInput(array $arguments = null, array $options = null): Input
-    {
+    public function createInput(
+        array $arguments = null,
+        array $options = null,
+        array $defaultsOverride = null
+    ): Input {
         $resolvedArguments = array();
         $resolvedOptions = array();
 
@@ -318,11 +322,19 @@ class Command
         }
 
         foreach ($this->arguments as $name => $argument) {
-            $resolvedArguments[$name] = $this->resolveArgument($argument, $arguments);
+            $resolvedArguments[$name] = $this->resolveArgument(
+                $argument,
+                $arguments,
+                $defaultsOverride['arguments'][$name] ?? $defaultsOverride[$name] ?? null
+            );
         }
 
         foreach ($this->options as $name => $option) {
-            $resolvedOptions[$name] = $this->resolveOption($option, $options);
+            $resolvedOptions[$name] = $this->resolveOption(
+                $option,
+                $options,
+                $defaultsOverride['options'][$name] ?? $defaultsOverride[$name] ?? null
+            );
         }
 
         return new Input($resolvedArguments, $resolvedOptions);
@@ -353,13 +365,17 @@ class Command
      *
      * @param InputArgument $argument
      * @param array         &$argv
+     * @param mixed         $defaultOverride
      *
      * @return mixed
      */
-    protected function resolveArgument(InputArgument $argument, array &$argv)
-    {
+    protected function resolveArgument(
+        InputArgument $argument,
+        array &$argv,
+        $defaultOverride = null
+    ) {
         $reqValue = $argument->getValueRequirement();
-        $value = $argument->getDefaultValue();
+        $value = $defaultOverride ?? $argument->getDefaultValue();
 
         if (($reqValue & InputArgument::IS_ARRAY) && $argv) {
             $value = array_values($argv);
@@ -386,11 +402,15 @@ class Command
      *
      * @param InputOption $option
      * @param array       &$argv
+     * @param mixed       $defaultOverride
      *
      * @return mixed
      */
-    protected function resolveOption(InputOption $option, array &$argv)
-    {
+    protected function resolveOption(
+        InputOption $option,
+        array &$argv,
+        $defaultOverride = null
+    ) {
         $name = $option->getName();
         $alias = $option->getAlias();
         $reqValue = $option->getValueRequirement();
@@ -503,7 +523,7 @@ class Command
         }
 
         if (null === $value) {
-            $value = $option->getDefaultValue();
+            $value = $defaultOverride ?? $option->getDefaultValue();
         }
 
         if ($reqArray && !is_array($value)) {

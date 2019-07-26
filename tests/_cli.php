@@ -10,12 +10,27 @@ use Fal\Stick\Fw;
 
 require __DIR__.'/../vendor/autoload.php';
 
-$config = array(
-    'DEBUG' => 1,
-    'TEMP' => dirname(__DIR__).'/var/',
-    'TRACE_CLEAR' => dirname(__DIR__).'/',
-);
-(new Console(Fw::createFromGlobals($config)))
+chdir(__DIR__);
+
+(new Console(
+    Fw::createFromGlobals(array(
+        'DEBUG' => 1,
+        'TEMP' => dirname(__DIR__).'/var/',
+        'TRACE_CLEAR' => dirname(__DIR__).'/',
+    )),
+    array(
+        'default_override' => array(
+            'lint' => array(
+                'directories' => '../src,../tests',
+            ),
+            'server:run' => array(
+                'address' => '0.0.0.0:2010',
+                'docroot' => '.',
+                'router' => '_browser.php',
+            ),
+        ),
+    )
+))
     ->add(
         Command::create(
             'welcome',

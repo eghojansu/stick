@@ -17,7 +17,7 @@ use Fal\Stick\Cli\Commands\GenerateMapperCommand;
 use Fal\Stick\Cli\Commands\HelpCommand;
 use Fal\Stick\Cli\Commands\LintCommand;
 use Fal\Stick\Cli\Commands\ListCommand;
-use Fal\Stick\Cli\Commands\ServerCommand;
+use Fal\Stick\Cli\Commands\ServerRunCommand;
 use Fal\Stick\Fw;
 use Fal\Stick\Util\Option;
 
@@ -128,6 +128,7 @@ class Console
             ->add('name', Fw::PACKAGE, 'string', true)
             ->add('version', Fw::VERSION, 'string', true)
             ->add('default_command', 'list', 'string', true)
+            ->add('default_override', array(), 'array', true)
             ->resolve($app ?? array());
     }
 
@@ -143,7 +144,11 @@ class Console
                 $this->app->default_command
             );
             $command = $this->getCommand($commandName);
-            $input = $command->createInput($arguments, $options);
+            $input = $command->createInput(
+                $arguments,
+                $options,
+                $this->app->default_override[$commandName] ?? array()
+            );
 
             if ($input->getOption('version')) {
                 $this->writeln(sprintf(
@@ -159,7 +164,8 @@ class Console
                 $command = $this->commands['help'];
                 $input = $command->createInput(
                     array_merge(array($commandName), $arguments),
-                    $options
+                    $options,
+                    $this->app->default_override['help'] ?? array()
                 );
             }
 
@@ -511,7 +517,7 @@ class Console
             new ListCommand(),
             new GenerateMapperCommand(),
             new LintCommand(),
-            new ServerCommand(),
+            new ServerRunCommand(),
         );
     }
 

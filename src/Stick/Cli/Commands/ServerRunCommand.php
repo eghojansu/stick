@@ -25,7 +25,7 @@ use Fal\Stick\Cli\InputOption;
  *
  * @codeCoverageIgnore
  */
-class ServerCommand extends Command
+class ServerRunCommand extends Command
 {
     /**
      * {@inheritdoc}
