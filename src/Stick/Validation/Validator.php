@@ -79,21 +79,21 @@ final class Validator
                 $expression
             );
 
-            if ($field->hasRule('optional') && $field->isEmpty()) {
-                $data[$fieldName] = $field->value();
-
-                continue;
-            }
-
             foreach ($field->rules() as $rule => $arguments) {
                 $value = $this->findRule($rule)->validate($rule, $arguments, $field);
 
                 // validation fail?
                 if (false === $value) {
-                    $success = false;
+                    if ($success) {
+                        $success = false;
+                    }
+
                     $errors[$fieldName] = $messages[$fieldName.'.'.$rule] ??
                         $this->message($rule, $arguments, $field);
+                    $field->setSkip();
+                }
 
+                if ($field->isSkip()) {
                     break;
                 }
 
@@ -102,7 +102,9 @@ final class Validator
                 }
             }
 
-            $data[$fieldName] = $field->value();
+            if (!$field->isSkip()) {
+                $data[$fieldName] = $field->value();
+            }
         }
 
         return compact('success', 'errors', 'data');

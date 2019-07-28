@@ -219,7 +219,7 @@ class LaravelRule implements RuleInterface
      */
     protected function _confirmed(Field $field, string $cfield = null): bool
     {
-        return $field->equalsTo($cfield ?? $field->field().'_confirmation');
+        return $field->equalTo($cfield ?? $field->field().'_confirmation');
     }
 
     /**
@@ -236,7 +236,8 @@ class LaravelRule implements RuleInterface
     }
 
     /**
-     * The field under validation must be a valid, non-relative date according to the strtotime PHP function.
+     * The field under validation must be a valid,
+     * non-relative date according to the strtotime PHP function.
      *
      * @param Field $field
      *
@@ -289,7 +290,7 @@ class LaravelRule implements RuleInterface
      */
     protected function _different(Field $field, string $cfield): bool
     {
-        return !$field->equalsTo($cfield);
+        return !$field->equalTo($cfield);
     }
 
     /**
@@ -340,7 +341,7 @@ class LaravelRule implements RuleInterface
     }
 
     /**
-     * Return TRUE if string is a valid e-mail address, check DNS MX records if specified.
+     * Return true if string is a valid e-mail address, check DNS MX records if specified.
      *
      * @param Field $field
      * @param bool  $mx
@@ -692,7 +693,7 @@ class LaravelRule implements RuleInterface
      */
     protected function _optional(Field $field): bool
     {
-        return true;
+        return $field->isEmpty() ? $field->setSkip()->isSkip() : true;
     }
 
     /**
@@ -798,7 +799,7 @@ class LaravelRule implements RuleInterface
      */
     protected function _same(Field $field, string $cfield): bool
     {
-        return $field->equalsTo($cfield);
+        return $field->equalTo($cfield);
     }
 
     /**
@@ -1034,5 +1035,34 @@ class LaravelRule implements RuleInterface
     protected function _join(Field $field, string $glue = ','): string
     {
         return implode($glue, $field->value());
+    }
+
+    /**
+     * Required only if another field exists or equal with some value.
+     *
+     * @param Field  $field
+     * @param string $anotherField
+     * @param mixed  $value
+     *
+     * @return bool
+     */
+    protected function _requiredIf(
+        Field $field,
+        string $anotherField,
+        $value = null
+    ): bool {
+        $anotherValue = $field->fieldValue($anotherField);
+        $anotherEmpty = in_array($anotherValue, array('', array(), null), true);
+        $isEmpty = in_array($value, array('', array(), null), true);
+
+        if ($isEmpty) {
+            if ($anotherEmpty) {
+                return $field->setSkip()->isSkip();
+            }
+
+            return $this->_required($field);
+        }
+
+        return $anotherValue == $value ? $this->_required($field) : $field->setSkip()->isSkip();
     }
 }

@@ -43,11 +43,11 @@ class FieldTest extends MyTestCase
     }
 
     /**
-     * @dataProvider Fal\Stick\TestSuite\Provider\Validation\FieldProvider::parse
+     * @dataProvider Fal\Stick\TestSuite\Provider\Validation\FieldProvider::parseRules
      */
-    public function testParse($expected, $rules)
+    public function testParseRules($expected, $rules)
     {
-        $this->assertEquals($expected, Field::parse($rules));
+        $this->assertEquals($expected, Field::parseRules($rules));
     }
 
     public function testValue()
@@ -94,10 +94,10 @@ class FieldTest extends MyTestCase
         $this->assertFalse($this->field->hasRule('required'));
     }
 
-    public function testEqualsTo()
+    public function testEqualTo()
     {
-        $this->assertFalse($this->field->equalsTo('bar'));
-        $this->assertTrue($this->field->equalsTo('baz'));
+        $this->assertFalse($this->field->equalTo('bar'));
+        $this->assertTrue($this->field->equalTo('baz'));
     }
 
     public function testTime()
@@ -152,5 +152,15 @@ class FieldTest extends MyTestCase
     public function testIsEmpty()
     {
         $this->assertFalse($this->field->isEmpty());
+    }
+
+    public function testIsSkip()
+    {
+        $this->assertFalse($this->field->isSkip());
+    }
+
+    public function testSetSkip()
+    {
+        $this->assertTrue($this->field->setSkip()->isSkip());
     }
 }

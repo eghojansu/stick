@@ -23,7 +23,6 @@ class ValidatorProvider
                     'data' => array(
                         'foo' => 'bar',
                         'bar' => 'bar ',
-                        'baz' => null,
                     ),
                 ),
                 array(
@@ -33,7 +32,6 @@ class ValidatorProvider
                 array(
                     'foo' => 'trim|required',
                     'bar' => 'required',
-                    'baz' => 'optional',
                 ),
             ),
             'error' => array(
@@ -44,11 +42,7 @@ class ValidatorProvider
                         'bar' => 'This value should not be blank.',
                         'date' => "This value should be after 'tomorrow'.",
                     ),
-                    'data' => array(
-                        'foo' => null,
-                        'bar' => null,
-                        'date' => 'today',
-                    ),
+                    'data' => array(),
                 ),
                 array(
                     'date' => 'today',
@@ -65,9 +59,7 @@ class ValidatorProvider
                     'errors' => array(
                         'foo' => 'Custom error',
                     ),
-                    'data' => array(
-                        'foo' => null,
-                    ),
+                    'data' => array(),
                 ),
                 array(),
                 array(
@@ -75,6 +67,43 @@ class ValidatorProvider
                 ),
                 array(
                     'foo.required' => 'Custom error',
+                ),
+            ),
+            'optional' => array(
+                array(
+                    'success' => true,
+                    'errors' => array(),
+                    'data' => array(
+                        'bar' => 'barval',
+                    ),
+                ),
+                array(
+                    'bar' => 'barval',
+                ),
+                array(
+                    'foo' => 'optional',
+                    'bar' => 'required',
+                ),
+            ),
+            'required if' => array(
+                array(
+                    'success' => true,
+                    'errors' => array(),
+                    'data' => array(
+                        'foo' => '',
+                        'qux' => 'quxval',
+                    ),
+                ),
+                array(
+                    'foo' => ' ',
+                    'bar' => 'barval',
+                    'baz' => 'bazval',
+                    'qux' => 'quxval',
+                ),
+                array(
+                    'foo' => 'trim',
+                    'bar' => 'requiredif:foo',
+                    'qux' => 'requiredif:baz,bazval',
                 ),
             ),
         );

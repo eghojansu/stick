@@ -13,7 +13,7 @@ namespace Fal\Stick\TestSuite\Provider\Validation;
 
 class FieldProvider
 {
-    public function parse()
+    public function parseRules()
     {
         return array(
             array(

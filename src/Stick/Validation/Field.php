@@ -40,6 +40,9 @@ final class Field
     /** @var array */
     private $rules;
 
+    /** @var bool */
+    private $skip = false;
+
     /**
      * Returns parsed string expression.
      *
@@ -51,7 +54,7 @@ final class Field
      *
      * @return array
      */
-    public static function parse(string $expr): array
+    public static function parseRules(string $expr): array
     {
         $len = strlen($expr);
         $res = array();
@@ -155,7 +158,7 @@ final class Field
         $this->data = $data;
         $this->field = $field;
         $this->value = $this->fieldValue($field);
-        $this->rules = self::parse($rules);
+        $this->rules = self::parseRules($rules);
     }
 
     /**
@@ -178,6 +181,30 @@ final class Field
     public function rules(): array
     {
         return $this->rules;
+    }
+
+    /**
+     * Returns skip status.
+     *
+     * @return bool
+     */
+    public function isSkip(): bool
+    {
+        return $this->skip;
+    }
+
+    /**
+     * Sets skip status.
+     *
+     * @param bool $skip
+     *
+     * @return Field
+     */
+    public function setSkip(bool $skip = true): Field
+    {
+        $this->skip = $skip;
+
+        return $this;
     }
 
     /**
@@ -297,7 +324,7 @@ final class Field
      *
      * @return bool
      */
-    public function equalsTo(string $field): bool
+    public function equalTo(string $field): bool
     {
         return $this->value == $this->fieldValue($field);
     }

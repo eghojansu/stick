@@ -766,6 +766,59 @@ class RuleProvider
                 'join',
                 array('foo', 'bar'),
             ),
+            'required if field bar exists' => array(
+                true,
+                'requiredif',
+                null,
+                array('bar'),
+                array(
+                    'foo' => 'foo',
+                    'bar' => 'bar',
+                ),
+            ),
+            'required if field bar exists with empty foo' => array(
+                false,
+                'requiredif',
+                null,
+                array('bar'),
+                array(
+                    // foo empty!
+                    'foo' => '',
+                    'bar' => 'bar',
+                ),
+            ),
+            'required if field bar exists with empty bar' => array(
+                true,
+                'requiredif',
+                null,
+                array('bar'),
+                array(
+                    // foo empty!
+                    'foo' => '',
+                    // bar empty!
+                    'bar' => '',
+                ),
+            ),
+            'required if field bar equal to "exists"' => array(
+                true,
+                'requiredif',
+                null,
+                array('bar', 'exists'),
+                array(
+                    'foo' => 'foo',
+                    'bar' => 'exists',
+                ),
+            ),
+            'required if field bar not equal to foo (being skipped)' => array(
+                true,
+                'requiredif',
+                null,
+                array('bar'),
+                array(
+                    'foo' => 'foo',
+                    'bar' => 'bar',
+                ),
+            ),
         );
     }
 
