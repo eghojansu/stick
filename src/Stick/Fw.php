@@ -2454,27 +2454,28 @@ final class Fw implements \ArrayAccess
      */
     public function sendHeaders(): Fw
     {
-        if ($this->hive['HEADERS_SENT']) {
-            return $this;
-        }
+        if (!headers_sent()) {
+            // In case this method called twice, remove previous header
+            !$this->hive['HEADERS_SENT'] || header_remove();
 
-        $this->hive['HEADERS_SENT'] = true;
+            $this->hive['HEADERS_SENT'] = true;
 
-        // response headers
-        foreach ($this->hive['RESPONSE'] ?? array() as $name => $values) {
-            $replace = 0 === strcasecmp($name, 'Content-Type');
+            // response headers
+            foreach ($this->hive['RESPONSE'] ?? array() as $name => $values) {
+                $replace = 0 === strcasecmp($name, 'Content-Type');
 
-            foreach ($values as $value) {
-                header($name.': '.$value, $replace, $this->hive['STATUS']);
+                foreach ($values as $value) {
+                    header($name.': '.$value, $replace, $this->hive['STATUS']);
+                }
             }
-        }
 
-        // status
-        header(
-            $this->hive['PROTOCOL'].' '.$this->hive['STATUS'].' '.$this->hive['TEXT'],
-            true,
-            $this->hive['STATUS']
-        );
+            // status
+            header(
+                $this->hive['PROTOCOL'].' '.$this->hive['STATUS'].' '.$this->hive['TEXT'],
+                true,
+                $this->hive['STATUS']
+            );
+        }
 
         return $this;
     }
