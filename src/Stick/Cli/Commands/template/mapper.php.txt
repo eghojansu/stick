@@ -1,8 +1,0 @@
-<?php
-
-namespace ${namespace};
-
-use Fal\Stick\Db\Pdo\Mapper;
-
-class ${className} extends Mapper
-{}

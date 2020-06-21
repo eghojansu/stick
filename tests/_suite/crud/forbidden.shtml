@@ -1,5 +1,0 @@
-<extends href="layout.shtml" />
-
-<block name="content">
-  Forbidden state: {{ @crud->state }}.
-</block>

@@ -1,4 +1,0 @@
-<title>{{ @crud->title.' - '.@crud->subtitle }}</title>
-<content>
-<block name="content">CRUD</block>
-</content>

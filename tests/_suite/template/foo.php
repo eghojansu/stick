@@ -1,1 +1,0 @@
-<?= isset($foo) ? $foo : 'notfoo' ?>bar.
