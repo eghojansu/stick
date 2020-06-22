@@ -176,7 +176,9 @@ class Auth
             return true;
         }
 
-        $this->fw->reroute($this->check['login']);
+        $target = $this->check['logged'] ? $this->check['home'] : $this->check['login'];
+
+        $this->fw->reroute($target);
 
         return false;
     }
@@ -452,16 +454,19 @@ class Auth
         $path = $this->fw->get('PATH');
         $use = is_array($rule) ? $rule : array('roles' => $rule);
         $login = $use['login'] ?? '/login';
+        $home = $use['home'] ?? '/';
         $roles = $use['roles'];
 
         if (
-            $path !== $login
-            && preg_match('#'.$pattern.'#', $path) && !$this->isGranted($roles)
+            ($logged = $path === $login && $this->getUser())
+            || preg_match('#'.$pattern.'#', $path) && !$this->isGranted($roles)
         ) {
             return array(
+                'home' => $home,
+                'logged' => $logged,
                 'login' => $login,
-                'roles' => $roles,
                 'pattern' => $pattern,
+                'roles' => $roles,
             );
         }
 

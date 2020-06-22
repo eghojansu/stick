@@ -466,8 +466,8 @@ final class AuthTest extends TestCase
                 ),
             ),
             'has been login but access login path again' => array(
-                true,
-                null,
+                false,
+                'rerouted to /',
                 array(
                     'rules' => array(
                         '/' => 'foo',

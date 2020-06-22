@@ -52,11 +52,13 @@ final class ViewTest extends TestCase
     public function testOffsetExists()
     {
         $this->assertTrue(isset($this->view['PATH']));
+        $this->assertFalse(isset($this->view['section.foo']));
     }
 
     public function testOffsetGet()
     {
         $this->assertEquals('/', $this->view['PATH']);
+        $this->assertEquals(null, $this->view['section.foo']);
     }
 
     public function testOffsetSet()

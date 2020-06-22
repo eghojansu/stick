@@ -63,7 +63,7 @@ class View implements \ArrayAccess
      */
     public function offsetExists($key)
     {
-        return $this->fw->has($key);
+        return (0 === strpos($key, 'section.') && isset($this->sections[substr($key, 8)])) || $this->fw->has($key);
     }
 
     /**
@@ -71,7 +71,11 @@ class View implements \ArrayAccess
      */
     public function &offsetGet($key)
     {
-        $ref = &$this->fw->get($key);
+        if (0 === strpos($key, 'section.')) {
+            $ref = $this->section(substr($key, 8));
+        } else {
+            $ref = &$this->fw->get($key);
+        }
 
         return $ref;
     }

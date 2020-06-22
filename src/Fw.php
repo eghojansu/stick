@@ -612,7 +612,7 @@ class Fw implements \ArrayAccess
      */
     public static function iniParse(string $str): array
     {
-        preg_match_all('/(?<=^|\n)(?:\[(?<section>.+?)\]|(?<lval>[^\h\r\n;].*?)\h*=\h*(?<rval>(?:\\\\\h*\r?\n|.+?)*))(?=\r?\n|$)/', $str, $matches, PREG_SET_ORDER);
+        preg_match_all('/(?<=^|\n)(?:\[(?<section>.+?)\]|(?<lval>[^\h\r\n;].*?)\h*=\h*(?<rval>(?:\\\\\h*\r?\n|.+?)*))(?=\r?\n|$)/', trim($str), $matches, PREG_SET_ORDER);
 
         return $matches;
     }
@@ -2181,10 +2181,7 @@ class Fw implements \ArrayAccess
             return;
         }
 
-        list(
-            'prefix' => $prefix,
-            'extension' => $extension,
-            'directory' => $directory) = $this->hive['LOG'];
+        list('prefix' => $prefix, 'extension' => $extension, 'directory' => $directory) = $this->hive['LOG'];
 
         if (!is_dir($directory)) {
             mkdir($directory, 0755, true);
