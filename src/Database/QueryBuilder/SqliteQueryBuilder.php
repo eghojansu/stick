@@ -29,9 +29,7 @@ class SqliteQueryBuilder extends AbstractQueryBuilder
 
     public function getDsn(): string
     {
-        list(
-            'path' => $path,
-            'sqlite2' => $sqlite2) = $this->options;
+        list('path' => $path, 'sqlite2' => $sqlite2) = $this->options;
 
         return sprintf('sqlite%s:%s', $sqlite2 ? '2' : '', $path);
     }

@@ -138,11 +138,7 @@ class Fw implements \ArrayAccess
         $verb = $server['REQUEST_METHOD'] ?? 'GET';
 
         $scheme = $secure ? 'https' : 'http';
-        $host = $server['SERVER_NAME'] ?? 'localhost';
-
-        if ('0.0.0.0' === $host) {
-            $host = $server['SERVER_ADDR'] ?? gethostname();
-        }
+        $host = static::resolveServerHost($server);
 
         $port = intval($server['SERVER_PORT'] ?? 80);
         $base = rtrim(static::fixSlashes(dirname($script)), '/');
@@ -274,11 +270,11 @@ class Fw implements \ArrayAccess
      */
     public function __call($method, $arguments)
     {
-        if ($callback = $this->ref('METHOD.'.$method)) {
+        if ($callback = $this->ref('METHOD.'.$method, false)) {
             return $this->call($callback, $this, ...$arguments);
         }
 
-        if ($callback = $this->ref('FUNCTION.'.$method)) {
+        if ($callback = $this->ref('FUNCTION.'.$method, false)) {
             return $this->call($callback, ...$arguments);
         }
 
@@ -478,6 +474,24 @@ class Fw implements \ArrayAccess
         }
 
         return $second <=> $first;
+    }
+
+    /**
+     * Get server host.
+     */
+    public static function resolveServerHost(?array $server): string
+    {
+        $host = $server['SERVER_NAME'] ?? 'localhost';
+
+        if ('0.0.0.0' === $host) {
+            if (isset($server['SERVER_ADDR'])) {
+                return $server['SERVER_ADDR'];
+            }
+
+            return strstr(($server['HTTP_HOST'] ?? gethostname()).':', ':', true);
+        }
+
+        return $host;
     }
 
     /**
@@ -690,7 +704,7 @@ class Fw implements \ArrayAccess
      */
     public function transRaw(string $message, bool $stringOnly = true)
     {
-        $translated = $this->ref('DICT.'.rtrim($message, '.'));
+        $translated = $this->ref('DICT.'.rtrim($message, '.'), false);
 
         if ($stringOnly && (null !== $translated && !is_string($translated))) {
             throw new \LogicException("Translated message is not a string: '{$message}'.");
@@ -808,7 +822,7 @@ class Fw implements \ArrayAccess
      *
      * @return mixed
      */
-    public function &ref(string $key, bool $add = false, bool &$exists = null, array &$parts = null)
+    public function &ref(string $key, bool $add = true, bool &$exists = null, array &$parts = null)
     {
         if ('SESSION' === $key || 0 === strpos($key, 'SESSION.')) {
             $this->sessionStart();
@@ -843,8 +857,7 @@ class Fw implements \ArrayAccess
         $last = strrpos($key, '.');
         $parent = substr($key, 0, $last);
         $child = substr($key, $last + 1);
-
-        $var = &$this->ref($parent, true);
+        $var = &$this->ref($parent);
 
         unset($var[$child]);
 
@@ -873,10 +886,17 @@ class Fw implements \ArrayAccess
         }
 
         if ($this->hasGetter($parts[0], $method)) {
-            $var = $this->{$method}(array_slice($parts, 1));
-        } elseif ($getter = $this->ref('GETTER.'.$key)) {
-            $var = $this->call($getter, $this);
-        } elseif ($creator = $this->ref('CREATOR.'.$key)) {
+            $var = $this->{$method}($key);
+        } elseif ($getter = $this->ref('GETTER.'.$parts[0])) {
+            if (isset($parts[1])) {
+                unset($var);
+                $this->hive[$parts[0]] = $this->call($getter, $this);
+
+                $var = &$this->ref($key);
+            } else {
+                $var = $this->call($getter, $this);
+            }
+        } elseif ($creator = $this->ref('CREATOR.'.$parts[0])) {
             unset($var);
 
             $var = $this->call($creator, $this);
@@ -899,8 +919,7 @@ class Fw implements \ArrayAccess
         if ($this->hasSetter(strstr($key.'.', '.', true), $method)) {
             $this->{$method}($key, $value);
         } else {
-            $var = &$this->ref($key, true, $exists, $parts);
-            $var = $value;
+            $this->setInternal($key, $value);
         }
 
         return $this;
@@ -1158,7 +1177,7 @@ class Fw implements \ArrayAccess
      */
     public function dispatch(string $eventName, array $arguments = null, &$result = null, bool $once = false): bool
     {
-        if (!$handlers = $this->ref('EVENT.'.$eventName)) {
+        if (!$handlers = $this->ref('EVENT.'.$eventName, false)) {
             return false;
         }
 
@@ -1519,12 +1538,7 @@ class Fw implements \ArrayAccess
 
         if (false !== strpos($pattern, '@')) {
             $regex = preg_replace_callback(static::ROUTE_PARAMETER_PATTERN, function (array $match) {
-                list(
-                    $global,
-                    $name,
-                    $characterClasses,
-                    $customPattern,
-                    $matchAll) = $match + array(2 => null, null, null);
+                list($global, $name, $characterClasses, $customPattern, $matchAll) = $match + array(2 => null, null, null);
 
                 if ($matchAll) {
                     $pattern = '[^\?]*';
@@ -1888,13 +1902,8 @@ class Fw implements \ArrayAccess
             return;
         }
 
-        list(
-            'controller' => $controller,
-            'arguments' => $arguments,
-            'alias' => $alias,
-            'pattern' => $pattern,
-            'mime' => $mime,
-            'extras' => $extras) = $route = $this->findRoute();
+        $route = $this->findRoute();
+        list('controller' => $controller, 'arguments' => $arguments, 'alias' => $alias, 'pattern' => $pattern, 'mime' => $mime, 'extras' => $extras) = $route;
 
         $this->hive['PARAMS'] = $arguments;
         $this->hive['ALIAS'] = $alias;
@@ -2293,11 +2302,9 @@ class Fw implements \ArrayAccess
                 continue;
             }
 
-            list(
-                'lval' => $key,
-                'rval' => $value) = $match;
+            list('lval' => $key, 'rval' => $value) = $match;
 
-            $this->set('DICT.'.$prefix.$key, $value);
+            $this->set('DICT.'.$prefix.$key, trim($value));
         }
     }
 
@@ -2336,7 +2343,7 @@ class Fw implements \ArrayAccess
      */
     protected function setInternal(string $key, $value): void
     {
-        $var = &$this->ref($key, true);
+        $var = &$this->ref($key);
         $var = $value;
     }
 
@@ -2403,7 +2410,7 @@ class Fw implements \ArrayAccess
         if (false === strpos($key, '.')) {
             $this->setAll($content, $key.'.');
         } else {
-            $header = array_merge((array) $this->ref($key), (array) $content);
+            $header = array_merge((array) $this->ref($key, false), (array) $content);
 
             $this->setInternal($key, $header);
         }
@@ -2419,7 +2426,7 @@ class Fw implements \ArrayAccess
         if (false === strpos($key, '.')) {
             $this->setAll($handler, $key.'.');
         } else {
-            $events = $this->ref($key);
+            $events = $this->ref($key, false);
             $events[] = is_array($handler) && is_bool($handler[1] ?? null) ? $handler : array($handler, false);
 
             $this->setInternal($key, $events);

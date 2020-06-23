@@ -31,11 +31,7 @@ class MySqlQueryBuilder extends AbstractQueryBuilder
 
     public function getDsn(): string
     {
-        list(
-            'host' => $host,
-            'port' => $port,
-            'dbname' => $name,
-            'dsn_suffix' => $suffix) = $this->options;
+        list('host' => $host, 'port' => $port, 'dbname' => $name, 'dsn_suffix' => $suffix) = $this->options;
 
         if ($port) {
             $suffix = ';port='.$port.$suffix;

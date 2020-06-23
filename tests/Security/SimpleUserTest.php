@@ -53,9 +53,10 @@ final class SimpleUserTest extends TestCase
             'expired' => true,
             'disabled' => true,
             'roles' => array('foo', 'bar'),
+            'info' => array(),
         );
 
-        $this->assertEquals($expected, $this->user->toArray());
+        $this->assertEquals($expected, $this->user->toArray(true));
     }
 
     public function testGetId()
@@ -86,5 +87,102 @@ final class SimpleUserTest extends TestCase
     public function testIsDisabled()
     {
         $this->assertTrue($this->user->isDisabled());
+    }
+
+    public function testMagicExists()
+    {
+        $this->assertFalse(isset($this->user->foo));
+    }
+
+    public function testMagicGet()
+    {
+        $this->assertNull($this->user->foo);
+    }
+
+    public function testMagicSet()
+    {
+        $this->user->foo = 'bar';
+        $this->user->username = 'foobar';
+
+        $this->assertEquals('bar', $this->user->foo);
+        $this->assertEquals('foobar', $this->user->getUsername());
+    }
+
+    public function testMagicUnset()
+    {
+        $this->user->foo = 'bar';
+        unset($this->user->foo);
+
+        $this->assertNull($this->user->foo);
+    }
+
+    public function testOffsetExists()
+    {
+        $this->assertFalse(isset($this->user['foo']));
+    }
+
+    public function testOffsetGet()
+    {
+        $this->assertNull($this->user['foo']);
+    }
+
+    public function testOffsetSet()
+    {
+        $this->user['foo'] = 'bar';
+
+        $this->assertEquals('bar', $this->user['foo']);
+    }
+
+    public function testOffsetUnset()
+    {
+        $this->user['foo'] = 'bar';
+        unset($this->user['foo']);
+
+        $this->assertNull($this->user['foo']);
+    }
+
+    public function testGetInfo()
+    {
+        $this->assertEquals(array(), $this->user->getInfo());
+    }
+
+    public function testInfo()
+    {
+        $this->assertNull($this->user->info('foo'));
+    }
+
+    public function testAddInfo()
+    {
+        $this->assertEquals('bar', $this->user->addInfo('foo', 'bar')->info('foo'));
+    }
+
+    public function testRemInfo()
+    {
+        $this->assertNull($this->user->addInfo('foo', 'bar')->remInfo('foo')->info('foo'));
+    }
+
+    public function testSetUsername()
+    {
+        $this->assertEquals('foobar', $this->user->setUsername('foobar')->getUsername());
+    }
+
+    public function testSetPassword()
+    {
+        $this->assertEquals('foobar', $this->user->setPassword('foobar')->getPassword());
+    }
+
+    public function testSetRoles()
+    {
+        $this->assertEquals(array('foo'), $this->user->setRoles(array('foo'))->getRoles());
+    }
+
+    public function testSetExpired()
+    {
+        $this->assertTrue($this->user->setExpired(true)->isExpired());
+    }
+
+    public function testSetDisabled()
+    {
+        $this->assertTrue($this->user->setDisabled(true)->isDisabled());
     }
 }

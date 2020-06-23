@@ -165,6 +165,12 @@ final class FwTest extends TestCase
         $this->assertEquals($expected, Fw::headerQualitySort($current, $next));
     }
 
+    /** @dataProvider resolveServerHostProvider */
+    public function testResolveServerHost(string $expected, array $server = null)
+    {
+        $this->assertEquals($expected, Fw::resolveServerHost($server));
+    }
+
     public function testFixSlashes()
     {
         $this->assertEquals('/foo/bar', Fw::fixSlashes('/foo/bar'));
@@ -473,12 +479,17 @@ final class FwTest extends TestCase
         $this->assertInstanceOf('stdClass', $this->fw->get('stdClass'));
 
         $this->fw->set('GETTER.foo', function () {
-            return 'bar';
+            $std = new \stdClass();
+            $std->foo = 'bar';
+            $std->bar = 'baz';
+
+            return $std;
         });
         $this->fw->set('CREATOR.bar', function () {
             return 'bar';
         });
-        $this->assertEquals('bar', $this->fw->get('foo'));
+        $this->assertEquals('bar', $this->fw->get('foo.foo'));
+        $this->assertEquals('baz', $this->fw->get('foo.bar'));
         $this->assertEquals('bar', $this->fw->get('bar'));
     }
 
@@ -1692,6 +1703,34 @@ final class FwTest extends TestCase
                 'LOG.append_context',
                 array(
                     'LOG.append_context' => false,
+                ),
+            ),
+        );
+    }
+
+    public function resolveServerHostProvider()
+    {
+        return array(
+            'localhost' => array(
+                'localhost',
+            ),
+            'use server name' => array(
+                'server-name',
+                array(
+                    'SERVER_NAME' => 'server-name',
+                ),
+            ),
+            'http host' => array(
+                'foo',
+                array(
+                    'SERVER_NAME' => '0.0.0.0',
+                    'HTTP_HOST' => 'foo:bar',
+                ),
+            ),
+            'http host fallback' => array(
+                gethostname(),
+                array(
+                    'SERVER_NAME' => '0.0.0.0',
                 ),
             ),
         );
