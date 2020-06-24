@@ -11,23 +11,30 @@
 
 declare(strict_types=1);
 
-namespace Ekok\Stick\Tests\Database\QueryBuilder;
+namespace Ekok\Stick\Tests\Sql\QueryBuilder;
 
-use Ekok\Stick\Database\QueryBuilder\AbstractQueryBuilder;
+use Ekok\Stick\Sql\QueryBuilder\MySqlQueryBuilder;
 use PHPUnit\Framework\TestCase;
 
 /**
  * @internal
  *
- * @covers \Ekok\Stick\Database\QueryBuilder\AbstractQueryBuilder
+ * @covers \Ekok\Stick\Sql\QueryBuilder\MySqlQueryBuilder
  */
-final class AbstractQueryBuilderTest extends TestCase
+final class MySqlQueryBuilderTest extends TestCase
 {
     private $builder;
 
     protected function setUp(): void
     {
-        $this->builder = $this->getMockForAbstractClass(AbstractQueryBuilder::class, array(array('foo' => 'bar')));
+        $this->builder = new MySqlQueryBuilder(array(
+            'dbname' => 'test',
+        ));
+    }
+
+    public function testGetDsn()
+    {
+        $this->assertEquals('mysql:host=localhost;dbname=test;port=3306', $this->builder->getDsn());
     }
 
     public function testGetUser()

@@ -11,15 +11,15 @@
 
 declare(strict_types=1);
 
-namespace Ekok\Stick\Tests\Database;
+namespace Ekok\Stick\Tests\Sql;
 
-use Ekok\Stick\Database\EmptyResult;
+use Ekok\Stick\Sql\EmptyResult;
 use PHPUnit\Framework\TestCase;
 
 /**
  * @internal
  *
- * @covers \Ekok\Stick\Database\EmptyResult
+ * @covers \Ekok\Stick\Sql\EmptyResult
  */
 final class EmptyResultTest extends TestCase
 {

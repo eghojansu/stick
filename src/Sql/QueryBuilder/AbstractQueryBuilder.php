@@ -11,9 +11,9 @@
 
 declare(strict_types=1);
 
-namespace Ekok\Stick\Database\QueryBuilder;
+namespace Ekok\Stick\Sql\QueryBuilder;
 
-use Ekok\Stick\Database\QueryBuilderInterface;
+use Ekok\Stick\Sql\QueryBuilderInterface;
 
 /**
  * @author Eko Kurniawan <ekokurniawanbs@gmail.com>

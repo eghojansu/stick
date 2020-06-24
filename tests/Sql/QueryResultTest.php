@@ -11,15 +11,15 @@
 
 declare(strict_types=1);
 
-namespace Ekok\Stick\Tests\Database;
+namespace Ekok\Stick\Tests\Sql;
 
-use Ekok\Stick\Database\QueryResult;
+use Ekok\Stick\Sql\QueryResult;
 use PHPUnit\Framework\TestCase;
 
 /**
  * @internal
  *
- * @covers \Ekok\Stick\Database\QueryResult
+ * @covers \Ekok\Stick\Sql\QueryResult
  */
 final class QueryResultTest extends TestCase
 {

@@ -11,7 +11,7 @@
 
 declare(strict_types=1);
 
-namespace Ekok\Stick\Database\QueryBuilder;
+namespace Ekok\Stick\Sql\QueryBuilder;
 
 /**
  * @author Eko Kurniawan <ekokurniawanbs@gmail.com>

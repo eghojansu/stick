@@ -38,15 +38,10 @@ class SimpleUser implements UserInterface, \ArrayAccess
         return isset($this->_data[$key]) || isset($this->_info[$key]) || array_key_exists($key, $this->_info);
     }
 
-    public function __get($key)
-    {
-        return $this->_data[$key] ?? $this->_info[$key] ?? null;
-    }
-
     public function __set($key, $value)
     {
         if (isset($this->_data[$key]) && method_exists($this, $set = 'set'.$key)) {
-            $this->$set($value);
+            $this->{$set}($value);
         } else {
             $this->addInfo($key, $value);
         }
@@ -57,24 +52,31 @@ class SimpleUser implements UserInterface, \ArrayAccess
         $this->remInfo($key);
     }
 
-    public function offsetExists($key)
+    public function &__get($key)
     {
-        return isset($this->$key);
+        $ref = $this->_data[$key] ?? $this->_info[$key] ?? null;
+
+        return $ref;
     }
 
-    public function offsetGet($key)
+    public function offsetExists($key)
     {
-        return $this->$key;
+        return isset($this->{$key});
+    }
+
+    public function &offsetGet($key)
+    {
+        return $this->{$key};
     }
 
     public function offsetSet($key, $value)
     {
-        $this->$key = $value;
+        $this->{$key} = $value;
     }
 
     public function offsetUnset($key)
     {
-        unset($this->$key);
+        unset($this->{$key});
     }
 
     public static function fromArray(array $user): SimpleUser
@@ -92,9 +94,9 @@ class SimpleUser implements UserInterface, \ArrayAccess
         return new static(...$arguments);
     }
 
-    public function toArray(bool $info = false): array
+    public function toArray(bool $info = true): array
     {
-        return $this->_data + ($info ? array('info' => $this->_info) : array());
+        return $info ? array_merge($this->_data, $this->_info) : $this->_data;
     }
 
     public function getId(): string

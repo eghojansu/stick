@@ -889,10 +889,14 @@ class Fw implements \ArrayAccess
             $var = $this->{$method}($key);
         } elseif ($getter = $this->ref('GETTER.'.$parts[0])) {
             if (isset($parts[1])) {
-                unset($var);
-                $this->hive[$parts[0]] = $this->call($getter, $this);
+                $firstCreation = is_array($this->hive[$parts[0]]) && array_key_exists($parts[1], $this->hive[$parts[0]]);
 
-                $var = &$this->ref($key);
+                if ($firstCreation) {
+                    unset($var);
+
+                    $this->hive[$parts[0]] = $this->call($getter, $this);
+                    $var = &$this->ref($key);
+                }
             } else {
                 $var = $this->call($getter, $this);
             }

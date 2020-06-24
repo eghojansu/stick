@@ -53,7 +53,6 @@ final class SimpleUserTest extends TestCase
             'expired' => true,
             'disabled' => true,
             'roles' => array('foo', 'bar'),
-            'info' => array(),
         );
 
         $this->assertEquals($expected, $this->user->toArray(true));

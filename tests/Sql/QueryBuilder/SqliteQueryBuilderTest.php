@@ -11,15 +11,15 @@
 
 declare(strict_types=1);
 
-namespace Ekok\Stick\Tests\Database\QueryBuilder;
+namespace Ekok\Stick\Tests\Sql\QueryBuilder;
 
-use Ekok\Stick\Database\QueryBuilder\SqliteQueryBuilder;
+use Ekok\Stick\Sql\QueryBuilder\SqliteQueryBuilder;
 use PHPUnit\Framework\TestCase;
 
 /**
  * @internal
  *
- * @covers \Ekok\Stick\Database\QueryBuilder\SqliteQueryBuilder
+ * @covers \Ekok\Stick\Sql\QueryBuilder\SqliteQueryBuilder
  */
 final class SqliteQueryBuilderTest extends TestCase
 {

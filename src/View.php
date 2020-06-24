@@ -145,9 +145,10 @@ class View implements \ArrayAccess
     /**
      * Set view layout.
      */
-    public function layout(?string $layout): View
+    public function layout(?string $layout, array $data = null): View
     {
         $this->layout = $layout;
+        $this->fw->setAll($data ?? array());
 
         return $this;
     }

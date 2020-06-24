@@ -11,7 +11,7 @@
 
 declare(strict_types=1);
 
-namespace Ekok\Stick\Database;
+namespace Ekok\Stick\Sql;
 
 /**
  * Query result.

@@ -11,35 +11,28 @@
 
 declare(strict_types=1);
 
-namespace Ekok\Stick\Tests\Database\QueryBuilder;
+namespace Ekok\Stick\Tests\Sql\QueryBuilder;
 
-use Ekok\Stick\Database\QueryBuilder\MsSqlQueryBuilder;
+use Ekok\Stick\Sql\QueryBuilder\AbstractQueryBuilder;
 use PHPUnit\Framework\TestCase;
 
 /**
  * @internal
  *
- * @covers \Ekok\Stick\Database\QueryBuilder\MsSqlQueryBuilder
+ * @covers \Ekok\Stick\Sql\QueryBuilder\AbstractQueryBuilder
  */
-final class MsSqlQueryBuilderTest extends TestCase
+final class AbstractQueryBuilderTest extends TestCase
 {
     private $builder;
 
     protected function setUp(): void
     {
-        $this->builder = new MsSqlQueryBuilder(array(
-            'dbname' => 'test',
-        ));
-    }
-
-    public function testGetDsn()
-    {
-        $this->assertEquals('sqlsrv:Server=localhost,1433;Database=test', $this->builder->getDsn());
+        $this->builder = $this->getMockForAbstractClass(AbstractQueryBuilder::class, array(array('foo' => 'bar')));
     }
 
     public function testGetUser()
     {
-        $this->assertEquals('sa', $this->builder->getUser());
+        $this->assertEquals('root', $this->builder->getUser());
     }
 
     public function testGetPassword()
@@ -64,8 +57,8 @@ final class MsSqlQueryBuilderTest extends TestCase
 
     public function testQuote()
     {
-        $this->assertEquals('"foo"', $this->builder->quote('foo'));
-        $this->assertEquals('"foo"."bar"', $this->builder->quote('foo.bar'));
+        $this->assertEquals('`foo`', $this->builder->quote('foo'));
+        $this->assertEquals('`foo`.`bar`', $this->builder->quote('foo.bar'));
     }
 
     /** @dataProvider stringifyProvider */
@@ -89,21 +82,21 @@ final class MsSqlQueryBuilderTest extends TestCase
 
     public function testSelect()
     {
-        $expected = array('select * from "foo"', array());
+        $expected = array('select * from `foo`', array());
 
         $this->assertEquals($expected, $this->builder->select('foo'));
     }
 
     public function testCount()
     {
-        $expected = array('select count(*) _count from (select * from "foo") _source', array());
+        $expected = array('select count(*) _count from (select * from `foo`) _source', array());
 
         $this->assertEquals($expected, $this->builder->count('foo'));
     }
 
     public function testInsert()
     {
-        $expected = array('insert into "foo" ("foo", "bar") values (?, ?)', array(1, 2));
+        $expected = array('insert into `foo` (`foo`, `bar`) values (?, ?)', array(1, 2));
         $table = 'foo';
         $data = array(
             'foo' => 1,
@@ -115,7 +108,7 @@ final class MsSqlQueryBuilderTest extends TestCase
 
     public function testInsertBatch()
     {
-        $expected = array('insert into "foo" ("foo", "bar") values (?, ?), (?, ?)', array(1, 2, 3, 4));
+        $expected = array('insert into `foo` (`foo`, `bar`) values (?, ?), (?, ?)', array(1, 2, 3, 4));
         $table = 'foo';
         $data = array(
             array(
@@ -142,7 +135,7 @@ final class MsSqlQueryBuilderTest extends TestCase
 
     public function testUpdate()
     {
-        $expected = array('update "foo" set "foo" = ?, "bar" = ? where foo = ?', array(1, 2, 3));
+        $expected = array('update `foo` set `foo` = ?, `bar` = ? where foo = ?', array(1, 2, 3));
         $table = 'foo';
         $data = array(
             'foo' => 1,
@@ -153,7 +146,7 @@ final class MsSqlQueryBuilderTest extends TestCase
         $this->assertEquals($expected, $this->builder->update($table, $data, $filter));
 
         $expected = array(
-            'update "foo" set "foo" = :_set_foo, "bar" = :_set_bar where foo = :foo',
+            'update `foo` set `foo` = :_set_foo, `bar` = :_set_bar where foo = :foo',
             array(
                 ':foo' => 3,
                 ':_set_foo' => 1,
@@ -172,30 +165,22 @@ final class MsSqlQueryBuilderTest extends TestCase
 
     public function testDelete()
     {
-        $expected = array('delete from "foo" where foo = 1', array());
+        $expected = array('delete from `foo` where foo = 1', array());
         $table = 'foo';
         $filter = 'foo = 1';
 
         $this->assertEquals($expected, $this->builder->delete($table, $filter));
     }
 
-    public function stringifyProvider()
+    public static function stringifyProvider()
     {
         return array(
             'simple' => array(
-                'select * from "foo"',
+                'select * from `foo`',
                 'foo',
             ),
-            'with alias' => array(
-                'select * from "foo" T',
-                'foo',
-                null,
-                array(
-                    'alias' => 'T',
-                ),
-            ),
-            'select top columns' => array(
-                'select top 5 "foo" "foo", "bar" "Baz" from "foo"',
+            'select array columns with limit' => array(
+                'select `foo` `foo`, `bar` `Baz` from `foo` limit 5',
                 'foo',
                 null,
                 array(
@@ -206,28 +191,27 @@ final class MsSqlQueryBuilderTest extends TestCase
                     ),
                 ),
             ),
-            'invalid limit offset' => array(
-                new \LogicException('Unable to perform limit-offset without order clause.'),
+            'with alias' => array(
+                'select * from `foo` T',
                 'foo',
                 null,
                 array(
-                    'limit' => 5,
-                    'offset' => 5,
+                    'alias' => 'T',
                 ),
             ),
             'raw clause' => array(
-                'select * from "foo" where foo = 10',
+                'select * from `foo` where foo = 10',
                 'foo',
                 'foo = 10',
             ),
             'with argument' => array(
-                array('select * from "foo" where foo = ?', array('bar')),
+                array('select * from `foo` where foo = ?', array('bar')),
                 'foo',
                 array('foo = ?', 'bar'),
             ),
             'complete' => array(
                 array(
-                    'select * from "foo" where foo = :foo group by foo having foo = :having order by "foo", "bar" desc, "baz" asc offset 10 rows fetch next 5 rows only',
+                    'select * from `foo` where foo = :foo group by foo having foo = :having order by `foo`, `bar` desc, `baz` asc limit 5 offset 10',
                     array(':foo' => 'bar', ':having' => 'baz'),
                 ),
                 'foo',

@@ -13,13 +13,13 @@ declare(strict_types=1);
 
 namespace Ekok\Stick\Tests\Validation;
 
-use Ekok\Stick\Database\QueryBuilder\SqliteQueryBuilder;
-use Ekok\Stick\Database\Sql;
 use Ekok\Stick\Fw;
 use Ekok\Stick\Security\Auth;
 use Ekok\Stick\Security\InMemoryUserProvider;
 use Ekok\Stick\Security\PlainPasswordEncoder;
 use Ekok\Stick\Security\SimpleUser;
+use Ekok\Stick\Sql\QueryBuilder\SqliteQueryBuilder;
+use Ekok\Stick\Sql\Sql;
 use Ekok\Stick\Validation\Validation;
 use PHPUnit\Framework\TestCase;
 
