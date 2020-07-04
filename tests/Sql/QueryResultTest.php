@@ -50,11 +50,16 @@ SCHEMA;
         $this->assertEquals(true, $this->queryResult->isCountable);
         $this->assertEquals(2, $this->queryResult->rowCount);
         $this->assertEquals(2, $this->queryResult->columnCount);
-        $this->assertEquals(array('id' => 1, 'name' => 'foo'), $this->queryResult->row);
         $this->assertEquals(array(
             array('id' => 1, 'name' => 'foo'),
             array('id' => 2, 'name' => 'bar'),
         ), $this->queryResult->rows);
+        $this->assertEquals(array('id' => 1, 'name' => 'foo'), $this->queryResult->row);
+    }
+
+    public function testGetRow()
+    {
+        $this->assertEquals(array('id' => 1, 'name' => 'foo'), $this->queryResult->row);
     }
 
     public function testRowCount()

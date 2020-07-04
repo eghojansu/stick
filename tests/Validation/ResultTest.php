@@ -136,6 +136,11 @@ final class ResultTest extends TestCase
         $this->assertTrue($this->result->success());
     }
 
+    public function testFailed()
+    {
+        $this->assertFalse($this->result->failed());
+    }
+
     public function testNewRule()
     {
         $this->assertSame($this->result, $this->result->newRule());

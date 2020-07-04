@@ -235,14 +235,17 @@ class View implements \ArrayAccess
      */
     public function render(string $view, array $data = null): string
     {
-        $layout = $this->layout;
+        $initialLayout = $this->layout;
         $content = $this->load($view, $data);
 
         if ($this->layout) {
-            $data['_content'] = $content;
-            $content = $this->load($this->layout, $data);
+            $newLayout = $this->layout;
+            $this->layout = $initialLayout === $newLayout ? null : $newLayout;
 
-            $this->layout = $layout;
+            $data['_content'] = $content;
+            $content = $this->render($newLayout, $data);
+
+            $this->layout = $newLayout;
         }
 
         return $content;

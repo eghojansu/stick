@@ -1487,7 +1487,7 @@ class Fw implements \ArrayAccess
             if (empty($path)) {
                 throw new \LogicException("Invalid route alias: '{$alias}'.");
             }
-        } elseif ($alias) {
+        } elseif ($alias && !isset($this->hive['ALIASES'][$aliasPrefix.$alias])) {
             $alias = $aliasPrefix.$alias;
             $this->hive['ALIASES'][$alias] = $path;
         }

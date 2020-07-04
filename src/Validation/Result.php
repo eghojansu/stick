@@ -140,6 +140,11 @@ class Result implements \ArrayAccess
         return !$this->errors;
     }
 
+    public function failed(): bool
+    {
+        return (bool) $this->errors;
+    }
+
     /**
      * Reset current result state.
      */

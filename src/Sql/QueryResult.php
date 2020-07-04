@@ -93,6 +93,10 @@ class QueryResult implements \IteratorAggregate, \Countable
 
     protected function _row()
     {
+        if (array_key_exists('rows', $this->hive)) {
+            return $this->rows[0] ?? null;
+        }
+
         $row = $this->hive['query']->fetch();
 
         return false === $row ? $this->rows[0] ?? null : $row;
