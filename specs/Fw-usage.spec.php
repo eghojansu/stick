@@ -327,7 +327,7 @@ describe('Fw Usage', function() {
                 },
                 'on.foo#comment' => function(Event $event) {
                     // not executed
-                    $event->setData('foo');
+                    $event->data = 'foo';
                 },
                 'bar' => 'baz',
                 'baz' => array('qux' => 'quux'),
@@ -338,7 +338,7 @@ describe('Fw Usage', function() {
 
             $event = new Event();
             $fw->dispatch('foo', $event);
-            expect($event->hasData())->to->be->false;
+            expect(isset($event->data))->to->be->false;
             expect($event->isPropagationStopped())->to->be->true;
         });
 
@@ -497,10 +497,10 @@ describe('Fw Usage', function() {
         it('can be used as event dispatcher', function() {
             $fw = new Fw();
             $fw->on('foo', function(Event $event) {
-                $event->setData(1);
+                $event->data = 1;
             });
             $fw->one('foo', function(Event $event) {
-                $event->setData($event->getData() + 1);
+                $event->data += 1;
             });
 
             $events = $fw->events();
@@ -509,32 +509,32 @@ describe('Fw Usage', function() {
 
             $event = new Event();
             $fw->dispatch('foo', $event);
-            expect($event->getData())->to->be->equal(2);
+            expect($event->data)->to->be->equal(2);
 
             $event = new Event();
             $fw->dispatch('foo', $event, true);
-            expect($event->getData())->to->be->equal(1);
+            expect($event->data)->to->be->equal(1);
 
             $event = new Event();
             $fw->dispatch('foo', $event);
-            expect($event->getData())->to->be->null;
+            expect(isset($event->data))->to->be->false;
         });
 
         it('can stop propagation and change handler priority', function() {
             $fw = new Fw();
             $fw->on('foo', function(Event $event) {
-                $event->setData('first');
+                $event->data = 'first';
             }, -10);
             $fw->on('foo', function(Event $event) {
-                $event->setData('second');
+                $event->data = 'second';
             }, 0);
             $fw->on('foo', function(Event $event) {
-                $event->setData('third');
+                $event->data = 'third';
             }, 10);
 
             $event = new Event();
             $fw->dispatch('foo', $event);
-            expect($event->getData())->to->be->equal('first');
+            expect($event->data)->to->be->equal('first');
         });
     });
 
