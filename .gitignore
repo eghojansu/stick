@@ -1,5 +1,4 @@
-/coverage-*
+/coverage/
 /dev/
 /var/
 /vendor/
-/.php_cs.cache

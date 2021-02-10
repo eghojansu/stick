@@ -6,8 +6,11 @@ indent_size = 4
 end_of_line = lf
 charset = utf-8
 trim_trailing_whitespace = true
+insert_final_newline = false
+
+[*.php]
 insert_final_newline = true
 
-[tests/Fixture/views/**/*]
+[specs/fixtures/templates/**/*]
 insert_final_newline = false
 indent_size = 2

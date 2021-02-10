@@ -1,6 +1,12 @@
 # Stick-PHP
 
-Stick to PHP with ```Fw``` class as its hearts. You need to stick to it :).
+Stick to PHP with ```Fw``` class as its Kernel.
+
+The kernel contains:
+- Dependency Injection
+- Event Dispatcher
+- Logger
+- Router
 
 ## Installation
 
@@ -14,9 +20,9 @@ Example usage.
 
 require __DIR__.'vendor/autoload.php';
 
-Fal\Stick\Fw::createFromGlobals()
+Ekok\Stick\Fw::createFromGlobals()
     ->route('GET /', function() {
-        // Outputs "Hello world!" in browser
+        // Outputs "Hello world!"
         return 'Hello world!';
     })
     ->run()
@@ -24,8 +30,8 @@ Fal\Stick\Fw::createFromGlobals()
 
 ```
 
-## Acknowledge
+## TODOs
 
-This framework still lacks of documentation but we still working on it.
-
-Our test unit is not complete, because some methods we don't know how to test :(.
+- Handle CLI Request (handle arguments and options)
+- Cache
+- SQL Database Helper
