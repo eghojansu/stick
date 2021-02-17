@@ -11,12 +11,14 @@
 
 declare(strict_types=1);
 
-namespace Ekok\Stick\Event;
+namespace Fixtures;
 
-class ResponseEvent extends RequestEvent
+class CyclicB
 {
-    public function __construct($response)
+    public $cyclicA;
+
+    public function __construct(CyclicA $cyclicA)
     {
-        $this->setResponse($response, false);
+        $this->cyclicA = $cyclicA;
     }
 }

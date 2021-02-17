@@ -1,5 +1,14 @@
 <?php
 
+/**
+ * This file is part of the eghojansu/stick library.
+ *
+ * (c) Eko Kurniawan <ekokurniawanbs@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 declare(strict_types=1);
 
 namespace Ekok\Stick\Validation;
@@ -29,7 +38,7 @@ class Context
         $this->applyOptions($options);
     }
 
-    public function duplicate(string $field, $value, array $options = null): self
+    public function duplicate(string $field, $value, array $options = null): static
     {
         $clone = clone $this;
 
@@ -70,7 +79,7 @@ class Context
         return $this->type;
     }
 
-    public function setType(string $type): self
+    public function setType(string $type): static
     {
         $this->type = $type;
 
@@ -97,7 +106,7 @@ class Context
         return $this->value;
     }
 
-    public function setValue($value): self
+    public function setValue($value): static
     {
         $this->value = $value;
         $this->valueSet = true;
@@ -112,7 +121,7 @@ class Context
         return $this->valueSet;
     }
 
-    public function freeValue(): self
+    public function freeValue(): static
     {
         $this->valueSet = false;
         $this->skipped = false;
@@ -125,7 +134,7 @@ class Context
         return $this->valid;
     }
 
-    public function setValid(bool $valid = true): self
+    public function setValid(bool $valid = true): static
     {
         $this->valid = $valid;
 
@@ -137,7 +146,7 @@ class Context
         return $this->skipped;
     }
 
-    public function setSkip(bool $skipped = true): self
+    public function setSkip(bool $skipped = true): static
     {
         $this->skipped = $skipped;
 
@@ -149,7 +158,7 @@ class Context
         return $this->excluded;
     }
 
-    public function setExcluded(bool $excluded = true): self
+    public function setExcluded(bool $excluded = true): static
     {
         $this->excluded = $excluded;
 
@@ -211,24 +220,22 @@ class Context
 
     public function getPath(): string
     {
-        $elements = array();
+        $path = '';
 
         if ($this->prefix) {
-            $elements[] = $this->prefix;
+            $path .= $this->prefix . '.';
         }
 
         if (null !== $this->position) {
-            $elements[] = $this->position;
+            $path .= $this->position . '.';
         }
 
-        $elements[] = $this->field;
-
-        return implode('.', $elements);
+        return $path . $this->field;
     }
 
     public function getDate($field = null, string $format = null, string $timezone = null): ?\DateTimeInterface
     {
-        $toDate = $field ? (is_string($field) && $this->checkOther($field) ? $this->getOther($field) : $field) : $this->getValue();
+        $toDate = $field ? (is_string($field) && $this->checkOther($field) ? $this->getOther($field) : $field) : $this->value;
 
         if ($toDate instanceof \DateTimeInterface) {
             return $toDate;
@@ -237,12 +244,11 @@ class Context
         try {
             $toTimezone = $timezone ? new \DateTimeZone($timezone) : null;
             $timestamp = strtotime($toDate);
-            $date = $timestamp ? (new \DateTime('now', $toTimezone))->setTimestamp($timestamp) : ($format ? \DateTime::createFromFormat($format, $toDate, $toTimezone) : new \DateTime($toDate, $toTimezone));
-        } catch (\Throwable $e) {
-            $date = null;
-        }
 
-        return $date ?: null;
+            return $timestamp ? (new \DateTime('now', $toTimezone))->setTimestamp($timestamp) : ($format ? \DateTime::createFromFormat($format, $toDate, $toTimezone) : new \DateTime($toDate, $toTimezone));
+        } catch (\Throwable $e) {
+            return null;
+        }
     }
 
     public function compareDate($against = null, string $format = null, string $timezone = null): int
@@ -259,7 +265,7 @@ class Context
 
     public function getSize(string $field = null)
     {
-        $value = $field ? $this->getOther($field) : $this->getValue();
+        $value = $field ? $this->getOther($field) : $this->value;
         $type = gettype($value);
 
         if ('array' === $type) {

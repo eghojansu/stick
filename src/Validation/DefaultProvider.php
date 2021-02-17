@@ -1,5 +1,14 @@
 <?php
 
+/**
+ * This file is part of the eghojansu/stick library.
+ *
+ * (c) Eko Kurniawan <ekokurniawanbs@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 declare(strict_types=1);
 
 namespace Ekok\Stick\Validation;
@@ -113,14 +122,14 @@ class DefaultProvider implements ProviderInterface
         return $this->messages;
     }
 
-    public function addMessage(string $rule, string $message, string $type = null): self
+    public function addMessage(string $rule, string $message, string $type = null): static
     {
         $this->messages[$rule][$type ?? 0] = $message;
 
         return $this;
     }
 
-    public function addMessages(array $messages): self
+    public function addMessages(array $messages): static
     {
         foreach ($messages as $rule => $message) {
             $this->addMessage($rule, $message);
@@ -131,7 +140,7 @@ class DefaultProvider implements ProviderInterface
 
     public static function _rule_accepted(Context $context): bool
     {
-        return in_array($context->getValue(), array('yes', 'on', 1, '1', true), true);
+        return in_array($context->getValue(), array('yes', 'on', 1, '1', true, 'true'), true);
     }
 
     public static function _rule_after(Context $context, $date, string $format = null, string $timezone = null): bool
@@ -254,21 +263,21 @@ class DefaultProvider implements ProviderInterface
         return true;
     }
 
-    public static function _rule_exclude_if(Context $context, $anotherField = null, $value = null): bool
+    public static function _rule_exclude_if(Context $context, $field = null, $value = null): bool
     {
         $context->setExcluded(
-            ($anotherField instanceof \Closure && $anotherField($context))
-                || (is_string($anotherField) && $context->getOther($anotherField) === $value)
+            ($field instanceof \Closure && $field($context))
+                || (is_string($field) && $context->getOther($field) === $value)
         );
 
         return true;
     }
 
-    public static function _rule_exclude_unless(Context $context, $anotherField = null, $value = null): bool
+    public static function _rule_exclude_unless(Context $context, $field = null, $value = null): bool
     {
         $context->setExcluded(
-            !($anotherField instanceof \Closure && $anotherField($context))
-                && !(is_string($anotherField) && $context->getOther($anotherField) === $value)
+            !($field instanceof \Closure && $field($context))
+                && !(is_string($field) && $context->getOther($field) === $value)
         );
 
         return true;
@@ -276,12 +285,12 @@ class DefaultProvider implements ProviderInterface
 
     public static function _rule_gt(Context $context, string $field): bool
     {
-        return $context->getSize() > $context->getSize($field);
+        return $context->checkOther($field) && $context->getSize() > $context->getSize($field);
     }
 
     public static function _rule_gte(Context $context, string $field): bool
     {
-        return $context->getSize() >= $context->getSize($field);
+        return $context->checkOther($field) && $context->getSize() >= $context->getSize($field);
     }
 
     public static function _rule_in(Context $context, ...$elements): bool
@@ -289,9 +298,9 @@ class DefaultProvider implements ProviderInterface
         return in_array($context->getValue(), $elements);
     }
 
-    public static function _rule_in_array(Context $context, string $anotherField): bool
+    public static function _rule_in_array(Context $context, string $field): bool
     {
-        return in_array($context->getValue(), (array) $context->getOther($anotherField));
+        return in_array($context->getValue(), (array) $context->getOther($field));
     }
 
     public static function _rule_integer(Context $context): bool
@@ -327,12 +336,12 @@ class DefaultProvider implements ProviderInterface
 
     public static function _rule_lt(Context $context, string $field): bool
     {
-        return $context->getSize() < $context->getSize($field);
+        return $context->checkOther($field) && $context->getSize() < $context->getSize($field);
     }
 
     public static function _rule_lte(Context $context, string $field): bool
     {
-        return $context->getSize() <= $context->getSize($field);
+        return $context->checkOther($field) && $context->getSize() <= $context->getSize($field);
     }
 
     public static function _rule_match(Context $context, string $pattern): bool
@@ -382,17 +391,14 @@ class DefaultProvider implements ProviderInterface
         return !in_array($context->getValue(), array('', null), true);
     }
 
-    public static function _rule_required_if(Context $context, $anotherField, $value = null): bool
+    public static function _rule_required_if(Context $context, $field, $value = null): bool
     {
-        return (
-            ($anotherField instanceof \Closure && $anotherField($context))
-            || (is_string($anotherField) && $context->getOther($anotherField) === $value)) && !in_array($context->getValue(), array('', null), true);
+        return (($field instanceof \Closure && $field($context)) || (is_string($field) && $context->getOther($field) === $value)) && static::_rule_required($context);
     }
 
-    public static function _rule_required_unless(Context $context, $anotherField, $value = null): bool
+    public static function _rule_required_unless(Context $context, $field, $value = null): bool
     {
-        return !in_array($context->getValue(), array('', null), true) || (
-            ($anotherField instanceof \Closure && $anotherField($context)) || (is_string($anotherField) && $context->getOther($anotherField) === $value));
+        return static::_rule_required($context) || (($field instanceof \Closure && $field($context)) || (is_string($field) && $context->getOther($field) === $value));
     }
 
     public static function _rule_same(Context $context, $value, bool $strict = true): bool

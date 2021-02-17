@@ -13,10 +13,19 @@ declare(strict_types=1);
 
 namespace Ekok\Stick\Event;
 
-class ResponseEvent extends RequestEvent
+class ResponseSendEvent extends RequestEvent
 {
-    public function __construct($response)
+    private $sent = false;
+
+    public function sent(): bool
     {
-        $this->setResponse($response, false);
+        return $this->sent;
+    }
+
+    public function send(bool $send = true): static
+    {
+        $this->sent = $send;
+
+        return $this;
     }
 }

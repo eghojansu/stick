@@ -13,10 +13,17 @@ declare(strict_types=1);
 
 namespace Ekok\Stick\Event;
 
-class ResponseEvent extends RequestEvent
+class RequestRouteEvent extends RequestEvent
 {
-    public function __construct($response)
+    private $route;
+
+    public function __construct(array $route)
     {
-        $this->setResponse($response, false);
+        $this->route = $route;
+    }
+
+    public function getRoute(): array
+    {
+        return $this->route;
     }
 }

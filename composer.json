@@ -17,14 +17,12 @@
         "psr-4": {
             "Ekok\\Stick\\": "src/"
         },
-        "exclude-from-classmap": ["/specs/"]
+        "exclude-from-classmap": ["/tests/"]
     },
     "require": {
-        "php": ">=7.2"
+        "php": ">=8"
     },
     "require-dev": {
-        "peridot-php/peridot": "^1.19",
-        "peridot-php/peridot-code-coverage-reporters": "^3.0",
-        "peridot-php/leo": "^1.6"
+        "phpunit/phpunit": "^9.5"
     }
 }

@@ -11,12 +11,14 @@
 
 declare(strict_types=1);
 
-namespace Ekok\Stick\Event;
+namespace Fixtures;
 
-class ResponseEvent extends RequestEvent
+class ArgumentsConsumer
 {
-    public function __construct($response)
+    public $collected;
+
+    public function __construct(?\stdClass $std, string $name, ?string $name2, string $name3 = null, ...$rest)
     {
-        $this->setResponse($response, false);
+        $this->collected = compact('std', 'name', 'name2', 'name3', 'rest');
     }
 }

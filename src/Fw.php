@@ -1,19 +1,28 @@
 <?php
 
+/**
+ * This file is part of the eghojansu/stick library.
+ *
+ * (c) Eko Kurniawan <ekokurniawanbs@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 declare(strict_types=1);
 
 namespace Ekok\Stick;
 
 use Ekok\Stick\Event\RequestEvent;
 use Ekok\Stick\Event\ResponseEvent;
-use Ekok\Stick\Event\ControllerEvent;
 use Ekok\Stick\Event\RequestErrorEvent;
-use Ekok\Stick\Event\FinishRequestEvent;
-use Ekok\Stick\Event\ControllerArgumentsEvent;
-use Ekok\Stick\Event\FinishResponseEvent;
-use Ekok\Stick\Event\RerouteEvent;
-use Ekok\Stick\Event\RouteEvent;
-use Ekok\Stick\Event\SendResponseEvent;
+use Ekok\Stick\Event\RequestRouteEvent;
+use Ekok\Stick\Event\ResponseSendEvent;
+use Ekok\Stick\Event\RequestFinishEvent;
+use Ekok\Stick\Event\RequestRerouteEvent;
+use Ekok\Stick\Event\ResponseFinishEvent;
+use Ekok\Stick\Event\RequestControllerEvent;
+use Ekok\Stick\Event\RequestControllerArgumentsEvent;
 
 class Fw implements \ArrayAccess
 {
@@ -27,16 +36,16 @@ class Fw implements \ArrayAccess
     const COOKIE_RESERVED_CHARS_TO = ['%3D', '%2C', '%3B', '%20', '%09', '%0D', '%0A', '%0B', '%0C'];
     const COOKIE_RESERVED_CHARS_LIST = "=,; \t\r\n\v\f";
 
-    const REQUEST_REQUEST = 'fw.request';
-    const REQUEST_CONTROLLER = 'fw.controller';
-    const REQUEST_CONTROLLER_ARGUMENTS = 'fw.controller_arguments';
-    const REQUEST_FINISH = 'fw.finish_request';
-    const REQUEST_RESPONSE = 'fw.response';
-    const REQUEST_SEND_RESPONSE = 'fw.send_response';
-    const REQUEST_FINISH_RESPONSE = 'fw.finish_response';
-    const REQUEST_ERROR = 'fw.error';
-    const REQUEST_ROUTE = 'fw.route';
-    const REQUEST_REROUTE = 'fw.reroute';
+    const EVENT_REQUEST_START = 'fw.request_start';
+    const EVENT_REQUEST_ROUTE = 'fw.request_route';
+    const EVENT_REQUEST_CONTROLLER = 'fw.request_controller';
+    const EVENT_REQUEST_CONTROLLER_ARGUMENTS = 'fw.request_controller_arguments';
+    const EVENT_REQUEST_FINISH = 'fw.request_finish';
+    const EVENT_REQUEST_ERROR = 'fw.request_error';
+    const EVENT_REQUEST_REROUTE = 'fw.request_reroute';
+    const EVENT_RESPONSE_HANDLE = 'fw.response_handle';
+    const EVENT_RESPONSE_SEND = 'fw.response_send';
+    const EVENT_RESPONSE_FINISH = 'fw.response_finish';
 
     const LOG_LEVEL_EMERGENCY = 'emergency';
     const LOG_LEVEL_ALERT     = 'alert';
@@ -136,13 +145,14 @@ class Fw implements \ArrayAccess
         'log_format' => null,
         'append_context' => true,
         'permission' => 0755,
-        'threshold' => self::LOG_LEVEL_DEBUG,
+        'threshold' => self::LOG_LEVEL_CRITICAL,
         'directory' => null,
         'http_level' => null,
         'username' => null,
         'count' => 0,
         'line' => null,
         'filepath' => null,
+        'table' => 'stick_logs',
         'handle' => null,
         'sqlite' => null,
         'levels' => array(
@@ -157,7 +167,7 @@ class Fw implements \ArrayAccess
         ),
     );
 
-    public static function createFromGlobals(): self
+    public static function createFromGlobals(): static
     {
         return new static($_POST, $_GET, $_FILES, $_COOKIE, $_SERVER, $_ENV);
     }
@@ -169,14 +179,14 @@ class Fw implements \ArrayAccess
         }
 
         if ($raw && false !== strpbrk($name, self::COOKIE_RESERVED_CHARS_LIST)) {
-            throw new \InvalidArgumentException("The cookie name contains invalid characters: '{$name}'.");
+            throw new \InvalidArgumentException("The cookie name contains invalid characters.");
         }
 
         $lifetime = $options['lifetime'] ?? 0;
         $path = $options['path'] ?? '/';
         $domain = $options['domain'] ?? null;
         $secure = $options['secure'] ?? null;
-        $httponly = $options['httponly'] ?? null;
+        $httponly = $options['httponly'] ?? true;
         $samesite = $options['samesite'] ?? null;
 
         if ($raw) {
@@ -199,7 +209,7 @@ class Fw implements \ArrayAccess
                 $expire = strtotime($expire);
 
                 if (false === $expire) {
-                    throw new \InvalidArgumentException('The cookie expiration time is not valid.');
+                    throw new \InvalidArgumentException("The cookie expiration time is not valid: '{$lifetime}'.");
                 }
             }
 
@@ -225,7 +235,7 @@ class Fw implements \ArrayAccess
         }
 
         if ($samesite) {
-            if (!defined($name = 'static::COOKIE_SAMESITE_' . strtoupper($samesite))) {
+            if (!defined($name = 'self::COOKIE_SAMESITE_' . strtoupper($samesite))) {
                 throw new \InvalidArgumentException("The cookie samesite is not valid: '{$samesite}'.");
             }
 
@@ -387,13 +397,11 @@ class Fw implements \ArrayAccess
 
     public static function loadFile(string $file)
     {
-        $load = static function () {
+        return (static function () {
             if (file_exists(func_get_arg(0))) {
                 return require func_get_arg(0);
             }
-        };
-
-        return $load($file);
+        })($file);
     }
 
     public function __construct(
@@ -517,10 +525,7 @@ class Fw implements \ArrayAccess
 
     public function __destruct()
     {
-        if ($this->logs['handle']) {
-            fclose($this->logs['handle']);
-        }
-
+        !$this->logs['handle'] || fclose($this->logs['handle']);
         $this->logs['sqlite'] = null;
     }
 
@@ -563,22 +568,20 @@ class Fw implements \ArrayAccess
         }
     }
 
-    public function addRule(string $name, $rule = null): self
+    public function addRule(string $name, array|string|callable $rule = null): static
     {
         $useRule = $rule ?? compact('name');
 
         if (is_string($rule)) {
-            if (false !== strpos($rule, '@') || false !== strpos($rule, ':')) {
-                $useRule = array('name' => $name, 'factory' => $rule);
-            } else {
+            if (false === strpos($rule, '@') && false === strpos($rule, ':')) {
                 $useRule = array('name' => $name, 'class' => $rule);
+            } else {
+                $useRule = array('name' => $name, 'factory' => $rule);
             }
         } elseif (is_callable($rule)) {
-            $useRule = array('name' => $name, 'factory' => $rule);
-        } elseif (!is_array($useRule)) {
-            $type = gettype($rule);
-
-            throw new \InvalidArgumentException("Rule should be null, string, array or callable, {$type} given for rule {$name}.");
+            $useRule = array('name' => $name, 'factory' => static function(Fw $fw, array $arguments = null) use ($rule) {
+                return $fw->callWithResolvedArguments($rule, $arguments);
+            });
         }
 
         $this->rules[$name] = $useRule + ($this->rules[$name] ?? array());
@@ -646,7 +649,7 @@ class Fw implements \ArrayAccess
             $class = is_string($call[0]) ? $call[0] : get_class($call[0]);
             $method = $call[1] ?? '*undefined*';
 
-            throw new \BadMethodCallException("Call to undefined method {$class}::{$method}.");
+            throw new \BadMethodCallException("Call to undefined method {$class}::{$method}().");
         }
 
         throw new \BadFunctionCallException("Call to undefined function {$call}.");
@@ -680,6 +683,8 @@ class Fw implements \ArrayAccess
 
         if (is_array($call)) {
             $fun = new \ReflectionMethod(...$call);
+        } elseif (is_object($call) && method_exists($call, '__invoke')) {
+            $fun = new \ReflectionMethod($call, '__invoke');
         } else {
             $fun = new \ReflectionFunction($call);
         }
@@ -697,7 +702,7 @@ class Fw implements \ArrayAccess
         return $this->hive;
     }
 
-    public function loadConfiguration(string $file, string $root = null, bool $recursive = true): self
+    public function loadConfiguration(string $file, string $root = null, bool $recursive = true): static
     {
         if ($root) {
             $this[$root] = static::loadFile($file);
@@ -708,7 +713,7 @@ class Fw implements \ArrayAccess
         return $this;
     }
 
-    public function loadConfigurations(array $files, bool $recursive = true): self
+    public function loadConfigurations(array $files, bool $recursive = true): static
     {
         foreach ($files as $root => $file) {
             if (is_numeric($root)) {
@@ -721,7 +726,7 @@ class Fw implements \ArrayAccess
         return $this;
     }
 
-    public function merge(array $data, bool $recursive = true): self
+    public function merge(array $data, bool $recursive = true): static
     {
         static $map = array(
             'on' => 'on',
@@ -765,14 +770,14 @@ class Fw implements \ArrayAccess
         return $this->events;
     }
 
-    public function on(string $event, $handler, int $priority = 0): self
+    public function on(string $event, $handler, int $priority = 0): static
     {
         $this->events[$event][] = array($handler, $priority);
 
         return $this;
     }
 
-    public function one(string $event, $handler, int $priority = 0): self
+    public function one(string $event, $handler, int $priority = 0): static
     {
         $position = 0;
 
@@ -785,7 +790,7 @@ class Fw implements \ArrayAccess
         return $this->on($event, $handler, $priority);
     }
 
-    public function off(string $event, int $position = null): self
+    public function off(string $event, int $position = null): static
     {
         if (null === $position) {
             unset($this->events[$event], $this->onces[$event]);
@@ -853,13 +858,16 @@ class Fw implements \ArrayAccess
         if (false !== strpos($path, '@')) {
             $used = array();
             $defaults = $this->routes[$path][0]['defaults'] ?? null;
-            $result = preg_replace_callback('~(?:@([\w:]+)([*])?)~', static function ($match) use ($route, $parameters, $defaults, &$used) {
+            $hasModifier = null;
+            $result = preg_replace_callback('~(?:@([\w:]+)([*])?)~', static function ($match) use ($route, $parameters, $defaults, &$used, &$hasModifier) {
                 list($name) = explode(':', $match[1]);
                 $modifier = $match[2] ?? null;
                 $value = $parameters[$name] ?? $defaults[$name] ?? null;
                 $used[$name] = true;
 
                 if ($modifier) {
+                    $hasModifier = true;
+
                     return is_array($value) ? implode('/', array_map('urlencode', $value)) : urlencode((string) ($value ?? ''));
                 }
 
@@ -870,6 +878,10 @@ class Fw implements \ArrayAccess
                 return urlencode((string) $value);
             }, $path);
             $restParameters = $parameters && $used ? array_diff_key($parameters, $used) : $parameters;
+
+            if ($hasModifier && '/' === substr($result, -1)) {
+                $result = substr($result, 0, -1);
+            }
         }
 
         if ($restParameters) {
@@ -945,7 +957,7 @@ class Fw implements \ArrayAccess
         return $this->hive['BASE_URL'] . $this->path($path, $parameters);
     }
 
-    public function route(string $definition, $controller, array $options = null): self
+    public function route(string $definition, $controller, array $options = null): static
     {
         if (
             !preg_match(
@@ -976,14 +988,14 @@ class Fw implements \ArrayAccess
         return $this;
     }
 
-    public function redirect(string $definition, $url, bool $permanent = true, array $headers = null, array $options = null): self
+    public function redirect(string $definition, $url, bool $permanent = true, array $headers = null, array $options = null): static
     {
         return $this->route($definition, static function(Fw $self) use ($url, $permanent, $headers) {
             return $self->reroute($url, $permanent, $headers);
         }, $options);
     }
 
-    public function emulateCliRequest(): self
+    public function emulateCliRequest(): static
     {
         if ($this->hive['CLI']) {
             $this->hive['METHOD'] = 'CLI';
@@ -1048,6 +1060,7 @@ class Fw implements \ArrayAccess
 
     public function routeMatch(string $path, array $requirements = null): ?array
     {
+        // TODO: Implement Nikic/Fast-Route Group Count Based
         $wild = $path;
         $alls = array();
 
@@ -1091,7 +1104,7 @@ class Fw implements \ArrayAccess
         $this->finishRun();
     }
 
-    public function execute(): self
+    public function execute(): static
     {
         try {
             $this->doExecute();
@@ -1102,7 +1115,7 @@ class Fw implements \ArrayAccess
         return $this;
     }
 
-    public function mock(string $definition, array $arguments = null, array $headers = null, $body = null, array $merge = null): self
+    public function mock(string $definition, array $arguments = null, array $headers = null, $body = null, array $merge = null): static
     {
         if (
             !preg_match(
@@ -1173,7 +1186,7 @@ class Fw implements \ArrayAccess
         return $this->execute();
     }
 
-    public function reroute($url = null, bool $permanent = false, array $headers = null): self
+    public function reroute($url = null, bool $permanent = false, array $headers = null): static
     {
         if (!$url) {
             $path = $this->path();
@@ -1190,9 +1203,9 @@ class Fw implements \ArrayAccess
             $path = $url;
         }
 
-        $event = new RerouteEvent($path, $url, $permanent, $headers);
+        $event = new RequestRerouteEvent($path, $url, $permanent, $headers);
 
-        if ($this->dispatch(self::REQUEST_REROUTE, $event) && $event->isResolved()) {
+        if ($this->dispatch(self::EVENT_REQUEST_REROUTE, $event) && $event->isResolved()) {
             return $this;
         }
 
@@ -1211,7 +1224,7 @@ class Fw implements \ArrayAccess
         return $this;
     }
 
-    public function error(int $code, string $message = null, array $headers = null, \Throwable $error = null): self
+    public function error(int $code, string $message = null, array $headers = null, \Throwable $error = null): static
     {
         $this->removeHeaders();
         $this->status($code, $text);
@@ -1223,14 +1236,14 @@ class Fw implements \ArrayAccess
             $this->log($level, $useMessage, $context);
 
             if ($error) {
-                $this->log($error->getTraceAsString(), $useMessage, $context);
+                $this->log($level, $error->getTraceAsString(), $context);
             }
         }
 
         try {
             $event = new RequestErrorEvent($code, $text, $useMessage, $headers, $error);
 
-            if ($this->dispatch(self::REQUEST_ERROR, $event, true) && $event->hasResponse()) {
+            if ($this->dispatch(self::EVENT_REQUEST_ERROR, $event, true) && $event->hasResponse()) {
                 return $this->setResponse($event->getResponse());
             }
         } catch (\Throwable $e) {
@@ -1291,9 +1304,9 @@ HTML;
         return $this->hive['AJAX'] || false !== strpos($this->hive['CONTENT_MIME'], 'application/json');
     }
 
-    public function status(int $code, string &$text = null): self
+    public function status(int $code, string &$text = null): static
     {
-        if (!defined($name = 'static::HTTP_' . $code)) {
+        if (!defined($name = 'self::HTTP_' . $code)) {
             throw new \InvalidArgumentException("Unsupported http code: {$code}.");
         }
 
@@ -1325,7 +1338,7 @@ HTML;
         return $this->response['handler'];
     }
 
-    public function addCookie(string $name, $value = null, array $options = null, bool $raw = false): self
+    public function addCookie(string $name, $value = null, array $options = null, bool $raw = false): static
     {
         $useOptions = ($options ?? array()) + $this->hive['COOKIE_JAR'];
         $cookie = static::cookieCreate($name, $value, $useOptions, $raw);
@@ -1336,7 +1349,7 @@ HTML;
         return $this;
     }
 
-    public function removeCookie(string $name, array $options = null, bool $raw = false): self
+    public function removeCookie(string $name, array $options = null, bool $raw = false): static
     {
         return $this->addCookie($name, null, $options, $raw);
     }
@@ -1363,7 +1376,7 @@ HTML;
         return $this->response['headers'];
     }
 
-    public function addHeaderIfNotExists(string $header, $content): self
+    public function addHeaderIfNotExists(string $header, $content): static
     {
         if (!$this->checkHeader($header, $key)) {
             $this->addHeader($key, $content, false);
@@ -1372,7 +1385,7 @@ HTML;
         return $this;
     }
 
-    public function addHeader(string $header, $content, bool $append = true): self
+    public function addHeader(string $header, $content, bool $append = true): static
     {
         if ($this->checkHeader($header, $key) && $append) {
             $this->response['headers'][$key ?? $header][] = $content;
@@ -1384,7 +1397,7 @@ HTML;
         return $this;
     }
 
-    public function addHeaders(string $header, array $contents, bool $append = true): self
+    public function addHeaders(string $header, array $contents, bool $append = true): static
     {
         if ($this->checkHeader($header, $key) && $append) {
             $this->response['headers'][$key ?? $header] = array_merge($this->response['headers'][$key ?? $header], $contents);
@@ -1396,7 +1409,7 @@ HTML;
         return $this;
     }
 
-    public function setHeaders(array $headers, bool $replace = false): self
+    public function setHeaders(array $headers, bool $replace = false): static
     {
         if ($replace) {
             $this->removeHeaders();
@@ -1409,7 +1422,7 @@ HTML;
         return $this;
     }
 
-    public function removeHeader(string $header): self
+    public function removeHeader(string $header): static
     {
         if ($this->checkHeader($header, $key)) {
             unset($this->response['headers'][$header]);
@@ -1422,7 +1435,7 @@ HTML;
         return $this;
     }
 
-    public function removeHeaders(): self
+    public function removeHeaders(): static
     {
         $this->response['headers'] = null;
         $this->response['headers_keys'] = null;
@@ -1430,13 +1443,13 @@ HTML;
         return $this;
     }
 
-    public function setResponse($response, bool $json = false): self
+    public function setResponse($response, bool $json = false): static
     {
-        if (is_string($response)) {
+        if (is_scalar($response)) {
             $this->response['output'] = $response;
 
             $this->addHeaderIfNotExists('Content-Type', 'text/html');
-            $this->addHeaderIfNotExists('Content-Length', strlen($this->response['output']));
+            $this->addHeaderIfNotExists('Content-Length', strlen('' . $this->response['output']));
         } elseif (is_callable($response)) {
             $this->response['handler'] = $response;
         } elseif (is_array($response) || $json) {
@@ -1449,7 +1462,7 @@ HTML;
         return $this;
     }
 
-    public function sendHeaders(): self
+    public function sendHeaders(): static
     {
         if (!$this->response['headers_sent']) {
             $this->response['headers_sent'] = true;
@@ -1468,7 +1481,7 @@ HTML;
         return $this;
     }
 
-    public function sendContent(): self
+    public function sendContent(): static
     {
         if (!$this->response['content_sent']) {
             $this->response['content_sent'] = true;
@@ -1483,7 +1496,7 @@ HTML;
         return $this;
     }
 
-    public function send(): self
+    public function send(): static
     {
         $this->sendHeaders();
         $this->sendContent();
@@ -1496,7 +1509,7 @@ HTML;
         return $this->logs;
     }
 
-    public function setLogs(array $options): self
+    public function setLogs(array $options): static
     {
         static $internals = array(
             'handle' => true,
@@ -1510,21 +1523,25 @@ HTML;
                 throw new \InvalidArgumentException('Sqlite log mode require filepath or directory and filename to be provided.');
             }
 
+            if (!$this->logs['table'] || !is_string($this->logs['table'])) {
+                throw new \InvalidArgumentException('Sqlite lite mode require table name to be defined.');
+            }
+
             if (!$this->logs['filepath']) {
                 is_dir($this->logs['directory']) || mkdir($this->logs['directory'], $this->logs['permission'], true);
 
-                $this->logs['filepath'] = static::normSlash($this->logs['directory'], true) . $this->logs['prefix'] . $this->logs['filename'] . '.' . $this->logs['extension'];
+                $this->logs['filepath'] = static::normSlash($this->logs['directory'], true) . $this->logs['filename'];
             }
 
-            $createTable = <<<'SQL'
-CREATE TABLE IF NOT EXISTS stick_logs (
-    log_id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-    log_level VARCHAR(16) NOT NULL,
-    log_priority SMALLINT NOT NULL,
-    log_content TEXT NOT NULL,
-    log_context TEXT NULL,
-    logged_at DATETIME NOT NULL,
-    logged_by VARCHAR(64) NULL
+            $createTable = <<<SQL
+CREATE TABLE IF NOT EXISTS "{$this->logs['table']}" (
+    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    "level" VARCHAR(16) NOT NULL,
+    "priority" SMALLINT NOT NULL,
+    "content" TEXT NOT NULL,
+    "context" TEXT NULL,
+    "time" DATETIME NOT NULL,
+    "user" VARCHAR(64) NULL
 )
 SQL;
             $this->logs['sqlite'] = new \PDO("sqlite:{$this->logs['filepath']}");
@@ -1548,11 +1565,11 @@ SQL;
         return $this;
     }
 
-    public function log(string $level, string $message, array $context = null): self
+    public function log(string $level, string $message, array $context = null): static
     {
         if (
             isset($this->logs['levels'][$level])
-            && $this->logs['levels'][$this->logs['threshold']] >= $this->logs['levels'][$level]
+            && $this->logs['levels'][$level] <= $this->logs['levels'][$this->logs['threshold']]
         ) {
             if ('sqlite' === $this->logs['mode']) {
                 $this->logSqlite($level, $message, $context);
@@ -1611,7 +1628,7 @@ SQL;
         if ($this->logs['sqlite']) {
             /** @var \PDO */
             $pdo = $this->logs['sqlite'];
-            $sql = 'INSERT INTO stick_logs (log_level, log_priority, log_content, log_context, logged_at, logged_by) VALUES (?, ?, ?, ?, ?, ?)';
+            $sql = 'INSERT INTO "'. $this->logs['table'] . '" ("level", "priority", "content", "context", "time", "user") VALUES (?, ?, ?, ?, ?, ?)';
             $query = $pdo->prepare($sql);
             $query->execute(array(
                 $level,
@@ -1654,11 +1671,12 @@ SQL;
 
     protected function logLevel(int $code): ?string
     {
+        if (isset($this->logs['http_level'][$code])) {
+            return $this->logs['http_level'][$code];
+        }
+
         foreach ($this->logs['http_level'] ?? array() as $status => $level) {
-            if (
-                $code == $status
-                || preg_match('/^' . preg_replace('/\D/', '\d', "{$status}") . '/', "{$code}")
-            ) {
+            if (preg_match('/^' . preg_replace('/\D/', '\d', "{$status}") . '/', "{$code}")) {
                 return $level;
             }
         }
@@ -1670,7 +1688,7 @@ SQL;
     {
         $event = new RequestEvent();
 
-        if ($this->dispatch(self::REQUEST_REQUEST, $event) && $event->hasResponse()) {
+        if ($this->dispatch(self::EVENT_REQUEST_START, $event) && $event->hasResponse()) {
             $response = $event->getResponse();
         } else {
             // TODO: handle CLI Request
@@ -1684,15 +1702,15 @@ SQL;
                 throw new HttpException(404);
             }
 
-            $event = new RouteEvent($route);
+            $event = new RequestRouteEvent($route);
 
-            if ($this->dispatch(self::REQUEST_ROUTE, $event) && $event->hasResponse()) {
+            if ($this->dispatch(self::EVENT_REQUEST_ROUTE, $event) && $event->hasResponse()) {
                 $response = $event->getResponse();
             } else {
                 $controller = $route['controller'];
-                $event = new ControllerEvent($controller);
+                $event = new RequestControllerEvent($controller);
 
-                if ($this->dispatch(self::REQUEST_CONTROLLER, $event) && $event->hasController()) {
+                if ($this->dispatch(self::EVENT_REQUEST_CONTROLLER, $event) && $event->hasController()) {
                     $controller = $event->getController();
                 }
 
@@ -1701,16 +1719,16 @@ SQL;
                 }
 
                 $arguments = $route['parameters'] ?? array();
-                $event = new ControllerArgumentsEvent($arguments);
+                $event = new RequestControllerArgumentsEvent($arguments);
 
-                if ($this->dispatch(self::REQUEST_CONTROLLER_ARGUMENTS, $event) && $event->hasArguments()) {
+                if ($this->dispatch(self::EVENT_REQUEST_CONTROLLER_ARGUMENTS, $event) && $event->hasArguments()) {
                     $arguments = $event->getArguments();
                 }
 
                 $response = $this->callWithResolvedArguments($controller, $arguments);
                 $event = new ResponseEvent($response);
 
-                if ($this->dispatch(self::REQUEST_RESPONSE, $event) && $event->hasResponse()) {
+                if ($this->dispatch(self::EVENT_RESPONSE_HANDLE, $event) && $event->hasResponse()) {
                     $response = $event->getResponse();
                 }
             }
@@ -1718,20 +1736,20 @@ SQL;
 
         $this->setResponse($response);
 
-        $event = new FinishRequestEvent($route ?? null, $controller ?? null, $arguments ?? null, $response);
-        $this->dispatch(self::REQUEST_FINISH, $event);
+        $event = new RequestFinishEvent($route ?? null, $controller ?? null, $arguments ?? null, $response);
+        $this->dispatch(self::EVENT_REQUEST_FINISH, $event);
     }
 
     protected function finishRun(): void
     {
         try {
-            $event = new SendResponseEvent();
+            $event = new ResponseSendEvent();
 
-            if (!$this->dispatch(self::REQUEST_SEND_RESPONSE, $event, true) && !$event->sent()) {
+            if (!$this->dispatch(self::EVENT_RESPONSE_SEND, $event, true) && !$event->sent()) {
                 $this->send();
             }
 
-            $this->dispatch(self::REQUEST_FINISH_RESPONSE, new FinishResponseEvent(), true);
+            $this->dispatch(self::EVENT_RESPONSE_FINISH, new ResponseFinishEvent(), true);
         } catch (\Throwable $error) {
             $this->handleException($error);
             $this->send();
@@ -1781,8 +1799,8 @@ SQL;
         $className = $class->getName();
 
         if ($constructor) {
-            $factory = static function (Fw $self, ?array $arguments) use ($className, $constructor) {
-                return new $className(...$self->resolveArguments($constructor, $arguments));
+            $factory = static function (Fw $fw, ?array $arguments) use ($className, $constructor) {
+                return new $className(...$fw->resolveArguments($constructor, $arguments));
             };
         } else {
             $factory = static function () use ($className) {
@@ -1792,30 +1810,39 @@ SQL;
 
         if ($rule['shared'] ?? false) {
             if (null === $constructor || $class->isInternal()) {
-                $factory = static function (Fw $self, ?array $arguments) use ($factory, $useName) {
-                    return $self['SERVICE'][$useName] = $factory($self, $arguments);
+                $factory = static function (Fw $fw, ?array $arguments) use ($factory, $useName) {
+                    return $fw['SERVICE'][$useName] = $factory($fw, $arguments);
                 };
             } else {
-                $factory = static function (Fw $self, ?array $arguments) use ($class, $constructor, $useName) {
-                    $self['SERVICE'][$useName] = $class->newInstanceWithoutConstructor();
-                    $constructor->invokeArgs($self['SERVICE'][$useName], $self->resolveArguments($constructor, $arguments));
+                $factory = static function (Fw $fw, ?array $arguments) use ($class, $constructor, $useName) {
+                    $fw['SERVICE'][$useName] = $class->newInstanceWithoutConstructor();
+                    $constructor->invokeArgs($fw['SERVICE'][$useName], $fw->resolveArguments($constructor, $arguments));
 
-                    return $self['SERVICE'][$useName];
+                    return $fw['SERVICE'][$useName];
                 };
             }
         }
 
         if ($calls = $rule['calls'] ?? null) {
-            $factory = static function (Fw $self, ?array $arguments) use ($calls, $class, $factory) {
-                $obj = $factory($self, $arguments);
+            $factory = static function (Fw $fw, ?array $arguments) use ($calls, $class, $factory) {
+                $obj = $factory($fw, $arguments);
 
                 foreach ($calls as $call => $callArguments) {
                     if (is_numeric($call)) {
-                        $obj->$callArguments(...$self->resolveArguments($class->getMethod($callArguments)));
+                        $obj->$callArguments(...$fw->resolveArguments($class->getMethod($callArguments)));
                     } else {
-                        $obj->$call(...$self->resolveArguments($class->getMethod($call), (array) $callArguments));
+                        $obj->$call(...$fw->resolveArguments($class->getMethod($call), (array) $callArguments));
                     }
                 }
+
+                return $obj;
+            };
+        }
+
+        if ($extend = $rule['extend'] ?? null) {
+            $factory = static function (Fw $fw, ?array $arguments) use ($extend, $factory) {
+                $obj = $factory($fw, $arguments);
+                $extend($obj, $fw);
 
                 return $obj;
             };
@@ -1837,11 +1864,18 @@ SQL;
 
             foreach ($named as $key => $value) {
                 if ($value instanceof $class) {
-                    return array_splice($named, $key, 1)[0];
+                    unset($named[$key]);
+
+                    return $value;
                 }
             }
 
             return $self->create($class);
+        };
+        $shift = static function(\ReflectionType $type) use (&$named) {
+            $value = reset($named);
+
+            return is_numeric(key($named)) && $type instanceof \ReflectionNamedType && gettype($value) === $type->getName() ? array_shift($named) : null;
         };
 
         foreach ($fun->getParameters() as $parameter) {
@@ -1857,8 +1891,8 @@ SQL;
                 array_push($arguments, ...array_values($named));
             } elseif ($argument = $findInstance($this, $parameter->getType())) {
                 $arguments[] = $argument;
-            } elseif ($named) {
-                $arguments[] = array_splice($named, 0, 1)[0];
+            } elseif ($named && $argument = $shift($parameter->getType())) {
+                $arguments[] = $argument;
             } elseif ($parameter->isDefaultValueAvailable()) {
                 $arguments[] = $parameter->getDefaultValue();
             } elseif ($parameter->allowsNull()) {
@@ -1866,8 +1900,9 @@ SQL;
             } elseif (!$parameter->isOptional()) {
                 $required = $fun->getNumberOfParameters();
                 $resolved = count($arguments);
+                $callable = $fun instanceof \ReflectionMethod ? $fun->getDeclaringClass()->name . '::' . $fun->name : $fun->name;
 
-                throw new \ArgumentCountError("{$fun->name} expect at least {$required} parameters, {$resolved} resolved.");
+                throw new \ArgumentCountError("{$callable}() expect at least {$required} parameters, {$resolved} resolved.");
             }
         }
 
@@ -1881,16 +1916,23 @@ SQL;
         }
     }
 
-    protected function _set_method_override(): void
-    {
-        if ($this->hive['METHOD_OVERRIDE'] && ($override = $this->hive['POST'][$this->hive['METHOD_OVERRIDE_KEY']] ?? null)) {
-            $this->hive['METHOD'] = $override;
-        }
-    }
-
     protected function _set_method_override_key(): void
     {
         $this->_set_method_override();
+    }
+
+    protected function _set_method_override(): void
+    {
+        if ($this->hive['METHOD_OVERRIDE'] && ($override = $this->hive['POST'][$this->hive['METHOD_OVERRIDE_KEY']] ?? null)) {
+            $this->hive['METHOD'] = strtoupper($override);
+        }
+    }
+
+    protected function _set_method(): void
+    {
+        if (!ctype_upper($this->hive['METHOD'])) {
+            $this->hive['METHOD'] = strtoupper($this->hive['METHOD']);
+        }
     }
 
     protected function _set_tz(): void

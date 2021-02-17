@@ -11,12 +11,12 @@
 
 declare(strict_types=1);
 
-namespace Ekok\Stick\Event;
+namespace Fixtures;
 
-class ResponseEvent extends RequestEvent
+class Invokable
 {
-    public function __construct($response)
+    public function __invoke(...$arguments)
     {
-        $this->setResponse($response, false);
+        return $arguments;
     }
 }

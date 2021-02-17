@@ -1,30 +1,43 @@
 <?php
 
-use Ekok\Stick\Validation\Validator;
+/**
+ * This file is part of the eghojansu/stick library.
+ *
+ * (c) Eko Kurniawan <ekokurniawanbs@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
+declare(strict_types=1);
+
+namespace Ekok\Stick\Tests\Validation;
+
+use PHPUnit\Framework\TestCase;
 use Ekok\Stick\Validation\Context;
+use Ekok\Stick\Validation\Validator;
 use Ekok\Stick\Validation\ProviderInterface;
 
-describe('Validator Usage', function() {
-    it('should be customizable', function () {
-        $validator = new Validator();
-        $provider = $validator->getProviders()[0];
+class ValidatorTest extends TestCase
+{
+    /** @var Validator */
+    private $validator;
 
-        $provider->addMessages(array(
-            'foo' => 'bar',
-        ));
+    public function setUp(): void
+    {
+        $this->validator = new Validator();
+    }
 
-        expect($provider->getMessages())->to->contain->keys(array('foo'));
-    });
+    public function testGetProviders()
+    {
+        $providers = $this->validator->getProviders();
 
-    it('throws exception if rule is not defined', function () {
-        expect(function () {
-            (new Validator())->validate(array(
-                'foo' => 'bar',
-            ), array());
-        })->to->throw('InvalidArgumentException', 'Rule provider not found: bar.');
-    });
+        $this->assertCount(1, $providers);
+        $this->assertInstanceOf(ProviderInterface::class, $providers[0]);
+    }
 
-    it('can validate', function() {
+    public function testValidate()
+    {
         $base = array(
             'today' => date('Y-m-d'),
         );
@@ -200,15 +213,15 @@ describe('Validator Usage', function() {
             'ltrim' => 'foo ',
         );
 
-        $validator = new Validator();
-        $success = $validator->validate($rules, $data);
-        $result = $validator->getResult();
+        $success = $this->validator->validate($rules, $data);
+        $result = $this->validator->getResult();
 
-        expect($success)->to->be->true;
-        expect($result->getData())->to->be->equal($expected);
-    });
+        $this->assertTrue($success);
+        $this->assertEquals($expected, $result->getData());
+    }
 
-    it('can show violations', function () {
+    public function testValidateWithErrors()
+    {
         $today = date('Y-m-d', strtotime('today'));
         $tomorrow = date('Y-m-d', strtotime('tomorrow'));
 
@@ -231,15 +244,14 @@ describe('Validator Usage', function() {
             'before' => array("This value should be before '{$today}'."),
         );
 
-        $validator = new Validator();
-        $validator->getProviders()[0]->addMessage('starts_with', "{value} should starts with foo or bar.");
-        $success = $validator->validate($rules, $data);
-        $result = $validator->getResult();
+        $this->validator->getProviders()[0]->addMessage('starts_with', "{value} should starts with foo or bar.");
+        $success = $this->validator->validate($rules, $data);
+        $result = $this->validator->getResult();
 
-        expect($success)->to->be->false;
-        expect($result->invalid())->to->be->true;
-        expect($result->getErrors())->to->be->equal($expected);
-        expect($result->getError('required'))->to->be->equal($expected['required']);
+        $this->assertFalse($success);
+        $this->assertTrue($result->invalid());
+        $this->assertEquals($expected, $result->getErrors());
+        $this->assertEquals($expected['required'], $result->getError('required'));
 
         // enable options
         $options = array(
@@ -248,14 +260,15 @@ describe('Validator Usage', function() {
         $expected = array(
             'required' => array('This value should not be blank.'),
         );
-        $success = $validator->validate($rules, $data, $options);
-        $result = $validator->getResult();
+        $success = $this->validator->validate($rules, $data, $options);
+        $result = $this->validator->getResult();
 
-        expect($success)->to->be->false;
-        expect($result->getErrors())->to->be->equal($expected);
-    });
+        $this->assertFalse($success);
+        $this->assertEquals($expected, $result->getErrors());
+    }
 
-    it('can validate with dot style notation', function() {
+    public function testValidateWithDotStyle()
+    {
         $rules = array(
             'foo.*.name' => 'required|confirmed|string|min:3',
             'foo.*.age' => 'required|integer|min:15',
@@ -273,15 +286,15 @@ describe('Validator Usage', function() {
             ),
         );
 
-        $validator = new Validator();
-        $success = $validator->validate($rules, $data);
-        $result = $validator->getResult();
+        $success = $this->validator->validate($rules, $data);
+        $result = $this->validator->getResult();
 
-        expect($success)->to->be->true;
-        expect($result->getData())->to->be->equal($expected);
-    });
+        $this->assertTrue($success);
+        $this->assertEquals($expected, $result->getData());
+    }
 
-    it('can handle dot style validation, event it has violations', function () {
+    public function testValidateWithDotStyleErrors()
+    {
         $rules = array(
             'name' => 'required|string|min:5',
             'addresses.*.street' => 'required|string|min:3|ends_with:st',
@@ -312,12 +325,12 @@ describe('Validator Usage', function() {
                 'third',
             ),
         );
-        $validator = new Validator();
-        $success = $validator->validate($rules, $data);
-        $result = $validator->getResult();
 
-        expect($success)->to->be->true;
-        expect($result->getData())->to->be->equal($expected);
+        $success = $this->validator->validate($rules, $data);
+        $result = $this->validator->getResult();
+
+        $this->assertTrue($success);
+        $this->assertEquals($expected, $result->getData());
 
         // with invalid data
         $data = array(
@@ -335,14 +348,16 @@ describe('Validator Usage', function() {
                 0 => array('This value should not be blank.'),
             ),
         );
-        $success = $validator->validate($rules, $data);
-        $result = $validator->getResult();
 
-        expect($success)->to->be->false;
-        expect($result->getErrors())->to->be->equal($expected);
-    });
+        $success = $this->validator->validate($rules, $data);
+        $result = $this->validator->getResult();
 
-    it('able to handle nested dataset', function () {
+        $this->assertFalse($success);
+        $this->assertEquals($expected, $result->getErrors());
+    }
+
+    public function testValidateWithNestedDataset()
+    {
         $rules = array(
             'user.*.options.*.name' => 'required|min:3',
             'data.*.optional' => 'exclude_if:optional,null|optional|min:3',
@@ -368,12 +383,12 @@ describe('Validator Usage', function() {
             ),
             'data' => array(),
         );
-        $validator = new Validator();
-        $success = $validator->validate($rules, $data);
-        $result = $validator->getResult();
 
-        expect($success)->to->be->true;
-        expect($result->getData())->to->be->equal($expected);
+        $success = $this->validator->validate($rules, $data);
+        $result = $this->validator->getResult();
+
+        $this->assertTrue($success);
+        $this->assertEquals($expected, $result->getData());
 
         $data = array(
             'data' => array(
@@ -394,15 +409,17 @@ describe('Validator Usage', function() {
                 )
             )
         );
-        $success = $validator->validate($rules, $data);
-        $result = $validator->getResult();
 
-        expect($success)->to->be->false;
-        expect($result->getErrors())->to->be->equal($expected);
-    });
+        $success = $this->validator->validate($rules, $data);
+        $result = $this->validator->getResult();
 
-    it('can use validator context', function() {
-        $validator = (new Validator())->addProvider(new class implements ProviderInterface
+        $this->assertFalse($success);
+        $this->assertEquals($expected, $result->getErrors());
+    }
+
+    public function testValidateWithCustomProviders()
+    {
+        $this->validator->addProvider(new class implements ProviderInterface
         {
             public function check(string $rule): bool
             {
@@ -435,16 +452,17 @@ describe('Validator Usage', function() {
             'bar' => '12.03',
             'today' => new \DateTime('today'),
         );
-        $success = $validator->validate($rules, $data);
 
-        expect($success)->to->be->true;
+        $success = $this->validator->validate($rules, $data);
 
-        expect(function() use ($validator) {
-            $validator->validate(array(
-                'after' => 'after:today',
-            ), array(
-                'after' => 'not_a_date',
-            ));
-        })->to->throw('RuntimeException', "Both date should be valid date: after.");
-    });
-});
+        $this->assertTrue($success);
+    }
+
+    public function testValidateWithUnknownRule()
+    {
+        $this->expectException('InvalidArgumentException');
+        $this->expectExceptionMessage('Rule provider not found: foo.');
+
+        $this->validator->validate(array('foo' => 'foo'));
+    }
+}

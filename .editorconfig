@@ -11,6 +11,6 @@ insert_final_newline = false
 [*.php]
 insert_final_newline = true
 
-[specs/fixtures/templates/**/*]
+[tests/fixtures/templates/**/*]
 insert_final_newline = false
 indent_size = 2

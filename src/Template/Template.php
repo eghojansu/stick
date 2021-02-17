@@ -1,5 +1,15 @@
 <?php
 
+/**
+ * This file is part of the eghojansu/stick library.
+ *
+ * (c) Eko Kurniawan <ekokurniawanbs@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
+
 declare(strict_types=1);
 
 namespace Ekok\Stick\Template;
@@ -64,7 +74,7 @@ class Template
         return $this->options;
     }
 
-    public function setOptions(array $options): self
+    public function setOptions(array $options): static
     {
         foreach (array_intersect_key($options, $this->options) as $key => $value) {
             $this->options[$key] = $value;
@@ -78,14 +88,14 @@ class Template
         return $this->directories;
     }
 
-    public function addDirectory(string $directory, string $name = null): self
+    public function addDirectory(string $directory, string $name = null): static
     {
         $this->directories[$name ?? 'default'][] = Fw::normSlash($directory, true);
 
         return $this;
     }
 
-    public function addDirectories(array $directories): self
+    public function addDirectories(array $directories): static
     {
         foreach ($directories as $name => $directory) {
             $this->addDirectory($directory, is_numeric($name) ? null : $name);
@@ -99,7 +109,7 @@ class Template
         return $this->globals;
     }
 
-    public function addGlobal(string $name, $value): self
+    public function addGlobal(string $name, $value): static
     {
         if ($name === $this->options['thisVar']) {
             throw new \InvalidArgumentException("Variable name is reserved for *this*: {$name}.");
@@ -110,7 +120,7 @@ class Template
         return $this;
     }
 
-    public function addGlobals(array $globals): self
+    public function addGlobals(array $globals): static
     {
         foreach ($globals as $name => $value) {
             $this->addGlobal($name, $value);
@@ -119,7 +129,7 @@ class Template
         return $this;
     }
 
-    public function addFunction(string $name, callable $function): self
+    public function addFunction(string $name, callable $function): static
     {
         $this->functions[$name] = $function;
 
@@ -132,9 +142,9 @@ class Template
 
         foreach ($directories as $directory) {
             if (
-                file_exists($filepath = $directory . $file)
-                || file_exists($filepath = $directory . $file . '.' . $this->options['extension'])
-                || file_exists($filepath = $directory . strtr($file, '.', '/') . '.' . $this->options['extension'])
+                is_file($filepath = $directory . $file)
+                || is_file($filepath = $directory . $file . '.' . $this->options['extension'])
+                || is_file($filepath = $directory . strtr($file, '.', '/') . '.' . $this->options['extension'])
             ) {
                 return $filepath;
             }
@@ -165,7 +175,7 @@ class Template
         $result = $value;
 
         foreach (Fw::parseExpression($functions) as $function => $arguments) {
-            $result = $this->$function($value, ...$arguments);
+            $result = $this->$function($result, ...$arguments);
         }
 
         return $result;

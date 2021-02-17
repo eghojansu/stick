@@ -11,12 +11,16 @@
 
 declare(strict_types=1);
 
-namespace Ekok\Stick\Event;
+namespace Fixtures;
 
-class ResponseEvent extends RequestEvent
+use Ekok\Stick\Fw;
+
+class FwConsumer
 {
-    public function __construct($response)
+    public $fw;
+
+    public function __construct(Fw $fw)
     {
-        $this->setResponse($response, false);
+        $this->fw = $fw;
     }
 }

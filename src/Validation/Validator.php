@@ -1,5 +1,14 @@
 <?php
 
+/**
+ * This file is part of the eghojansu/stick library.
+ *
+ * (c) Eko Kurniawan <ekokurniawanbs@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 declare(strict_types=1);
 
 namespace Ekok\Stick\Validation;
@@ -22,14 +31,14 @@ class Validator
         return $this->providers;
     }
 
-    public function addProvider(ProviderInterface $provider): self
+    public function addProvider(ProviderInterface $provider): static
     {
         $this->providers[] = $provider;
 
         return $this;
     }
 
-    public function addProviders(array $providers): self
+    public function addProviders(array $providers): static
     {
         foreach ($providers as $provider) {
             $this->addProvider($provider);
